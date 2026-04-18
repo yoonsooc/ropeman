@@ -96,7 +96,7 @@
 		</div>
 		<button
 			class="analysis-pill-cancel"
-			title={i18nStore.t('confirmCancel')}
+			title={i18nStore.t('share.confirmCancel')}
 			onclick={handleCancel}
 			aria-label="Cancel analysis"
 		>
