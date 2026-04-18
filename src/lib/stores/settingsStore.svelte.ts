@@ -19,6 +19,7 @@ function createSettingsStore() {
 	let showSymbols = $state<boolean>(initial.showSymbols ?? false);
 	let bridgeCli = $state<BridgeCliId>(initial.bridgeCli ?? 'auto');
 	let codeFontSize = $state<number>(initial.codeFontSize ?? 13);
+	let customSkipPatterns = $state<string[]>(initial.customSkipPatterns ?? []);
 
 	function persist() {
 		if (typeof window !== 'undefined') {
@@ -38,7 +39,8 @@ function createSettingsStore() {
 					skipDrilldownConfirm,
 					showSymbols,
 					bridgeCli,
-					codeFontSize
+					codeFontSize,
+					customSkipPatterns
 				})
 			);
 		}
@@ -157,6 +159,14 @@ function createSettingsStore() {
 			persist();
 		},
 
+		get customSkipPatterns() {
+			return customSkipPatterns;
+		},
+		set customSkipPatterns(v: string[]) {
+			customSkipPatterns = v;
+			persist();
+		},
+
 		get hasApiKey() {
 			if (aiProvider === 'google') return geminiApiKey.length > 0;
 			if (aiProvider === 'anthropic') return anthropicApiKey.length > 0;
@@ -186,6 +196,7 @@ function createSettingsStore() {
 			showSymbols = false;
 			bridgeCli = 'auto';
 			codeFontSize = 13;
+			customSkipPatterns = [];
 			if (typeof window !== 'undefined') {
 				localStorage.removeItem('ropeman-settings');
 			}

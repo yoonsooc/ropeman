@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pathPriority, shouldSkipPath, SKIP_DIRS } from './filePriority';
+import { pathPriority, shouldSkipPath, SKIP_DIRS, getEffectiveSkipDirs } from './filePriority';
 
 describe('pathPriority', () => {
 	describe('GitHub tree paths (no repo prefix)', () => {
@@ -138,5 +138,51 @@ describe('shouldSkipPath', () => {
 		expect(shouldSkipPath('examples/')).toBe(true);
 		expect(shouldSkipPath('docs/')).toBe(true);
 		expect(shouldSkipPath('.git/')).toBe(true);
+	});
+
+	it('respects custom skipSet argument', () => {
+		const custom = new Set<string>(['target', 'generated']);
+		expect(shouldSkipPath('target/foo.rs', custom)).toBe(true);
+		expect(shouldSkipPath('generated/bar.ts', custom)).toBe(true);
+		// node_modules not in custom set → not skipped when only custom used
+		expect(shouldSkipPath('node_modules/x/y.js', custom)).toBe(false);
+	});
+});
+
+describe('getEffectiveSkipDirs', () => {
+	it('returns defaults when customPatterns is empty', () => {
+		const effective = getEffectiveSkipDirs([]);
+		expect(effective.size).toBe(SKIP_DIRS.size);
+		expect(effective.has('node_modules')).toBe(true);
+		expect(effective.has('.git')).toBe(true);
+	});
+
+	it('merges defaults with custom patterns', () => {
+		const effective = getEffectiveSkipDirs(['target', 'third_party']);
+		expect(effective.has('target')).toBe(true);
+		expect(effective.has('third_party')).toBe(true);
+		expect(effective.has('node_modules')).toBe(true);
+		expect(effective.size).toBe(SKIP_DIRS.size + 2);
+	});
+
+	it('trims whitespace and removes empty entries', () => {
+		const effective = getEffectiveSkipDirs(['  target  ', '', '   ', 'generated']);
+		expect(effective.has('target')).toBe(true);
+		expect(effective.has('generated')).toBe(true);
+		expect(effective.has('')).toBe(false);
+		expect(effective.size).toBe(SKIP_DIRS.size + 2);
+	});
+
+	it('does not mutate SKIP_DIRS', () => {
+		const before = SKIP_DIRS.size;
+		getEffectiveSkipDirs(['target']);
+		expect(SKIP_DIRS.size).toBe(before);
+		expect(SKIP_DIRS.has('target')).toBe(false);
+	});
+
+	it('shouldSkipPath uses effective set to exclude target/', () => {
+		const effective = getEffectiveSkipDirs(['target']);
+		expect(shouldSkipPath('target/debug/foo.rs', effective)).toBe(true);
+		expect(shouldSkipPath('target/debug/foo.rs')).toBe(false); // defaults only
 	});
 });

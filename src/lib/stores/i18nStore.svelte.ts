@@ -161,6 +161,10 @@ interface TranslationSet {
 	settingsSkeletonLimit: string;
 	settingsSkeletonUnlimited: string;
 	settingsSkeletonHint: string;
+	settingsCustomSkipPatterns: string;
+	settingsCustomSkipPatternsPlaceholder: string;
+	settingsCustomSkipPatternsHint: string;
+	analysisLeaveConfirm: string;
 	settingsLanguage: string;
 	settingsReset: string;
 	settingsAiNotConnected: string;
@@ -221,6 +225,11 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsSkeletonUnlimited: '무제한',
 		settingsSkeletonHint:
 			'AI 분석 시 전송되는 코드 구조 요약(메타데이터)의 최대 크기. 큰 프로젝트에서 API 오류 발생 시 줄이세요. (기본: 250KB)',
+		settingsCustomSkipPatterns: '추가 제외 디렉토리',
+		settingsCustomSkipPatternsPlaceholder: '1줄 1개, 예:\ntarget\nthird_party',
+		settingsCustomSkipPatternsHint:
+			'기본 제외 목록에 추가로 제외할 디렉토리 이름. 대형 모노레포나 생성된 코드 디렉토리를 분석 대상에서 빼고 싶을 때 사용합니다.',
+		analysisLeaveConfirm: '분석이 진행 중입니다. 페이지를 떠나면 취소됩니다. 계속하시겠어요?',
 		settingsLanguage: '언어',
 		settingsReset: '초기화',
 		settingsAiNotConnected: '미연결',
@@ -451,6 +460,11 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsSkeletonUnlimited: 'Unlimited',
 		settingsSkeletonHint:
 			'Max size of the code structure summary (metadata) sent during AI analysis. Reduce for large projects if API errors occur. (Default: 250KB)',
+		settingsCustomSkipPatterns: 'Additional Excluded Directories',
+		settingsCustomSkipPatternsPlaceholder: 'One per line, e.g.:\ntarget\nthird_party',
+		settingsCustomSkipPatternsHint:
+			'Directory names to exclude in addition to the built-in list. Useful for large monorepos or generated code directories.',
+		analysisLeaveConfirm: 'Analysis is in progress. Leaving will cancel it. Continue?',
 		settingsLanguage: 'Language',
 		settingsReset: 'Reset',
 		settingsAiNotConnected: 'Not Connected',

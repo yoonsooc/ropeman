@@ -113,15 +113,28 @@ export function sortFileTree(root: import('$lib/types/fileTree').FileNode): void
 
 /**
  * Check if a file path should be skipped based on directory skip patterns.
- * Returns true if any path segment matches SKIP_DIRS or is hidden.
+ * Returns true if any path segment matches skipSet or is hidden.
  */
-export function shouldSkipPath(filePath: string): boolean {
+export function shouldSkipPath(filePath: string, skipSet: Set<string> = SKIP_DIRS): boolean {
 	const segments = filePath.split('/');
 	for (let i = 0; i < segments.length - 1; i++) {
 		const seg = segments[i];
-		if (SKIP_DIRS.has(seg)) return true;
+		if (skipSet.has(seg)) return true;
 		if (seg.startsWith('.') && seg !== '.env') return true;
 		if (seg.endsWith('.egg-info')) return true;
 	}
 	return false;
+}
+
+/**
+ * Merge default SKIP_DIRS with user-provided custom patterns.
+ * Trims whitespace and removes empty entries. Pure function — no store dependency.
+ */
+export function getEffectiveSkipDirs(customPatterns: string[]): Set<string> {
+	const merged = new Set(SKIP_DIRS);
+	for (const raw of customPatterns) {
+		const trimmed = raw.trim();
+		if (trimmed) merged.add(trimmed);
+	}
+	return merged;
 }
