@@ -1,9 +1,18 @@
 export type AIProviderId = 'google' | 'anthropic' | 'openai';
 export type BridgeCliId = 'claude' | 'gemini' | 'auto';
 
+function loadStoredSettings() {
+	if (typeof window === 'undefined') return {};
+	try {
+		const raw = localStorage.getItem('ropeman-settings');
+		return raw ? JSON.parse(raw) : {};
+	} catch {
+		return {};
+	}
+}
+
 function createSettingsStore() {
-	const stored = typeof window !== 'undefined' ? localStorage.getItem('ropeman-settings') : null;
-	const initial = stored ? JSON.parse(stored) : {};
+	const initial = loadStoredSettings();
 
 	let geminiApiKey = $state<string>(initial.geminiApiKey ?? '');
 	let anthropicApiKey = $state<string>(initial.anthropicApiKey ?? '');

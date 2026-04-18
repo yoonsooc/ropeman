@@ -165,6 +165,8 @@ interface TranslationSet {
 	settingsCustomSkipPatternsPlaceholder: string;
 	settingsCustomSkipPatternsHint: string;
 	analysisLeaveConfirm: string;
+	analysisCompleted: string;
+	analysisFailed: string;
 	settingsLanguage: string;
 	settingsReset: string;
 	settingsAiNotConnected: string;
@@ -230,6 +232,8 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsCustomSkipPatternsHint:
 			'기본 제외 목록에 추가로 제외할 디렉토리 이름. 대형 모노레포나 생성된 코드 디렉토리를 분석 대상에서 빼고 싶을 때 사용합니다.',
 		analysisLeaveConfirm: '분석이 진행 중입니다. 페이지를 떠나면 취소됩니다. 계속하시겠어요?',
+		analysisCompleted: '분석 완료',
+		analysisFailed: '분석 실패',
 		settingsLanguage: '언어',
 		settingsReset: '초기화',
 		settingsAiNotConnected: '미연결',
@@ -465,6 +469,8 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsCustomSkipPatternsHint:
 			'Directory names to exclude in addition to the built-in list. Useful for large monorepos or generated code directories.',
 		analysisLeaveConfirm: 'Analysis is in progress. Leaving will cancel it. Continue?',
+		analysisCompleted: 'Analysis complete',
+		analysisFailed: 'Analysis failed',
 		settingsLanguage: 'Language',
 		settingsReset: 'Reset',
 		settingsAiNotConnected: 'Not Connected',

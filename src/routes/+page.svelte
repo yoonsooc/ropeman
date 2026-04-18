@@ -293,6 +293,8 @@
 	// Dev-only: auto-load test project from ?testDir= URL parameter
 	onMount(() => {
 		// Register action handlers so the global AnalysisStatus can open these modals
+		// Clear first to avoid stale handlers from any prior mount
+		analysisUiStore.clearActionHandlers();
 		analysisUiStore.registerActionHandlers({
 			openSettings: () => (showSettings = true),
 			openAnalyze: () => (showAnalyze = true)

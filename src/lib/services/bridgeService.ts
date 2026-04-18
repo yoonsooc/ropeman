@@ -187,7 +187,16 @@ export function sendViaBridge(
 		}
 
 		const id = ++messageId;
-		pendingRequests.set(id, { resolve, reject });
+		const cleanupAbort = () => signal?.removeEventListener('abort', onAbort);
+		const wrappedResolve = (v: string) => {
+			cleanupAbort();
+			resolve(v);
+		};
+		const wrappedReject = (e: Error) => {
+			cleanupAbort();
+			reject(e);
+		};
+		pendingRequests.set(id, { resolve: wrappedResolve, reject: wrappedReject });
 
 		const onAbort = () => {
 			if (pendingRequests.has(id)) {
@@ -203,7 +212,7 @@ export function sendViaBridge(
 		setTimeout(() => {
 			if (pendingRequests.has(id)) {
 				pendingRequests.delete(id);
-				signal?.removeEventListener('abort', onAbort);
+				cleanupAbort();
 				reject(new Error('Bridge request timeout'));
 			}
 		}, 300000);

@@ -48,7 +48,9 @@
 			Notification.permission === 'granted'
 		) {
 			try {
-				const body = c.type === 'success' ? `${c.nodeLabel} 분석 완료` : `${c.nodeLabel} 분석 실패`;
+				const suffix =
+					c.type === 'success' ? i18nStore.t('analysisCompleted') : i18nStore.t('analysisFailed');
+				const body = `${c.nodeLabel} — ${suffix}`;
 				new Notification('Ropeman', { body, tag: 'ropeman-analysis' });
 			} catch {
 				// ignore notification failures
@@ -127,7 +129,9 @@
 {#if completionVisible && semanticStore.lastCompletion?.type === 'success'}
 	<div class="analysis-success-toast">
 		<span class="material-symbols-outlined">check_circle</span>
-		<span class="analysis-success-text">{semanticStore.lastCompletion.nodeLabel} 분석 완료</span>
+		<span class="analysis-success-text"
+			>{semanticStore.lastCompletion.nodeLabel} — {i18nStore.t('analysisCompleted')}</span
+		>
 	</div>
 {/if}
 
