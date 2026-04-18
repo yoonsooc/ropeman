@@ -171,8 +171,16 @@ export function connectBridge(port: number = 9800): Promise<void> {
 	});
 }
 
-export function sendViaBridge(message: string, cli?: string): Promise<string> {
+export function sendViaBridge(
+	message: string,
+	cli?: string,
+	signal?: AbortSignal
+): Promise<string> {
 	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			reject(new DOMException('Aborted', 'AbortError'));
+			return;
+		}
 		if (!ws || ws.readyState !== WebSocket.OPEN) {
 			reject(new Error('Bridge not connected'));
 			return;
@@ -181,12 +189,21 @@ export function sendViaBridge(message: string, cli?: string): Promise<string> {
 		const id = ++messageId;
 		pendingRequests.set(id, { resolve, reject });
 
+		const onAbort = () => {
+			if (pendingRequests.has(id)) {
+				pendingRequests.delete(id);
+				reject(new DOMException('Aborted', 'AbortError'));
+			}
+		};
+		signal?.addEventListener('abort', onAbort, { once: true });
+
 		ws.send(JSON.stringify({ id, type: 'chat', message, cli }));
 
 		// Timeout after 5 minutes (CLI subprocess can be slow for large projects)
 		setTimeout(() => {
 			if (pendingRequests.has(id)) {
 				pendingRequests.delete(id);
+				signal?.removeEventListener('abort', onAbort);
 				reject(new Error('Bridge request timeout'));
 			}
 		}, 300000);
