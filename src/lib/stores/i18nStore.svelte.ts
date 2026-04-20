@@ -167,6 +167,12 @@ interface TranslationSet {
 	analysisLeaveConfirm: string;
 	analysisCompleted: string;
 	analysisFailed: string;
+	analysisCancelLabel: string;
+	analysisCancelConfirmTitle: string;
+	analysisCancelConfirmMessage: string;
+	analysisCancelConfirmOk: string;
+	analysisCancelConfirmBack: string;
+	dontAskAgain: string;
 	settingsLanguage: string;
 	settingsReset: string;
 	settingsAiNotConnected: string;
@@ -234,6 +240,13 @@ const translations: Record<Locale, TranslationSet> = {
 		analysisLeaveConfirm: '분석이 진행 중입니다. 페이지를 떠나면 취소됩니다. 계속하시겠어요?',
 		analysisCompleted: '분석 완료',
 		analysisFailed: '분석 실패',
+		analysisCancelLabel: '취소',
+		analysisCancelConfirmTitle: '분석 취소',
+		analysisCancelConfirmMessage:
+			'진행 중인 AI 분석을 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+		analysisCancelConfirmOk: '분석 취소',
+		analysisCancelConfirmBack: '계속 진행',
+		dontAskAgain: '다시 묻지 않기',
 		settingsLanguage: '언어',
 		settingsReset: '초기화',
 		settingsAiNotConnected: '미연결',
@@ -471,6 +484,13 @@ const translations: Record<Locale, TranslationSet> = {
 		analysisLeaveConfirm: 'Analysis is in progress. Leaving will cancel it. Continue?',
 		analysisCompleted: 'Analysis complete',
 		analysisFailed: 'Analysis failed',
+		analysisCancelLabel: 'Cancel',
+		analysisCancelConfirmTitle: 'Cancel Analysis',
+		analysisCancelConfirmMessage:
+			'Cancel the ongoing AI analysis? All progress so far will be discarded.',
+		analysisCancelConfirmOk: 'Cancel Analysis',
+		analysisCancelConfirmBack: 'Keep Running',
+		dontAskAgain: "Don't ask again",
 		settingsLanguage: 'Language',
 		settingsReset: 'Reset',
 		settingsAiNotConnected: 'Not Connected',

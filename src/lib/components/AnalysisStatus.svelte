@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
+	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { analysisUiStore } from '$lib/stores/analysisUiStore.svelte';
 	import { classifyAIError, getAIErrorInfo, type AIErrorInfo } from '$lib/types/ai';
 
 	let errorDismissed = $state(false);
 	let errorDismissTimer: ReturnType<typeof setTimeout> | null = null;
 	let currentErrorInfo = $state<AIErrorInfo | null>(null);
+
+	let showCancelConfirm = $state(false);
+	let cancelDontAskAgain = $state(false);
 
 	// Completion toast (success/error) — auto-dismiss after 3s
 	let completionVisible = $state(false);
@@ -77,11 +81,44 @@
 		}
 	}
 
-	function handleCancel() {
-		const entries = [...semanticStore.analysisRequests.values()];
-		if (entries.length === 0) return;
-		const latest = entries[entries.length - 1];
-		semanticStore.cancelAnalysisRequest(latest.nodeId);
+	function cancelAllRequests() {
+		for (const req of semanticStore.analysisRequests.values()) {
+			semanticStore.cancelAnalysisRequest(req.nodeId);
+		}
+	}
+
+	function handleCancelClick() {
+		if (semanticStore.analysisRequests.size === 0) return;
+		if (settingsStore.skipAnalysisCancelConfirm) {
+			cancelAllRequests();
+		} else {
+			cancelDontAskAgain = false;
+			showCancelConfirm = true;
+		}
+	}
+
+	function confirmCancel() {
+		if (cancelDontAskAgain) {
+			settingsStore.skipAnalysisCancelConfirm = true;
+		}
+		showCancelConfirm = false;
+		cancelAllRequests();
+	}
+
+	function closeCancelConfirm() {
+		showCancelConfirm = false;
+		cancelDontAskAgain = false;
+	}
+
+	function handleCancelModalKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') closeCancelConfirm();
+		if (e.key === 'Enter') confirmCancel();
+	}
+
+	function handleCancelBackdropClick(e: MouseEvent) {
+		if ((e.target as HTMLElement).classList.contains('cancel-confirm-backdrop')) {
+			closeCancelConfirm();
+		}
 	}
 </script>
 
@@ -96,12 +133,41 @@
 		</div>
 		<button
 			class="analysis-pill-cancel"
-			title={i18nStore.t('share.confirmCancel')}
-			onclick={handleCancel}
-			aria-label="Cancel analysis"
+			onclick={handleCancelClick}
+			aria-label={i18nStore.t('analysisCancelConfirmTitle')}
 		>
-			<span class="material-symbols-outlined">close</span>
+			<span class="material-symbols-outlined">stop_circle</span>
+			<span class="cancel-label">{i18nStore.t('analysisCancelLabel')}</span>
 		</button>
+	</div>
+{/if}
+
+{#if showCancelConfirm}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="modal-backdrop cancel-confirm-backdrop"
+		onclick={handleCancelBackdropClick}
+		onkeydown={handleCancelModalKeydown}
+	>
+		<div class="modal-card cancel-confirm-card" role="dialog" aria-modal="true">
+			<div class="cancel-confirm-header">
+				<span class="material-symbols-outlined cancel-confirm-icon">stop_circle</span>
+				<span class="cancel-confirm-title">{i18nStore.t('analysisCancelConfirmTitle')}</span>
+			</div>
+			<p class="cancel-confirm-msg">{i18nStore.t('analysisCancelConfirmMessage')}</p>
+			<label class="dont-ask">
+				<input type="checkbox" bind:checked={cancelDontAskAgain} />
+				{i18nStore.t('dontAskAgain')}
+			</label>
+			<div class="cancel-confirm-actions">
+				<button class="btn btn-secondary cancel-confirm-btn" onclick={closeCancelConfirm}
+					>{i18nStore.t('analysisCancelConfirmBack')}</button
+				>
+				<button class="btn btn-danger cancel-confirm-btn" onclick={confirmCancel}
+					>{i18nStore.t('analysisCancelConfirmOk')}</button
+				>
+			</div>
+		</div>
 	</div>
 {/if}
 
@@ -210,23 +276,99 @@
 	.analysis-pill-cancel {
 		display: flex;
 		align-items: center;
-		background: none;
-		border: none;
-		padding: 2px;
+		gap: 4px;
+		background: rgba(239, 68, 68, 0.15);
+		border: 1px solid rgba(239, 68, 68, 0.4);
+		padding: 3px 10px 3px 6px;
 		margin-left: 4px;
 		cursor: pointer;
-		color: var(--text-secondary);
-		opacity: 0.7;
+		color: #ff8585;
 		flex-shrink: 0;
-		border-radius: 4px;
+		border-radius: 9999px;
+		font-size: 11px;
+		font-weight: 600;
+		font-family: var(--font-display);
+		transition:
+			background 0.15s ease,
+			color 0.15s ease;
 	}
 	.analysis-pill-cancel:hover {
-		opacity: 1;
-		color: var(--text-primary);
-		background: rgba(255, 255, 255, 0.08);
+		background: rgba(239, 68, 68, 0.9);
+		color: #fff;
+		border-color: rgba(239, 68, 68, 1);
 	}
 	.analysis-pill-cancel :global(.material-symbols-outlined) {
 		font-size: 14px;
+	}
+	.cancel-label {
+		letter-spacing: 0.03em;
+	}
+
+	/* Cancel confirm modal */
+	.cancel-confirm-backdrop {
+		z-index: 1100;
+	}
+	.cancel-confirm-card {
+		padding: 20px;
+		width: 340px;
+		border-radius: 8px;
+	}
+	.cancel-confirm-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 12px;
+	}
+	.cancel-confirm-icon {
+		font-size: 20px;
+		color: #ef4444;
+	}
+	.cancel-confirm-title {
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--text-primary);
+		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+	}
+	.cancel-confirm-msg {
+		font-size: 12px;
+		color: var(--text-secondary);
+		margin: 0 0 16px;
+		line-height: 1.6;
+	}
+	.dont-ask {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 10px;
+		color: var(--text-muted);
+		cursor: pointer;
+		margin-bottom: 16px;
+	}
+	.dont-ask input {
+		width: 12px;
+		height: 12px;
+		accent-color: var(--accent);
+		border-radius: 4px;
+	}
+	.cancel-confirm-actions {
+		display: flex;
+		gap: 8px;
+	}
+	.cancel-confirm-btn {
+		padding: 7px 0;
+		flex: 1;
+		font-size: 11px;
+		font-weight: 700;
+		border-radius: 4px;
+	}
+	:global(.cancel-confirm-card .btn-danger) {
+		background: #ef4444;
+		color: #fff;
+		border: 1px solid #ef4444;
+	}
+	:global(.cancel-confirm-card .btn-danger:hover) {
+		background: #dc2626;
+		border-color: #dc2626;
 	}
 
 	.analysis-error-toast {
