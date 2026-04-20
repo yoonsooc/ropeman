@@ -170,8 +170,12 @@ interface TranslationSet {
 	analysisCancelLabel: string;
 	analysisCancelConfirmTitle: string;
 	analysisCancelConfirmMessage: string;
+	analysisCancelConfirmMessageSingle: string;
+	analysisCancelConfirmMessageAll: string;
 	analysisCancelConfirmOk: string;
 	analysisCancelConfirmBack: string;
+	analysisCancelAll: string;
+	analysisGroupRunning: string;
 	dontAskAgain: string;
 	settingsLanguage: string;
 	settingsReset: string;
@@ -244,8 +248,14 @@ const translations: Record<Locale, TranslationSet> = {
 		analysisCancelConfirmTitle: '분석 취소',
 		analysisCancelConfirmMessage:
 			'진행 중인 AI 분석을 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+		analysisCancelConfirmMessageSingle:
+			'{label} 분석을 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+		analysisCancelConfirmMessageAll:
+			'진행 중인 {count}개 분석 전부를 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
 		analysisCancelConfirmOk: '분석 취소',
 		analysisCancelConfirmBack: '계속 진행',
+		analysisCancelAll: '전체 취소',
+		analysisGroupRunning: '{count}개 분석 중',
 		dontAskAgain: '다시 묻지 않기',
 		settingsLanguage: '언어',
 		settingsReset: '초기화',
@@ -488,8 +498,14 @@ const translations: Record<Locale, TranslationSet> = {
 		analysisCancelConfirmTitle: 'Cancel Analysis',
 		analysisCancelConfirmMessage:
 			'Cancel the ongoing AI analysis? All progress so far will be discarded.',
+		analysisCancelConfirmMessageSingle:
+			'Cancel the "{label}" analysis? All progress will be discarded.',
+		analysisCancelConfirmMessageAll:
+			'Cancel all {count} running analyses? All progress will be discarded.',
 		analysisCancelConfirmOk: 'Cancel Analysis',
 		analysisCancelConfirmBack: 'Keep Running',
+		analysisCancelAll: 'Cancel All',
+		analysisGroupRunning: '{count} analyses running',
 		dontAskAgain: "Don't ask again",
 		settingsLanguage: 'Language',
 		settingsReset: 'Reset',

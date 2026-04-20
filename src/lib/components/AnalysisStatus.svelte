@@ -5,12 +5,34 @@
 	import { analysisUiStore } from '$lib/stores/analysisUiStore.svelte';
 	import { classifyAIError, getAIErrorInfo, type AIErrorInfo } from '$lib/types/ai';
 
+	const MAX_VISIBLE_PILLS = 3;
+	const PILL_BOTTOM_BASE = 80;
+	const PILL_SPACING = 56;
+
 	let errorDismissed = $state(false);
 	let errorDismissTimer: ReturnType<typeof setTimeout> | null = null;
 	let currentErrorInfo = $state<AIErrorInfo | null>(null);
 
+	// Cancel confirm modal state
+	type CancelTarget = { mode: 'single'; nodeId: string; nodeLabel: string } | { mode: 'all' };
 	let showCancelConfirm = $state(false);
+	let cancelTarget = $state<CancelTarget | null>(null);
 	let cancelDontAskAgain = $state(false);
+
+	// Group pill is "sticky": once activated (size > MAX), remains until size === 0
+	let groupActive = $state(false);
+	let groupExpanded = $state(false);
+
+	$effect(() => {
+		const size = semanticStore.analysisRequests.size;
+		if (size > MAX_VISIBLE_PILLS && !groupActive) {
+			groupActive = true;
+		}
+		if (size === 0) {
+			groupActive = false;
+			groupExpanded = false;
+		}
+	});
 
 	// Completion toast (success/error) — auto-dismiss after 3s
 	let completionVisible = $state(false);
@@ -81,32 +103,44 @@
 		}
 	}
 
-	function cancelAllRequests() {
+	function cancelSingle(nodeId: string) {
+		semanticStore.cancelAnalysisRequest(nodeId);
+	}
+
+	function cancelAll() {
 		for (const req of semanticStore.analysisRequests.values()) {
 			semanticStore.cancelAnalysisRequest(req.nodeId);
 		}
 	}
 
-	function handleCancelClick() {
-		if (semanticStore.analysisRequests.size === 0) return;
+	function performCancel(target: CancelTarget) {
+		if (target.mode === 'single') cancelSingle(target.nodeId);
+		else cancelAll();
+	}
+
+	function openCancelConfirm(target: CancelTarget) {
 		if (settingsStore.skipAnalysisCancelConfirm) {
-			cancelAllRequests();
-		} else {
-			cancelDontAskAgain = false;
-			showCancelConfirm = true;
+			performCancel(target);
+			return;
 		}
+		cancelTarget = target;
+		cancelDontAskAgain = false;
+		showCancelConfirm = true;
 	}
 
 	function confirmCancel() {
 		if (cancelDontAskAgain) {
 			settingsStore.skipAnalysisCancelConfirm = true;
 		}
+		const t = cancelTarget;
 		showCancelConfirm = false;
-		cancelAllRequests();
+		cancelTarget = null;
+		if (t) performCancel(t);
 	}
 
 	function closeCancelConfirm() {
 		showCancelConfirm = false;
+		cancelTarget = null;
 		cancelDontAskAgain = false;
 	}
 
@@ -120,24 +154,89 @@
 			closeCancelConfirm();
 		}
 	}
+
+	function toggleGroup() {
+		groupExpanded = !groupExpanded;
+	}
+
+	// Derived: ordered list of requests
+	const requests = $derived([...semanticStore.analysisRequests.values()]);
+	const showIndividualPills = $derived(requests.length > 0 && (!groupActive || groupExpanded));
+	const showGroupPill = $derived(groupActive);
+
+	// i18n helpers
+	function formatMsg(key: string, params: Record<string, string | number>): string {
+		let s = i18nStore.t(key);
+		for (const [k, v] of Object.entries(params)) {
+			s = s.replace(`{${k}}`, String(v));
+		}
+		return s;
+	}
+
+	const cancelConfirmMessage = $derived.by(() => {
+		if (!cancelTarget) return '';
+		if (cancelTarget.mode === 'single') {
+			return formatMsg('analysisCancelConfirmMessageSingle', { label: cancelTarget.nodeLabel });
+		}
+		return formatMsg('analysisCancelConfirmMessageAll', { count: requests.length });
+	});
 </script>
 
-{#if semanticStore.isAnalyzing}
-	<div class="analysis-progress-pill">
+{#if showIndividualPills}
+	{#each requests as req, i (req.nodeId)}
+		<div
+			class="analysis-progress-pill"
+			style:bottom="{PILL_BOTTOM_BASE + (groupActive ? PILL_SPACING : 0) + i * PILL_SPACING}px"
+		>
+			<span class="material-symbols-outlined analysis-pill-icon">auto_awesome</span>
+			<div class="analysis-pill-content">
+				<span class="analysis-pill-title">AI Analysis in Progress</span>
+				<span class="analysis-pill-subtitle">
+					{req.progress ? `[${req.nodeLabel}] ${req.progress}` : req.nodeLabel}
+				</span>
+			</div>
+			<button
+				class="analysis-pill-cancel"
+				onclick={() =>
+					openCancelConfirm({ mode: 'single', nodeId: req.nodeId, nodeLabel: req.nodeLabel })}
+				aria-label={i18nStore.t('analysisCancelConfirmTitle')}
+			>
+				<span class="material-symbols-outlined">stop_circle</span>
+				<span class="cancel-label">{i18nStore.t('analysisCancelLabel')}</span>
+			</button>
+		</div>
+	{/each}
+{/if}
+
+{#if showGroupPill}
+	<div class="analysis-progress-pill group-pill" style:bottom="{PILL_BOTTOM_BASE}px">
 		<span class="material-symbols-outlined analysis-pill-icon">auto_awesome</span>
 		<div class="analysis-pill-content">
-			<span class="analysis-pill-title">AI Analysis in Progress</span>
-			<span class="analysis-pill-subtitle">
-				{semanticStore.analysisProgress || i18nStore.t('analyzing')}
-			</span>
+			<span class="analysis-pill-title"
+				>{formatMsg('analysisGroupRunning', { count: requests.length })}</span
+			>
+			{#if !groupExpanded && requests.length > 0}
+				<span class="analysis-pill-subtitle">
+					{semanticStore.analysisProgress || i18nStore.t('analyzing')}
+				</span>
+			{/if}
 		</div>
 		<button
+			class="group-toggle-btn"
+			onclick={toggleGroup}
+			aria-label={groupExpanded ? 'Collapse' : 'Expand'}
+		>
+			<span class="material-symbols-outlined"
+				>{groupExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_up'}</span
+			>
+		</button>
+		<button
 			class="analysis-pill-cancel"
-			onclick={handleCancelClick}
-			aria-label={i18nStore.t('analysisCancelConfirmTitle')}
+			onclick={() => openCancelConfirm({ mode: 'all' })}
+			aria-label={i18nStore.t('analysisCancelAll')}
 		>
 			<span class="material-symbols-outlined">stop_circle</span>
-			<span class="cancel-label">{i18nStore.t('analysisCancelLabel')}</span>
+			<span class="cancel-label">{i18nStore.t('analysisCancelAll')}</span>
 		</button>
 	</div>
 {/if}
@@ -154,7 +253,7 @@
 				<span class="material-symbols-outlined cancel-confirm-icon">stop_circle</span>
 				<span class="cancel-confirm-title">{i18nStore.t('analysisCancelConfirmTitle')}</span>
 			</div>
-			<p class="cancel-confirm-msg">{i18nStore.t('analysisCancelConfirmMessage')}</p>
+			<p class="cancel-confirm-msg">{cancelConfirmMessage}</p>
 			<label class="dont-ask">
 				<input type="checkbox" bind:checked={cancelDontAskAgain} />
 				{i18nStore.t('dontAskAgain')}
@@ -204,7 +303,6 @@
 <style>
 	.analysis-progress-pill {
 		position: fixed;
-		bottom: 80px;
 		right: 24px;
 		display: flex;
 		align-items: center;
@@ -219,6 +317,12 @@
 			0 10px 15px -3px rgba(0, 0, 0, 0.3),
 			0 4px 6px -4px rgba(0, 0, 0, 0.2);
 		animation: pillFadeIn 0.2s ease;
+		transition: bottom 0.15s ease;
+	}
+
+	.group-pill {
+		border-color: rgba(172, 138, 255, 0.5);
+		z-index: 51;
 	}
 
 	@keyframes pillFadeIn {
@@ -304,6 +408,26 @@
 		letter-spacing: 0.03em;
 	}
 
+	.group-toggle-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: none;
+		border: none;
+		padding: 2px;
+		cursor: pointer;
+		color: var(--text-secondary);
+		border-radius: 4px;
+		flex-shrink: 0;
+	}
+	.group-toggle-btn:hover {
+		color: var(--text-primary);
+		background: rgba(255, 255, 255, 0.08);
+	}
+	.group-toggle-btn :global(.material-symbols-outlined) {
+		font-size: 16px;
+	}
+
 	/* Cancel confirm modal */
 	.cancel-confirm-backdrop {
 		z-index: 1100;
@@ -382,7 +506,7 @@
 		background: rgba(239, 68, 68, 0.9);
 		border: 1px solid rgba(239, 68, 68, 1);
 		border-radius: 8px;
-		z-index: 51;
+		z-index: 53;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 		animation: pillFadeIn 0.2s ease;
 		max-width: 360px;
@@ -452,7 +576,7 @@
 		background: rgba(34, 197, 94, 0.92);
 		border: 1px solid rgba(34, 197, 94, 1);
 		border-radius: 9999px;
-		z-index: 52;
+		z-index: 54;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 		animation: pillFadeIn 0.2s ease;
 	}
