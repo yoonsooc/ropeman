@@ -12,6 +12,8 @@
 	let errorDismissed = $state(false);
 	let errorDismissTimer: ReturnType<typeof setTimeout> | null = null;
 	let currentErrorInfo = $state<AIErrorInfo | null>(null);
+	// Non-reactive: used inside $effect to dedupe on analysisError change without self-triggering
+	let lastErrorMsg: string | null = null;
 
 	// Cancel confirm modal state
 	type CancelTarget = { mode: 'single'; nodeId: string; nodeLabel: string } | { mode: 'all' };
@@ -37,23 +39,22 @@
 	// Completion toast (success/error) — auto-dismiss after 3s
 	let completionVisible = $state(false);
 	let completionTimer: ReturnType<typeof setTimeout> | null = null;
-	let lastCompletionAt = $state(0);
+	// Non-reactive: tracking last seen completion.at without being an effect dep
+	let lastCompletionAt = 0;
 
 	$effect(() => {
 		const rawMsg = semanticStore.analysisError;
-		if (rawMsg) {
-			const errorType = classifyAIError(rawMsg);
-			currentErrorInfo = getAIErrorInfo(errorType, rawMsg);
-			errorDismissed = false;
-			if (errorDismissTimer) clearTimeout(errorDismissTimer);
-			const dismissDelay = currentErrorInfo.actions.length > 0 ? 15000 : 5000;
-			errorDismissTimer = setTimeout(() => {
-				errorDismissed = true;
-			}, dismissDelay);
-		}
-		return () => {
-			if (errorDismissTimer) clearTimeout(errorDismissTimer);
-		};
+		if (!rawMsg || rawMsg === lastErrorMsg) return;
+		lastErrorMsg = rawMsg;
+		const errorType = classifyAIError(rawMsg);
+		const info = getAIErrorInfo(errorType, rawMsg);
+		currentErrorInfo = info;
+		errorDismissed = false;
+		if (errorDismissTimer) clearTimeout(errorDismissTimer);
+		const dismissDelay = info.actions.length > 0 ? 15000 : 5000;
+		errorDismissTimer = setTimeout(() => {
+			errorDismissed = true;
+		}, dismissDelay);
 	});
 
 	$effect(() => {
@@ -82,16 +83,13 @@
 				// ignore notification failures
 			}
 		}
-
-		return () => {
-			if (completionTimer) clearTimeout(completionTimer);
-		};
 	});
 
 	function dismissError() {
 		errorDismissed = true;
 		semanticStore.analysisError = null;
 		currentErrorInfo = null;
+		lastErrorMsg = null;
 	}
 
 	function handleErrorAction(target: 'analyze' | 'settings') {
