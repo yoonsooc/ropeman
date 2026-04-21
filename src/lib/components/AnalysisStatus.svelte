@@ -222,7 +222,9 @@
 		<button
 			class="group-toggle-btn"
 			onclick={toggleGroup}
-			aria-label={groupExpanded ? 'Collapse' : 'Expand'}
+			aria-label={groupExpanded
+				? i18nStore.t('analysisGroupCollapse')
+				: i18nStore.t('analysisGroupExpand')}
 		>
 			<span class="material-symbols-outlined"
 				>{groupExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_up'}</span
