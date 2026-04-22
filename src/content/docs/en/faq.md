@@ -89,4 +89,16 @@ Yes. Paste a public GitHub repository URL into the input field on the landing pa
 
 Yes. After AI analysis completes, click the **Share** button in the header to generate a public link. You can share this link with anyone to let them view the analysis.
 
+### Can I exclude specific directories from analysis?
+
+Yes. Go to Settings → **Additional Excluded Directories** and enter one directory name per line. Your custom patterns are merged with the built-in skip list (node_modules, .git, tests, etc.). This is useful for large monorepos or generated-code directories like Rust's `target`, `third_party`, or `generated`. Changes persist per browser and apply from the next project load.
+
+### Can I cancel an ongoing analysis?
+
+Yes. The progress pill at the bottom-right has a red **Cancel** button. A one-time confirmation dialog appears (with a "Don't ask again" option). Cancellation works across all AI modes — Demo, API Key, Bridge, and WebGPU. Analysis also continues seamlessly across in-app route navigation; the pill remains visible on every page. Closing the tab or reloading the page does terminate the analysis — the browser will warn you in that case.
+
+### Can I run multiple analyses in parallel?
+
+Yes. Double-click different nodes in the diagram to drill down into multiple regions concurrently. Each request gets its own pill with an individual Cancel button. Beyond three concurrent analyses, pills collapse into a single **"N analyses running"** group badge; click the chevron to expand the list and cancel individual requests. A **Browser Notification** fires on completion when the tab is inactive (if permission was granted).
+
 Still stuck? See [Troubleshooting](/docs/en/troubleshooting).
