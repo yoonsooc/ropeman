@@ -25,6 +25,13 @@ export interface AnalysisRequest {
 	abortController: AbortController;
 }
 
+export interface AnalysisCompletion {
+	type: 'success' | 'error';
+	nodeLabel: string;
+	message?: string;
+	at: number;
+}
+
 // Callback to get settings/project without circular imports
 let _getSettingsAndProject: (() => { cacheEnabled: boolean; projectName: string }) | null = null;
 
@@ -42,6 +49,7 @@ function createSemanticStore() {
 	let panelDismissed = $state(false);
 	let readOnlyMode = $state<ReadOnlyMode>('none');
 	let snapshotMeta = $state<SnapshotMeta | null>(null);
+	let lastCompletion = $state<AnalysisCompletion | null>(null);
 
 	return {
 		get currentLevel() {
@@ -175,6 +183,13 @@ function createSemanticStore() {
 		},
 		set snapshotMeta(v: SnapshotMeta | null) {
 			snapshotMeta = v;
+		},
+
+		get lastCompletion(): AnalysisCompletion | null {
+			return lastCompletion;
+		},
+		set lastCompletion(v: AnalysisCompletion | null) {
+			lastCompletion = v;
 		},
 
 		get highlightedFilePaths(): string[] {
@@ -320,6 +335,7 @@ function createSemanticStore() {
 			panelDismissed = false;
 			readOnlyMode = 'none';
 			snapshotMeta = null;
+			lastCompletion = null;
 			tabStore.clear();
 		}
 	};

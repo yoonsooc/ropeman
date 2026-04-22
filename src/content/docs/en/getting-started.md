@@ -36,6 +36,18 @@ Don't have a local project handy? You can analyze any public GitHub repository d
 
 Only public repositories are supported. Private repositories cannot be analyzed.
 
+## Tips for Large Projects
+
+To exclude extra directories from analysis (e.g., monorepo build outputs), go to Settings → **Additional Excluded Directories** and enter one directory name per line (such as `target`, `third_party`, or `generated`). Your custom patterns are merged with the built-in skip list (`node_modules`, `.git`, etc.). Changes save automatically on blur and apply to the next project load.
+
+Need more room in the file explorer? Drag the **right edge of the sidebar** to resize. The width is persisted per browser.
+
+## Analysis Progress and Cancellation
+
+Analysis continues across in-app route navigation. The **progress pill** at the bottom-right is shown on every route; click the red **Cancel** button to stop. A confirmation dialog appears once (with a "Don't ask again" option) to prevent accidental cancels.
+
+If you trigger drill-downs on multiple regions in parallel, each request gets its own pill. Beyond three concurrent analyses, pills collapse into a single **"N analyses running"** group badge — use the chevron to expand the list and cancel individual requests. When the tab is inactive, a **Browser Notification** fires on completion (if permission was granted).
+
 ## Supported Languages
 
 Ropeman parses **14 languages** out of the box, all entirely in your browser: Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, and Scala.

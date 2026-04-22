@@ -71,6 +71,16 @@
 				slug: 'faq'
 			},
 			{
+				q: '특정 디렉토리를 분석에서 제외할 수 있나요?',
+				a: 'Settings → 추가 제외 디렉토리 textarea에 디렉토리 이름을 1줄 1개씩 입력하면 기본 제외 목록에 추가됩니다. Rust의 target, 생성된 코드가 있는 generated, 모노레포의 third_party 같은 대형 디렉토리를 분석 대상에서 빼고 싶을 때 유용합니다.',
+				slug: 'faq'
+			},
+			{
+				q: '진행 중인 분석을 취소하거나 여러 개 동시에 실행할 수 있나요?',
+				a: '우측 하단 pill의 빨간 "취소" 버튼으로 언제든 중단 가능합니다 (확인 다이얼로그 + "다시 묻지 않기"). 여러 영역을 동시에 드릴다운하면 pill이 개별 스택되며, 3개를 초과하면 "N개 분석 중" 그룹 배지로 자동 병합됩니다. 분석은 페이지 이동 간에도 계속 진행되며 pill은 어느 라우트에서든 보입니다.',
+				slug: 'faq'
+			},
+			{
 				q: '입력한 API 키는 안전하게 보관되나요?',
 				a: 'API 키는 저희 서버에 절대 저장되지 않으며, 오직 사용자 기기의 브라우저 로컬 저장소에만 보관됩니다.\n\n• API Key 모드: 브라우저에 저장된 키는 API 호출 시에만 일회성으로 사용되며, 보안 통신을 통해 AI 모델 제공사로 전달됩니다.\n• Bridge 모드: 별도의 API 키 입력 없이, 로컬에 연동된 CLI 툴의 인증 방식을 그대로 사용합니다.\n• WebGPU 모드: 오프라인으로 동작하므로 API 키 자체가 필요하지 않습니다.\n\n설정 초기화로 언제든 삭제할 수 있습니다.',
 				slug: 'security'
@@ -115,6 +125,16 @@
 			{
 				q: 'Can I share my analysis results?',
 				a: 'Yes. After AI analysis completes, click the Share button in the header to generate a public link. You can share this link with anyone to let them view the analysis.',
+				slug: 'faq'
+			},
+			{
+				q: 'Can I exclude specific directories from analysis?',
+				a: "Yes. Go to Settings → Additional Excluded Directories and enter one directory name per line. Your custom patterns are merged with the built-in skip list. Useful for large monorepos or generated-code directories like Rust's target, third_party, or generated.",
+				slug: 'faq'
+			},
+			{
+				q: 'Can I cancel or run multiple analyses in parallel?',
+				a: 'Yes. The bottom-right pill has a red Cancel button (with a one-time confirm + "Don\'t ask again"). Double-click different nodes to drill down in parallel; each request gets its own pill. Beyond three concurrent analyses, pills collapse into a single "N analyses running" group badge. Analysis continues across in-app route navigation and the pill is visible everywhere.',
 				slug: 'faq'
 			},
 			{

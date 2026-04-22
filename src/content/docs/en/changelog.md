@@ -7,6 +7,18 @@ order: 8
 
 A condensed history of recent user-facing changes.
 
+## 2026-04-22
+
+Global analysis lifecycle and large-project usability.
+
+- **Global analysis status** — the bottom-right progress pill now shows on every route (Docs, Explore, etc.). Analysis continues seamlessly across in-app navigation.
+- **Cancel analysis** — red **Cancel** button on the pill with a one-time confirmation ("Don't ask again" option). Works across all AI modes (Demo / API Key / Bridge / WebGPU).
+- **Multi-analysis parallel UI** — drill down into multiple regions at once; each gets its own pill stacked upward. Beyond three concurrent analyses, pills collapse into a single "N analyses running" group badge with an expandable list.
+- **Completion/error toasts** — results surface as bottom-right toasts. When the tab is inactive, a Browser Notification fires instead (if permission granted).
+- **Custom excluded directories** — new Settings textarea lets you add directory names (e.g., `target`, `third_party`) on top of the built-in skip list.
+- **Sidebar width resize** — drag the right edge of the file explorer to resize. Width is persisted per browser.
+- **No more canvas dimming during analysis** — code viewer and file tree remain fully interactive while analysis runs.
+
 ## 2026-04-03
 
 Help, onboarding, and test coverage polish.

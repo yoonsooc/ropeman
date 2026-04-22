@@ -179,6 +179,30 @@ describe('bridgeService', () => {
 
 			await expect(sendPromise).rejects.toThrow('Bridge request timeout');
 		});
+
+		it('rejects immediately when signal is already aborted', async () => {
+			const p = connectBridge(9800);
+			wsInstances[wsInstances.length - 1].simulateOpen();
+			await p;
+
+			const controller = new AbortController();
+			controller.abort();
+
+			await expect(sendViaBridge('test', undefined, controller.signal)).rejects.toThrow('Aborted');
+		});
+
+		it('rejects when signal is aborted during request', async () => {
+			const p = connectBridge(9800);
+			wsInstances[wsInstances.length - 1].simulateOpen();
+			await p;
+
+			const controller = new AbortController();
+			const sendPromise = sendViaBridge('test', undefined, controller.signal);
+
+			controller.abort();
+
+			await expect(sendPromise).rejects.toThrow('Aborted');
+		});
 	});
 
 	describe('getBridgeReconnectInfo', () => {

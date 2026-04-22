@@ -38,6 +38,10 @@ describe('settingsStore', () => {
 		it('showSymbols defaults to false', () => {
 			expect(settingsStore.showSymbols).toBe(false);
 		});
+
+		it('customSkipPatterns defaults to empty array', () => {
+			expect(settingsStore.customSkipPatterns).toEqual([]);
+		});
 	});
 
 	describe('setters', () => {
@@ -79,6 +83,17 @@ describe('settingsStore', () => {
 		it('sets showSymbols', () => {
 			settingsStore.showSymbols = true;
 			expect(settingsStore.showSymbols).toBe(true);
+		});
+
+		it('sets customSkipPatterns', () => {
+			settingsStore.customSkipPatterns = ['target', 'third_party'];
+			expect(settingsStore.customSkipPatterns).toEqual(['target', 'third_party']);
+		});
+
+		it('clearAll resets customSkipPatterns', () => {
+			settingsStore.customSkipPatterns = ['target'];
+			settingsStore.clearAll();
+			expect(settingsStore.customSkipPatterns).toEqual([]);
 		});
 	});
 

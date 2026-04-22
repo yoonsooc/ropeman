@@ -161,6 +161,23 @@ interface TranslationSet {
 	settingsSkeletonLimit: string;
 	settingsSkeletonUnlimited: string;
 	settingsSkeletonHint: string;
+	settingsCustomSkipPatterns: string;
+	settingsCustomSkipPatternsPlaceholder: string;
+	settingsCustomSkipPatternsHint: string;
+	analysisCompleted: string;
+	analysisFailed: string;
+	analysisGroupExpand: string;
+	analysisGroupCollapse: string;
+	analysisCancelLabel: string;
+	analysisCancelConfirmTitle: string;
+	analysisCancelConfirmMessage: string;
+	analysisCancelConfirmMessageSingle: string;
+	analysisCancelConfirmMessageAll: string;
+	analysisCancelConfirmOk: string;
+	analysisCancelConfirmBack: string;
+	analysisCancelAll: string;
+	analysisGroupRunning: string;
+	dontAskAgain: string;
 	settingsLanguage: string;
 	settingsReset: string;
 	settingsAiNotConnected: string;
@@ -221,6 +238,27 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsSkeletonUnlimited: '무제한',
 		settingsSkeletonHint:
 			'AI 분석 시 전송되는 코드 구조 요약(메타데이터)의 최대 크기. 큰 프로젝트에서 API 오류 발생 시 줄이세요. (기본: 250KB)',
+		settingsCustomSkipPatterns: '추가 제외 디렉토리',
+		settingsCustomSkipPatternsPlaceholder: '1줄 1개, 예:\ntarget\nthird_party',
+		settingsCustomSkipPatternsHint:
+			'기본 제외 목록에 추가로 제외할 디렉토리 이름. 대형 모노레포나 생성된 코드 디렉토리를 분석 대상에서 빼고 싶을 때 사용합니다.',
+		analysisCompleted: '분석 완료',
+		analysisFailed: '분석 실패',
+		analysisGroupExpand: '분석 목록 펼치기',
+		analysisGroupCollapse: '분석 목록 접기',
+		analysisCancelLabel: '취소',
+		analysisCancelConfirmTitle: '분석 취소',
+		analysisCancelConfirmMessage:
+			'진행 중인 AI 분석을 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+		analysisCancelConfirmMessageSingle:
+			'{label} 분석을 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+		analysisCancelConfirmMessageAll:
+			'진행 중인 {count}개 분석 전부를 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+		analysisCancelConfirmOk: '분석 취소',
+		analysisCancelConfirmBack: '계속 진행',
+		analysisCancelAll: '전체 취소',
+		analysisGroupRunning: '{count}개 분석 중',
+		dontAskAgain: '다시 묻지 않기',
 		settingsLanguage: '언어',
 		settingsReset: '초기화',
 		settingsAiNotConnected: '미연결',
@@ -451,6 +489,27 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsSkeletonUnlimited: 'Unlimited',
 		settingsSkeletonHint:
 			'Max size of the code structure summary (metadata) sent during AI analysis. Reduce for large projects if API errors occur. (Default: 250KB)',
+		settingsCustomSkipPatterns: 'Additional Excluded Directories',
+		settingsCustomSkipPatternsPlaceholder: 'One per line, e.g.:\ntarget\nthird_party',
+		settingsCustomSkipPatternsHint:
+			'Directory names to exclude in addition to the built-in list. Useful for large monorepos or generated code directories.',
+		analysisCompleted: 'Analysis complete',
+		analysisFailed: 'Analysis failed',
+		analysisGroupExpand: 'Expand analysis list',
+		analysisGroupCollapse: 'Collapse analysis list',
+		analysisCancelLabel: 'Cancel',
+		analysisCancelConfirmTitle: 'Cancel Analysis',
+		analysisCancelConfirmMessage:
+			'Cancel the ongoing AI analysis? All progress so far will be discarded.',
+		analysisCancelConfirmMessageSingle:
+			'Cancel the "{label}" analysis? All progress will be discarded.',
+		analysisCancelConfirmMessageAll:
+			'Cancel all {count} running analyses? All progress will be discarded.',
+		analysisCancelConfirmOk: 'Cancel Analysis',
+		analysisCancelConfirmBack: 'Keep Running',
+		analysisCancelAll: 'Cancel All',
+		analysisGroupRunning: '{count} analyses running',
+		dontAskAgain: "Don't ask again",
 		settingsLanguage: 'Language',
 		settingsReset: 'Reset',
 		settingsAiNotConnected: 'Not Connected',

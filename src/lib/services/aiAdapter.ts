@@ -36,7 +36,7 @@ export class AIHttpError extends Error {
 
 async function callBridge(opts: AICallOptions): Promise<string> {
 	const cli = settingsStore.bridgeCli === 'auto' ? undefined : settingsStore.bridgeCli;
-	return await sendViaBridge(opts.system + '\n\n' + opts.user, cli);
+	return await sendViaBridge(opts.system + '\n\n' + opts.user, cli, opts.signal);
 }
 
 /** WebGPU 소형 모델의 대략적 토큰 한계 (char 기준, ~4 chars/token) */
@@ -51,7 +51,7 @@ async function callWebGPU(opts: AICallOptions): Promise<string> {
 				`Reduce code summary size in Settings or use a cloud API (Demo/API Key).`
 		);
 	}
-	return await webllmGenerate(opts.system, opts.user);
+	return await webllmGenerate(opts.system, opts.user, opts.signal);
 }
 
 async function callEdgeProxy(opts: AICallOptions): Promise<string> {

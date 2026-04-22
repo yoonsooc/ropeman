@@ -10,8 +10,11 @@ import {
 	MAX_FILE_SIZE,
 	MAX_TOTAL_SIZE,
 	shouldSkipPath,
-	sortFileTree
+	sortFileTree,
+	getEffectiveSkipDirs,
+	SKIP_DIRS
 } from '$lib/utils/filePriority';
+import { settingsStore } from '$lib/stores/settingsStore.svelte';
 
 interface GitHubTreeItem {
 	path: string;
@@ -58,7 +61,11 @@ function buildRawUrl(info: GitHubRepoInfo, path: string, ref: string): string {
 /**
  * Build a FileNode tree from flat GitHub tree API paths.
  */
-function buildFileTree(repoName: string, items: GitHubTreeItem[]): FileNode {
+function buildFileTree(
+	repoName: string,
+	items: GitHubTreeItem[],
+	skipSet: Set<string> = SKIP_DIRS
+): FileNode {
 	const root: FileNode = {
 		name: repoName,
 		path: repoName,
@@ -90,7 +97,7 @@ function buildFileTree(repoName: string, items: GitHubTreeItem[]): FileNode {
 
 	for (const item of items) {
 		// Trailing slash ensures shouldSkipPath checks the dir name itself (not just parents)
-		if (shouldSkipPath(item.path + '/')) continue;
+		if (shouldSkipPath(item.path + '/', skipSet)) continue;
 		if (item.type === 'tree') {
 			ensureDir(item.path);
 		} else if (item.type === 'blob') {
@@ -117,12 +124,15 @@ function buildFileTree(repoName: string, items: GitHubTreeItem[]): FileNode {
 /**
  * Collect all supported files from tree items, respecting limits.
  */
-function collectSupportedItems(items: GitHubTreeItem[]): GitHubTreeItem[] {
+function collectSupportedItems(
+	items: GitHubTreeItem[],
+	skipSet: Set<string> = SKIP_DIRS
+): GitHubTreeItem[] {
 	const supported = items
 		.filter(
 			(item) =>
 				item.type === 'blob' &&
-				!shouldSkipPath(item.path) &&
+				!shouldSkipPath(item.path, skipSet) &&
 				(item.size ?? 0) <= MAX_FILE_SIZE &&
 				detectLanguage(item.path) !== null &&
 				isSupported(detectLanguage(item.path)!)
@@ -166,13 +176,16 @@ export async function loadGitHubRepo(info: GitHubRepoInfo): Promise<void> {
 	// Store GitHub info for on-demand file fetching by CodeViewer
 	projectStore.githubInfo = { owner: info.owner, repo: info.repo, ref };
 
+	// Compute effective skip set once (defaults + user custom patterns)
+	const skipSet = getEffectiveSkipDirs(settingsStore.customSkipPatterns);
+
 	// 2. Collect files to parse + set progress before fileTree (so isParsing is true when Header appears)
-	const supportedItems = collectSupportedItems(treeData.tree);
+	const supportedItems = collectSupportedItems(treeData.tree, skipSet);
 	const total = supportedItems.length;
 	projectStore.parsingProgress = { done: 0, total };
 
 	// 3. Build file tree (triggers hasProject → Header with ANALYZE button)
-	const fileTree = buildFileTree(info.repo, treeData.tree);
+	const fileTree = buildFileTree(info.repo, treeData.tree, skipSet);
 	projectStore.fileTree = fileTree;
 
 	// 4. Download + parse in batches

@@ -65,10 +65,18 @@ function rejectPending(id: string, err: Error) {
 	}
 }
 
-function sendRequest(type: string, payload?: unknown): Promise<string> {
+function sendRequest(type: string, payload?: unknown, signal?: AbortSignal): Promise<string> {
 	const id = String(++requestId);
 	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			reject(new DOMException('Aborted', 'AbortError'));
+			return;
+		}
 		pendingRequests.set(id, { resolve, reject });
+		const onAbort = () => {
+			rejectPending(id, new DOMException('Aborted', 'AbortError'));
+		};
+		signal?.addEventListener('abort', onAbort, { once: true });
 		getWorker().postMessage({ type, id, payload });
 	});
 }
@@ -87,8 +95,12 @@ export async function initModel(modelId?: string): Promise<void> {
 	}
 }
 
-export async function generate(system: string, prompt: string): Promise<string> {
-	return sendRequest('generate', { system, prompt });
+export async function generate(
+	system: string,
+	prompt: string,
+	signal?: AbortSignal
+): Promise<string> {
+	return sendRequest('generate', { system, prompt }, signal);
 }
 
 export function cancelDownload(): void {

@@ -108,8 +108,10 @@ export async function analyzeTopLevel(): Promise<void> {
 	if (semanticStore.isAnalyzing) return;
 
 	const nodeId = '__top_level__';
-	const abortController = semanticStore.addAnalysisRequest(nodeId, 'Top Level');
+	const nodeLabel = 'Top Level';
+	const abortController = semanticStore.addAnalysisRequest(nodeId, nodeLabel);
 	semanticStore.analysisError = null;
+	requestNotificationPermission();
 
 	try {
 		// Always wait for parsing to produce results
@@ -153,10 +155,13 @@ export async function analyzeTopLevel(): Promise<void> {
 		semanticStore.cacheLevel('__root__', level);
 		semanticStore.drilldownPath = [];
 		semanticStore.viewMode = 'semantic';
+		semanticStore.lastCompletion = { type: 'success', nodeLabel, at: Date.now() };
 	} catch (error) {
 		if (isAbortError(error)) return;
 		console.error('Semantic analysis failed:', error);
-		semanticStore.analysisError = error instanceof Error ? error.message : String(error);
+		const message = error instanceof Error ? error.message : String(error);
+		semanticStore.analysisError = message;
+		semanticStore.lastCompletion = { type: 'error', nodeLabel, message, at: Date.now() };
 	} finally {
 		semanticStore.removeAnalysisRequest(nodeId);
 	}
@@ -168,6 +173,7 @@ export async function analyzeDrilldown(parentNode: SemanticNode): Promise<void> 
 
 	const abortController = semanticStore.addAnalysisRequest(parentNode.id, parentNode.label);
 	semanticStore.analysisError = null;
+	requestNotificationPermission();
 
 	// Snapshot current drilldownPath to detect stale results
 	const pathSnapshot = [...semanticStore.drilldownPath];
@@ -218,12 +224,31 @@ export async function analyzeDrilldown(parentNode: SemanticNode): Promise<void> 
 		if (!isStale) {
 			semanticStore.currentLevel = level;
 		}
+		semanticStore.lastCompletion = {
+			type: 'success',
+			nodeLabel: parentNode.label,
+			at: Date.now()
+		};
 	} catch (error) {
 		if (isAbortError(error)) return;
 		console.error('Drilldown analysis failed:', error);
-		semanticStore.analysisError = error instanceof Error ? error.message : String(error);
+		const message = error instanceof Error ? error.message : String(error);
+		semanticStore.analysisError = message;
+		semanticStore.lastCompletion = {
+			type: 'error',
+			nodeLabel: parentNode.label,
+			message,
+			at: Date.now()
+		};
 	} finally {
 		semanticStore.removeAnalysisRequest(parentNode.id);
+	}
+}
+
+function requestNotificationPermission() {
+	if (typeof Notification === 'undefined') return;
+	if (Notification.permission === 'default') {
+		Notification.requestPermission().catch(() => {});
 	}
 }
 

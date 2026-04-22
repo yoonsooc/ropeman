@@ -1,9 +1,36 @@
+const SIDEBAR_WIDTH_MIN = 160;
+const SIDEBAR_WIDTH_MAX = 480;
+const SIDEBAR_WIDTH_DEFAULT = 232;
+
+function loadStored() {
+	if (typeof window === 'undefined') return {};
+	try {
+		const raw = localStorage.getItem('ropeman-layout');
+		return raw ? JSON.parse(raw) : {};
+	} catch {
+		return {};
+	}
+}
+
+function clampSidebarWidth(v: number): number {
+	return Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, v));
+}
+
 function createLayoutStore() {
+	const stored = loadStored();
+
 	let isSplit = $state(false);
 	let splitDirection = $state<'vertical' | 'horizontal'>('vertical');
 	let splitRatio = $state(0.5);
 	let focusedPane = $state<'primary' | 'secondary'>('primary');
 	let secondaryActiveTabId = $state<string | null>(null);
+	let sidebarWidth = $state(clampSidebarWidth(stored.sidebarWidth ?? SIDEBAR_WIDTH_DEFAULT));
+
+	function persist() {
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('ropeman-layout', JSON.stringify({ sidebarWidth }));
+		}
+	}
 
 	return {
 		get isSplit() {
@@ -41,9 +68,16 @@ function createLayoutStore() {
 			secondaryActiveTabId = v;
 		},
 
+		get sidebarWidth() {
+			return sidebarWidth;
+		},
+		set sidebarWidth(v: number) {
+			sidebarWidth = clampSidebarWidth(v);
+			persist();
+		},
+
 		toggleSplit() {
 			if (isSplit) {
-				// Merge secondary tabs to primary — handled by +page.svelte
 				isSplit = false;
 				focusedPane = 'primary';
 				secondaryActiveTabId = null;
@@ -63,3 +97,9 @@ function createLayoutStore() {
 }
 
 export const layoutStore = createLayoutStore();
+
+export const SIDEBAR_WIDTH_LIMITS = {
+	min: SIDEBAR_WIDTH_MIN,
+	max: SIDEBAR_WIDTH_MAX,
+	default: SIDEBAR_WIDTH_DEFAULT
+};

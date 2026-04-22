@@ -56,7 +56,15 @@ describe('aiAdapter', () => {
 
 			const result = await callAI({ system: 'sys', user: 'msg' });
 			expect(result).toBe('bridge response');
-			expect(sendViaBridge).toHaveBeenCalledWith('sys\n\nmsg', undefined);
+			expect(sendViaBridge).toHaveBeenCalledWith('sys\n\nmsg', undefined, undefined);
+		});
+
+		it('passes abort signal to bridge', async () => {
+			(authStore as any).activeTrack = 'bridge';
+			(sendViaBridge as ReturnType<typeof vi.fn>).mockResolvedValue('ok');
+			const controller = new AbortController();
+			await callAI({ system: 'sys', user: 'msg', signal: controller.signal });
+			expect(sendViaBridge).toHaveBeenCalledWith('sys\n\nmsg', undefined, controller.signal);
 		});
 
 		it('delegates to webllm when track is webgpu', async () => {
@@ -65,7 +73,15 @@ describe('aiAdapter', () => {
 
 			const result = await callAI({ system: 'sys', user: 'msg' });
 			expect(result).toBe('local model response');
-			expect(webllmGenerate).toHaveBeenCalledWith('sys', 'msg');
+			expect(webllmGenerate).toHaveBeenCalledWith('sys', 'msg', undefined);
+		});
+
+		it('passes abort signal to webllm', async () => {
+			(authStore as any).activeTrack = 'webgpu';
+			(webllmGenerate as ReturnType<typeof vi.fn>).mockResolvedValue('ok');
+			const controller = new AbortController();
+			await callAI({ system: 'sys', user: 'msg', signal: controller.signal });
+			expect(webllmGenerate).toHaveBeenCalledWith('sys', 'msg', controller.signal);
 		});
 
 		it('calls demo URL when track is edge', async () => {

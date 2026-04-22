@@ -87,7 +87,7 @@ export async function readFileContent(fileHandle: FileSystemFileHandle): Promise
 	return await file.text();
 }
 
-export function handleFallbackInput(files: FileList): FileNode {
+export function handleFallbackInput(files: FileList, skipSet: Set<string> = SKIP_DIRS): FileNode {
 	const root: FileNode = {
 		name: extractProjectName(files),
 		path: '',
@@ -111,7 +111,7 @@ export function handleFallbackInput(files: FileList): FileNode {
 			const dirName = pathParts[i];
 			const dirPath = currentPath ? `${currentPath}/${dirName}` : dirName;
 
-			if (SKIP_DIRS.has(dirName)) break;
+			if (skipSet.has(dirName)) break;
 
 			if (!dirMap.has(dirPath)) {
 				const dirNode: FileNode = {
@@ -130,7 +130,7 @@ export function handleFallbackInput(files: FileList): FileNode {
 
 		const fileName = pathParts[pathParts.length - 1];
 		// Check if any ancestor was skipped
-		if (pathParts.slice(0, -1).some((p) => SKIP_DIRS.has(p))) continue;
+		if (pathParts.slice(0, -1).some((p) => skipSet.has(p))) continue;
 
 		const filePath = currentPath ? `${currentPath}/${fileName}` : fileName;
 		const language = detectLanguage(fileName);

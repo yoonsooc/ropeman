@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { layoutStore } from './layoutStore.svelte';
+import { layoutStore, SIDEBAR_WIDTH_LIMITS } from './layoutStore.svelte';
 
 describe('layoutStore', () => {
 	beforeEach(() => {
@@ -9,6 +9,7 @@ describe('layoutStore', () => {
 		layoutStore.splitRatio = 0.5;
 		layoutStore.focusedPane = 'primary';
 		layoutStore.secondaryActiveTabId = null;
+		layoutStore.sidebarWidth = SIDEBAR_WIDTH_LIMITS.default;
 	});
 
 	describe('initial state', () => {
@@ -104,6 +105,38 @@ describe('layoutStore', () => {
 		it('sets focused pane to secondary', () => {
 			layoutStore.focusSecondary();
 			expect(layoutStore.focusedPane).toBe('secondary');
+		});
+	});
+
+	describe('sidebarWidth', () => {
+		it('defaults to 232', () => {
+			expect(layoutStore.sidebarWidth).toBe(232);
+		});
+
+		it('clamps below minimum (160)', () => {
+			layoutStore.sidebarWidth = 100;
+			expect(layoutStore.sidebarWidth).toBe(160);
+		});
+
+		it('clamps above maximum (480)', () => {
+			layoutStore.sidebarWidth = 600;
+			expect(layoutStore.sidebarWidth).toBe(480);
+		});
+
+		it('sets valid width without clamping', () => {
+			layoutStore.sidebarWidth = 300;
+			expect(layoutStore.sidebarWidth).toBe(300);
+		});
+
+		it('persists to localStorage (when available)', () => {
+			layoutStore.sidebarWidth = 280;
+			const raw =
+				globalThis.localStorage?.getItem?.('ropeman-layout') ??
+				(typeof window !== 'undefined' ? window.localStorage.getItem('ropeman-layout') : null);
+			expect(layoutStore.sidebarWidth).toBe(280);
+			if (raw) {
+				expect(JSON.parse(raw)).toEqual({ sidebarWidth: 280 });
+			}
 		});
 	});
 });

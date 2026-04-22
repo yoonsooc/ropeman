@@ -1,7 +1,9 @@
 <script lang="ts">
 	import FileExplorer from './FileExplorer.svelte';
 	import SemanticTree from './SemanticTree.svelte';
+	import SidebarResizeHandle from './SidebarResizeHandle.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
+	import { layoutStore } from '$lib/stores/layoutStore.svelte';
 
 	let {
 		mobile = false,
@@ -119,7 +121,7 @@
 		</button>
 	</div>
 	{#if contentOpen}
-		<div class="sidebar-content">
+		<div class="sidebar-content" style:width="{layoutStore.sidebarWidth}px">
 			{#if activePanel === 'files'}
 				<FileExplorer collapsed={false} mobile={false} ontoggle={() => (contentOpen = false)} />
 			{:else}
@@ -145,6 +147,9 @@
 				</div>
 			{/if}
 		</div>
+		{#if !mobile}
+			<SidebarResizeHandle />
+		{/if}
 	{/if}
 </aside>
 
@@ -204,7 +209,8 @@
 	}
 
 	.sidebar-content {
-		width: 232px;
+		min-width: 160px;
+		max-width: 480px;
 		height: 100%;
 		min-height: 0;
 		display: flex;

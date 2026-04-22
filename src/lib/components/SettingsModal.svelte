@@ -47,6 +47,7 @@
 	let skeletonUnlimited = $state(settingsStore.skeletonUnlimited);
 	let lang = $state<'ko' | 'en'>(settingsStore.language);
 	let syntaxTheme = $state(settingsStore.syntaxTheme);
+	let customSkipPatternsText = $state(settingsStore.customSkipPatterns.join('\n'));
 	let cacheSize = $state(0);
 
 	$effect(() => {
@@ -57,11 +58,21 @@
 			skeletonUnlimited = settingsStore.skeletonUnlimited;
 			lang = settingsStore.language;
 			syntaxTheme = settingsStore.syntaxTheme;
+			customSkipPatternsText = settingsStore.customSkipPatterns.join('\n');
 			getSemanticCacheSize().then((n) => {
 				cacheSize = n;
 			});
 		}
 	});
+
+	function handleCustomSkipPatternsBlur() {
+		const parsed = customSkipPatternsText
+			.split('\n')
+			.map((s) => s.trim())
+			.filter(Boolean);
+		settingsStore.customSkipPatterns = parsed;
+		customSkipPatternsText = parsed.join('\n');
+	}
 
 	function handleSkeletonKBChange(e: Event) {
 		const v = parseInt((e.target as HTMLInputElement).value) || 150;
@@ -111,6 +122,7 @@
 		skeletonUnlimited = false;
 		lang = 'ko';
 		syntaxTheme = 'tomorrow';
+		customSkipPatternsText = '';
 		cacheSize = 0;
 		i18nStore.locale = 'ko';
 	}
@@ -219,6 +231,21 @@
 							</div>
 						{/if}
 						<p class="hint">{i18nStore.t('settingsSkeletonHint')}</p>
+					</div>
+				</section>
+
+				<section class="settings-section">
+					<span class="form-label">{i18nStore.t('settingsCustomSkipPatterns')}</span>
+					<div class="section-card">
+						<textarea
+							class="skip-patterns-input"
+							bind:value={customSkipPatternsText}
+							onblur={handleCustomSkipPatternsBlur}
+							placeholder={i18nStore.t('settingsCustomSkipPatternsPlaceholder')}
+							rows="4"
+							spellcheck="false"
+						></textarea>
+						<p class="hint">{i18nStore.t('settingsCustomSkipPatternsHint')}</p>
 					</div>
 				</section>
 
@@ -592,6 +619,22 @@
 		color: var(--accent);
 		min-width: 60px;
 		text-align: right;
+	}
+	.skip-patterns-input {
+		width: 100%;
+		background: var(--bg-bright, var(--bg-tertiary));
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 8px 10px;
+		font-family: var(--font-code);
+		font-size: 12px;
+		color: var(--text-primary);
+		resize: vertical;
+		min-height: 72px;
+	}
+	.skip-patterns-input:focus {
+		outline: none;
+		border-color: var(--accent);
 	}
 	/* Settings-specific label override: Stitch 10px uppercase */
 	.settings-section :global(.form-label) {
