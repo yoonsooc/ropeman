@@ -205,6 +205,15 @@
 		z-index: 50;
 	}
 
+	@media (max-width: 768px) {
+		.header {
+			padding-top: env(safe-area-inset-top);
+			padding-left: max(16px, env(safe-area-inset-left));
+			padding-right: max(16px, env(safe-area-inset-right));
+			height: calc(var(--header-height) + env(safe-area-inset-top));
+		}
+	}
+
 	.header-left {
 		display: flex;
 		align-items: baseline;

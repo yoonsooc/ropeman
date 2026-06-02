@@ -184,7 +184,7 @@
 	{#each requests as req, i (req.nodeId)}
 		<div
 			class="analysis-progress-pill"
-			style:bottom="{PILL_BOTTOM_BASE + (groupActive ? PILL_SPACING : 0) + i * PILL_SPACING}px"
+			style:--pill-base="{PILL_BOTTOM_BASE + (groupActive ? PILL_SPACING : 0) + i * PILL_SPACING}px"
 		>
 			<span class="material-symbols-outlined analysis-pill-icon">auto_awesome</span>
 			<div class="analysis-pill-content">
@@ -207,7 +207,7 @@
 {/if}
 
 {#if showGroupPill}
-	<div class="analysis-progress-pill group-pill" style:bottom="{PILL_BOTTOM_BASE}px">
+	<div class="analysis-progress-pill group-pill" style:--pill-base="{PILL_BOTTOM_BASE}px">
 		<span class="material-symbols-outlined analysis-pill-icon">auto_awesome</span>
 		<div class="analysis-pill-content">
 			<span class="analysis-pill-title"
@@ -303,7 +303,8 @@
 <style>
 	.analysis-progress-pill {
 		position: fixed;
-		right: 24px;
+		right: max(24px, env(safe-area-inset-right));
+		bottom: calc(var(--pill-base, 80px) + env(safe-area-inset-bottom));
 		display: flex;
 		align-items: center;
 		gap: 12px;
@@ -497,8 +498,8 @@
 
 	.analysis-error-toast {
 		position: fixed;
-		bottom: 80px;
-		right: 24px;
+		bottom: calc(80px + env(safe-area-inset-bottom));
+		right: max(24px, env(safe-area-inset-right));
 		display: flex;
 		align-items: center;
 		gap: 8px;
@@ -567,8 +568,8 @@
 
 	.analysis-success-toast {
 		position: fixed;
-		bottom: 132px;
-		right: 24px;
+		bottom: calc(132px + env(safe-area-inset-bottom));
+		right: max(24px, env(safe-area-inset-right));
 		display: flex;
 		align-items: center;
 		gap: 8px;

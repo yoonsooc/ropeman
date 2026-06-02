@@ -19,6 +19,18 @@
 	} = $props();
 
 	let dropTarget = $state(false);
+	let tabBarEl = $state<HTMLDivElement | undefined>(undefined);
+
+	// M3: keep the active tab visible on overflow (mobile horizontal scroll)
+	$effect(() => {
+		const id = activeTabId;
+		const root = tabBarEl;
+		if (!id || !root) return;
+		queueMicrotask(() => {
+			const el = root.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(id)}"]`);
+			el?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+		});
+	});
 
 	function handleMouseDown(e: MouseEvent, tabId: string) {
 		// Middle-click to close
@@ -67,6 +79,7 @@
 	<div
 		class="tab-bar"
 		class:drop-target={dropTarget}
+		bind:this={tabBarEl}
 		ondragover={handleDragOver}
 		ondragleave={handleDragLeave}
 		ondrop={handleDrop}
@@ -78,6 +91,7 @@
 					class="tab"
 					class:active={tab.id === activeTabId}
 					class:preview={tab.preview}
+					data-tab-id={tab.id}
 					draggable="true"
 					onclick={() => onactivate(tab.id)}
 					onmousedown={(e) => handleMouseDown(e, tab.id)}
@@ -260,5 +274,19 @@
 	.tab-close:hover {
 		background: var(--bg-tertiary);
 		color: var(--text-primary);
+	}
+
+	/* M3: mobile/tablet — keep tabs scannable on narrow viewports and
+	   always reveal the close affordance (no hover on touch). */
+	@media (max-width: 768px) {
+		.tab {
+			max-width: 140px;
+			padding: 0 10px;
+		}
+		.tab-close {
+			opacity: 1;
+			width: 24px;
+			height: 24px;
+		}
 	}
 </style>

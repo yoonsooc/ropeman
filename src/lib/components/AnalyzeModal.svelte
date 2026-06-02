@@ -14,7 +14,13 @@
 	import type { AIProviderId } from '$lib/stores/settingsStore.svelte';
 	import WebGPUSetupModal from './WebGPUSetupModal.svelte';
 	import { isModelCached } from '$lib/services/webllmService';
+	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import { onMount } from 'svelte';
+
+	const breakpoint = useBreakpoint();
+	// M4: Bridge needs a local CLI server; WebGPU needs gigabytes of RAM and
+	// stable power — neither is viable on phones. Disable on compact viewports.
+	const isCompact = $derived(breakpoint.isMobile || breakpoint.isTablet);
 
 	// Check if the selected model is cached on mount
 	onMount(async () => {
@@ -316,14 +322,20 @@
 				</div>
 
 				<!-- Bridge -->
-				<div class="track-card" class:active={authStore.activeTrack === 'bridge'}>
+				<div
+					class="track-card"
+					class:active={authStore.activeTrack === 'bridge'}
+					class:disabled={isCompact}
+				>
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="track-row" onclick={() => toggleCard('bridge')}>
+					<div class="track-row" onclick={() => !isCompact && toggleCard('bridge')}>
 						<span class="track-icon"><span class="material-symbols-outlined">link</span></span>
 						<div class="track-info">
 							<span class="track-name">Local Bridge</span>
 							<span class="track-sub">
-								{#if authStore.bridgeStatus === 'connected'}
+								{#if isCompact}
+									Desktop only — needs a local CLI bridge
+								{:else if authStore.bridgeStatus === 'connected'}
 									Connected
 								{:else}
 									Disconnected
@@ -333,9 +345,11 @@
 						{#if authStore.activeTrack === 'bridge'}
 							<span class="badge badge-accent">Active</span>
 						{/if}
-						<span class="expand-arrow" class:expanded={expandedCard === 'bridge'}>&#9656;</span>
+						{#if !isCompact}
+							<span class="expand-arrow" class:expanded={expandedCard === 'bridge'}>&#9656;</span>
+						{/if}
 					</div>
-					{#if expandedCard === 'bridge'}
+					{#if expandedCard === 'bridge' && !isCompact}
 						<div class="track-config">
 							<label class="form-label" for="analyze-cli-select">CLI Tool</label>
 							<select
@@ -397,16 +411,21 @@
 				<div
 					class="track-card"
 					class:active={authStore.activeTrack === 'webgpu'}
-					class:disabled={!webgpuStore.isSupported}
+					class:disabled={!webgpuStore.isSupported || isCompact}
 				>
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="track-row" onclick={() => webgpuStore.isSupported && toggleCard('webgpu')}>
+					<div
+						class="track-row"
+						onclick={() => webgpuStore.isSupported && !isCompact && toggleCard('webgpu')}
+					>
 						<span class="track-icon"><span class="material-symbols-outlined">psychology</span></span
 						>
 						<div class="track-info">
 							<span class="track-name">Browser AI <span class="badge badge-muted">Beta</span></span>
 							<span class="track-sub">
-								{#if !webgpuStore.isSupported}
+								{#if isCompact}
+									Desktop only — needs WebGPU + multi-GB RAM
+								{:else if !webgpuStore.isSupported}
 									WebGPU not supported
 								{:else if webgpuStore.isReady}
 									Model loaded
@@ -424,11 +443,11 @@
 						{#if authStore.activeTrack === 'webgpu'}
 							<span class="badge badge-accent">Active</span>
 						{/if}
-						{#if webgpuStore.isSupported}
+						{#if webgpuStore.isSupported && !isCompact}
 							<span class="expand-arrow" class:expanded={expandedCard === 'webgpu'}>&#9656;</span>
 						{/if}
 					</div>
-					{#if expandedCard === 'webgpu' && webgpuStore.isSupported}
+					{#if expandedCard === 'webgpu' && webgpuStore.isSupported && !isCompact}
 						<div class="track-config">
 							{#if webgpuStore.isReady}
 								<button

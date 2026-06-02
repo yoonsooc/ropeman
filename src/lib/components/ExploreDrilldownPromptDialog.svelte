@@ -119,6 +119,29 @@
 		font-size: 18px;
 	}
 
+	@media (max-width: 768px) {
+		.prompt-backdrop {
+			padding: 0;
+		}
+		.prompt-dialog {
+			max-width: none;
+			width: 100vw;
+			height: 100dvh;
+			border-radius: 0;
+			padding-top: max(48px, env(safe-area-inset-top));
+			padding-bottom: max(24px, env(safe-area-inset-bottom));
+			padding-left: max(20px, env(safe-area-inset-left));
+			padding-right: max(20px, env(safe-area-inset-right));
+			overflow-y: auto;
+		}
+		.prompt-close {
+			width: 44px;
+			height: 44px;
+			top: max(12px, env(safe-area-inset-top));
+			right: max(12px, env(safe-area-inset-right));
+		}
+	}
+
 	.prompt-icon {
 		display: inline-flex;
 		align-items: center;

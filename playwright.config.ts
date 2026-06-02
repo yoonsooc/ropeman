@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
 	testDir: './tests',
@@ -17,7 +17,18 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'chromium',
-			use: { browserName: 'chromium' }
+			use: { ...devices['Desktop Chrome'] }
+		},
+		{
+			name: 'mobile-chromium',
+			use: { ...devices['Pixel 5'] }
+		},
+		{
+			// Galaxy Tab S9 (Chromium) — used in place of iPad Pro 11 (WebKit)
+			// because we only download Chromium browsers in CI. iOS Safari is
+			// covered manually via Simulator.
+			name: 'tablet-chromium',
+			use: { ...devices['Galaxy Tab S9'] }
 		}
 	],
 
