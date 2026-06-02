@@ -99,6 +99,15 @@
 		prevOpen = open;
 	});
 
+	// Reset expanded card if it becomes a disabled mobile-only track (Bridge / WebGPU)
+	// after a viewport resize — keeps the UI from re-expanding when the user returns
+	// to desktop with stale state.
+	$effect(() => {
+		if (isCompact && (expandedCard === 'bridge' || expandedCard === 'webgpu')) {
+			expandedCard = null;
+		}
+	});
+
 	function handleProviderChange(e: Event) {
 		const newProvider = (e.target as HTMLSelectElement).value as AIProviderId;
 		selectedProvider = newProvider;
