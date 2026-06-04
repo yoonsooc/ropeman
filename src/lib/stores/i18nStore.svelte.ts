@@ -14,6 +14,8 @@ interface LandingTranslations {
 	githubPlaceholder: string;
 	githubLoad: string;
 	githubOr: string;
+	mobileFolderHint: string;
+	mobileGithubLead: string;
 	githubInvalidUrl: string;
 	githubNotFound: string;
 	githubRateLimit: string;
@@ -287,6 +289,9 @@ const translations: Record<Locale, TranslationSet> = {
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: '불러오기',
 			githubOr: '또는 GitHub 저장소 URL을 입력하세요',
+			mobileFolderHint:
+				'모바일에서는 폴더 열기를 사용할 수 없어요. GitHub 저장소 URL로 분석을 시작하세요.',
+			mobileGithubLead: 'GitHub 저장소 URL로 분석을 시작하세요',
 			githubInvalidUrl: '유효한 GitHub 저장소 URL을 입력해주세요.',
 			githubNotFound: '저장소를 찾을 수 없습니다. URL을 확인해주세요.',
 			githubRateLimit: 'GitHub API 요청 한도 초과. 잠시 후 다시 시도해주세요.',
@@ -539,6 +544,9 @@ const translations: Record<Locale, TranslationSet> = {
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: 'Load',
 			githubOr: 'or enter a GitHub repository URL',
+			mobileFolderHint:
+				'Folder picking is unavailable on mobile. Enter a GitHub repository URL to analyze.',
+			mobileGithubLead: 'Enter a GitHub repository URL to start analysis',
 			githubInvalidUrl: 'Please enter a valid GitHub repository URL.',
 			githubNotFound: 'Repository not found. Please check the URL.',
 			githubRateLimit: 'GitHub API rate limit exceeded. Please try again later.',

@@ -275,7 +275,10 @@
 		top: 0;
 		left: 0;
 		width: calc(44px + 80vw);
-		height: 100vh;
+		height: 100dvh;
+		padding-top: env(safe-area-inset-top);
+		padding-bottom: env(safe-area-inset-bottom);
+		padding-left: env(safe-area-inset-left);
 		z-index: 30;
 		animation: slideIn 0.2s ease;
 	}

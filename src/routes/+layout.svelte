@@ -5,6 +5,7 @@
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { injectThemeCSS } from '$lib/services/syntaxThemeService';
+	import { attachKeyboardInsetTracking } from '$lib/utils/keyboardInset';
 	import AnalysisStatus from '$lib/components/AnalysisStatus.svelte';
 
 	let { children } = $props();
@@ -27,6 +28,10 @@
 		};
 		window.addEventListener('beforeunload', onBeforeUnload);
 
+		// M2: Track iOS keyboard inset on a global CSS variable so modals can
+		// reserve bottom padding when a virtual keyboard is open.
+		const detachKeyboardInset = attachKeyboardInsetTracking();
+
 		// Dev-only: expose __uploadExplore() console helper for manual
 		// gallery snapshot uploads. Tree-shaken out of production builds.
 		if (import.meta.env.DEV) {
@@ -35,6 +40,7 @@
 
 		return () => {
 			window.removeEventListener('beforeunload', onBeforeUnload);
+			detachKeyboardInset();
 		};
 	});
 </script>

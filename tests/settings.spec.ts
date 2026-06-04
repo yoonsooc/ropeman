@@ -35,7 +35,11 @@ test.describe('Settings Modal', () => {
 		await expect(page.locator('.settings-backdrop')).not.toBeVisible();
 	});
 
-	test('should close settings modal when clicking backdrop', async ({ page }) => {
+	test('should close settings modal when clicking backdrop', async ({ page, viewport }) => {
+		// On compact viewports (M2) the modal-card becomes a full-screen sheet
+		// so there is no visible backdrop to click outside of — close happens
+		// via the modal-close button instead.
+		test.skip(!!viewport && viewport.width <= 768, 'sheet mode — no backdrop click area');
 		await page.goto('/');
 
 		const settingsBtn = page.locator('header .header-right .header-btn').last();

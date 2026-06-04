@@ -37,6 +37,7 @@
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { getEffectiveSkipDirs } from '$lib/utils/filePriority';
 	import { analysisUiStore } from '$lib/stores/analysisUiStore.svelte';
+	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import { onMount, onDestroy } from 'svelte';
 
 	// Wire semantic cache deps (avoids circular import in semanticStore)
@@ -64,21 +65,10 @@
 	let showShare = $state(false);
 	// explorerCollapsed removed — sidebar icon bar is always visible,
 	// content panel is managed internally by Sidebar component
-	let isMobile = $state(false);
+	const breakpoint = useBreakpoint();
+	const isMobile = $derived(breakpoint.isMobile || breakpoint.isTablet);
 	let zuiCanvasRef: ZUICanvas | undefined = $state(undefined);
 	let sidebarRef: Sidebar | undefined = $state(undefined);
-
-	// U1-5: Responsive layout — detect mobile viewport
-	$effect(() => {
-		if (typeof window === 'undefined') return;
-		const mql = window.matchMedia('(max-width: 768px)');
-		const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-			isMobile = e.matches;
-		};
-		handler(mql);
-		mql.addEventListener('change', handler);
-		return () => mql.removeEventListener('change', handler);
-	});
 
 	function handleTrackSelect(track: 'edge' | 'byok' | 'bridge' | 'webgpu') {
 		showAnalyze = false;
@@ -644,24 +634,34 @@
 
 	/* U1-1: Analysis progress pill (bottom-right, above chat button) */
 
+	/* M3: mobile — DetailPanel becomes a bottom sheet (50dvh) instead of a
+	   full-screen slide. Keeps the canvas visible above for context. */
 	@media (max-width: 768px) {
 		.detail-panel {
 			position: fixed;
-			top: 0;
+			left: 0;
 			right: 0;
 			bottom: 0;
+			top: auto;
 			width: 100%;
+			height: 50dvh;
 			z-index: 50;
 			background: var(--bg-primary);
-			animation: mobileSlide 0.2s ease;
+			border-left: none;
+			border-top: 1px solid rgba(255, 255, 255, 0.08);
+			border-top-left-radius: 16px;
+			border-top-right-radius: 16px;
+			box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+			padding-bottom: env(safe-area-inset-bottom);
+			animation: bottomSheetSlide 0.2s ease;
 		}
 
-		@keyframes mobileSlide {
+		@keyframes bottomSheetSlide {
 			from {
-				transform: translateX(100%);
+				transform: translateY(100%);
 			}
 			to {
-				transform: translateX(0);
+				transform: translateY(0);
 			}
 		}
 	}

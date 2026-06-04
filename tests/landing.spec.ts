@@ -17,7 +17,10 @@ test.describe('Landing Page', () => {
 		await expect(header.locator('.header-title')).toHaveText('Ropeman');
 	});
 
-	test('should display the dropzone with CTA button', async ({ page }) => {
+	test('should display the dropzone with CTA button', async ({ page, viewport }) => {
+		// M4: on compact viewports the folder CTA is hidden in favour of the
+		// GitHub URL flow — a dedicated mobile-readonly-flows spec covers that.
+		test.skip(!!viewport && viewport.width <= 768, 'folder CTA is desktop-only');
 		await page.goto('/');
 		const dropzone = page.locator('.dropzone');
 		await expect(dropzone).toBeVisible();

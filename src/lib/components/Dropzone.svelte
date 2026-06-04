@@ -13,6 +13,12 @@
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import HeroIllustration from './HeroIllustration.svelte';
 	import { parseGitHubUrl } from '$lib/utils/githubUrl';
+	import { useBreakpoint } from '$lib/utils/responsive.svelte';
+
+	const breakpoint = useBreakpoint();
+	// M4: File System Access API + directory drag are desktop-only. On phones
+	// and tablets we redirect users to the GitHub URL path.
+	const isCompact = $derived(breakpoint.isMobile || breakpoint.isTablet);
 
 	let { oncancel, onload }: { oncancel?: () => void; onload?: () => void } = $props();
 
@@ -260,18 +266,29 @@
 				</div>
 			</div>
 		{:else}
-			<div class="landing">
+			<div class="landing" class:mobile={isCompact}>
 				<section class="landing-hero">
 					<div class="hero-text">
 						<h1>{@html i18nStore.t('landing.headline')}</h1>
 						<p class="hero-sub">{i18nStore.t('landing.subheadline')}</p>
-						<button class="cta-btn" data-tour-step="1" onclick={handleOpenDirectory}>
-							<span class="material-symbols-outlined cta-icon">folder_open</span>
-							{i18nStore.t('landing.cta')}
-						</button>
-						<p class="drag-hint">{i18nStore.t('landing.dragHint')}</p>
+						{#if !isCompact}
+							<button class="cta-btn" data-tour-step="1" onclick={handleOpenDirectory}>
+								<span class="material-symbols-outlined cta-icon">folder_open</span>
+								{i18nStore.t('landing.cta')}
+							</button>
+							<p class="drag-hint">{i18nStore.t('landing.dragHint')}</p>
+						{:else}
+							<p class="mobile-folder-hint">
+								<span class="material-symbols-outlined">info</span>
+								{i18nStore.t('landing.mobileFolderHint')}
+							</p>
+						{/if}
 						<div class="github-input-section">
-							<p class="github-or">{i18nStore.t('landing.githubOr')}</p>
+							<p class="github-or">
+								{isCompact
+									? i18nStore.t('landing.mobileGithubLead')
+									: i18nStore.t('landing.githubOr')}
+							</p>
 							<div class="github-input-row">
 								<input
 									type="text"
@@ -578,6 +595,25 @@
 		font-family: var(--font-code);
 		font-size: 14px;
 		color: var(--text-muted);
+	}
+
+	.mobile-folder-hint {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 8px;
+		padding: 10px 12px;
+		font-size: 13px;
+		line-height: 1.5;
+		color: var(--text-secondary);
+		background: color-mix(in srgb, var(--accent) 8%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+		border-radius: 8px;
+	}
+
+	.mobile-folder-hint .material-symbols-outlined {
+		font-size: 18px;
+		color: var(--accent);
 	}
 
 	/* Explore Gallery card — Stitch design "Ropeman Landing - Gallery Focus"

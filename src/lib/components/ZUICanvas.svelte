@@ -14,7 +14,11 @@
 	import SemanticNodeComponent from './nodes/SemanticNode.svelte';
 	import DrilldownConfirmModal from './DrilldownConfirmModal.svelte';
 	import ExploreDrilldownPromptDialog from './ExploreDrilldownPromptDialog.svelte';
+	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import type { SemanticNode } from '$lib/types/semantic';
+
+	const breakpoint = useBreakpoint();
+	const isCompact = $derived(breakpoint.isMobile || breakpoint.isTablet);
 
 	let drilldownConfirmOpen = $state(false);
 	let pendingDrilldownNode = $state<SemanticNode | null>(null);
@@ -429,6 +433,10 @@
 		fitView
 		minZoom={0.05}
 		maxZoom={4}
+		panOnDrag={[0, 1, 2]}
+		zoomOnPinch={true}
+		panOnScroll={false}
+		selectionOnDrag={false}
 		onnodeclick={handleNodeClick}
 		onnodedragstop={handleNodeDragStop}
 		onnodepointerenter={handleNodePointerEnter}
@@ -437,7 +445,7 @@
 		proOptions={{ hideAttribution: true }}
 	>
 		<Controls />
-		{#if showMinimap}
+		{#if showMinimap && !isCompact}
 			<MiniMap />
 		{/if}
 		<Background gap={24} size={1} />
@@ -703,6 +711,18 @@
 
 	.zui-canvas :global(.svelte-flow__controls button:hover) {
 		background: var(--bg-secondary);
+	}
+
+	/* M3: 44px touch targets for SvelteFlow Controls on mobile (WCAG 2.5.5) */
+	@media (max-width: 768px) {
+		.zui-canvas :global(.svelte-flow__controls button) {
+			width: 44px;
+			height: 44px;
+		}
+		.zui-canvas :global(.svelte-flow__controls button svg) {
+			width: 18px;
+			height: 18px;
+		}
 	}
 
 	/* Hide connection handles on semantic nodes */
