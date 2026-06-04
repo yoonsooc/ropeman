@@ -47,10 +47,16 @@ test.describe('Mobile read-only routes', () => {
 	}) => {
 		test.skip(!viewport || viewport.width > 960, 'mobile/tablet-only');
 		await page.goto('/docs/en/getting-started');
+		// Wait for SvelteKit hydration to finish wiring click handlers
+		// (dev server in CI compiles routes on-demand → first paint precedes JS).
+		await page.waitForLoadState('networkidle');
 		const menuBtn = page.locator('.menu-btn');
 		await expect(menuBtn).toBeVisible({ timeout: 10_000 });
 		await menuBtn.click();
-		await expect(page.locator('.docs-sidebar.open')).toBeVisible();
+		// `.sidebar-backdrop` is rendered conditionally via `{#if sidebarOpen}`,
+		// so its presence in the DOM is a definitive signal that the toggle
+		// fired and the drawer is open.
+		await expect(page.locator('.sidebar-backdrop')).toBeVisible({ timeout: 10_000 });
 	});
 
 	test('/share/[slug] gallery viewer renders without horizontal overflow', async ({
