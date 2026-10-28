@@ -52,3 +52,10 @@ playwright-report
 .claude.json
 .mcp.json
 .stitch-html/
+
+# Python agent service
+agent/.venv/
+agent/.data/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
