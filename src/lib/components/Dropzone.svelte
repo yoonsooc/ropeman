@@ -12,7 +12,7 @@
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import HeroIllustration from './HeroIllustration.svelte';
-	import { parseGitHubUrl } from '$lib/utils/githubUrl';
+	import { parseGitHubUrl, githubLoadErrorKey } from '$lib/utils/githubUrl';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 
 	const breakpoint = useBreakpoint();
@@ -182,16 +182,7 @@
 			onload?.();
 		} catch (err: any) {
 			resetStores();
-			const status = err?.status;
-			if (status === 404) {
-				error = i18nStore.t('landing.githubNotFound');
-			} else if (status === 403) {
-				error = i18nStore.t('landing.githubRateLimit');
-			} else if (status === 401) {
-				error = i18nStore.t('landing.githubPrivate');
-			} else {
-				error = i18nStore.t('landing.githubLoadError');
-			}
+			error = i18nStore.t(githubLoadErrorKey(err?.status));
 		} finally {
 			isLoadingGithub = false;
 		}

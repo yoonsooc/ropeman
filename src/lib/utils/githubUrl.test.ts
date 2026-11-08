@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseGitHubUrl, isGitHubUrl } from './githubUrl';
+import { parseGitHubUrl, isGitHubUrl, githubLoadErrorKey } from './githubUrl';
 
 describe('parseGitHubUrl', () => {
 	it('parses basic repo URL', () => {
@@ -98,5 +98,15 @@ describe('isGitHubUrl', () => {
 
 	it('returns false for empty string', () => {
 		expect(isGitHubUrl('')).toBe(false);
+	});
+});
+
+describe('githubLoadErrorKey', () => {
+	it('maps GitHub statuses to the landing messages', () => {
+		expect(githubLoadErrorKey(404)).toBe('landing.githubNotFound');
+		expect(githubLoadErrorKey(403)).toBe('landing.githubRateLimit');
+		expect(githubLoadErrorKey(401)).toBe('landing.githubPrivate');
+		expect(githubLoadErrorKey(500)).toBe('landing.githubLoadError');
+		expect(githubLoadErrorKey(undefined)).toBe('landing.githubLoadError');
 	});
 });

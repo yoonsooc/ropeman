@@ -161,7 +161,18 @@ function collectSupportedItems(
 /**
  * Load a GitHub repository: fetch tree, download files, parse ASTs.
  */
-export async function loadGitHubRepo(info: GitHubRepoInfo): Promise<void> {
+export interface LoadGitHubOptions {
+	/**
+	 * Runs once the repository tree has been fetched, before any store is written.
+	 * Lets a caller keep the open project when the URL turns out to be wrong.
+	 */
+	beforeApply?: () => void;
+}
+
+export async function loadGitHubRepo(
+	info: GitHubRepoInfo,
+	options: LoadGitHubOptions = {}
+): Promise<void> {
 	// 1. Fetch tree
 	const treeUrl = buildTreeUrl(info);
 	const treeRes = await fetch(treeUrl);
@@ -171,6 +182,7 @@ export async function loadGitHubRepo(info: GitHubRepoInfo): Promise<void> {
 	}
 
 	const treeData: GitHubTreeResponse = await treeRes.json();
+	options.beforeApply?.();
 	const ref = info.branch || treeData.sha;
 
 	// Store GitHub info for on-demand file fetching by CodeViewer

@@ -54,7 +54,7 @@
 		if (!rawMsg || rawMsg === lastErrorMsg) return;
 		lastErrorMsg = rawMsg;
 		const errorType = classifyAIError(rawMsg);
-		const info = getAIErrorInfo(errorType, rawMsg, i18nStore.locale);
+		const info = getAIErrorInfo(errorType, rawMsg, (key) => i18nStore.t(key));
 		currentErrorInfo = info;
 		errorDismissed = false;
 		if (errorDismissTimer) clearTimeout(errorDismissTimer);

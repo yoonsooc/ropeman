@@ -97,6 +97,34 @@ interface ShareTranslations {
 	close: string;
 }
 
+interface AIErrorTranslations {
+	tpm: string;
+	rateLimit: string;
+	quota: string;
+	auth: string;
+	network: string;
+	demo: string;
+	unknown: string;
+	actionSize: string;
+	actionModel: string;
+	actionKey: string;
+	actionExplore: string;
+	actionConnect: string;
+}
+
+interface AnalyzeTranslations {
+	demoNotice: string;
+	byokKeyNotice: string;
+}
+
+interface NewProjectTranslations {
+	title: string;
+	openFolder: string;
+	githubLabel: string;
+	replaceNote: string;
+	cancel: string;
+}
+
 interface DocsTranslations {
 	title: string;
 	backToApp: string;
@@ -204,6 +232,9 @@ interface TranslationSet {
 		focusSecondary: string;
 	};
 	share: ShareTranslations;
+	newProject: NewProjectTranslations;
+	aiError: AIErrorTranslations;
+	analyze: AnalyzeTranslations;
 	help: HelpTranslations;
 	onboarding: OnboardingTranslations;
 	docs: DocsTranslations;
@@ -354,6 +385,33 @@ const translations: Record<Locale, TranslationSet> = {
 			errorMessage: '공유 링크를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.',
 			close: '닫기'
 		},
+		aiError: {
+			tpm: '요청이 모델의 토큰 한도를 초과했습니다. 코드 구조 요약 크기를 줄이거나 다른 모델을 선택하세요.',
+			rateLimit: '요청 빈도 한도 초과. 잠시 후 다시 시도해주세요.',
+			quota: 'API 크레딧이 부족합니다. Provider 대시보드에서 충전하세요.',
+			auth: 'API Key가 유효하지 않습니다. 키를 확인하고 다시 입력하세요.',
+			network: '네트워크 연결을 확인하세요.',
+			demo: '무료 데모를 지금은 쓸 수 없습니다. Explore에서 미리 분석된 예시를 보거나, API 키나 로컬 브리지(Claude Code, Gemini CLI)를 연결해 직접 분석하세요.',
+			unknown: 'AI 분석 중 오류가 발생했습니다.',
+			actionSize: '크기 설정',
+			actionModel: '모델 변경',
+			actionKey: 'API Key 확인',
+			actionExplore: 'Explore 보기',
+			actionConnect: '다른 AI 연결'
+		},
+		analyze: {
+			demoNotice:
+				'Google Gemini 무료 등급으로 처리됩니다. 무료 등급에서는 Google이 입력을 서비스 개선에 사용할 수 있으니, 공개하기 어려운 코드는 API 키나 로컬 브리지를 쓰세요.',
+			byokKeyNotice:
+				'키는 이 브라우저에만 저장됩니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 브라우저 제약 때문에 Ropeman 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.'
+		},
+		newProject: {
+			title: '새 프로젝트 열기',
+			openFolder: '로컬 폴더 열기',
+			githubLabel: 'GitHub 공개 저장소',
+			replaceNote: '새 프로젝트를 불러오면 지금 열린 프로젝트는 닫힙니다.',
+			cancel: '취소'
+		},
 		help: {
 			title: '도움말',
 			tabUsage: '사용법',
@@ -377,10 +435,10 @@ const translations: Record<Locale, TranslationSet> = {
 			aiModesTitle: 'AI 분석 모드',
 			aiModeDemo: 'Demo',
 			aiModeDemoDesc:
-				'무료 체험 모드입니다. 서버 프록시를 통해 동작하며, 요청 횟수와 프로젝트 크기에 제한이 있습니다.',
+				'무료 체험 모드입니다. 서버 프록시를 통해 Google Gemini 무료 등급으로 동작하며, 요청 횟수와 프로젝트 크기에 제한이 있습니다. 무료 등급에서는 Google이 입력을 서비스 개선에 사용할 수 있습니다.',
 			aiModeByok: 'API Key (BYOK)',
 			aiModeByokDesc:
-				'자신의 Gemini/Anthropic/OpenAI API 키를 사용합니다. 키는 브라우저에만 저장되며 서버로 전송되지 않습니다.',
+				'자신의 Gemini/Anthropic/OpenAI API 키를 사용합니다. 키는 브라우저에만 저장됩니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 Ropeman 프록시를 거치며 프록시는 키를 저장하지 않습니다.',
 			aiModeBridge: 'Bridge',
 			aiModeBridgeDesc:
 				'로컬에 설치된 Gemini CLI 또는 Claude CLI를 통해 분석합니다. API 키 없이 CLI 인증을 활용합니다.',
@@ -404,7 +462,7 @@ const translations: Record<Locale, TranslationSet> = {
 				},
 				{
 					q: 'API 키는 어디에 저장되나요?',
-					a: '브라우저의 localStorage에만 저장됩니다. 서버에는 전송되지 않으며, 설정 초기화로 삭제할 수 있습니다.'
+					a: '브라우저의 localStorage에만 저장되며, 설정 초기화로 삭제할 수 있습니다. Anthropic·OpenAI 키는 요청할 때 Ropeman 프록시를 거쳐 전달되지만 프록시는 키를 저장하지 않습니다.'
 				}
 			]
 		},
@@ -609,6 +667,33 @@ const translations: Record<Locale, TranslationSet> = {
 			errorMessage: 'Could not generate a share link. Please try again later.',
 			close: 'Close'
 		},
+		aiError: {
+			tpm: "The request exceeds the model's token limit. Reduce the code summary size or choose another model.",
+			rateLimit: 'Too many requests. Please try again shortly.',
+			quota: "Not enough API credit. Top up in your provider's dashboard.",
+			auth: 'The API key is not valid. Check the key and enter it again.',
+			network: 'Check your network connection.',
+			demo: 'The free demo is unavailable right now. Browse pre-analyzed examples in Explore, or connect an API key or the local bridge (Claude Code, Gemini CLI) to analyze your own code.',
+			unknown: 'Something went wrong during AI analysis.',
+			actionSize: 'Size settings',
+			actionModel: 'Change model',
+			actionKey: 'Check API key',
+			actionExplore: 'Open Explore',
+			actionConnect: 'Connect another AI'
+		},
+		analyze: {
+			demoNotice:
+				'Runs on the free tier of Google Gemini, where Google may use inputs to improve its products. For code you would not share, use an API key or the local bridge.',
+			byokKeyNotice:
+				"Keys are stored only in this browser. Gemini requests go straight to Google; Anthropic and OpenAI requests pass through Ropeman's proxy because of browser restrictions. The proxy does not store keys."
+		},
+		newProject: {
+			title: 'Open a new project',
+			openFolder: 'Open a local folder',
+			githubLabel: 'Public GitHub repository',
+			replaceNote: 'Loading a new project closes the one that is open now.',
+			cancel: 'Cancel'
+		},
 		help: {
 			title: 'Help',
 			tabUsage: 'Usage',
@@ -632,10 +717,10 @@ const translations: Record<Locale, TranslationSet> = {
 			aiModesTitle: 'AI Analysis Modes',
 			aiModeDemo: 'Demo',
 			aiModeDemoDesc:
-				'Free trial mode. Runs through a server proxy with limits on request count and project size.',
+				'Free trial mode. Runs on the Google Gemini free tier through a server proxy, with limits on request count and project size. On the free tier Google may use inputs to improve its products.',
 			aiModeByok: 'API Key (BYOK)',
 			aiModeByokDesc:
-				'Use your own Gemini/Anthropic/OpenAI API key. Keys are stored only in your browser and never sent to any server.',
+				"Use your own Gemini/Anthropic/OpenAI API key. Keys are stored only in your browser. Gemini requests go straight to Google; Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store keys.",
 			aiModeBridge: 'Bridge',
 			aiModeBridgeDesc:
 				'Analyze through locally installed Gemini CLI or Claude CLI. Uses CLI authentication without requiring API keys.',
@@ -659,7 +744,7 @@ const translations: Record<Locale, TranslationSet> = {
 				},
 				{
 					q: 'Where are API keys stored?',
-					a: "Only in your browser's localStorage. They are never sent to any server and can be deleted by resetting settings."
+					a: "Only in your browser's localStorage; resetting settings deletes them. Anthropic and OpenAI keys pass through Ropeman's proxy with each request, and the proxy does not store them."
 				}
 			]
 		},

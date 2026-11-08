@@ -28,10 +28,12 @@ function createModelCatalogStore() {
 			loading = providerId;
 			try {
 				const models = await listModels(providerId, apiKey);
+				// A newer key may have been loaded while this one was in flight; its list wins
+				if (loadedWith.get(providerId) !== apiKey) return;
 				if (models.length > 0) fetched = { ...fetched, [providerId]: models };
 			} catch {
 				// Keep the fallback list; the key test reports key problems on its own
-				loadedWith.delete(providerId);
+				if (loadedWith.get(providerId) === apiKey) loadedWith.delete(providerId);
 			} finally {
 				if (loading === providerId) loading = null;
 			}
