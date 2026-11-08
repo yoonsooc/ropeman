@@ -27,7 +27,8 @@
   1. `/catchup` → .spec/history 최신 3개 읽고 맥락 파악
   2. 전체 레퍼런스(⚠️ .spec/은 symlink — Glob 대신 Bash ls 또는 Read로 접근) 확인
      - `.spec/PRD.md` — 비전/로드맵
-     - `.spec/ARCH.md` — 아키텍처/ADR
+     - `docs/ARCH.md` — 아키텍처 (코드와 함께 git 추적)
+     - `docs/adr/` — 결정 기록, 형식과 작성 조건은 `docs/adr/README.md`
      - `.spec/tasks/` — 원자적 태스크
      - 위 파일이 없으면 사용자에게 확인 후 진행
   3. `/sync` → 소스 스캔 (현재 코드가 실제로 어떤 상태인가)
