@@ -5,7 +5,9 @@
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { connectBridge, disconnectBridge } from '$lib/services/bridgeService';
 	import { testApiKey } from '$lib/services/apiKeyValidator';
-	import { AI_PROVIDERS, getProvider, getDefaultModel } from '$lib/data/aiProviders';
+	import { modelCatalogStore } from '$lib/stores/modelCatalogStore.svelte';
+	import { untrack } from 'svelte';
+	import { AI_PROVIDERS, getProvider } from '$lib/data/aiProviders';
 	import {
 		extractSkeleton,
 		estimatePayloadSize,
@@ -55,7 +57,7 @@
 	let bridgePort = $state(authStore.bridgePort);
 
 	const currentProvider = $derived(getProvider(selectedProvider));
-	const providerModels = $derived(currentProvider?.models ?? []);
+	const providerModels = $derived(modelCatalogStore.modelsFor(selectedProvider));
 	const apiKeyValue = $derived.by(() => {
 		if (selectedProvider === 'google') return settingsStore.geminiApiKey;
 		if (selectedProvider === 'anthropic') return settingsStore.anthropicApiKey;
@@ -94,6 +96,8 @@
 			selectedModel = settingsStore.aiModel;
 			testStatus = 'idle';
 			bridgePort = authStore.bridgePort;
+			// A key saved in an earlier visit: refresh that provider's model list
+			untrack(() => void modelCatalogStore.load(selectedProvider, apiKeyValue));
 			expandedCard = null;
 		}
 		prevOpen = open;
@@ -112,10 +116,11 @@
 		const newProvider = (e.target as HTMLSelectElement).value as AIProviderId;
 		selectedProvider = newProvider;
 		settingsStore.aiProvider = newProvider;
-		const defaultModel = getDefaultModel(newProvider);
+		const defaultModel = modelCatalogStore.modelsFor(newProvider)[0]?.id ?? '';
 		selectedModel = defaultModel;
 		settingsStore.aiModel = defaultModel;
 		testStatus = 'idle';
+		void modelCatalogStore.load(newProvider, apiKeyValue);
 	}
 
 	function handleModelChange(e: Event) {
@@ -144,6 +149,8 @@
 		const result = await testApiKey(selectedProvider, key, selectedModel);
 		testStatus = result.valid ? 'success' : 'error';
 		testError = result.error ?? '';
+		// Also on failure: a retired model fails the test even with a valid key
+		void modelCatalogStore.load(selectedProvider, key);
 	}
 
 	async function handleBridgeConnect() {
@@ -284,7 +291,7 @@
 								<input
 									class="input"
 									type="text"
-									placeholder="e.g. claude-sonnet-4-6"
+									placeholder="e.g. claude-sonnet-5-5"
 									value={selectedModel}
 									oninput={(e) => {
 										const v = (e.target as HTMLInputElement).value;

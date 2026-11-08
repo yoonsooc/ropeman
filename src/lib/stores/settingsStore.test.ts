@@ -19,8 +19,8 @@ describe('settingsStore', () => {
 			expect(settingsStore.aiProvider).toBe('google');
 		});
 
-		it('aiModel defaults to gemini-2.5-flash-lite', () => {
-			expect(settingsStore.aiModel).toBe('gemini-2.5-flash-lite');
+		it('aiModel defaults to gemini-flash-lite-latest', () => {
+			expect(settingsStore.aiModel).toBe('gemini-flash-lite-latest');
 		});
 
 		it('cacheEnabled defaults to true', () => {
@@ -251,7 +251,7 @@ describe('settingsStore', () => {
 			expect(settingsStore.geminiApiKey).toBe('');
 			expect(settingsStore.anthropicApiKey).toBe('');
 			expect(settingsStore.aiProvider).toBe('google');
-			expect(settingsStore.aiModel).toBe('gemini-2.5-flash-lite');
+			expect(settingsStore.aiModel).toBe('gemini-flash-lite-latest');
 			expect(settingsStore.cacheEnabled).toBe(true);
 			expect(settingsStore.language).toBe('ko');
 			expect(settingsStore.syntaxTheme).toBe('tomorrow');

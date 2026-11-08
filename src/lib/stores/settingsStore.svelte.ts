@@ -18,7 +18,7 @@ function createSettingsStore() {
 	let anthropicApiKey = $state<string>(initial.anthropicApiKey ?? '');
 	let openaiApiKey = $state<string>(initial.openaiApiKey ?? '');
 	let aiProvider = $state<AIProviderId>(initial.aiProvider ?? 'google');
-	let aiModel = $state<string>(initial.aiModel ?? 'gemini-2.5-flash-lite');
+	let aiModel = $state<string>(initial.aiModel ?? 'gemini-flash-lite-latest');
 	let maxSkeletonKB = $state<number>(initial.maxSkeletonKB ?? 250);
 	let skeletonUnlimited = $state<boolean>(initial.skeletonUnlimited ?? false);
 	let cacheEnabled = $state<boolean>(initial.cacheEnabled ?? true);
@@ -205,7 +205,7 @@ function createSettingsStore() {
 			anthropicApiKey = '';
 			openaiApiKey = '';
 			aiProvider = 'google';
-			aiModel = 'gemini-2.5-flash-lite';
+			aiModel = 'gemini-flash-lite-latest';
 			maxSkeletonKB = 250;
 			skeletonUnlimited = false;
 			cacheEnabled = true;

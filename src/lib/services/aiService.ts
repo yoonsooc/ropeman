@@ -104,7 +104,7 @@ export async function sendMessage(
 	// BYOK track: Gemini REST API (with cache + retry)
 	const apiKey = settingsStore.geminiApiKey;
 	const model =
-		settingsStore.aiProvider === 'google' ? settingsStore.aiModel : 'gemini-2.5-flash-lite';
+		settingsStore.aiProvider === 'google' ? settingsStore.aiModel : 'gemini-flash-lite-latest';
 	const endpoint = getGeminiEndpoint(model);
 
 	// Cache lookup (only for first messages without history for simplicity)

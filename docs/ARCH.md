@@ -23,6 +23,7 @@ src/
 │   │   ├── authStore.svelte.ts       # AI 트랙 (none/edge/byok/bridge/webgpu) + preferredTrack
 │   │   ├── settingsStore.svelte.ts   # 사용자 설정 (API키, 코드 구조 요약 limit, 캐시, 언어, 테마, codeFontSize)
 │   │   ├── webgpuStore.svelte.ts     # WebGPU 모델 상태 (status, progress, isSupported, 다중모델, 캐시감지)
+│   │   ├── modelCatalogStore.svelte.ts # BYOK 모델 목록 (조회 결과 또는 기본 목록, 세션 한정)
 │   │   ├── tabStore.svelte.ts        # 탭 시스템 (diagram/code, preview/pinned)
 │   │   ├── layoutStore.svelte.ts     # Split Pane 레이아웃 상태
 │   │   ├── onboardingStore.svelte.ts # 온보딩 투어 상태 (Phase 1/2, currentStep, localStorage)
@@ -48,6 +49,7 @@ src/
 │   │   ├── architectureService.ts    # 아키텍처 그룹 분석 (legacy)
 │   │   ├── syntaxThemeService.ts     # Prism 테마 CSS 동적 주입
 │   │   ├── searchService.ts          # Orama 검색
+│   │   ├── modelCatalogService.ts    # BYOK 키로 프로바이더 모델 목록 조회 + 채팅 모델 필터
 │   │   └── testLoader.ts             # dev 전용 테스트 프로젝트 로더
 │   │
 │   ├── components/               # Svelte 5 컴포넌트
@@ -89,6 +91,7 @@ src/
 │   │   ├── ai.ts                      # AIErrorType, AIErrorInfo, classifyAIError, getAIErrorInfo
 │   │   └── search.ts                 # 검색 타입
 │   │
+│   ├── data/aiProviders.ts           # 키가 없을 때 쓰는 기본 모델 목록 (modelCatalogStore가 대체)
 │   ├── config.ts                     # DEMO_URL, PROXY_URL 상수
 │   │
 │   └── utils/
@@ -100,7 +103,7 @@ edge-proxy/                       # Cloudflare Workers
 ├── src/
 │   ├── shared.ts                     # CORS 헬퍼, callGemini, jsonResponse
 │   ├── demo.ts                       # ropeman-demo (rate limit + 서버키 + 모델 폴백)
-│   └── proxy.ts                      # ropeman-proxy (BYOK pass-through)
+│   └── proxy.ts                      # ropeman-proxy (BYOK pass-through + 모델 목록)
 ├── wrangler.demo.toml                # Demo Worker 배포 설정 (placement hint)
 └── wrangler.proxy.toml               # Proxy Worker 배포 설정
 ```
@@ -180,11 +183,12 @@ callAI({ system, user, signal }): Promise<string>
 edge-proxy/src/
 ├── shared.ts       # CORS 헬퍼 + callGemini (maxOutputTokens: 16384)
 ├── demo.ts         # rate limit (IP 분당 10, 일일 200) + 서버 Gemini API 키 (무료 등급)
-└── proxy.ts        # BYOK pass-through (Google/Anthropic/OpenAI)
+└── proxy.ts        # BYOK pass-through (Google/Anthropic/OpenAI) + `action: 'models'`
 ```
 
 - demo는 `DEMO_MODEL`의 쉼표 목록을 차례로 시도한다. 404·429·5xx면 다음 모델로 넘어간다 (무료 등급 할당량이 모델별이라서)
 - demo 실패 응답은 오류 코드만 준다 (`demo_rate_limited`, `demo_daily_limit`, `demo_upstream_quota`, `demo_unavailable`). 업스트림 본문은 결제 프로젝트 정보를 담을 수 있어 워커 로그에만 남긴다. 클라이언트는 `demoFailureMessage` → `AIErrorType.DEMO_UNAVAILABLE`로 Explore와 다른 AI 연결을 안내한다
+- proxy의 `action: 'models'`는 사용자 키로 Anthropic·OpenAI 모델 목록을 받아 `{id, label, created}`로 돌려준다. Gemini 목록은 브라우저가 직접 조회한다
 - `scripts/health-check.mjs`를 `.github/workflows/health-check.yml`이 매일 00:00 UTC에 실행한다 (사이트, pages.dev 리다이렉트, explore, demo 실제 호출, proxy, share)
 
 - `[placement] mode = "smart"`, `hint = "wnam"` — Gemini API 지역 제한 우회

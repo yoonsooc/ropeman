@@ -16,6 +16,12 @@ interface ProxyRequest {
 	system?: string;
 }
 
+interface ModelsRequest {
+	action: 'models';
+	provider: Provider;
+	apiKey: string;
+}
+
 // --- Provider별 API 호출 (AI Gateway 경유) ---
 
 let gatewayBase = '';
@@ -72,9 +78,44 @@ async function callOpenAI(
 		body: JSON.stringify({
 			model,
 			messages: msgs,
-			max_tokens: 4096,
+			// GPT-5 and o-series reject max_tokens, and their reasoning tokens count against this budget
+			max_completion_tokens: 16384,
 		}),
 	});
+}
+
+// --- 모델 목록 (사용자 키로 조회, 채팅 모델 고르기는 클라이언트 몫) ---
+
+async function listModels(provider: Provider, apiKey: string, headers: Record<string, string>): Promise<Response> {
+	if (!apiKey) {
+		return jsonResponse({ error: 'Missing required field: apiKey' }, 400, headers);
+	}
+
+	let response: Response;
+	if (provider === 'anthropic') {
+		response = await fetch('https://api.anthropic.com/v1/models?limit=100', {
+			headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+		});
+	} else if (provider === 'openai') {
+		response = await fetch('https://api.openai.com/v1/models', {
+			headers: { Authorization: `Bearer ${apiKey}` },
+		});
+	} else {
+		return jsonResponse({ error: `Model list not supported for ${provider}` }, 400, headers);
+	}
+
+	const data: any = await response.json().catch(() => ({}));
+	if (!response.ok) {
+		return jsonResponse({ error: `${provider} model list error: ${response.status}` }, response.status, headers);
+	}
+
+	const models = (Array.isArray(data?.data) ? data.data : []).map((m: any) => ({
+		id: m.id,
+		label: m.display_name ?? m.id,
+		// OpenAI: unix seconds; Anthropic: ISO timestamp
+		created: m.created ?? (m.created_at ? Math.floor(Date.parse(m.created_at) / 1000) : undefined),
+	}));
+	return jsonResponse({ models }, 200, headers);
 }
 
 // --- 응답 정규화 (각 provider → 통일 형식) ---
@@ -108,8 +149,11 @@ export default {
 		try {
 			gatewayBase = env.AI_GATEWAY_BASE;
 			gatewayToken = env.AI_GATEWAY_TOKEN || '';
-			const body = (await request.json()) as ProxyRequest;
-			const { provider, apiKey, model, messages, system } = body;
+			const body = (await request.json()) as ProxyRequest | ModelsRequest;
+			if ('action' in body && body.action === 'models') {
+				return await listModels(body.provider, body.apiKey, headers);
+			}
+			const { provider, apiKey, model, messages, system } = body as ProxyRequest;
 
 			if (!provider || !apiKey || !model || !messages) {
 				return jsonResponse({ error: 'Missing required fields: provider, apiKey, model, messages' }, 400, headers);
