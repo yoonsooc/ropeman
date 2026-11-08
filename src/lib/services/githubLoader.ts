@@ -161,14 +161,6 @@ function collectSupportedItems(
 /**
  * Load a GitHub repository: fetch tree, download files, parse ASTs.
  */
-/** i18n key for a failed load, shared by the landing page and the New project dialog. */
-export function githubLoadErrorKey(status?: number): string {
-	if (status === 404) return 'landing.githubNotFound';
-	if (status === 403) return 'landing.githubRateLimit';
-	if (status === 401) return 'landing.githubPrivate';
-	return 'landing.githubLoadError';
-}
-
 export interface LoadGitHubOptions {
 	/**
 	 * Runs once the repository tree has been fetched, before any store is written.

@@ -32,3 +32,12 @@ export function parseGitHubUrl(url: string): GitHubRepoInfo | null {
 export function isGitHubUrl(url: string): boolean {
 	return parseGitHubUrl(url) !== null;
 }
+
+/** i18n key for a failed load, shared by the landing page and the New project dialog.
+ * Lives here, not in githubLoader, so importing it does not pull the loader into the main chunk. */
+export function githubLoadErrorKey(status?: number): string {
+	if (status === 404) return 'landing.githubNotFound';
+	if (status === 403) return 'landing.githubRateLimit';
+	if (status === 401) return 'landing.githubPrivate';
+	return 'landing.githubLoadError';
+}

@@ -37,66 +37,33 @@ export interface AIErrorAction {
 	target: 'analyze' | 'settings' | 'explore';
 }
 
-type ErrorLocale = 'ko' | 'en';
-type Localized = Record<ErrorLocale, string>;
-
-/** 에러 유형별 사용자 안내 메시지 및 액션 */
+/** 에러 유형별 안내 문구와 액션. 값은 i18nStore 키 (aiError.*) */
 const ERROR_INFO_MAP: Record<
 	AIErrorType,
-	{ message: Localized; actions: Array<{ label: Localized; target: AIErrorAction['target'] }> }
+	{ message: string; actions: Array<{ label: string; target: AIErrorAction['target'] }> }
 > = {
 	[AIErrorType.TPM_EXCEEDED]: {
-		message: {
-			ko: '요청이 모델의 토큰 한도를 초과했습니다. 코드 구조 요약 크기를 줄이거나 다른 모델을 선택하세요.',
-			en: "The request exceeds the model's token limit. Reduce the code summary size or choose another model."
-		},
+		message: 'aiError.tpm',
 		actions: [
-			{ label: { ko: '크기 설정', en: 'Size settings' }, target: 'analyze' },
-			{ label: { ko: '모델 변경', en: 'Change model' }, target: 'analyze' }
+			{ label: 'aiError.actionSize', target: 'analyze' },
+			{ label: 'aiError.actionModel', target: 'analyze' }
 		]
 	},
-	[AIErrorType.RATE_LIMIT]: {
-		message: {
-			ko: '요청 빈도 한도 초과. 잠시 후 다시 시도해주세요.',
-			en: 'Too many requests. Please try again shortly.'
-		},
-		actions: []
-	},
-	[AIErrorType.INSUFFICIENT_QUOTA]: {
-		message: {
-			ko: 'API 크레딧이 부족합니다. Provider 대시보드에서 충전하세요.',
-			en: "Not enough API credit. Top up in your provider's dashboard."
-		},
-		actions: []
-	},
+	[AIErrorType.RATE_LIMIT]: { message: 'aiError.rateLimit', actions: [] },
+	[AIErrorType.INSUFFICIENT_QUOTA]: { message: 'aiError.quota', actions: [] },
 	[AIErrorType.AUTH_ERROR]: {
-		message: {
-			ko: 'API Key가 유효하지 않습니다. 키를 확인하고 다시 입력하세요.',
-			en: 'The API key is not valid. Check the key and enter it again.'
-		},
-		actions: [{ label: { ko: 'API Key 확인', en: 'Check API key' }, target: 'analyze' }]
+		message: 'aiError.auth',
+		actions: [{ label: 'aiError.actionKey', target: 'analyze' }]
 	},
-	[AIErrorType.NETWORK_ERROR]: {
-		message: { ko: '네트워크 연결을 확인하세요.', en: 'Check your network connection.' },
-		actions: []
-	},
+	[AIErrorType.NETWORK_ERROR]: { message: 'aiError.network', actions: [] },
 	[AIErrorType.DEMO_UNAVAILABLE]: {
-		message: {
-			ko: '무료 데모를 지금은 쓸 수 없습니다. Explore에서 미리 분석된 예시를 보거나, API 키나 로컬 브리지(Claude Code, Gemini CLI)를 연결해 직접 분석하세요.',
-			en: 'The free demo is unavailable right now. Browse pre-analyzed examples in Explore, or connect an API key or the local bridge (Claude Code, Gemini CLI) to analyze your own code.'
-		},
+		message: 'aiError.demo',
 		actions: [
-			{ label: { ko: 'Explore 보기', en: 'Open Explore' }, target: 'explore' },
-			{ label: { ko: '다른 AI 연결', en: 'Connect another AI' }, target: 'analyze' }
+			{ label: 'aiError.actionExplore', target: 'explore' },
+			{ label: 'aiError.actionConnect', target: 'analyze' }
 		]
 	},
-	[AIErrorType.UNKNOWN]: {
-		message: {
-			ko: 'AI 분석 중 오류가 발생했습니다.',
-			en: 'Something went wrong during AI analysis.'
-		},
-		actions: []
-	}
+	[AIErrorType.UNKNOWN]: { message: 'aiError.unknown', actions: [] }
 };
 
 /**
@@ -197,13 +164,13 @@ export function classifyAIError(errorMessage: string, httpStatus?: number): AIEr
  */
 export function getAIErrorInfo(
 	errorType: AIErrorType,
-	rawMessage?: string,
-	locale: ErrorLocale = 'ko'
+	rawMessage: string | undefined,
+	t: (key: string) => string
 ): AIErrorInfo {
 	const info = ERROR_INFO_MAP[errorType];
 	return {
 		type: errorType,
-		message: errorType === AIErrorType.UNKNOWN && rawMessage ? rawMessage : info.message[locale],
-		actions: info.actions.map((a) => ({ label: a.label[locale], target: a.target }))
+		message: errorType === AIErrorType.UNKNOWN && rawMessage ? rawMessage : t(info.message),
+		actions: info.actions.map((a) => ({ label: t(a.label), target: a.target }))
 	};
 }

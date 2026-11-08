@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -33,6 +36,11 @@ jobs:
       - name: Type check
         run: npx svelte-check --tsconfig ./tsconfig.json
 
+      - name: Type check workers
+        run: |
+          npm ci --prefix edge-proxy
+          edge-proxy/node_modules/.bin/tsc --noEmit -p edge-proxy/tsconfig.json
+
       - name: Build
         run: npm run build
 
@@ -55,50 +63,97 @@ jobs:
 
   # Production deploy after CI passes on main. The Pages project is a direct-upload project
   # (no Git integration), so this job is the only automatic path to production.
+  #
+  # Workers are chosen by diffing against the `production` tag, the last commit whose deploy
+  # finished. Diffing against the push's own `before` would lose changes when GitHub drops a
+  # pending run from the concurrency group, and would never retry a worker that failed.
   deploy:
     needs: ci
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write # move the production tag
     concurrency:
       group: production-deploy
       cancel-in-progress: false
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Keep the write token out of .git/config, where install scripts could read it
+          persist-credentials: false
+
+      # CI runs can finish out of order. Only the newest main commit deploys, so an older
+      # run can never roll production back
+      - name: Check this is still the newest main commit
+        id: latest
+        run: |
+          git fetch -q origin main
+          if [ "$(git rev-parse origin/main)" = "$GITHUB_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::main has moved past $GITHUB_SHA; the newer run deploys"
+          fi
 
       - name: Setup Node.js
+        if: steps.latest.outputs.deploy == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: steps.latest.outputs.deploy == 'true'
         run: npm ci
 
       # App first: the new app understands both old and new worker errors, the old app does not
       - name: Deploy app (Pages)
+        if: steps.latest.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm run deploy
 
       - name: Find changed workers
+        if: steps.latest.outputs.deploy == 'true'
         id: workers
-        run: node scripts/changed-workers.mjs "${{ github.event.before }}" "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        run: |
+          git fetch -q --tags origin
+          base=$(git rev-parse -q --verify 'refs/tags/production^{commit}' || echo "${{ github.event.before }}")
+          echo "Diffing workers from $base"
+          node scripts/changed-workers.mjs "$base" "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Deploy changed workers
-        if: steps.workers.outputs.list != ''
+        if: steps.latest.outputs.deploy == 'true' && steps.workers.outputs.list != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm ci --prefix edge-proxy
+          failed=""
           for worker in ${{ steps.workers.outputs.list }}; do
-            npm --prefix edge-proxy run "deploy:$worker"
+            npm --prefix edge-proxy run "deploy:$worker" || failed="$failed $worker"
           done
+          if [ -n "$failed" ]; then
+            echo "::error::worker deploy failed:$failed"
+            exit 1
+          fi
+
+      # Only after every deploy succeeded, so a failed worker is picked up again next time
+      - name: Move the production tag
+        if: steps.latest.outputs.deploy == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag -f production "$GITHUB_SHA"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" refs/tags/production
 
       - name: Health check
+        if: steps.latest.outputs.deploy == 'true'
         run: |
           sleep 30 # let the new Pages deployment reach the edge
           node scripts/health-check.mjs

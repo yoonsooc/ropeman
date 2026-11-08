@@ -88,15 +88,17 @@
 	}
 
 	async function testKey() {
+		// Fixed before the await: the provider select stays usable while the test runs
+		const provider = selectedProvider;
 		const key = apiKeyValue;
 		if (!key) return;
 		testStatus = 'testing';
 		testError = '';
-		const result = await testApiKey(selectedProvider, key, selectedModel);
+		const result = await testApiKey(provider, key, selectedModel);
 		testStatus = result.valid ? 'success' : 'error';
 		testError = result.error ?? '';
 		// Also on failure: a retired model fails the test even with a valid key
-		void modelCatalogStore.load(selectedProvider, key);
+		void modelCatalogStore.load(provider, key);
 	}
 
 	async function handleConnect() {

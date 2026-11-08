@@ -67,4 +67,24 @@ test.describe('New project dialog', () => {
 		await expect(page.locator('.main-layout')).toBeVisible();
 		await expect(page.locator('.header-project')).toHaveText('ropeman-new-project-fixture');
 	});
+
+	test('keeps the open project and the keyboard when the repository is missing', async ({
+		page
+	}) => {
+		await page.route('https://api.github.com/repos/octo/missing/git/trees/**', (route) =>
+			route.fulfill({ status: 404, json: { message: 'Not Found' } })
+		);
+
+		await page.locator('button[title="Open New Project"]').click();
+		const dialog = page.getByRole('dialog');
+		const input = dialog.locator('#newproject-github');
+		await input.fill('https://github.com/octo/missing');
+		await input.press('Enter');
+
+		await expect(dialog.getByRole('alert')).toBeVisible();
+		await expect(input).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeHidden();
+		await expect(page.locator('.header-project')).toHaveText('ropeman-new-project-fixture');
+	});
 });

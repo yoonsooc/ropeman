@@ -12,7 +12,7 @@
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import HeroIllustration from './HeroIllustration.svelte';
-	import { parseGitHubUrl } from '$lib/utils/githubUrl';
+	import { parseGitHubUrl, githubLoadErrorKey } from '$lib/utils/githubUrl';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 
 	const breakpoint = useBreakpoint();
@@ -182,7 +182,6 @@
 			onload?.();
 		} catch (err: any) {
 			resetStores();
-			const { githubLoadErrorKey } = await import('$lib/services/githubLoader');
 			error = i18nStore.t(githubLoadErrorKey(err?.status));
 		} finally {
 			isLoadingGithub = false;

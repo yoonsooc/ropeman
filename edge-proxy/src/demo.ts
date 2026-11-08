@@ -10,7 +10,7 @@ interface Env {
 
 const DEFAULT_DEMO_MODEL = 'gemini-flash-latest';
 /** Upstream statuses worth retrying with the next model: gone, per-model quota, or overloaded. */
-const RETRY_NEXT_MODEL = new Set([404, 429, 500, 503]);
+const RETRY_NEXT_MODEL = new Set([404, 429, 500, 502, 503, 504]);
 /**
  * Per-model wait. An overloaded free-tier model can hold the request instead of
  * answering 503 (seen 2026-11-08), which would stall the whole fallback chain.
@@ -84,6 +84,9 @@ export default {
 			messages = body.messages as Array<{ role: string; content: string }>;
 			systemPrompt = body.system as string | undefined;
 		} catch {
+			return jsonResponse({ error: 'invalid_request' }, 400, headers);
+		}
+		if (!Array.isArray(messages) || messages.length === 0) {
 			return jsonResponse({ error: 'invalid_request' }, 400, headers);
 		}
 

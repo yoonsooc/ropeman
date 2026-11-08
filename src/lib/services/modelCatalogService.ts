@@ -17,6 +17,13 @@ const NOT_TEXT_CHAT =
 	/embedding|tts|audio|image|realtime|transcribe|moderation|search|aqa|live|robotics|computer-use|codex|instruct/i;
 /** OpenAI pinned snapshots such as gpt-4o-2024-08-06 or gpt-4-0613; the aliases are enough. */
 const DATED_SNAPSHOT = /-\d{4}-\d{2}-\d{2}$|-\d{4}$/;
+/** OpenAI models served only by the Responses API; the proxy calls /chat/completions. */
+const RESPONSES_ONLY = /-pro\b|deep-research/;
+/**
+ * The first entry becomes the default when the provider changes. Flash first: it has the
+ * largest free-tier quota, which matters for keys without billing.
+ */
+const GEMINI_ALIAS_ORDER = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-pro-latest'];
 
 export interface GeminiModel {
 	name: string;
@@ -37,9 +44,12 @@ export function pickGeminiModels(models: GeminiModel[]): AIModel[] {
 		.map((m) => ({ id: m.name.replace(/^models\//, ''), label: m.displayName || m.name }))
 		.filter((m) => m.id.startsWith('gemini') && !NOT_TEXT_CHAT.test(m.id))
 		.sort((a, b) => {
-			// `-latest` aliases first, then newer versions before older ones
-			const alias = Number(b.id.endsWith('-latest')) - Number(a.id.endsWith('-latest'));
-			return alias || b.id.localeCompare(a.id, undefined, { numeric: true });
+			// Known aliases in a fixed order, then newer versions before older ones
+			const rank = (id: string) => {
+				const i = GEMINI_ALIAS_ORDER.indexOf(id);
+				return i === -1 ? GEMINI_ALIAS_ORDER.length : i;
+			};
+			return rank(a.id) - rank(b.id) || b.id.localeCompare(a.id, undefined, { numeric: true });
 		})
 		.slice(0, MAX_MODELS);
 }
@@ -48,7 +58,10 @@ export function pickOpenAIModels(models: RemoteModel[]): AIModel[] {
 	return models
 		.filter(
 			(m) =>
-				/^(gpt-|o\d|chatgpt-)/.test(m.id) && !NOT_TEXT_CHAT.test(m.id) && !DATED_SNAPSHOT.test(m.id)
+				/^(gpt-|o\d|chatgpt-)/.test(m.id) &&
+				!NOT_TEXT_CHAT.test(m.id) &&
+				!DATED_SNAPSHOT.test(m.id) &&
+				!RESPONSES_ONLY.test(m.id)
 		)
 		.sort((a, b) => (b.created ?? 0) - (a.created ?? 0))
 		.slice(0, MAX_MODELS)

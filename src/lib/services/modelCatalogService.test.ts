@@ -40,15 +40,20 @@ describe('modelCatalogService', () => {
 					displayName: 'Gemini 3.1 Pro',
 					supportedGenerationMethods: ['generateContent']
 				},
-				{ name: 'models/gemma-3-27b-it', supportedGenerationMethods: ['generateContent'] }
+				{ name: 'models/gemma-3-27b-it', supportedGenerationMethods: ['generateContent'] },
+				{ name: 'models/gemini-pro-latest', supportedGenerationMethods: ['generateContent'] },
+				{ name: 'models/gemini-flash-lite-latest', supportedGenerationMethods: ['generateContent'] }
 			];
 
 			// Act
 			const picked = pickGeminiModels(models);
 
 			// Assert
+			// Flash first: it becomes the default and has the largest free-tier quota
 			expect(picked.map((m) => m.id)).toEqual([
 				'gemini-flash-latest',
+				'gemini-flash-lite-latest',
+				'gemini-pro-latest',
 				'gemini-3.1-pro',
 				'gemini-2.5-flash'
 			]);
@@ -57,7 +62,7 @@ describe('modelCatalogService', () => {
 	});
 
 	describe('pickOpenAIModels', () => {
-		it('drops media, embedding and dated snapshot ids, newest first', () => {
+		it('drops media, embedding, dated snapshot and Responses-only ids, newest first', () => {
 			const models = [
 				{ id: 'gpt-4o-mini', created: 100 },
 				{ id: 'gpt-4o-mini-2024-07-18', created: 101 },
@@ -67,7 +72,9 @@ describe('modelCatalogService', () => {
 				{ id: 'gpt-realtime', created: 260 },
 				{ id: 'gpt-4-0613', created: 50 },
 				{ id: 'o4-mini', created: 150 },
-				{ id: 'whisper-1', created: 10 }
+				{ id: 'whisper-1', created: 10 },
+				{ id: 'o3-pro', created: 400 },
+				{ id: 'o4-mini-deep-research', created: 410 }
 			];
 
 			const picked = pickOpenAIModels(models);

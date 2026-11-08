@@ -66,4 +66,21 @@ describe('modelCatalogStore', () => {
 		expect(mockedList).toHaveBeenCalledTimes(1);
 		expect(modelCatalogStore.isRemote('google')).toBe(false);
 	});
+
+	it('keeps the newer key when an older request finishes last', async () => {
+		// Arrange: the old key's request is slow, the new key's is fast
+		let finishOld: (models: { id: string; label: string }[]) => void = () => {};
+		mockedList
+			.mockImplementationOnce(() => new Promise((resolve) => (finishOld = resolve)))
+			.mockResolvedValueOnce([{ id: 'new-model', label: 'new' }]);
+
+		// Act
+		const oldLoad = modelCatalogStore.load('openai', 'old-key');
+		await modelCatalogStore.load('openai', 'new-key');
+		finishOld([{ id: 'old-model', label: 'old' }]);
+		await oldLoad;
+
+		// Assert
+		expect(modelCatalogStore.modelsFor('openai')).toEqual([{ id: 'new-model', label: 'new' }]);
+	});
 });

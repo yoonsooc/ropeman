@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
-	import { parseGitHubUrl, type GitHubRepoInfo } from '$lib/utils/githubUrl';
-	import { githubLoadErrorKey } from '$lib/services/githubLoader';
+	import { parseGitHubUrl, githubLoadErrorKey, type GitHubRepoInfo } from '$lib/utils/githubUrl';
 
 	let {
 		open,
@@ -25,13 +24,19 @@
 	let loading = $state(false);
 	let inputEl: HTMLInputElement | undefined = $state(undefined);
 
+	// Non-reactive: open/close edges and the element to give focus back to
 	let prevOpen = false;
+	let opener: HTMLElement | null = null;
 	$effect(() => {
 		if (open && !prevOpen) {
 			url = '';
 			error = '';
 			loading = false;
+			opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 			tick().then(() => inputEl?.focus());
+		} else if (!open && prevOpen) {
+			opener?.focus();
+			opener = null;
 		}
 		prevOpen = open;
 	});
@@ -56,10 +61,16 @@
 		} finally {
 			loading = false;
 		}
+		// The input was disabled while loading, which dropped focus to <body>
+		if (open) {
+			await tick();
+			inputEl?.focus();
+		}
 	}
 
+	// On the window, not the backdrop: focus can sit on <body> after a disabled control
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && !loading) onclose();
+		if (open && e.key === 'Escape' && !loading) onclose();
 	}
 
 	function handleInputKeydown(e: KeyboardEvent) {
@@ -73,13 +84,11 @@
 	}
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
+
 {#if open}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div
-		class="modal-backdrop newproject-backdrop"
-		onclick={handleBackdropClick}
-		onkeydown={handleKeydown}
-	>
+	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+	<div class="modal-backdrop newproject-backdrop" onclick={handleBackdropClick}>
 		<div
 			class="modal-card newproject-card"
 			role="dialog"
@@ -94,7 +103,7 @@
 					disabled={loading}
 					aria-label={i18nStore.t('newProject.cancel')}
 				>
-					<span class="material-symbols-outlined">close</span>
+					<span class="material-symbols-outlined" aria-hidden="true">close</span>
 				</button>
 			</div>
 
@@ -104,12 +113,12 @@
 					onclick={handleOpenFolder}
 					disabled={loading}
 				>
-					<span class="material-symbols-outlined">folder_open</span>
+					<span class="material-symbols-outlined" aria-hidden="true">folder_open</span>
 					{i18nStore.t('newProject.openFolder')}
 				</button>
 			{:else}
 				<p class="newproject-hint">
-					<span class="material-symbols-outlined">info</span>
+					<span class="material-symbols-outlined" aria-hidden="true">info</span>
 					{i18nStore.t('landing.mobileFolderHint')}
 				</p>
 			{/if}
@@ -132,9 +141,13 @@
 					class="btn btn-primary newproject-load"
 					onclick={handleLoad}
 					disabled={loading || !url.trim()}
+					aria-busy={loading}
+					aria-label={i18nStore.t('landing.githubLoad')}
 				>
 					{#if loading}
-						<span class="material-symbols-outlined newproject-spinner">progress_activity</span>
+						<span class="material-symbols-outlined newproject-spinner" aria-hidden="true"
+							>progress_activity</span
+						>
 					{:else}
 						{i18nStore.t('landing.githubLoad')}
 					{/if}

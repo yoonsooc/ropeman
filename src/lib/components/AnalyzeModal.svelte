@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 	import { webgpuStore } from '$lib/stores/webgpuStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
@@ -142,15 +143,17 @@
 	}
 
 	async function testKey() {
+		// Fixed before the await: the provider select stays usable while the test runs
+		const provider = selectedProvider;
 		const key = apiKeyValue;
 		if (!key) return;
 		testStatus = 'testing';
 		testError = '';
-		const result = await testApiKey(selectedProvider, key, selectedModel);
+		const result = await testApiKey(provider, key, selectedModel);
 		testStatus = result.valid ? 'success' : 'error';
 		testError = result.error ?? '';
 		// Also on failure: a retired model fails the test even with a valid key
-		void modelCatalogStore.load(selectedProvider, key);
+		void modelCatalogStore.load(provider, key);
 	}
 
 	async function handleBridgeConnect() {
@@ -237,6 +240,7 @@
 							Start
 						</button>
 					</div>
+					<p class="track-note">{i18nStore.t('analyze.demoNotice')}</p>
 				</div>
 
 				<!-- BYOK -->
@@ -325,6 +329,7 @@
 							{:else if testStatus === 'error'}
 								<span class="cfg-status error">{testError || 'Invalid'}</span>
 							{/if}
+							<p class="cfg-note">{i18nStore.t('analyze.byokKeyNotice')}</p>
 							{#if apiKeyValue}
 								<button
 									class="btn btn-primary start-btn wide"
@@ -668,6 +673,18 @@
 	}
 	.cfg-status {
 		font-size: 11px;
+	}
+	.track-note,
+	.cfg-note {
+		margin: 0;
+		font-size: 11px;
+		line-height: 1.5;
+		color: var(--text-secondary);
+		word-break: keep-all;
+	}
+	.track-note {
+		/* lines up with the track name: row padding 12 + icon 40 + gap 16 */
+		padding: 0 12px 12px 68px;
 	}
 	.cfg-status.success {
 		color: var(--color-success);

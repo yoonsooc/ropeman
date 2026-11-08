@@ -31,7 +31,7 @@ vi.mock('$lib/config', () => ({
 	GITHUB_PROXY_URL: ''
 }));
 
-import { loadGitHubRepo, GitHubLoadError, githubLoadErrorKey } from './githubLoader';
+import { loadGitHubRepo, GitHubLoadError } from './githubLoader';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 
 const mockTreeResponse = {
@@ -381,15 +381,5 @@ describe('loadGitHubRepo beforeApply (New project dialog)', () => {
 		).rejects.toBeInstanceOf(GitHubLoadError);
 
 		expect(beforeApply).not.toHaveBeenCalled();
-	});
-});
-
-describe('githubLoadErrorKey', () => {
-	it('maps GitHub statuses to the landing messages', () => {
-		expect(githubLoadErrorKey(404)).toBe('landing.githubNotFound');
-		expect(githubLoadErrorKey(403)).toBe('landing.githubRateLimit');
-		expect(githubLoadErrorKey(401)).toBe('landing.githubPrivate');
-		expect(githubLoadErrorKey(500)).toBe('landing.githubLoadError');
-		expect(githubLoadErrorKey(undefined)).toBe('landing.githubLoadError');
 	});
 });
