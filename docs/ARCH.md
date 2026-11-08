@@ -99,7 +99,7 @@ src/
 edge-proxy/                       # Cloudflare Workers
 ├── src/
 │   ├── shared.ts                     # CORS 헬퍼, callGemini, jsonResponse
-│   ├── demo.ts                       # ropeman-demo (rate limit + 서버키)
+│   ├── demo.ts                       # ropeman-demo (rate limit + 서버키 + 모델 폴백)
 │   └── proxy.ts                      # ropeman-proxy (BYOK pass-through)
 ├── wrangler.demo.toml                # Demo Worker 배포 설정 (placement hint)
 └── wrangler.proxy.toml               # Proxy Worker 배포 설정
@@ -179,10 +179,12 @@ callAI({ system, user, signal }): Promise<string>
 ```
 edge-proxy/src/
 ├── shared.ts       # CORS 헬퍼 + callGemini (maxOutputTokens: 16384)
-├── demo.ts         # rate limit (IP 분당 10, 일일 200) + 서버 Gemini API 키
+├── demo.ts         # rate limit (IP 분당 10, 일일 200) + 서버 Gemini API 키 (무료 등급)
 └── proxy.ts        # BYOK pass-through (Google/Anthropic/OpenAI)
 ```
 
+- demo는 `DEMO_MODEL`의 쉼표 목록을 차례로 시도한다. 404·429·5xx면 다음 모델로 넘어간다 (무료 등급 할당량이 모델별이라서)
+- demo 실패 응답은 오류 코드만 준다 (`demo_rate_limited`, `demo_daily_limit`, `demo_upstream_quota`, `demo_unavailable`). 업스트림 본문은 결제 프로젝트 정보를 담을 수 있어 워커 로그에만 남긴다. 클라이언트는 `demoFailureMessage` → `AIErrorType.DEMO_UNAVAILABLE`로 Explore와 다른 AI 연결을 안내한다
 - `scripts/health-check.mjs`를 `.github/workflows/health-check.yml`이 매일 00:00 UTC에 실행한다 (사이트, pages.dev 리다이렉트, explore, demo 실제 호출, proxy, share)
 
 - `[placement] mode = "smart"`, `hint = "wnam"` — Gemini API 지역 제한 우회

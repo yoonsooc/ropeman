@@ -16,6 +16,7 @@ The zero-friction default. Great for trying Ropeman on a small project without a
 - **Requirements**: None. Just open [ropeman.dev](https://ropeman.dev).
 - **Data flow**: Browser parses AST locally → code structure summary is sent through Ropeman's **edge proxy** → forwarded to a hosted AI provider → diagram returned.
 - **Characteristics**: Free, rate-limited, project-size capped. Shared quota across all users.
+- **Free tier notice**: Demo runs on the free tier of the Google Gemini API, where Google may use prompts and responses to improve its products. For code you would not share, use API Key, Bridge, or WebGPU mode.
 - **Recommended for**: First-time users, quick demos, evaluating the tool on a small repo.
 
 ### 2. API Key (BYOK)

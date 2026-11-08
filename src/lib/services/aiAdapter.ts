@@ -67,14 +67,25 @@ async function callEdgeProxy(opts: AICallOptions): Promise<string> {
 
 	if (!response.ok) {
 		const errData = await response.json().catch(() => ({}));
-		throw new AIHttpError(
-			(errData as { error?: string }).error || `Edge proxy error: HTTP ${response.status}`,
-			response.status
-		);
+		const code = (errData as { error?: string }).error;
+		throw new AIHttpError(demoFailureMessage(response.status, code), response.status);
 	}
 
 	const data = await response.json();
 	return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+/**
+ * Turns a failed demo response into a message classifyAIError understands.
+ * Only the per-IP minute limit is worth retrying; every other failure means the demo
+ * cannot serve right now. Older workers sent free text instead of a code, hence the regex.
+ */
+export function demoFailureMessage(status: number, code?: string): string {
+	const perMinute = code === 'demo_rate_limited' || /minute/i.test(code ?? '');
+	if (status === 429 && perMinute) {
+		return 'Demo rate limit exceeded. Try again in a minute.';
+	}
+	return `Demo unavailable (${code || `HTTP ${status}`})`;
 }
 
 async function callProxyWorker(

@@ -188,7 +188,8 @@
 					<section class="connect-section">
 						<p class="hint connect-hint" style="font-size:13px; opacity:1;">
 							서버를 경유하여 AI 분석을 수행합니다. API 키 없이 무료로 사용 가능하며, 파일 구조
-							메타데이터만 전달됩니다.
+							메타데이터만 전달됩니다. Google Gemini 무료 등급으로 처리되므로 Google이 입력을 서비스
+							개선에 사용할 수 있습니다. 공개하기 어려운 코드는 API 키나 로컬 브리지를 쓰세요.
 						</p>
 						<div class="edge-status">
 							{#if authStore.activeTrack === 'edge'}

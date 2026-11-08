@@ -76,7 +76,8 @@
 						<div class="track-subtitle">1초 만에 논리적 구조 파악하기 (무료)</div>
 						<p class="track-desc">
 							서버를 경유하여 분석합니다. 소스 코드는 전송되지 않으며, 파일 구조 메타데이터만
-							전달됩니다.
+							전달됩니다. Google Gemini 무료 등급으로 처리되어 입력이 Google 서비스 개선에 쓰일 수
+							있습니다.
 						</p>
 					</div>
 					<button class="track-btn primary" onclick={() => onselect('edge')}> 바로 시작 </button>

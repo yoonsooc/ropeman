@@ -2,6 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { AIErrorType, classifyAIError, getAIErrorInfo } from './ai';
 
 describe('classifyAIError', () => {
+	// --- Demo failures (regression: the demo showed raw "Gemini API error: 402") ---
+	it('classifies a demo failure as DEMO_UNAVAILABLE even when it carries a 402 or 403', () => {
+		expect(classifyAIError('Demo unavailable (Gemini API error: 402)')).toBe(
+			AIErrorType.DEMO_UNAVAILABLE
+		);
+		expect(classifyAIError('Demo unavailable (HTTP 403)', 403)).toBe(AIErrorType.DEMO_UNAVAILABLE);
+	});
+
+	it('keeps the demo minute limit as RATE_LIMIT', () => {
+		expect(classifyAIError('Demo rate limit exceeded. Try again in a minute.')).toBe(
+			AIErrorType.RATE_LIMIT
+		);
+	});
+
 	// --- Network errors ---
 	it('classifies "Failed to fetch" as NETWORK_ERROR', () => {
 		expect(classifyAIError('Failed to fetch')).toBe(AIErrorType.NETWORK_ERROR);
@@ -26,9 +40,7 @@ describe('classifyAIError', () => {
 	});
 
 	it('classifies ECONNREFUSED as NETWORK_ERROR', () => {
-		expect(classifyAIError('connect ECONNREFUSED 127.0.0.1:443')).toBe(
-			AIErrorType.NETWORK_ERROR
-		);
+		expect(classifyAIError('connect ECONNREFUSED 127.0.0.1:443')).toBe(AIErrorType.NETWORK_ERROR);
 	});
 
 	// --- Auth errors ---
@@ -76,15 +88,11 @@ describe('classifyAIError', () => {
 	});
 
 	it('classifies "exceeded your current quota" as INSUFFICIENT_QUOTA', () => {
-		expect(classifyAIError('You exceeded your current quota')).toBe(
-			AIErrorType.INSUFFICIENT_QUOTA
-		);
+		expect(classifyAIError('You exceeded your current quota')).toBe(AIErrorType.INSUFFICIENT_QUOTA);
 	});
 
 	it('classifies 429 + quota as INSUFFICIENT_QUOTA', () => {
-		expect(classifyAIError('Rate limit: quota exceeded', 429)).toBe(
-			AIErrorType.INSUFFICIENT_QUOTA
-		);
+		expect(classifyAIError('Rate limit: quota exceeded', 429)).toBe(AIErrorType.INSUFFICIENT_QUOTA);
 	});
 
 	// --- TPM exceeded ---
@@ -131,9 +139,7 @@ describe('classifyAIError', () => {
 	});
 
 	it('classifies JSON parse error as UNKNOWN', () => {
-		expect(classifyAIError('Unexpected token < in JSON at position 0')).toBe(
-			AIErrorType.UNKNOWN
-		);
+		expect(classifyAIError('Unexpected token < in JSON at position 0')).toBe(AIErrorType.UNKNOWN);
 	});
 });
 
@@ -187,5 +193,23 @@ describe('getAIErrorInfo', () => {
 		const info1 = getAIErrorInfo(AIErrorType.TPM_EXCEEDED);
 		const info2 = getAIErrorInfo(AIErrorType.TPM_EXCEEDED);
 		expect(info1.actions).not.toBe(info2.actions);
+	});
+});
+
+describe('getAIErrorInfo for the demo', () => {
+	it('points to Explore and another AI connection', () => {
+		const info = getAIErrorInfo(AIErrorType.DEMO_UNAVAILABLE);
+		expect(info.message).toContain('무료 데모');
+		expect(info.actions.map((a) => a.target)).toEqual(['explore', 'analyze']);
+	});
+
+	it('returns English text when the locale is en', () => {
+		const info = getAIErrorInfo(AIErrorType.DEMO_UNAVAILABLE, undefined, 'en');
+		expect(info.message).toContain('free demo is unavailable');
+		expect(info.actions[0].label).toBe('Open Explore');
+	});
+
+	it('still shows the raw message for UNKNOWN in either locale', () => {
+		expect(getAIErrorInfo(AIErrorType.UNKNOWN, 'boom', 'en').message).toBe('boom');
 	});
 });
