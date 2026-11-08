@@ -183,6 +183,8 @@ edge-proxy/src/
 └── proxy.ts        # BYOK pass-through (Google/Anthropic/OpenAI)
 ```
 
+- `scripts/health-check.mjs`를 `.github/workflows/health-check.yml`이 매일 00:00 UTC에 실행한다 (사이트, pages.dev 리다이렉트, explore, demo 실제 호출, proxy, share)
+
 - `[placement] mode = "smart"`, `hint = "wnam"` — Gemini API 지역 제한 우회
 - `ALLOWED_ORIGINS` — CORS 도메인 화이트리스트
 
