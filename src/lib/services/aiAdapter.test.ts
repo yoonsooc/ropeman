@@ -31,7 +31,7 @@ vi.mock('$lib/config', () => ({
 	PROXY_URL: 'https://proxy.test'
 }));
 
-import { callAI, isTrackReady, getActiveTrack } from './aiAdapter';
+import { callAI, isTrackReady, getActiveTrack, demoFailureMessage } from './aiAdapter';
 import { authStore } from '$lib/stores/authStore.svelte';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
 import { sendViaBridge } from '$lib/services/bridgeService';
@@ -146,15 +146,18 @@ describe('aiAdapter', () => {
 			);
 		});
 
-		it('throws on edge proxy HTTP error', async () => {
+		it('turns a failed demo response into a demo-unavailable error', async () => {
+			// Regression: depleted demo credits surfaced as a bare "Gemini API error: 402"
 			(authStore as any).activeTrack = 'edge';
 			global.fetch = vi.fn().mockResolvedValue({
 				ok: false,
-				status: 429,
-				json: () => Promise.resolve({ error: 'Rate limit exceeded' })
+				status: 402,
+				json: () => Promise.resolve({ error: 'Gemini API error: 402' })
 			});
 
-			await expect(callAI({ system: 'sys', user: 'msg' })).rejects.toThrow('Rate limit exceeded');
+			await expect(callAI({ system: 'sys', user: 'msg' })).rejects.toThrow(
+				'Demo unavailable (Gemini API error: 402)'
+			);
 		});
 
 		it('throws on proxy worker HTTP error', async () => {
@@ -202,6 +205,26 @@ describe('aiAdapter', () => {
 		it('returns current active track', () => {
 			(authStore as any).activeTrack = 'edge';
 			expect(getActiveTrack()).toBe('edge');
+		});
+	});
+
+	describe('demoFailureMessage', () => {
+		it('keeps the per-IP minute limit retryable', () => {
+			expect(demoFailureMessage(429, 'demo_rate_limited')).toMatch(/^Demo rate limit exceeded/);
+			// older workers sent this text instead of a code
+			expect(demoFailureMessage(429, 'Rate limit exceeded. Try again in a minute.')).toMatch(
+				/^Demo rate limit exceeded/
+			);
+		});
+
+		it('reports every other failure as unavailable', () => {
+			expect(demoFailureMessage(429, 'demo_daily_limit')).toBe(
+				'Demo unavailable (demo_daily_limit)'
+			);
+			expect(demoFailureMessage(503, 'demo_upstream_quota')).toBe(
+				'Demo unavailable (demo_upstream_quota)'
+			);
+			expect(demoFailureMessage(500)).toBe('Demo unavailable (HTTP 500)');
 		});
 	});
 });

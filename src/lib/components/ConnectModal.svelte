@@ -3,8 +3,10 @@
 	import { authStore } from '$lib/stores/authStore.svelte';
 	import { webgpuStore } from '$lib/stores/webgpuStore.svelte';
 	import { connectBridge, disconnectBridge } from '$lib/services/bridgeService';
-	import { AI_PROVIDERS, getProvider, getDefaultModel } from '$lib/data/aiProviders';
+	import { AI_PROVIDERS, getProvider } from '$lib/data/aiProviders';
 	import { testApiKey } from '$lib/services/apiKeyValidator';
+	import { modelCatalogStore } from '$lib/stores/modelCatalogStore.svelte';
+	import { untrack } from 'svelte';
 	import type { AIProviderId } from '$lib/stores/settingsStore.svelte';
 	import WebGPUSetupModal from './WebGPUSetupModal.svelte';
 
@@ -21,7 +23,7 @@
 	let selectedModel = $state(settingsStore.aiModel);
 
 	const currentProvider = $derived(getProvider(selectedProvider));
-	const providerModels = $derived(currentProvider?.models ?? []);
+	const providerModels = $derived(modelCatalogStore.modelsFor(selectedProvider));
 	const requiresBridge = $derived(currentProvider?.requiresBridge ?? false);
 
 	// API key based on selected provider
@@ -39,6 +41,8 @@
 			selectedModel = settingsStore.aiModel;
 			testStatus = 'idle';
 			bridgePort = authStore.bridgePort;
+			// A key saved in an earlier visit: refresh that provider's model list
+			untrack(() => void modelCatalogStore.load(selectedProvider, apiKeyValue));
 			// Auto-select tab matching current track
 			const track = authStore.activeTrack;
 			if (track === 'bridge') activeTab = 'bridge';
@@ -54,10 +58,11 @@
 		selectedProvider = newProvider;
 		settingsStore.aiProvider = newProvider;
 		// Auto-select default model for new provider
-		const defaultModel = getDefaultModel(newProvider);
+		const defaultModel = modelCatalogStore.modelsFor(newProvider)[0]?.id ?? '';
 		selectedModel = defaultModel;
 		settingsStore.aiModel = defaultModel;
 		testStatus = 'idle';
+		void modelCatalogStore.load(newProvider, apiKeyValue);
 	}
 
 	function handleModelChange(e: Event) {
@@ -90,6 +95,8 @@
 		const result = await testApiKey(selectedProvider, key, selectedModel);
 		testStatus = result.valid ? 'success' : 'error';
 		testError = result.error ?? '';
+		// Also on failure: a retired model fails the test even with a valid key
+		void modelCatalogStore.load(selectedProvider, key);
 	}
 
 	async function handleConnect() {
@@ -188,7 +195,8 @@
 					<section class="connect-section">
 						<p class="hint connect-hint" style="font-size:13px; opacity:1;">
 							서버를 경유하여 AI 분석을 수행합니다. API 키 없이 무료로 사용 가능하며, 파일 구조
-							메타데이터만 전달됩니다.
+							메타데이터만 전달됩니다. Google Gemini 무료 등급으로 처리되므로 Google이 입력을 서비스
+							개선에 사용할 수 있습니다. 공개하기 어려운 코드는 API 키나 로컬 브리지를 쓰세요.
 						</p>
 						<div class="edge-status">
 							{#if authStore.activeTrack === 'edge'}
@@ -235,7 +243,7 @@
 							<input
 								class="input connect-input"
 								type="text"
-								placeholder="e.g. claude-sonnet-4-6"
+								placeholder="e.g. claude-sonnet-5-5"
 								value={selectedModel}
 								oninput={(e) => {
 									const v = (e.target as HTMLInputElement).value;
@@ -271,7 +279,9 @@
 							<span class="connect-status error">{testError || 'Invalid key'}</span>
 						{/if}
 						<p class="hint connect-hint">
-							Your API key is stored locally and never sent to our servers.
+							Your API key is stored in this browser. Gemini requests go straight to Google;
+							Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store the
+							key.
 						</p>
 						{#if apiKeyValue}
 							<button class="btn btn-primary" onclick={activateByok}>

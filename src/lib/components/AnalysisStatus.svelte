@@ -3,7 +3,14 @@
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { analysisUiStore } from '$lib/stores/analysisUiStore.svelte';
-	import { classifyAIError, getAIErrorInfo, type AIErrorInfo } from '$lib/types/ai';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import {
+		classifyAIError,
+		getAIErrorInfo,
+		type AIErrorAction,
+		type AIErrorInfo
+	} from '$lib/types/ai';
 
 	const MAX_VISIBLE_PILLS = 3;
 	const PILL_BOTTOM_BASE = 80;
@@ -47,7 +54,7 @@
 		if (!rawMsg || rawMsg === lastErrorMsg) return;
 		lastErrorMsg = rawMsg;
 		const errorType = classifyAIError(rawMsg);
-		const info = getAIErrorInfo(errorType, rawMsg);
+		const info = getAIErrorInfo(errorType, rawMsg, i18nStore.locale);
 		currentErrorInfo = info;
 		errorDismissed = false;
 		if (errorDismissTimer) clearTimeout(errorDismissTimer);
@@ -92,9 +99,11 @@
 		lastErrorMsg = null;
 	}
 
-	function handleErrorAction(target: 'analyze' | 'settings') {
+	function handleErrorAction(target: AIErrorAction['target']) {
 		dismissError();
-		if (target === 'analyze') {
+		if (target === 'explore') {
+			goto(resolve('/explore'));
+		} else if (target === 'analyze') {
 			analysisUiStore.openAnalyze?.();
 		} else {
 			analysisUiStore.openSettings?.();

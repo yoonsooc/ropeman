@@ -11,19 +11,18 @@ export interface AIProvider {
 	requiresBridge?: boolean;
 }
 
+/**
+ * Fallback lists shown before a key is entered or when the provider's model list cannot
+ * be fetched. With a key, modelCatalogStore replaces them with what the provider serves.
+ * Gemini uses Google's `-latest` aliases so the fallback does not go stale.
+ */
 export const AI_PROVIDERS: AIProvider[] = [
 	{
 		id: 'google',
 		label: 'Google Gemini',
 		models: [
-			{ id: 'fault-test', label: 'fault-test' },
-			{ id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-			{ id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
-			{ id: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite (Preview)' },
-			{ id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-			{ id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-			{ id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
-			{ id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
+			{ id: 'gemini-flash-latest', label: 'Gemini Flash (latest)' },
+			{ id: 'gemini-flash-lite-latest', label: 'Gemini Flash Lite (latest)' }
 		]
 	},
 	{
@@ -31,21 +30,19 @@ export const AI_PROVIDERS: AIProvider[] = [
 		label: 'Anthropic Claude',
 		requiresBridge: true,
 		models: [
-			{ id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
-			{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-			{ id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' }
+			{ id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
+			{ id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
+			{ id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
+			{ id: 'claude-fable-5-1', label: 'Claude Fable 5.1' }
 		]
 	},
 	{
 		id: 'openai',
 		label: 'OpenAI',
 		models: [
-			{ id: 'gpt-4.1', label: 'GPT-4.1' },
-			{ id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
-			{ id: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
-			{ id: 'o4-mini', label: 'o4-mini' },
-			{ id: 'gpt-4o', label: 'GPT-4o' },
-			{ id: 'gpt-4o-mini', label: 'GPT-4o Mini' }
+			{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
+			{ id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
+			{ id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' }
 		]
 	}
 ];

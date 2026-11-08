@@ -1,0 +1,28 @@
+name: Health check
+
+# Daily check of the public endpoints. A failed scheduled run emails the person who
+# last changed the cron below, which is how a broken demo gets noticed.
+on:
+  schedule:
+    - cron: '0 0 * * *' # 00:00 UTC = 09:00 KST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check public endpoints
+        run: node scripts/health-check.mjs

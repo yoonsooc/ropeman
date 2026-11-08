@@ -102,7 +102,7 @@ Task 도구로 **Explore subagent 3개를 병렬 dispatch**. 각 agent 프롬프
 
 - `.claude/skills/code-reviewer/` — PR 단위 도메인 리뷰. 보안은 표면만.
 - `.claude/skills/code-reviewer/references/common_antipatterns.md` — AP-8 (boundary validation) 등을 본 스킬이 교차 참조.
-- `.spec/ARCH.md` — ADR-9 (Edge Worker 분리), ADR-19 (Explore KV 수동 갱신) 등 보안 관련 아키텍처 결정.
+- `docs/adr/` — ADR-9 (Edge Worker 분리), ADR-19 (Explore KV 수동 갱신) 등 보안 관련 아키텍처 결정.
 
 ## Anti 사용 사례
 
