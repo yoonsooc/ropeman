@@ -254,3 +254,24 @@ export const xxxStore = createXxxStore();
 - **정적 분석만**: 런타임 동작 분석 불가
 - **Edge Worker**: Gemini API 지역 제한 → placement hint 필요
 - **WebGPU**: Chrome 113+ / Edge 113+ 필요, ~900MB 모델 다운로드
+
+---
+
+## 8. 배포
+
+Pages 프로젝트 `ropeman`은 직접 업로드 방식이라 GitHub과 연결되어 있지 않다. 운영 배포는 `ci.yml`의 `deploy` job이 맡는다.
+
+```
+main push → ci job (lint, svelte-check, build, unit, e2e)
+          → deploy job
+              1. npm run deploy                     앱 (Pages, --branch=main)
+              2. scripts/changed-workers.mjs        바뀐 워커만 고름
+              3. npm --prefix edge-proxy run deploy:<worker>
+              4. scripts/health-check.mjs           배포 직후 확인
+```
+
+- 앱을 먼저 올린다. 새 앱은 예전 워커의 오류 문자열도 처리하지만, 예전 앱은 새 워커의 오류 코드를 처리하지 못한다
+- 워커는 `src/<name>.ts`나 `wrangler.<name>.toml`이 바뀐 것만 배포한다. `shared.ts`나 `edge-proxy/package*.json`이 바뀌면 전부 배포한다
+- 필요한 GitHub secret: `CLOUDFLARE_API_TOKEN` (Workers Scripts Edit, Cloudflare Pages Edit), `CLOUDFLARE_ACCOUNT_ID`
+- 워커 시크릿(`GEMINI_API_KEY`, `AI_GATEWAY_TOKEN`)은 wrangler로 따로 등록하며 배포가 덮어쓰지 않는다
+- 수동 배포(`npm run deploy`, `npm run deploy:edge:<worker>`)는 장애 대응용이다

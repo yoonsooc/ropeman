@@ -20,6 +20,7 @@
 
 - 브라우저 전용 (SSR 없음, adapter-cloudflare)
 - FileSystemHandle 한계 → MAX_FILES=2000, MAX_FILE_SIZE=500KB
+- 운영 배포는 main 병합 시 CI `deploy` job이 한다 (앱 + 바뀐 워커 + 헬스 체크, `docs/ARCH.md` 8절). 수동 배포는 장애 대응용
 
 ## Agent Onboarding
 

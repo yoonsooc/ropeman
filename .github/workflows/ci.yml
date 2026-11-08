@@ -52,3 +52,53 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # Production deploy after CI passes on main. The Pages project is a direct-upload project
+  # (no Git integration), so this job is the only automatic path to production.
+  deploy:
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # App first: the new app understands both old and new worker errors, the old app does not
+      - name: Deploy app (Pages)
+        run: npm run deploy
+
+      - name: Find changed workers
+        id: workers
+        run: node scripts/changed-workers.mjs "${{ github.event.before }}" "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy changed workers
+        if: steps.workers.outputs.list != ''
+        run: |
+          npm ci --prefix edge-proxy
+          for worker in ${{ steps.workers.outputs.list }}; do
+            npm --prefix edge-proxy run "deploy:$worker"
+          done
+
+      - name: Health check
+        run: |
+          sleep 30 # let the new Pages deployment reach the edge
+          node scripts/health-check.mjs
