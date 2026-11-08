@@ -13,17 +13,23 @@ import { appendFileSync } from 'node:fs';
 
 const ORIGIN = 'https://ropeman.dev';
 const TIMEOUT_MS = 60_000;
+// demo tries up to three models with a 40 s wait each (edge-proxy/src/demo.ts)
+const DEMO_TIMEOUT_MS = 150_000;
 
-function request(url, init = {}) {
-	return fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+function request(url, init = {}, timeoutMs = TIMEOUT_MS) {
+	return fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
 }
 
-function post(url, body) {
-	return request(url, {
-		method: 'POST',
-		headers: { Origin: ORIGIN, 'Content-Type': 'application/json' },
-		body: JSON.stringify(body)
-	});
+function post(url, body, timeoutMs) {
+	return request(
+		url,
+		{
+			method: 'POST',
+			headers: { Origin: ORIGIN, 'Content-Type': 'application/json' },
+			body: JSON.stringify(body)
+		},
+		timeoutMs
+	);
 }
 
 function expectStatus(response, expected) {
@@ -67,9 +73,11 @@ const checks = [
 	{
 		name: 'demo analysis',
 		async run() {
-			const response = await post('https://demo.ropeman.dev', {
-				messages: [{ role: 'user', content: 'Reply with OK.' }]
-			});
+			const response = await post(
+				'https://demo.ropeman.dev',
+				{ messages: [{ role: 'user', content: 'Reply with OK.' }] },
+				DEMO_TIMEOUT_MS
+			);
 			const body = await response.json().catch(() => ({}));
 			if (response.status !== 200) {
 				throw new Error(`HTTP ${response.status} ${body.error ?? ''}`.trim());

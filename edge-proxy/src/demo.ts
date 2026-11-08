@@ -11,6 +11,20 @@ interface Env {
 const DEFAULT_DEMO_MODEL = 'gemini-flash-latest';
 /** Upstream statuses worth retrying with the next model: gone, per-model quota, or overloaded. */
 const RETRY_NEXT_MODEL = new Set([404, 429, 500, 503]);
+/**
+ * Per-model wait. An overloaded free-tier model can hold the request instead of
+ * answering 503 (seen 2026-11-08), which would stall the whole fallback chain.
+ * A real analysis usually returns well within this.
+ */
+const MODEL_TIMEOUT_MS = 40_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	let timer: ReturnType<typeof setTimeout>;
+	const timeout = new Promise<never>((_, reject) => {
+		timer = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
+	});
+	return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 // --- Rate Limiter (IP별 분당) ---
 const ipCounts = new Map<string, { count: number; resetAt: number }>();
@@ -81,22 +95,33 @@ export default {
 			.filter(Boolean);
 
 		let lastStatus = 0;
-		try {
-			for (const model of models) {
-				const response = await callGemini(env.GEMINI_API_KEY, model, messages, systemPrompt);
-				if (response.ok) {
+		for (const model of models) {
+			let response: Response;
+			try {
+				response = await withTimeout(callGemini(env.GEMINI_API_KEY, model, messages, systemPrompt), MODEL_TIMEOUT_MS);
+			} catch (err) {
+				// Timed out or unreachable: treated like an overloaded model, so the next one is tried
+				console.error(`Gemini request failed (${model}):`, err);
+				lastStatus = 504;
+				continue;
+			}
+			if (response.ok) {
+				try {
 					return new Response(await response.text(), {
 						status: 200,
 						headers: { ...headers, 'Content-Type': 'application/json' },
 					});
+				} catch (err) {
+					// Body cut off mid-stream: try the next model rather than fail without CORS headers
+					console.error(`Gemini response read failed (${model}):`, err);
+					lastStatus = 502;
+					continue;
 				}
-				lastStatus = response.status;
-				// The upstream body can name the billing project, so it stays in the worker log.
-				console.error(`Gemini API error (${model}, ${response.status}):`, await response.text());
-				if (!RETRY_NEXT_MODEL.has(response.status)) break;
 			}
-		} catch (err) {
-			console.error('Demo upstream request failed:', err);
+			lastStatus = response.status;
+			// The upstream body can name the billing project, so it stays in the worker log.
+			console.error(`Gemini API error (${model}, ${response.status}):`, await response.text().catch(() => ''));
+			if (!RETRY_NEXT_MODEL.has(response.status)) break;
 		}
 
 		const error = lastStatus === 429 ? 'demo_upstream_quota' : 'demo_unavailable';
