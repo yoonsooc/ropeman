@@ -97,6 +97,14 @@ interface ShareTranslations {
 	close: string;
 }
 
+interface NewProjectTranslations {
+	title: string;
+	openFolder: string;
+	githubLabel: string;
+	replaceNote: string;
+	cancel: string;
+}
+
 interface DocsTranslations {
 	title: string;
 	backToApp: string;
@@ -204,6 +212,7 @@ interface TranslationSet {
 		focusSecondary: string;
 	};
 	share: ShareTranslations;
+	newProject: NewProjectTranslations;
 	help: HelpTranslations;
 	onboarding: OnboardingTranslations;
 	docs: DocsTranslations;
@@ -353,6 +362,13 @@ const translations: Record<Locale, TranslationSet> = {
 			errorTitle: '공유 실패',
 			errorMessage: '공유 링크를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.',
 			close: '닫기'
+		},
+		newProject: {
+			title: '새 프로젝트 열기',
+			openFolder: '로컬 폴더 열기',
+			githubLabel: 'GitHub 공개 저장소',
+			replaceNote: '새 프로젝트를 불러오면 지금 열린 프로젝트는 닫힙니다.',
+			cancel: '취소'
 		},
 		help: {
 			title: '도움말',
@@ -608,6 +624,13 @@ const translations: Record<Locale, TranslationSet> = {
 			errorTitle: 'Share failed',
 			errorMessage: 'Could not generate a share link. Please try again later.',
 			close: 'Close'
+		},
+		newProject: {
+			title: 'Open a new project',
+			openFolder: 'Open a local folder',
+			githubLabel: 'Public GitHub repository',
+			replaceNote: 'Loading a new project closes the one that is open now.',
+			cancel: 'Cancel'
 		},
 		help: {
 			title: 'Help',

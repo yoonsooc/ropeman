@@ -31,7 +31,7 @@ vi.mock('$lib/config', () => ({
 	GITHUB_PROXY_URL: ''
 }));
 
-import { loadGitHubRepo, GitHubLoadError } from './githubLoader';
+import { loadGitHubRepo, GitHubLoadError, githubLoadErrorKey } from './githubLoader';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 
 const mockTreeResponse = {
@@ -338,5 +338,58 @@ describe('loadGitHubRepo', () => {
 		await loadGitHubRepo({ owner: 'owner', repo: 'repo', branch: 'develop' });
 
 		expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('develop'));
+	});
+});
+
+describe('loadGitHubRepo beforeApply (New project dialog)', () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		projectStore.fileTree = null;
+		projectStore.astMap = new Map();
+		projectStore.githubInfo = null;
+	});
+
+	it('runs after the tree is fetched and before any store is written', async () => {
+		// Arrange
+		const fetchMock = vi.fn() as Mock;
+		fetchMock.mockResolvedValueOnce({ ok: true, json: async () => mockTreeResponse });
+		fetchMock.mockResolvedValue({ ok: true, text: async () => 'export const x = 1;' });
+		vi.stubGlobal('fetch', fetchMock);
+		const seen: Array<{ fileTree: unknown; githubInfo: unknown }> = [];
+
+		// Act
+		await loadGitHubRepo(
+			{ owner: 'owner', repo: 'repo' },
+			{
+				beforeApply: () =>
+					seen.push({ fileTree: projectStore.fileTree, githubInfo: projectStore.githubInfo })
+			}
+		);
+
+		// Assert
+		expect(seen).toEqual([{ fileTree: null, githubInfo: null }]);
+		expect(projectStore.fileTree).not.toBeNull();
+	});
+
+	it('is not called when the repository cannot be fetched, so the open project stays', async () => {
+		// Regression: the New button used to have no GitHub path; a wrong URL must not clear the project
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+		const beforeApply = vi.fn();
+
+		await expect(
+			loadGitHubRepo({ owner: 'owner', repo: 'missing' }, { beforeApply })
+		).rejects.toBeInstanceOf(GitHubLoadError);
+
+		expect(beforeApply).not.toHaveBeenCalled();
+	});
+});
+
+describe('githubLoadErrorKey', () => {
+	it('maps GitHub statuses to the landing messages', () => {
+		expect(githubLoadErrorKey(404)).toBe('landing.githubNotFound');
+		expect(githubLoadErrorKey(403)).toBe('landing.githubRateLimit');
+		expect(githubLoadErrorKey(401)).toBe('landing.githubPrivate');
+		expect(githubLoadErrorKey(500)).toBe('landing.githubLoadError');
+		expect(githubLoadErrorKey(undefined)).toBe('landing.githubLoadError');
 	});
 });

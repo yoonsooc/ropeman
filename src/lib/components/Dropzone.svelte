@@ -182,16 +182,8 @@
 			onload?.();
 		} catch (err: any) {
 			resetStores();
-			const status = err?.status;
-			if (status === 404) {
-				error = i18nStore.t('landing.githubNotFound');
-			} else if (status === 403) {
-				error = i18nStore.t('landing.githubRateLimit');
-			} else if (status === 401) {
-				error = i18nStore.t('landing.githubPrivate');
-			} else {
-				error = i18nStore.t('landing.githubLoadError');
-			}
+			const { githubLoadErrorKey } = await import('$lib/services/githubLoader');
+			error = i18nStore.t(githubLoadErrorKey(err?.status));
 		} finally {
 			isLoadingGithub = false;
 		}

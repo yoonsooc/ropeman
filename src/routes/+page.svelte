@@ -14,6 +14,8 @@
 	import AnalyzeModal from '$lib/components/AnalyzeModal.svelte';
 	import OnboardingTour from '$lib/components/OnboardingTour.svelte';
 	import ShareDialog from '$lib/components/ShareDialog.svelte';
+	import NewProjectModal from '$lib/components/NewProjectModal.svelte';
+	import type { GitHubRepoInfo } from '$lib/utils/githubUrl';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { semanticStore, setSemanticCacheDeps } from '$lib/stores/semanticStore.svelte';
@@ -63,6 +65,7 @@
 	let showHelp = $state(false);
 	let showAnalyze = $state(false);
 	let showShare = $state(false);
+	let showNewProject = $state(false);
 	// explorerCollapsed removed — sidebar icon bar is always visible,
 	// content panel is managed internally by Sidebar component
 	const breakpoint = useBreakpoint();
@@ -111,6 +114,30 @@
 			}
 		} else {
 			fallbackInput?.click();
+		}
+	}
+
+	/**
+	 * New project from a GitHub URL. The open project is cleared only after the repository
+	 * tree has been fetched, so a mistyped URL leaves it in place and the dialog shows the error.
+	 */
+	async function handleNewGitHub(info: GitHubRepoInfo) {
+		const { loadGitHubRepo } = await import('$lib/services/githubLoader');
+		let applied = false;
+		try {
+			await loadGitHubRepo(info, {
+				beforeApply: () => {
+					applied = true;
+					resetAllStores();
+					projectStore.projectName = info.repo;
+					showNewProject = false;
+				}
+			});
+		} catch (err) {
+			if (!applied) throw err;
+			// Failed halfway through downloading: drop the partial tree and go back to the landing page
+			console.error('Failed to load GitHub repository:', err);
+			resetAllStores();
 		}
 	}
 
@@ -446,7 +473,7 @@
 	<Header
 		onsettings={() => (showSettings = !showSettings)}
 		onhelp={() => (showHelp = !showHelp)}
-		onnewproject={handleNewProject}
+		onnewproject={() => (showNewProject = true)}
 		onconnect={() => (showAnalyze = true)}
 		onanalyze={() => (showAnalyze = true)}
 		onshare={() => (showShare = true)}
@@ -543,6 +570,14 @@
 	{#if showShare}
 		<ShareDialog open={showShare} onclose={() => (showShare = false)} />
 	{/if}
+
+	<NewProjectModal
+		open={showNewProject}
+		canOpenFolder={!isMobile}
+		onopenfolder={handleNewProject}
+		onloadgithub={handleNewGitHub}
+		onclose={() => (showNewProject = false)}
+	/>
 
 	{#if !supportsDirectoryPicker}
 		<input
