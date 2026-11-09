@@ -14,7 +14,8 @@
 		onnewproject,
 		onconnect,
 		onanalyze,
-		onshare
+		onshare,
+		ongohome
 	}: {
 		onsettings?: () => void;
 		onhelp?: () => void;
@@ -22,6 +23,7 @@
 		onconnect?: () => void;
 		onanalyze?: () => void;
 		onshare?: () => void;
+		ongohome?: () => void;
 	} = $props();
 
 	const canShare = $derived(semanticStore.currentLevel !== null);
@@ -51,7 +53,21 @@
 
 <header class="header">
 	<div class="header-left">
-		<h1 class="header-title">{i18nStore.t('title')}</h1>
+		<h1 class="header-title">
+			{#if hasProject && ongohome}
+				<button
+					type="button"
+					class="home-btn"
+					onclick={ongohome}
+					title={i18nStore.t('header.home')}
+					aria-label="{i18nStore.t('title')}, {i18nStore.t('header.home')}"
+				>
+					{i18nStore.t('title')}
+				</button>
+			{:else}
+				{i18nStore.t('title')}
+			{/if}
+		</h1>
 		{#if projectStore.projectName}
 			<span class="header-project">{projectStore.projectName}</span>
 		{:else}
@@ -257,6 +273,19 @@
 		font-weight: 700;
 		color: var(--accent);
 		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+	}
+
+	.home-btn {
+		font: inherit;
+		color: inherit;
+		border-radius: 4px;
+	}
+
+	@media (hover: hover) {
+		.home-btn:hover {
+			text-decoration: underline;
+			text-underline-offset: 4px;
+		}
 	}
 
 	.header-subtitle {

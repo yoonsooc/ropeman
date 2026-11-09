@@ -15,6 +15,7 @@
 	import OnboardingTour from '$lib/components/OnboardingTour.svelte';
 	import ShareDialog from '$lib/components/ShareDialog.svelte';
 	import NewProjectModal from '$lib/components/NewProjectModal.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import type { GitHubRepoInfo } from '$lib/utils/githubUrl';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
@@ -66,6 +67,7 @@
 	let showAnalyze = $state(false);
 	let showShare = $state(false);
 	let showNewProject = $state(false);
+	let showGoHome = $state(false);
 	// explorerCollapsed removed — sidebar icon bar is always visible,
 	// content panel is managed internally by Sidebar component
 	const breakpoint = useBreakpoint();
@@ -91,6 +93,11 @@
 		graphStore.clear();
 		selectionStore.clear();
 		semanticStore.clear();
+	}
+
+	function handleGoHome() {
+		showGoHome = false;
+		resetAllStores();
 	}
 
 	async function handleNewProject() {
@@ -477,6 +484,7 @@
 		onconnect={() => (showAnalyze = true)}
 		onanalyze={() => (showAnalyze = true)}
 		onshare={() => (showShare = true)}
+		ongohome={() => (showGoHome = true)}
 	/>
 
 	{#if projectStore.isLoading}
@@ -570,6 +578,16 @@
 	{#if showShare}
 		<ShareDialog open={showShare} onclose={() => (showShare = false)} />
 	{/if}
+
+	<ConfirmDialog
+		open={showGoHome}
+		title={i18nStore.t('header.homeConfirmTitle')}
+		message={i18nStore.t('header.homeConfirmMessage')}
+		confirmLabel={i18nStore.t('header.homeConfirmOk')}
+		cancelLabel={i18nStore.t('header.homeConfirmCancel')}
+		onconfirm={handleGoHome}
+		oncancel={() => (showGoHome = false)}
+	/>
 
 	<NewProjectModal
 		open={showNewProject}

@@ -134,6 +134,11 @@ interface HeaderTranslations {
 	analyzeTitle: string;
 	languageToggle: string;
 	gallery: string;
+	home: string;
+	homeConfirmTitle: string;
+	homeConfirmMessage: string;
+	homeConfirmOk: string;
+	homeConfirmCancel: string;
 }
 
 interface DocsTranslations {
@@ -425,7 +430,12 @@ const translations: Record<Locale, TranslationSet> = {
 			analyze: '분석',
 			analyzeTitle: 'AI 시맨틱 분석',
 			languageToggle: 'EN, 영어로 보기',
-			gallery: '갤러리'
+			gallery: '갤러리',
+			home: '처음 화면으로',
+			homeConfirmTitle: '처음 화면으로 돌아갈까요?',
+			homeConfirmMessage: '지금 열린 프로젝트와 분석 화면이 닫힙니다. 진행 중인 분석도 멈춥니다.',
+			homeConfirmOk: '처음 화면으로 돌아가기',
+			homeConfirmCancel: '계속 보기'
 		},
 		newProject: {
 			title: '새 프로젝트 열기',
@@ -717,7 +727,13 @@ const translations: Record<Locale, TranslationSet> = {
 			analyze: 'Analyze',
 			analyzeTitle: 'AI semantic analysis',
 			languageToggle: '한, 한국어로 보기',
-			gallery: 'Explore gallery'
+			gallery: 'Explore gallery',
+			home: 'Back to start',
+			homeConfirmTitle: 'Go back to the start page?',
+			homeConfirmMessage:
+				'This closes the open project and its analysis. Any analysis in progress stops.',
+			homeConfirmOk: 'Go back to start',
+			homeConfirmCancel: 'Keep working'
 		},
 		newProject: {
 			title: 'Open a new project',

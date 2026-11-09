@@ -7,7 +7,11 @@
 	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
-	import { toSemanticFlowNodes, toSemanticFlowEdges } from '$lib/services/semanticGraphBuilder';
+	import {
+		toSemanticFlowNodes,
+		toSemanticFlowEdges,
+		neighborNodeIds
+	} from '$lib/services/semanticGraphBuilder';
 	import { analyzeDrilldown } from '$lib/services/semanticAnalysisService';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import ExportController from './ExportController.svelte';
@@ -268,6 +272,9 @@
 
 		// Determine which node should be highlighted based on file selection
 		const highlightedNodeId = semanticStore.selectedSemanticNode?.id ?? null;
+		const neighbors = highlightedNodeId
+			? neighborNodeIds(level, highlightedNodeId)
+			: new Set<string>();
 		const nodes = toSemanticFlowNodes(level);
 		for (const n of nodes) {
 			// U1-6: Apply user-dragged position if available
@@ -296,7 +303,7 @@
 				n.data = {
 					...n.data,
 					highlighted: isSelected,
-					dimmed: !isSelected,
+					dimmed: !isSelected && !neighbors.has(n.id),
 					selected: isSelected,
 					isCached,
 					snapshotUnavailable,

@@ -123,12 +123,10 @@
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 	}
 
+	/* Unrelated nodes step back but stay readable; neighbors of the selection stay lit */
 	.semantic-node.dimmed {
-		opacity: 0.4;
-		filter: grayscale(0.3);
-		transition:
-			opacity 0.3s ease,
-			filter 0.3s ease;
+		opacity: 0.6;
+		transition: opacity 0.2s ease-out;
 	}
 
 	/* Snapshot viewers (share/explore): node's deeper analysis is not in the
@@ -137,7 +135,7 @@
 	.semantic-node.snapshot-unavailable {
 		border-style: dashed;
 		border-color: var(--ghost-border, rgba(148, 163, 184, 0.25));
-		opacity: 0.72;
+		opacity: 0.85;
 	}
 	.semantic-node.snapshot-unavailable:hover {
 		opacity: 0.92;

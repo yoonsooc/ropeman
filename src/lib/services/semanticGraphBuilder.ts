@@ -104,3 +104,14 @@ export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
 		};
 	});
 }
+
+/** Nodes joined to `nodeId` by an edge in either direction, so a selection can keep them lit. */
+export function neighborNodeIds(level: SemanticLevel, nodeId: string): Set<string> {
+	const ids = new Set<string>();
+	for (const e of level.edges) {
+		if (e.source === nodeId) ids.add(e.target);
+		if (e.target === nodeId) ids.add(e.source);
+	}
+	ids.delete(nodeId);
+	return ids;
+}

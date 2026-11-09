@@ -81,6 +81,11 @@ describe('i18nStore', () => {
 				'header.analyzeTitle',
 				'header.languageToggle',
 				'header.gallery',
+				'header.home',
+				'header.homeConfirmTitle',
+				'header.homeConfirmMessage',
+				'header.homeConfirmOk',
+				'header.homeConfirmCancel',
 				'landing.dropRegion',
 				'landing.loadingTitle',
 				'landing.parsingLabel'
