@@ -7,6 +7,7 @@ import type {
 	SkeletonSymbol
 } from '$lib/types/skeleton';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
+import { createPathFilter, isPathIncluded, type PathFilter } from '$lib/utils/filePriority';
 
 const SKIP_KINDS = new Set(['variable', 'interface', 'type']);
 
@@ -45,13 +46,16 @@ const EXCLUDE_DIR_PATTERNS = [
 	/^notebooks?\//
 ];
 
-function filePriority(filePath: string, projectName?: string): number {
+function filePriority(filePath: string, filter: PathFilter, projectName?: string): number {
 	let normalized = filePath;
 	if (projectName && normalized.startsWith(projectName + '/')) {
 		normalized = normalized.slice(projectName.length + 1);
 	}
-	for (const pat of EXCLUDE_DIR_PATTERNS) {
-		if (pat.test(normalized)) return 0;
+	// The user's include entries (and agent instruction defaults) win over these exclusions
+	if (!isPathIncluded(normalized, filter)) {
+		for (const pat of EXCLUDE_DIR_PATTERNS) {
+			if (pat.test(normalized)) return 0;
+		}
 	}
 	for (const pat of CORE_DIR_PATTERNS) {
 		if (pat.test(normalized)) return 3;
@@ -71,6 +75,10 @@ export function extractSkeleton(
 	let truncated = false;
 
 	const filePaths = collectFilePaths(fileTree);
+	const filter = createPathFilter(
+		settingsStore.customSkipPatterns,
+		settingsStore.customIncludePatterns
+	);
 
 	const fileEntries: {
 		path: string;
@@ -99,7 +107,7 @@ export function extractSkeleton(
 		if (symbols.length === 0 && imports.length === 0) continue;
 
 		const language = inferLanguage(filePath);
-		const priority = filePriority(filePath, projectName);
+		const priority = filePriority(filePath, filter, projectName);
 		fileEntries.push({
 			path: filePath,
 			symbols,
@@ -287,8 +295,12 @@ function inferLanguage(filePath: string): string | null {
 		case 'py':
 			return 'python';
 		case 'js':
+		case 'mjs':
+		case 'cjs':
 			return 'javascript';
 		case 'ts':
+		case 'mts':
+		case 'cts':
 			return 'typescript';
 		case 'jsx':
 			return 'jsx';
@@ -324,6 +336,9 @@ function inferLanguage(filePath: string): string | null {
 			return 'scala';
 		case 'cs':
 			return 'csharp';
+		case 'md':
+		case 'mdc':
+			return 'markdown';
 		default:
 			return null;
 	}

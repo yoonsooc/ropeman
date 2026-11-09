@@ -90,6 +90,13 @@ describe('settingsStore', () => {
 			expect(settingsStore.customSkipPatterns).toEqual(['target', 'third_party']);
 		});
 
+		it('sets customIncludePatterns and clearAll resets them', () => {
+			settingsStore.customIncludePatterns = ['docs', '.github/workflows'];
+			expect(settingsStore.customIncludePatterns).toEqual(['docs', '.github/workflows']);
+			settingsStore.clearAll();
+			expect(settingsStore.customIncludePatterns).toEqual([]);
+		});
+
 		it('clearAll resets customSkipPatterns', () => {
 			settingsStore.customSkipPatterns = ['target'];
 			settingsStore.clearAll();

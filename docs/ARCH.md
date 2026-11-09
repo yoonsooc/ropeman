@@ -36,6 +36,7 @@ src/
 │   │   ├── aiService.ts              # 채팅용 AI 호출 (캐시 + 재시도)
 │   │   ├── semanticAnalysisService.ts # 시맨틱 AI 분석 + JSON 파싱/복구
 │   │   ├── skeletonExtractor.ts      # AST → LLM 전송용 코드 구조 요약 (suffix 매칭)
+│   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
 │   │   ├── parserService.ts          # Web Worker 통신 (parseFile, parseAllFiles)
@@ -127,7 +128,7 @@ edge-proxy/                       # Cloudflare Workers
 
 ```
 AST 파싱 완료 → AnalyzeModal에서 트랙 선택
-→ skeletonExtractor.extractSkeleton()    # 원본 코드 제외, 심볼/시그니처/import만 추출 (기본 250KB 제한)
+→ skeletonExtractor.extractSkeleton()    # 원본 코드 제외, 심볼/시그니처/import만 추출 (기본 250KB 제한). Markdown은 frontmatter name·description, H1~H6, 파일 링크만 (ADR-20)
 → aiAdapter.callAI()                     # ★ 단일 진입점
   ├─ edge:   fetch(DEMO_URL) → Cloudflare Worker → Gemini API
   ├─ byok:   fetch(Gemini/Anthropic) 직접 또는 fetch(PROXY_URL) 경유

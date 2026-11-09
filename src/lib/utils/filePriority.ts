@@ -112,29 +112,131 @@ export function sortFileTree(root: import('$lib/types/fileTree').FileNode): void
 }
 
 /**
- * Check if a file path should be skipped based on directory skip patterns.
- * Returns true if any path segment matches skipSet or is hidden.
+ * Agent instruction locations kept by default even though their folder is hidden
+ * (`.claude`, `.github`, ...). An entry without a slash matches a folder or file name
+ * at any depth; an entry with a slash matches that path from the project root.
+ * `.claude` is listed by subfolder so local worktrees and caches under it stay out.
  */
-export function shouldSkipPath(filePath: string, skipSet: Set<string> = SKIP_DIRS): boolean {
+export const DEFAULT_INCLUDE_PATHS: readonly string[] = [
+	'.agents',
+	'.claude-plugin',
+	'.codex',
+	'.codex-plugin',
+	'.cursor',
+	'.gemini',
+	'.windsurf',
+	'.clinerules',
+	'.kiro',
+	'.opencode',
+	'.roo',
+	'.claude/skills',
+	'.claude/agents',
+	'.claude/commands',
+	'.claude/rules',
+	'.claude/hooks',
+	'.claude/output-styles',
+	'.claude/settings.json',
+	'.claude/CLAUDE.md',
+	'.github/copilot-instructions.md',
+	'.github/instructions',
+	'.github/prompts',
+	'.github/skills',
+	'.github/agents',
+	'.github/chatmodes'
+];
+
+/** Folder names to skip plus include entries that override the skip rules. */
+export interface PathFilter {
+	skip: Set<string>;
+	includeNames: Set<string>;
+	includePaths: string[];
+}
+
+function normalizeEntry(raw: string): string {
+	return raw.trim().replace(/^\.\//, '').replace(/^\/+/, '').replace(/\/+$/, '');
+}
+
+/**
+ * Merge the defaults with the user's extra exclude and include entries.
+ * Include wins over exclude, including the hidden-folder rule.
+ */
+export function createPathFilter(
+	customSkipPatterns: string[] = [],
+	customIncludePatterns: string[] = []
+): PathFilter {
+	const skip = new Set(SKIP_DIRS);
+	for (const raw of customSkipPatterns) {
+		const entry = normalizeEntry(raw);
+		if (entry) skip.add(entry);
+	}
+	const includeNames = new Set<string>();
+	const includePaths: string[] = [];
+	for (const raw of [...DEFAULT_INCLUDE_PATHS, ...customIncludePatterns]) {
+		const entry = normalizeEntry(raw);
+		if (!entry) continue;
+		if (entry.includes('/')) includePaths.push(entry);
+		else includeNames.add(entry);
+	}
+	return { skip, includeNames, includePaths };
+}
+
+export const DEFAULT_PATH_FILTER: PathFilter = createPathFilter();
+
+function isExcludedSegment(seg: string, filter: PathFilter): boolean {
+	if (filter.skip.has(seg)) return true;
+	if (seg.startsWith('.') && seg !== '.env') return true;
+	return seg.endsWith('.egg-info');
+}
+
+function withinPath(path: string, entry: string): boolean {
+	return path === entry || path.startsWith(entry + '/');
+}
+
+/**
+ * Check if a path should be skipped. A segment is excluded when it is in the skip set,
+ * hidden or an `.egg-info` folder, unless an include entry covers it: a name entry equal
+ * to the segment, or a path entry at or below that segment that contains the whole path.
+ * Only folder segments are checked unless `checkName` is set; a trailing slash marks a
+ * folder path so its own name is checked.
+ */
+export function shouldSkipPath(
+	filePath: string,
+	filter: PathFilter = DEFAULT_PATH_FILTER,
+	checkName = false
+): boolean {
 	const segments = filePath.split('/');
-	for (let i = 0; i < segments.length - 1; i++) {
+	const fullPath = filePath.replace(/\/+$/, '');
+	const last = checkName ? segments.length : segments.length - 1;
+	let prefix = '';
+	for (let i = 0; i < last; i++) {
 		const seg = segments[i];
-		if (skipSet.has(seg)) return true;
-		if (seg.startsWith('.') && seg !== '.env') return true;
-		if (seg.endsWith('.egg-info')) return true;
+		if (!seg) continue;
+		prefix = prefix ? `${prefix}/${seg}` : seg;
+		if (!isExcludedSegment(seg, filter)) continue;
+		if (filter.includeNames.has(seg)) continue;
+		const covered = filter.includePaths.some(
+			(entry) => entry.length >= prefix.length && withinPath(fullPath, entry)
+		);
+		if (!covered) return true;
 	}
 	return false;
 }
 
 /**
- * Merge default SKIP_DIRS with user-provided custom patterns.
- * Trims whitespace and removes empty entries. Pure function — no store dependency.
+ * True when a skipped folder still has to be walked because an include path lies inside it
+ * (for example `.github` for `.github/instructions`).
  */
-export function getEffectiveSkipDirs(customPatterns: string[]): Set<string> {
-	const merged = new Set(SKIP_DIRS);
-	for (const raw of customPatterns) {
-		const trimmed = raw.trim();
-		if (trimmed) merged.add(trimmed);
-	}
-	return merged;
+export function isIncludeAncestor(
+	dirPath: string,
+	filter: PathFilter = DEFAULT_PATH_FILTER
+): boolean {
+	const dir = dirPath.replace(/\/+$/, '');
+	return filter.includePaths.some((entry) => entry.startsWith(dir + '/'));
+}
+
+/** True when an include entry explicitly covers the path, so later exclusions should not drop it. */
+export function isPathIncluded(path: string, filter: PathFilter = DEFAULT_PATH_FILTER): boolean {
+	const segments = path.split('/');
+	if (segments.some((seg) => filter.includeNames.has(seg))) return true;
+	return filter.includePaths.some((entry) => withinPath(path, entry));
 }

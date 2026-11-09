@@ -1,6 +1,23 @@
-export type BadgeKind = 'static' | 'async' | 'generator' | 'route' | 'export_default' | 'decorator' | 'abstract';
+export type BadgeKind =
+	| 'static'
+	| 'async'
+	| 'generator'
+	| 'route'
+	| 'export_default'
+	| 'decorator'
+	| 'abstract';
 
-export type SymbolKind = 'function' | 'class' | 'method' | 'import' | 'variable' | 'interface' | 'type';
+export type SymbolKind =
+	| 'function'
+	| 'class'
+	| 'method'
+	| 'import'
+	| 'variable'
+	| 'interface'
+	| 'type'
+	// Markdown outline (markdownOutline.ts)
+	| 'frontmatter'
+	| 'heading';
 
 export interface ASTSymbol {
 	name: string;

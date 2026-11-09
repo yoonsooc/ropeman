@@ -1,6 +1,7 @@
 import type { ASTSymbol } from '$lib/types/ast';
 import type { FileNode } from '$lib/types/fileTree';
 import { isSupported } from '$lib/utils/languageDetector';
+import { extractMarkdownSymbols } from '$lib/services/markdownOutline';
 import { pathPriority, MAX_FILE_SIZE, MAX_TOTAL_SIZE, MAX_FILES } from '$lib/utils/filePriority';
 
 interface ParseRequest {
@@ -84,6 +85,9 @@ export async function parseFile(
 	language: string,
 	priority = 0
 ): Promise<ASTSymbol[]> {
+	// Markdown has no tree-sitter grammar here; its outline is cheap enough for the main thread
+	if (language === 'markdown') return extractMarkdownSymbols(content);
+
 	await ensureInitialized();
 
 	return new Promise<ASTSymbol[]>((resolve, reject) => {

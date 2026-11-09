@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 let workerMessageHandler: ((e: MessageEvent) => void) | null = null;
 
 class MockWorker {
+	static created = 0;
+	constructor() {
+		MockWorker.created++;
+	}
 	onmessage: ((e: MessageEvent) => void) | null = null;
 	postMessage = vi.fn((data: any) => {
 		// Simulate async worker response
@@ -75,6 +79,15 @@ describe('parserService', () => {
 			expect(symbols).toHaveLength(1);
 			expect(symbols[0].name).toBe('testFunction');
 			expect(symbols[0].kind).toBe('function');
+		});
+
+		it('outlines markdown on the main thread without starting the worker', async () => {
+			const before = MockWorker.created;
+
+			const symbols = await parseFile('SKILL.md', '# Review\n## Steps', 'markdown');
+
+			expect(symbols[0]).toMatchObject({ name: 'Review', kind: 'heading' });
+			expect(MockWorker.created).toBe(before);
 		});
 	});
 

@@ -18,6 +18,21 @@ describe('detectLanguage', () => {
 		expect(detectLanguage('service.ts')).toBe('typescript');
 	});
 
+	it('detects ES module and CommonJS extensions', () => {
+		// Regression: .mjs/.cjs were unknown, so Node repositories such as archify sent almost no code
+		expect(detectLanguage('render.mjs')).toBe('javascript');
+		expect(detectLanguage('config.cjs')).toBe('javascript');
+		expect(detectLanguage('tool.mts')).toBe('typescript');
+		expect(detectLanguage('tool.cts')).toBe('typescript');
+	});
+
+	it('detects markdown, including Cursor .mdc rules, as a supported language without a grammar', () => {
+		expect(detectLanguage('SKILL.md')).toBe('markdown');
+		expect(detectLanguage('style.mdc')).toBe('markdown');
+		expect(isSupported('markdown')).toBe(true);
+		expect(getGrammarFile('markdown')).toBeNull();
+	});
+
 	it('detects TypeScript from .tsx extension', () => {
 		expect(detectLanguage('Component.tsx')).toBe('typescript');
 	});

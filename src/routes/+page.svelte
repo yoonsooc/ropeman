@@ -38,7 +38,7 @@
 	import { parseAllFiles } from '$lib/services/parserService';
 	import { setBridgeCallbacks } from '$lib/services/bridgeService';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
-	import { getEffectiveSkipDirs } from '$lib/utils/filePriority';
+	import { createPathFilter } from '$lib/utils/filePriority';
 	import { analysisUiStore } from '$lib/stores/analysisUiStore.svelte';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import { onMount, onDestroy } from 'svelte';
@@ -107,8 +107,11 @@
 				resetAllStores();
 				projectStore.isLoading = true;
 				projectStore.projectName = dirHandle.name;
-				const skipSet = getEffectiveSkipDirs(settingsStore.customSkipPatterns);
-				const tree = await readDirectoryRecursive(dirHandle, '', skipSet);
+				const tree = await readDirectoryRecursive(
+					dirHandle,
+					'',
+					createPathFilter(settingsStore.customSkipPatterns, settingsStore.customIncludePatterns)
+				);
 				projectStore.fileTree = tree;
 				const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 					projectStore.parsingProgress = progress;
@@ -153,8 +156,10 @@
 		if (!input.files || input.files.length === 0) return;
 		try {
 			resetAllStores();
-			const skipSet = getEffectiveSkipDirs(settingsStore.customSkipPatterns);
-			const tree = handleFallbackInput(input.files, skipSet);
+			const tree = handleFallbackInput(
+				input.files,
+				createPathFilter(settingsStore.customSkipPatterns, settingsStore.customIncludePatterns)
+			);
 			projectStore.projectName = tree.name;
 			projectStore.fileTree = tree;
 			projectStore.isLoading = true;

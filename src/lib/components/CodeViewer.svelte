@@ -246,6 +246,8 @@
 								{:else if sym.kind === 'variable'}v
 								{:else if sym.kind === 'interface' || sym.kind === 'type'}T
 								{:else if sym.kind === 'import'}I
+								{:else if sym.kind === 'heading'}#
+								{:else if sym.kind === 'frontmatter'}M
 								{:else}S{/if}
 							</span>
 							<span class="symbol-name">{sym.name}</span>

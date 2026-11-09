@@ -74,6 +74,33 @@ describe('fileSystemService', () => {
 			expect(allNames).not.toContain('node_modules');
 		});
 
+		it('keeps agent instruction folders but skips other hidden folders', () => {
+			const files = makeFileList([
+				{ name: 'SKILL.md', path: 'repo/.agents/skills/review/SKILL.md' },
+				{ name: 'ci.yml', path: 'repo/.github/workflows/ci.yml' },
+				{ name: 'a.ts', path: 'repo/.claude/worktrees/x/a.ts' },
+				{ name: 'index.ts', path: 'repo/src/index.ts' }
+			]);
+
+			const tree = handleFallbackInput(files);
+
+			const names = JSON.stringify(tree);
+			expect(names).toContain('SKILL.md');
+			expect(names).toContain('index.ts');
+			expect(names).not.toContain('ci.yml');
+			expect(names).not.toContain('worktrees');
+		});
+
+		it('applies the include entries passed in', async () => {
+			const { createPathFilter } = await import('$lib/utils/filePriority');
+			const files = makeFileList([{ name: 'guide.md', path: 'repo/docs/guide.md' }]);
+
+			expect(JSON.stringify(handleFallbackInput(files))).not.toContain('guide.md');
+			expect(JSON.stringify(handleFallbackInput(files, createPathFilter([], ['docs'])))).toContain(
+				'guide.md'
+			);
+		});
+
 		it('detects language for known extensions', () => {
 			const files = makeFileList([{ name: 'app.ts', path: 'proj/app.ts' }]);
 

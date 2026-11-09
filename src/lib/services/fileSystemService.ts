@@ -1,6 +1,12 @@
 import type { FileNode } from '$lib/types/fileTree';
 import { detectLanguage } from '$lib/utils/languageDetector';
-import { SKIP_DIRS, sortFileTree } from '$lib/utils/filePriority';
+import {
+	DEFAULT_PATH_FILTER,
+	isIncludeAncestor,
+	shouldSkipPath,
+	sortFileTree,
+	type PathFilter
+} from '$lib/utils/filePriority';
 
 export async function openDirectory(): Promise<FileSystemDirectoryHandle> {
 	if (!('showDirectoryPicker' in window)) {
@@ -14,18 +20,18 @@ const MAX_FILES = 2000;
 
 interface ScanContext {
 	fileCount: number;
-	skipPatterns: Set<string>;
+	filter: PathFilter;
 }
 
 export async function readDirectoryRecursive(
 	dirHandle: FileSystemDirectoryHandle,
 	basePath = '',
-	skipPatterns = SKIP_DIRS,
+	filter: PathFilter = DEFAULT_PATH_FILTER,
 	depth = 0,
 	ctx?: ScanContext
 ): Promise<FileNode> {
 	if (!ctx) {
-		ctx = { fileCount: 0, skipPatterns };
+		ctx = { fileCount: 0, filter };
 	}
 
 	const children: FileNode[] = [];
@@ -42,23 +48,28 @@ export async function readDirectoryRecursive(
 
 	for await (const entry of dirHandle.values()) {
 		if (ctx.fileCount >= MAX_FILES) break;
-		if (ctx.skipPatterns.has(entry.name)) continue;
-		if (entry.name.endsWith('.egg-info')) continue;
-		// Skip hidden files/dirs (except common config)
-		if (entry.name.startsWith('.') && entry.name !== '.env') continue;
-
 		const entryPath = basePath ? `${basePath}/${entry.name}` : entry.name;
 
 		if (entry.kind === 'directory') {
+			// A skipped folder is still walked when an include path lies inside it;
+			// its files are then checked one by one below
+			if (
+				shouldSkipPath(entryPath + '/', ctx.filter) &&
+				!isIncludeAncestor(entryPath, ctx.filter)
+			) {
+				continue;
+			}
 			const child = await readDirectoryRecursive(
 				entry as FileSystemDirectoryHandle,
 				entryPath,
-				ctx.skipPatterns,
+				ctx.filter,
 				depth + 1,
 				ctx
 			);
 			children.push(child);
 		} else {
+			// Hidden files are skipped too unless an include entry covers them
+			if (shouldSkipPath(entryPath, ctx.filter, true)) continue;
 			ctx.fileCount++;
 			const language = detectLanguage(entry.name);
 			children.push({
@@ -87,7 +98,10 @@ export async function readFileContent(fileHandle: FileSystemFileHandle): Promise
 	return await file.text();
 }
 
-export function handleFallbackInput(files: FileList, skipSet: Set<string> = SKIP_DIRS): FileNode {
+export function handleFallbackInput(
+	files: FileList,
+	filter: PathFilter = DEFAULT_PATH_FILTER
+): FileNode {
 	const root: FileNode = {
 		name: extractProjectName(files),
 		path: '',
@@ -103,6 +117,7 @@ export function handleFallbackInput(files: FileList, skipSet: Set<string> = SKIP
 		const parts = relativePath.split('/');
 		// Skip the root dir name from webkitRelativePath
 		const pathParts = parts.slice(1);
+		if (shouldSkipPath(pathParts.join('/'), filter, true)) continue;
 
 		let currentPath = '';
 		let parentNode = root;
@@ -110,8 +125,6 @@ export function handleFallbackInput(files: FileList, skipSet: Set<string> = SKIP
 		for (let i = 0; i < pathParts.length - 1; i++) {
 			const dirName = pathParts[i];
 			const dirPath = currentPath ? `${currentPath}/${dirName}` : dirName;
-
-			if (skipSet.has(dirName)) break;
 
 			if (!dirMap.has(dirPath)) {
 				const dirNode: FileNode = {
@@ -129,8 +142,6 @@ export function handleFallbackInput(files: FileList, skipSet: Set<string> = SKIP
 		}
 
 		const fileName = pathParts[pathParts.length - 1];
-		// Check if any ancestor was skipped
-		if (pathParts.slice(0, -1).some((p) => skipSet.has(p))) continue;
 
 		const filePath = currentPath ? `${currentPath}/${fileName}` : fileName;
 		const language = detectLanguage(fileName);

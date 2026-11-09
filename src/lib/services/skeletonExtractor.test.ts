@@ -8,6 +8,7 @@ import {
 import type { FileNode } from '$lib/types/fileTree';
 import type { ASTSymbol } from '$lib/types/ast';
 import type { SkeletonPayload } from '$lib/types/skeleton';
+import { settingsStore } from '$lib/stores/settingsStore.svelte';
 
 // --- Test fixtures ---
 
@@ -132,6 +133,64 @@ describe('extractSkeleton', () => {
 		const result = extractSkeleton('test', null, new Map());
 		expect(result.totalFiles).toBe(0);
 		expect(result.files).toHaveLength(0);
+	});
+});
+
+describe('extractSkeleton with markdown and include entries', () => {
+	function tree(paths: string[]): FileNode {
+		return {
+			name: 'repo',
+			path: '',
+			kind: 'directory',
+			children: paths.map((p) => ({ name: p.split('/').pop()!, path: p, kind: 'file' as const }))
+		};
+	}
+
+	it('sends markdown outlines with language "markdown"', () => {
+		const astMap = new Map<string, ASTSymbol[]>([
+			[
+				'skills/review/SKILL.md',
+				[
+					{ name: 'name: review', kind: 'frontmatter', lineStart: 2, lineEnd: 2 },
+					{ name: 'Review', kind: 'heading', lineStart: 5, lineEnd: 20 },
+					{ name: 'references/checklist.md', kind: 'import', lineStart: 1, lineEnd: 1 }
+				]
+			]
+		]);
+
+		const skeleton = extractSkeleton('repo', tree(['skills/review/SKILL.md']), astMap);
+
+		expect(skeleton.files[0]).toMatchObject({
+			path: 'skills/review/SKILL.md',
+			language: 'markdown',
+			imports: [{ source: 'references/checklist.md', specifiers: [] }]
+		});
+		expect(skeleton.files[0].symbols.map((s) => s.kind)).toEqual(['frontmatter', 'heading']);
+	});
+
+	it('lets include entries override the skeleton exclusions', () => {
+		// Regression: .github/instructions passed the loader but the skeleton still dropped ^.github/
+		const sym: ASTSymbol[] = [{ name: 'run', kind: 'function', lineStart: 1, lineEnd: 2 }];
+		const astMap = new Map<string, ASTSymbol[]>([
+			[
+				'.github/instructions/ts.instructions.md',
+				[{ name: 'TS', kind: 'heading', lineStart: 1, lineEnd: 3 }]
+			],
+			['scripts/build.py', sym]
+		]);
+		const files = tree(['.github/instructions/ts.instructions.md', 'scripts/build.py']);
+
+		try {
+			expect(extractSkeleton('repo', files, astMap).files.map((f) => f.path)).toEqual([
+				'.github/instructions/ts.instructions.md'
+			]);
+			settingsStore.customIncludePatterns = ['scripts'];
+			expect(extractSkeleton('repo', files, astMap).files.map((f) => f.path)).toContain(
+				'scripts/build.py'
+			);
+		} finally {
+			settingsStore.customIncludePatterns = [];
+		}
 	});
 });
 
