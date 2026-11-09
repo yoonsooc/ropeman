@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toSemanticFlowNodes, toSemanticFlowEdges } from './semanticGraphBuilder';
+import { toSemanticFlowNodes, toSemanticFlowEdges, neighborNodeIds } from './semanticGraphBuilder';
 import type { SemanticLevel, SemanticNode, SemanticEdge } from '$lib/types/semantic';
 
 function makeLevel(): SemanticLevel {
@@ -75,7 +75,7 @@ describe('toSemanticFlowNodes', () => {
 
 		for (const node of flowNodes) {
 			expect(node.width).toBe(256);
-			expect(node.height).toBe(160);
+			expect(node.height).toBe(176);
 		}
 	});
 
@@ -175,5 +175,46 @@ describe('toSemanticFlowEdges', () => {
 		};
 		const flowEdges = toSemanticFlowEdges(level);
 		expect(flowEdges).toHaveLength(0);
+	});
+});
+
+describe('neighborNodeIds', () => {
+	it('returns nodes joined by an edge in either direction', () => {
+		// Arrange
+		const level = makeLevel();
+		// Act
+		const fromTarget = neighborNodeIds(level, 'sem:auth');
+		const fromSource = neighborNodeIds(level, 'sem:api');
+		// Assert
+		expect([...fromTarget]).toEqual(['sem:api']);
+		expect([...fromSource]).toEqual(['sem:auth']);
+	});
+
+	it('returns an empty set for a node with no edges', () => {
+		const level = makeLevel();
+		level.edges = [];
+		expect(neighborNodeIds(level, 'sem:auth').size).toBe(0);
+	});
+
+	it('never includes the node itself, even with a self-loop', () => {
+		const level = makeLevel();
+		level.edges.push({ id: 'self', source: 'sem:auth', target: 'sem:auth', type: 'calls' });
+		expect(neighborNodeIds(level, 'sem:auth').has('sem:auth')).toBe(false);
+	});
+});
+
+describe('toSemanticFlowNodes direction', () => {
+	it('stacks connected nodes vertically for TB and horizontally for LR', () => {
+		// Arrange: sem:api -> sem:auth
+		const level = makeLevel();
+		// Act
+		const lr = toSemanticFlowNodes(level);
+		const tb = toSemanticFlowNodes(level, 'TB');
+		const at = (nodes: ReturnType<typeof toSemanticFlowNodes>, id: string) =>
+			nodes.find((n) => n.id === id)!.position;
+		// Assert
+		expect(at(lr, 'sem:auth').x).toBeGreaterThan(at(lr, 'sem:api').x);
+		expect(at(tb, 'sem:auth').y).toBeGreaterThan(at(tb, 'sem:api').y);
+		expect(tb[0].data.direction).toBe('TB');
 	});
 });

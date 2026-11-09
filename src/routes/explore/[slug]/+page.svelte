@@ -98,7 +98,7 @@
 
 <div class="explore-page" data-theme={themeStore.current}>
 	<header class="explore-header">
-		<a href={resolve('/')} class="explore-logo">ROPEMAN</a>
+		<a href={resolve('/')} class="explore-logo">Ropeman</a>
 		<a href={resolve('/explore')} class="back-link">
 			← {i18nStore.locale === 'ko' ? '갤러리' : 'Explore'}
 		</a>
@@ -204,14 +204,14 @@
 		font-weight: 700;
 		color: var(--accent);
 		text-decoration: none;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 	}
 
 	.back-link {
 		color: var(--text-secondary);
 		text-decoration: none;
 		font-size: 12px;
+		white-space: nowrap;
+		flex-shrink: 0;
 	}
 	.back-link:hover {
 		color: var(--text-primary);
@@ -221,12 +221,15 @@
 		font-family: var(--font-code);
 		font-size: 13px;
 		color: var(--text-secondary);
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.badge {
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
 		padding: 2px 8px;
 		border-radius: 9999px;
 		background: var(--accent-bg);
@@ -235,6 +238,7 @@
 
 	.header-actions {
 		margin-left: auto;
+		flex-shrink: 0;
 		display: flex;
 		gap: 12px;
 		align-items: center;
@@ -254,7 +258,7 @@
 		align-items: center;
 		padding: 6px 14px;
 		background: var(--accent);
-		color: var(--sidebar-icon-bg, #0f141a);
+		color: var(--on-accent);
 		border: none;
 		border-radius: 6px;
 		font-family: var(--font-display);
@@ -303,15 +307,20 @@
 	}
 
 	.canvas-area {
+		--canvas-toolbar-top: 56px;
 		flex: 1;
 		min-height: 0;
 		position: relative;
 	}
 
+	/* Sits above the floating breadcrumb so the node title stays visible */
 	.detail-panel {
+		position: relative;
+		z-index: 11;
 		width: 320px;
 		border-left: 1px solid var(--ghost-border);
 		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	.state {
@@ -358,9 +367,34 @@
 		}
 	}
 
+	/* Phones: the detail opens as a bottom sheet over the canvas */
+	/* Phones: logo, back, repo name and the one action; the rest steps aside */
+	@media (max-width: 640px) {
+		.explore-header {
+			gap: 8px;
+			padding: 0 12px;
+		}
+
+		.badge,
+		.repo-link {
+			display: none;
+		}
+	}
+
 	@media (max-width: 768px) {
 		.detail-panel {
-			display: none;
+			position: fixed;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			width: auto;
+			max-height: 55dvh;
+			z-index: 30;
+			border-left: none;
+			border-top: 1px solid var(--border);
+			border-radius: 12px 12px 0 0;
+			box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.24);
+			padding-bottom: env(safe-area-inset-bottom);
 		}
 	}
 </style>

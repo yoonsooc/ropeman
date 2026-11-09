@@ -3,7 +3,7 @@ import type { Node, Edge, MarkerType } from '@xyflow/svelte';
 import dagre from '@dagrejs/dagre';
 
 const SEMANTIC_NODE_WIDTH = 256;
-const SEMANTIC_NODE_HEIGHT = 160;
+const SEMANTIC_NODE_HEIGHT = 176;
 
 const EDGE_TYPE_COLORS: Record<string, string> = {
 	depends_on: '#94a3b8',
@@ -12,12 +12,21 @@ const EDGE_TYPE_COLORS: Record<string, string> = {
 	uses: '#7ad4a0'
 };
 
-export function toSemanticFlowNodes(level: SemanticLevel): Node[] {
+export type LayoutDirection = 'LR' | 'TB';
+
+/**
+ * Lay out a level with dagre. `TB` stacks ranks vertically for narrow screens,
+ * where a left-to-right graph would shrink to an unreadable strip.
+ */
+export function toSemanticFlowNodes(
+	level: SemanticLevel,
+	direction: LayoutDirection = 'LR'
+): Node[] {
 	const g = new dagre.graphlib.Graph();
 	g.setGraph({
-		rankdir: 'LR',
-		nodesep: 80,
-		ranksep: 120,
+		rankdir: direction,
+		nodesep: direction === 'LR' ? 80 : 40,
+		ranksep: direction === 'LR' ? 200 : 120,
 		marginx: 40,
 		marginy: 40
 	});
@@ -64,7 +73,8 @@ export function toSemanticFlowNodes(level: SemanticLevel): Node[] {
 				depth: node.depth,
 				id: node.id,
 				sourceHandleCount: sourceCount.get(node.id) ?? 1,
-				targetHandleCount: targetCount.get(node.id) ?? 1
+				targetHandleCount: targetCount.get(node.id) ?? 1,
+				direction
 			},
 			width: SEMANTIC_NODE_WIDTH,
 			height: SEMANTIC_NODE_HEIGHT
@@ -95,7 +105,7 @@ export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
 			type: 'smoothstep',
 			animated: false,
 			...(edge.label ? { label: edge.label } : {}),
-			style: `stroke: ${color}; stroke-width: 1.5px; stroke-dasharray: 4 4; opacity: 0.5;`,
+			style: `stroke: ${color}; stroke-width: 1.5px; opacity: 0.75;`,
 			markerEnd: {
 				type: 'arrowclosed' as MarkerType,
 				color
@@ -103,4 +113,15 @@ export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
 			data: { edgeType: edge.type }
 		};
 	});
+}
+
+/** Nodes joined to `nodeId` by an edge in either direction, so a selection can keep them lit. */
+export function neighborNodeIds(level: SemanticLevel, nodeId: string): Set<string> {
+	const ids = new Set<string>();
+	for (const e of level.edges) {
+		if (e.source === nodeId) ids.add(e.target);
+		if (e.target === nodeId) ids.add(e.source);
+	}
+	ids.delete(nodeId);
+	return ids;
 }

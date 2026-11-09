@@ -32,7 +32,7 @@
 
 <div class="explore-page" data-theme={themeStore.current}>
 	<header class="explore-header">
-		<a href={resolve('/')} class="explore-logo">ROPEMAN</a>
+		<a href={resolve('/')} class="explore-logo">Ropeman</a>
 		<nav class="explore-nav">
 			<a
 				class="explore-nav-btn"
@@ -96,8 +96,24 @@
 						: 'No projects match your filters.'}
 				</div>
 			{:else}
-				{#each filtered as entry (entry.slug)}
-					<a class="explore-card" href={resolve(`/explore/${entry.slug}`)}>
+				{#each filtered as entry, index (entry.slug)}
+					<a
+						class="explore-card"
+						class:featured={index === 0 && (filtered.length + 1) % 3 === 0}
+						href={resolve(`/explore/${entry.slug}`)}
+					>
+						<img
+							class="card-thumb"
+							src="/explore/thumbs/{entry.slug}-{themeStore.current === 'dark'
+								? 'dark'
+								: 'light'}.webp"
+							width="800"
+							height="430"
+							alt=""
+							loading={index < 3 ? 'eager' : 'lazy'}
+							fetchpriority={index === 0 ? 'high' : 'auto'}
+							decoding="async"
+						/>
 						<div class="card-header">
 							<span class="card-language" data-lang={entry.language.toLowerCase()}
 								>{entry.language}</span
@@ -106,17 +122,15 @@
 						</div>
 						<h2 class="card-title">{entry.title}</h2>
 						<div class="card-repo">{entry.owner}/{entry.repo}</div>
-						<p class="card-desc">{entry.description}</p>
+						<p class="card-desc">
+							{i18nStore.locale === 'ko' && entry.descriptionKo
+								? entry.descriptionKo
+								: entry.description}
+						</p>
 					</a>
 				{/each}
 			{/if}
 		</section>
-
-		{#if data.manifest.updatedAt}
-			<footer class="explore-footer">
-				Last updated: {data.manifest.updatedAt}
-			</footer>
-		{/if}
 	</main>
 </div>
 
@@ -150,8 +164,6 @@
 		font-weight: 700;
 		color: var(--accent);
 		text-decoration: none;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 	}
 
 	.explore-nav {
@@ -238,16 +250,42 @@
 		min-width: 240px;
 	}
 
+	.filter-input::placeholder {
+		color: var(--text-muted);
+		opacity: 1;
+	}
+
 	.filter-input:focus,
 	.filter-select:focus {
 		outline: none;
 		border-color: var(--accent);
 	}
 
+	/* When the count leaves one cell short of full rows, the first card spans two */
 	.explore-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 16px;
+	}
+
+	.explore-card.featured {
+		grid-column: span 2;
+	}
+
+	@media (max-width: 1023px) {
+		.explore-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (max-width: 639px) {
+		.explore-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.explore-card.featured {
+			grid-column: auto;
+		}
 	}
 
 	.explore-empty {
@@ -262,20 +300,37 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-		padding: 20px;
+		padding: 0 20px 20px;
+		overflow: hidden;
 		background: var(--bg-secondary, #0f141a);
 		border: 1px solid var(--ghost-border);
 		border-radius: 8px;
 		text-decoration: none;
 		color: inherit;
-		transition:
-			transform 0.15s,
-			border-color 0.15s;
+		transition: border-color 0.15s ease-out;
 	}
 
-	.explore-card:hover {
-		transform: translateY(-2px);
-		border-color: var(--accent);
+	/* Real snapshot of the graph, full bleed at the top of the card */
+	.card-thumb {
+		display: block;
+		width: calc(100% + 40px);
+		margin: 0 -20px 8px;
+		aspect-ratio: 800 / 430;
+		height: auto;
+		object-fit: cover;
+		object-position: center;
+		background: var(--bg-lowest);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.explore-card.featured .card-thumb {
+		aspect-ratio: 16 / 7;
+	}
+
+	@media (hover: hover) {
+		.explore-card:hover {
+			border-color: var(--accent);
+		}
 	}
 
 	.card-header {
@@ -325,13 +380,6 @@
 		font-weight: 600;
 		color: var(--accent);
 		margin-top: auto;
-	}
-
-	.explore-footer {
-		text-align: center;
-		margin-top: 48px;
-		font-size: 12px;
-		color: var(--text-muted, var(--text-secondary));
 	}
 
 	@media (max-width: 640px) {

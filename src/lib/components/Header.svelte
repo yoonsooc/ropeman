@@ -14,7 +14,8 @@
 		onnewproject,
 		onconnect,
 		onanalyze,
-		onshare
+		onshare,
+		ongohome
 	}: {
 		onsettings?: () => void;
 		onhelp?: () => void;
@@ -22,6 +23,7 @@
 		onconnect?: () => void;
 		onanalyze?: () => void;
 		onshare?: () => void;
+		ongohome?: () => void;
 	} = $props();
 
 	const canShare = $derived(semanticStore.currentLevel !== null);
@@ -51,7 +53,21 @@
 
 <header class="header">
 	<div class="header-left">
-		<h1 class="header-title">{i18nStore.t('title')}</h1>
+		<div class="header-title">
+			{#if hasProject && ongohome}
+				<button
+					type="button"
+					class="home-btn"
+					onclick={ongohome}
+					title={i18nStore.t('header.home')}
+					aria-label="{i18nStore.t('title')}, {i18nStore.t('header.home')}"
+				>
+					{i18nStore.t('title')}
+				</button>
+			{:else}
+				{i18nStore.t('title')}
+			{/if}
+		</div>
 		{#if projectStore.projectName}
 			<span class="header-project">{projectStore.projectName}</span>
 		{:else}
@@ -60,8 +76,13 @@
 	</div>
 	<div class="header-right">
 		{#if hasProject}
-			<button class="header-btn text-btn" onclick={onnewproject} title="Open New Project">
+			<button
+				class="header-btn text-btn"
+				onclick={onnewproject}
+				title={i18nStore.t('newProject.title')}
+			>
 				<svg
+					aria-hidden="true"
 					width="16"
 					height="16"
 					viewBox="0 0 24 24"
@@ -75,7 +96,7 @@
 					<line x1="12" y1="11" x2="12" y2="17" />
 					<line x1="9" y1="14" x2="15" y2="14" />
 				</svg>
-				<span class="btn-label">New</span>
+				<span class="btn-label">{i18nStore.t('header.newLabel')}</span>
 			</button>
 		{/if}
 		{#if hasProject}
@@ -84,13 +105,17 @@
 				data-tour-step="2"
 				onclick={() => onanalyze?.()}
 				disabled={isParsing}
-				title="AI Semantic Analysis"
+				title={i18nStore.t('header.analyzeTitle')}
+				aria-label={i18nStore.t('header.analyzeTitle')}
 			>
 				{#if isParsing}
-					<span class="material-symbols-outlined analyze-spinner">progress_activity</span>
+					<span aria-hidden="true" class="material-symbols-outlined analyze-spinner"
+						>progress_activity</span
+					>
 					{projectStore.parsingProgress.done}/{projectStore.parsingProgress.total}
 				{:else}
 					<svg
+						aria-hidden="true"
 						width="14"
 						height="14"
 						viewBox="0 0 24 24"
@@ -104,7 +129,7 @@
 							points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
 						/>
 					</svg>
-					Analyze
+					<span class="analyze-label">{i18nStore.t('header.analyze')}</span>
 				{/if}
 			</button>
 		{/if}
@@ -115,45 +140,68 @@
 				disabled={!canShare}
 				title={i18nStore.t('share.button')}
 			>
-				<span class="material-symbols-outlined" style="font-size:14px;">share</span>
+				<span aria-hidden="true" class="material-symbols-outlined" style="font-size:14px;"
+					>share</span
+				>
 				<span class="btn-label">{i18nStore.t('share.button')}</span>
 			</button>
 		{/if}
 		<div class="header-divider"></div>
-		<button class="header-btn" onclick={() => i18nStore.toggleLocale()} title="Toggle Language">
+		<button
+			class="header-btn lang-toggle"
+			onclick={() => i18nStore.toggleLocale()}
+			title={i18nStore.t('header.languageToggle')}
+			aria-label={i18nStore.t('header.languageToggle')}
+		>
 			{i18nStore.locale === 'ko' ? 'EN' : '\uD55C'}
 		</button>
 		<button
 			class="header-btn"
 			onclick={() => themeStore.toggle()}
 			title="{i18nStore.t(themeStore.current === 'dark' ? 'lightMode' : 'darkMode')} (Ctrl+Shift+D)"
+			aria-label={i18nStore.t(themeStore.current === 'dark' ? 'lightMode' : 'darkMode')}
 		>
 			{themeStore.current === 'dark' ? '\u2600' : '\u263D'}
 		</button>
 		<a
 			class="header-btn header-link"
 			href={resolve('/explore')}
-			title={i18nStore.locale === 'ko' ? '갤러리' : 'Explore gallery'}
+			title={i18nStore.t('header.gallery')}
+			aria-label={i18nStore.t('header.gallery')}
 		>
-			<span class="material-symbols-outlined" style="font-size:18px;">photo_library</span>
+			<span aria-hidden="true" class="material-symbols-outlined" style="font-size:18px;"
+				>photo_library</span
+			>
 		</a>
 		<a
 			class="header-btn header-link"
 			href={resolve(`/docs/${i18nStore.locale}/getting-started`)}
 			title={i18nStore.t('docs.headerLink')}
+			aria-label={i18nStore.t('docs.headerLink')}
 		>
-			<span class="material-symbols-outlined" style="font-size:18px;">menu_book</span>
+			<span aria-hidden="true" class="material-symbols-outlined" style="font-size:18px;"
+				>menu_book</span
+			>
 		</a>
-		<button class="header-btn" onclick={onhelp} title="{i18nStore.t('shortcuts.showHelp')} (?)">
-			<span class="material-symbols-outlined" style="font-size:18px;">help_outline</span>
+		<button
+			class="header-btn"
+			onclick={onhelp}
+			title="{i18nStore.t('shortcuts.showHelp')} (?)"
+			aria-label={i18nStore.t('shortcuts.showHelp')}
+		>
+			<span aria-hidden="true" class="material-symbols-outlined" style="font-size:18px;"
+				>help_outline</span
+			>
 		</button>
 		<button
 			class="header-btn"
 			data-tour-step="3"
 			onclick={onsettings}
 			title={i18nStore.t('settings')}
+			aria-label={i18nStore.t('settings')}
 		>
 			<svg
+				aria-hidden="true"
 				width="18"
 				height="18"
 				viewBox="0 0 24 24"
@@ -225,8 +273,19 @@
 		font-weight: 700;
 		color: var(--accent);
 		font-family: var(--font-display, 'Space Grotesk', sans-serif);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
+	}
+
+	.home-btn {
+		font: inherit;
+		color: inherit;
+		border-radius: 4px;
+	}
+
+	@media (hover: hover) {
+		.home-btn:hover {
+			text-decoration: underline;
+			text-underline-offset: 4px;
+		}
 	}
 
 	.header-subtitle {
@@ -265,9 +324,11 @@
 		height: 18px;
 	}
 
-	.header-btn:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+	@media (hover: hover) {
+		.header-btn:hover {
+			background: var(--bg-tertiary);
+			color: var(--text-primary);
+		}
 	}
 
 	.header-link {
@@ -283,18 +344,18 @@
 		border-radius: 4px;
 		color: var(--accent-secondary);
 		font-family: var(--font-display);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 	}
 
-	.header-btn.text-btn:hover {
-		background: var(--bg-tertiary);
+	@media (hover: hover) {
+		.header-btn.text-btn:hover {
+			background: var(--bg-tertiary);
+		}
 	}
 
 	.btn-label {
-		font-size: 11px;
+		font-size: 12px;
 	}
 
 	.analyze-btn {
@@ -303,20 +364,20 @@
 		gap: 6px;
 		padding: 4px 12px;
 		background: var(--accent);
-		color: var(--sidebar-icon-bg, #0f141a);
+		color: var(--on-accent);
 		border: none;
 		border-radius: 4px;
 		font-family: var(--font-display);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		cursor: pointer;
 		transition: opacity 0.2s;
 	}
 
-	.analyze-btn:hover:not(:disabled) {
-		opacity: 0.85;
+	@media (hover: hover) {
+		.analyze-btn:hover:not(:disabled) {
+			opacity: 0.85;
+		}
 	}
 
 	.analyze-btn:disabled {
@@ -334,18 +395,18 @@
 		border: 1px solid var(--ghost-border);
 		border-radius: 4px;
 		font-family: var(--font-display);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		cursor: pointer;
 		transition:
 			opacity 0.2s,
 			background 0.2s;
 	}
 
-	.share-btn:hover:not(:disabled) {
-		background: var(--bg-secondary);
+	@media (hover: hover) {
+		.share-btn:hover:not(:disabled) {
+			background: var(--bg-secondary);
+		}
 	}
 
 	.share-btn:disabled {
@@ -377,8 +438,10 @@
 		transition: background 0.2s;
 	}
 
-	.track-badge:hover {
-		background: color-mix(in srgb, var(--accent) 15%, transparent);
+	@media (hover: hover) {
+		.track-badge:hover {
+			background: color-mix(in srgb, var(--accent) 15%, transparent);
+		}
 	}
 
 	.track-dot {
@@ -401,11 +464,9 @@
 	}
 
 	.track-label {
-		font-size: 9px;
+		font-size: 12px;
 		font-weight: 700;
-		color: var(--accent, #a3a6ff);
-		letter-spacing: -0.05em;
-		text-transform: uppercase;
+		color: var(--accent);
 	}
 
 	.header-divider {
@@ -428,6 +489,43 @@
 		.header-btn.text-btn {
 			width: 32px;
 			padding: 0;
+		}
+
+		.header-right {
+			gap: 4px;
+		}
+
+		.header-btn {
+			min-width: 32px;
+			min-height: 32px;
+		}
+	}
+
+	/* Phones: every header control must fit at 320px, with or without a project.
+	   Language lives in Settings; the gallery and docs links are on the landing page. */
+	@media (max-width: 430px) {
+		.lang-toggle,
+		.header-divider,
+		.header-project,
+		.header-link,
+		.analyze-label {
+			display: none;
+		}
+
+		.header {
+			padding-left: max(12px, env(safe-area-inset-left));
+			padding-right: max(12px, env(safe-area-inset-right));
+		}
+
+		.header-btn,
+		.analyze-btn,
+		.share-btn {
+			min-width: 28px;
+			min-height: 28px;
+		}
+
+		.analyze-btn {
+			padding: 4px 8px;
 		}
 	}
 </style>

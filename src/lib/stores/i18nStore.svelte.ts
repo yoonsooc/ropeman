@@ -25,9 +25,13 @@ interface LandingTranslations {
 	specWebgpu: string;
 	specSemantic: string;
 	specNoData: string;
-	exploreCardEyebrow: string;
-	exploreCardTitle: string;
-	exploreCardCta: string;
+	exampleCta: string;
+	heroShotAlt: string;
+	heroShotCaption: string;
+	heroShotLink: string;
+	dropRegion: string;
+	loadingTitle: string;
+	parsingLabel: string;
 	explorePromptTitle: string;
 	explorePromptMessage: string;
 	explorePromptAnalyze: string;
@@ -123,6 +127,36 @@ interface NewProjectTranslations {
 	githubLabel: string;
 	replaceNote: string;
 	cancel: string;
+}
+
+interface HeaderTranslations {
+	newLabel: string;
+	analyze: string;
+	analyzeTitle: string;
+	languageToggle: string;
+	gallery: string;
+	home: string;
+	homeConfirmTitle: string;
+	homeConfirmMessage: string;
+	homeConfirmOk: string;
+	homeConfirmCancel: string;
+}
+
+interface NodeTranslations {
+	fileOne: string;
+	fileMany: string;
+	openInside: string;
+	openCode: string;
+	notInSnapshot: string;
+	notInSnapshotShort: string;
+	reanalyze: string;
+}
+
+interface PanelTranslations {
+	close: string;
+	description: string;
+	files: string;
+	keySymbols: string;
 }
 
 interface DocsTranslations {
@@ -233,6 +267,9 @@ interface TranslationSet {
 	};
 	share: ShareTranslations;
 	newProject: NewProjectTranslations;
+	header: HeaderTranslations;
+	node: NodeTranslations;
+	panel: PanelTranslations;
 	aiError: AIErrorTranslations;
 	analyze: AnalyzeTranslations;
 	help: HelpTranslations;
@@ -308,13 +345,13 @@ const translations: Record<Locale, TranslationSet> = {
 			subheadline:
 				'AI 기반 시맨틱 아키텍처 다이어그램. 모두 브라우저에서. 소스 코드 업로드 없이 로컬 폴더를 즉시 로드합니다.',
 			cta: '폴더 열기',
-			dragHint: 'or drag & drop a folder here',
+			dragHint: '또는 폴더를 여기로 끌어다 놓으세요',
 			featureAiTitle: 'AI 의미론적 분석',
 			featureAiDesc: 'LLM이 리포지토리를 시맨틱 모듈과 핵심 추상화로 자동 매핑합니다.',
 			featureDrillTitle: '드릴다운 탐색',
 			featureDrillDesc:
 				'고수준 아키텍처 다이어그램에서 특정 코드 라인까지, 맥락을 잃지 않고 탐색합니다.',
-			featureBrowserTitle: 'Multi-Track AI',
+			featureBrowserTitle: '네 가지 AI 방식',
 			featureBrowserDesc:
 				'Demo · API Key · Local Bridge · Browser AI — 4가지 분석 방식을 제공합니다. 소스 코드 원문은 어떤 모드에서도 외부로 전송되지 않습니다.',
 			githubPlaceholder: 'https://github.com/owner/repo',
@@ -332,9 +369,14 @@ const translations: Record<Locale, TranslationSet> = {
 			specWebgpu: 'WebGPU 가속',
 			specSemantic: '시맨틱 인식',
 			specNoData: '데이터 수집 없음',
-			exploreCardEyebrow: '처음이신가요? 예시 둘러보기',
-			exploreCardTitle: '예시로 시작해보기',
-			exploreCardCta: 'Explore Gallery',
+			exampleCta: '분석 예시 보기',
+			heroShotAlt:
+				'huggingface/transformers를 분석한 Ropeman 화면. 도메인별 노드와 연결, 오른쪽에 선택한 노드의 파일과 주요 심볼',
+			heroShotCaption: '실제 분석 결과: huggingface/transformers. 눌러서 직접 탐색해 보세요.',
+			heroShotLink: 'huggingface/transformers 분석 예시 열기',
+			dropRegion: '폴더 놓는 곳',
+			loadingTitle: '프로젝트 불러오는 중',
+			parsingLabel: '파일 분석 중',
 			explorePromptTitle: '이 도메인은 상세 분석이 없습니다',
 			explorePromptMessage:
 				'이 도메인의 하위 구조는 큐레이션된 스냅샷에 포함되지 않았습니다. 직접 분석하려면 원본 프로젝트를 홈에서 불러오세요.',
@@ -404,6 +446,33 @@ const translations: Record<Locale, TranslationSet> = {
 				'Google Gemini 무료 등급으로 처리됩니다. 무료 등급에서는 Google이 입력을 서비스 개선에 사용할 수 있으니, 공개하기 어려운 코드는 API 키나 로컬 브리지를 쓰세요.',
 			byokKeyNotice:
 				'키는 이 브라우저에만 저장됩니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 브라우저 제약 때문에 Ropeman 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.'
+		},
+		panel: {
+			close: '닫기',
+			description: '설명',
+			files: '파일',
+			keySymbols: '주요 심볼'
+		},
+		node: {
+			fileOne: '파일 {n}개',
+			fileMany: '파일 {n}개',
+			openInside: '안으로 들어가기',
+			openCode: '코드 보기',
+			notInSnapshot: '이 스냅샷에는 더 깊은 분석이 없습니다. 눌러서 자세히 보기',
+			notInSnapshotShort: '스냅샷에 없음',
+			reanalyze: '다시 분석'
+		},
+		header: {
+			newLabel: '새로 열기',
+			analyze: '분석',
+			analyzeTitle: 'AI 시맨틱 분석',
+			languageToggle: 'EN, 영어로 보기',
+			gallery: '갤러리',
+			home: '처음 화면으로',
+			homeConfirmTitle: '처음 화면으로 돌아갈까요?',
+			homeConfirmMessage: '지금 열린 프로젝트와 분석 화면이 닫힙니다. 진행 중인 분석도 멈춥니다.',
+			homeConfirmOk: '처음 화면으로 돌아가기',
+			homeConfirmCancel: '계속 보기'
 		},
 		newProject: {
 			title: '새 프로젝트 열기',
@@ -614,9 +683,14 @@ const translations: Record<Locale, TranslationSet> = {
 			specWebgpu: 'WebGPU Accelerated',
 			specSemantic: 'Semantic Recognition',
 			specNoData: 'Zero Data Collection',
-			exploreCardEyebrow: 'New here? Browse examples',
-			exploreCardTitle: 'Start with an example',
-			exploreCardCta: 'Explore Gallery',
+			exampleCta: 'See an example',
+			heroShotAlt:
+				'Ropeman analysis of huggingface/transformers: domain nodes and their links, with the selected node’s files and key symbols on the right',
+			heroShotCaption: 'A real analysis of huggingface/transformers. Click to explore it.',
+			heroShotLink: 'Open the huggingface/transformers example',
+			dropRegion: 'Folder drop area',
+			loadingTitle: 'Loading project',
+			parsingLabel: 'Parsing files',
 			explorePromptTitle: 'No deep analysis for this domain',
 			explorePromptMessage:
 				"This domain's internal structure isn't part of the curated snapshot. To explore deeper, load the original project from the home page.",
@@ -686,6 +760,34 @@ const translations: Record<Locale, TranslationSet> = {
 				'Runs on the free tier of Google Gemini, where Google may use inputs to improve its products. For code you would not share, use an API key or the local bridge.',
 			byokKeyNotice:
 				"Keys are stored only in this browser. Gemini requests go straight to Google; Anthropic and OpenAI requests pass through Ropeman's proxy because of browser restrictions. The proxy does not store keys."
+		},
+		panel: {
+			close: 'Close',
+			description: 'Description',
+			files: 'Files',
+			keySymbols: 'Key symbols'
+		},
+		node: {
+			fileOne: '{n} file',
+			fileMany: '{n} files',
+			openInside: 'Open',
+			openCode: 'View code',
+			notInSnapshot: 'This snapshot has no deeper analysis. Click for details',
+			notInSnapshotShort: 'Not in snapshot',
+			reanalyze: 'Re-analyze'
+		},
+		header: {
+			newLabel: 'New',
+			analyze: 'Analyze',
+			analyzeTitle: 'AI semantic analysis',
+			languageToggle: '한, 한국어로 보기',
+			gallery: 'Explore gallery',
+			home: 'Back to start',
+			homeConfirmTitle: 'Go back to the start page?',
+			homeConfirmMessage:
+				'This closes the open project and its analysis. Any analysis in progress stops.',
+			homeConfirmOk: 'Go back to start',
+			homeConfirmCancel: 'Keep working'
 		},
 		newProject: {
 			title: 'Open a new project',

@@ -41,6 +41,33 @@ const SAMPLE_ENTRIES: CuratedEntry[] = [
 ];
 
 describe('validateManifest', () => {
+	it('keeps an optional Korean description and drops a non-string one', () => {
+		const base = {
+			slug: 's',
+			owner: 'o',
+			repo: 'r',
+			title: 't',
+			language: 'Go',
+			description: 'en'
+		};
+		const result = validateManifest({
+			updatedAt: '2026-11-09',
+			entries: [
+				{ ...base, descriptionKo: '한국어' },
+				{ ...base, slug: 's2', descriptionKo: 42 }
+			]
+		});
+		expect(result?.entries[0].descriptionKo).toBe('한국어');
+		expect(result?.entries[1].descriptionKo).toBeUndefined();
+	});
+
+	it('ships a Korean description for every curated entry', () => {
+		// Regression: the Korean gallery showed English card descriptions
+		for (const entry of getCuratedManifest().entries) {
+			expect(entry.descriptionKo).toMatch(/[가-힣]/);
+		}
+	});
+
 	it('returns null for non-object input', () => {
 		expect(validateManifest(null)).toBeNull();
 		expect(validateManifest('string')).toBeNull();

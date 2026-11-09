@@ -418,7 +418,7 @@
 		padding: 0 8px;
 		border-radius: 9999px;
 		background: var(--accent, #3b82f6);
-		color: #fff;
+		color: var(--on-accent);
 		font-size: 11px;
 		font-weight: 700;
 		font-family: var(--font-display, 'Space Grotesk', sans-serif);
@@ -497,7 +497,7 @@
 		border-radius: 6px;
 		font-size: 12px;
 		font-weight: 700;
-		color: #fff;
+		color: var(--on-accent);
 		background: var(--accent, #3b82f6);
 		cursor: pointer;
 		transition: background 0.2s;

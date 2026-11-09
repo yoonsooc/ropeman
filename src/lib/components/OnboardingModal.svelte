@@ -286,14 +286,14 @@
 
 	.track-btn.primary {
 		background: var(--accent);
-		color: #fff;
+		color: var(--on-accent);
 		border-color: var(--accent);
 	}
 
 	.track-btn.primary:hover {
 		background: var(--accent-hover);
 		border-color: var(--accent-hover);
-		color: #fff;
+		color: var(--on-accent);
 	}
 
 	.track-btn:disabled {

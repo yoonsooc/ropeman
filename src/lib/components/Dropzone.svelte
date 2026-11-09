@@ -11,7 +11,7 @@
 	import { parseAllFiles } from '$lib/services/parserService';
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
-	import HeroIllustration from './HeroIllustration.svelte';
+	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { parseGitHubUrl, githubLoadErrorKey } from '$lib/utils/githubUrl';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 
@@ -217,8 +217,8 @@
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
-	role="button"
-	tabindex="0"
+	role="region"
+	aria-label={i18nStore.t('landing.dropRegion')}
 >
 	{#if oncancel}
 		<button class="dropzone-close" onclick={oncancel} title="Cancel">
@@ -242,15 +242,16 @@
 				<div class="loading-card">
 					<div class="loading-spinner-container">
 						<div class="loading-ring"></div>
-						<span class="material-symbols-outlined loading-icon">refresh</span>
+						<span aria-hidden="true" class="material-symbols-outlined loading-icon">refresh</span>
 					</div>
 					<div class="loading-text">
-						<h2>Project Loading</h2>
+						<h2>{i18nStore.t('landing.loadingTitle')}</h2>
 						{#if projectStore.parsingProgress.total > 0}
 							<p class="progress">
-								Parsing project... <span class="progress-count"
+								{i18nStore.t('landing.parsingLabel')}
+								<span class="progress-count"
 									>{projectStore.parsingProgress.done}/{projectStore.parsingProgress.total}</span
-								> files
+								>
 							</p>
 						{/if}
 					</div>
@@ -264,26 +265,42 @@
 						<p class="hero-sub">{i18nStore.t('landing.subheadline')}</p>
 						{#if !isCompact}
 							<button class="cta-btn" data-tour-step="1" onclick={handleOpenDirectory}>
-								<span class="material-symbols-outlined cta-icon">folder_open</span>
+								<span aria-hidden="true" class="material-symbols-outlined cta-icon"
+									>folder_open</span
+								>
 								{i18nStore.t('landing.cta')}
 							</button>
+							<a class="example-link" href={resolve('/explore')} data-tour-step="explore">
+								{i18nStore.t('landing.exampleCta')}
+								<span aria-hidden="true">&#x2192;</span>
+							</a>
 							<p class="drag-hint">{i18nStore.t('landing.dragHint')}</p>
 						{:else}
 							<p class="mobile-folder-hint">
-								<span class="material-symbols-outlined">info</span>
+								<span aria-hidden="true" class="material-symbols-outlined">info</span>
 								{i18nStore.t('landing.mobileFolderHint')}
 							</p>
+							<a class="example-link compact" href={resolve('/explore')} data-tour-step="explore">
+								{i18nStore.t('landing.exampleCta')}
+								<span aria-hidden="true">&#x2192;</span>
+							</a>
 						{/if}
 						<div class="github-input-section">
-							<p class="github-or">
+							<label class="github-or" for="landing-github-url">
 								{isCompact
 									? i18nStore.t('landing.mobileGithubLead')
 									: i18nStore.t('landing.githubOr')}
-							</p>
+							</label>
 							<div class="github-input-row">
 								<input
-									type="text"
+									id="landing-github-url"
+									type="url"
+									inputmode="url"
+									autocomplete="off"
+									spellcheck="false"
 									class="github-input"
+									aria-invalid={error ? true : undefined}
+									aria-describedby={error ? 'landing-github-error' : undefined}
 									placeholder={i18nStore.t('landing.githubPlaceholder')}
 									bind:value={githubUrl}
 									onkeydown={handleGitHubKeydown}
@@ -292,37 +309,20 @@
 								<button
 									class="github-load-btn"
 									onclick={handleGitHubLoad}
-									disabled={isLoadingGithub || !githubUrl.trim()}
+									disabled={isLoadingGithub}
+									aria-busy={isLoadingGithub}
 								>
 									{#if isLoadingGithub}
-										<span class="material-symbols-outlined github-spinner">progress_activity</span>
+										<span aria-hidden="true" class="material-symbols-outlined github-spinner"
+											>progress_activity</span
+										>
 									{:else}
-										<span class="material-symbols-outlined">play_arrow</span>
+										<span aria-hidden="true" class="material-symbols-outlined">play_arrow</span>
 									{/if}
 									{i18nStore.t('landing.githubLoad')}
 								</button>
 							</div>
 						</div>
-						<a class="explore-card" href={resolve('/explore')} data-tour-step="explore">
-							<div class="explore-card-accent"></div>
-							<div class="explore-card-inner">
-								<div class="explore-card-icon">
-									<span class="material-symbols-outlined">photo_library</span>
-								</div>
-								<div class="explore-card-text">
-									<span class="explore-card-eyebrow">
-										{i18nStore.t('landing.exploreCardEyebrow')}
-									</span>
-									<h3 class="explore-card-title">
-										{i18nStore.t('landing.exploreCardTitle')}
-									</h3>
-								</div>
-								<div class="explore-card-cta">
-									{i18nStore.t('landing.exploreCardCta')}
-									<span class="material-symbols-outlined">arrow_forward</span>
-								</div>
-							</div>
-						</a>
 						<div class="hero-languages">
 							{#each languages as lang}
 								<span class="hero-lang" style="color: {lang.color}">
@@ -331,56 +331,75 @@
 							{/each}
 						</div>
 						{#if error}
-							<p class="error-msg">{error}</p>
+							<p class="error-msg" id="landing-github-error" role="alert">{error}</p>
 						{/if}
 					</div>
-					<div class="hero-visual">
-						<HeroIllustration />
-					</div>
+					<figure class="hero-visual">
+						<a
+							class="hero-shot"
+							href={resolve('/explore/transformers')}
+							aria-label={i18nStore.t('landing.heroShotLink')}
+						>
+							<img
+								src={themeStore.current === 'dark'
+									? '/landing/explore-transformers-dark.webp'
+									: '/landing/explore-transformers-light.webp'}
+								width="1600"
+								height="928"
+								alt={i18nStore.t('landing.heroShotAlt')}
+								decoding="async"
+							/>
+						</a>
+						<figcaption>{i18nStore.t('landing.heroShotCaption')}</figcaption>
+					</figure>
 				</section>
 
 				<!-- Technical Specs Strip (Stitch v2) -->
 				<div class="landing-specs-strip">
 					<div class="specs-item">
-						<span class="material-symbols-outlined">verified_user</span>
+						<span aria-hidden="true" class="material-symbols-outlined">verified_user</span>
 						<span>{i18nStore.t('landing.specLocalFirst')}</span>
 					</div>
 					<div class="specs-item">
-						<span class="material-symbols-outlined">memory</span>
+						<span aria-hidden="true" class="material-symbols-outlined">memory</span>
 						<span>{i18nStore.t('landing.specWebgpu')}</span>
 					</div>
 					<div class="specs-item">
-						<span class="material-symbols-outlined">psychology</span>
+						<span aria-hidden="true" class="material-symbols-outlined">psychology</span>
 						<span>{i18nStore.t('landing.specSemantic')}</span>
 					</div>
 					<div class="specs-item">
-						<span class="material-symbols-outlined">visibility_off</span>
+						<span aria-hidden="true" class="material-symbols-outlined">visibility_off</span>
 						<span>{i18nStore.t('landing.specNoData')}</span>
 					</div>
 				</div>
 
 				<section class="landing-features">
 					<div class="feature-card">
-						<span class="material-symbols-outlined feature-mat-icon" style="color: var(--accent)"
-							>psychology</span
+						<span
+							aria-hidden="true"
+							class="material-symbols-outlined feature-mat-icon"
+							style="color: var(--accent)">psychology</span
 						>
-						<h3>{i18nStore.t('landing.featureAiTitle')}</h3>
+						<h2>{i18nStore.t('landing.featureAiTitle')}</h2>
 						<p>{i18nStore.t('landing.featureAiDesc')}</p>
 					</div>
 					<div class="feature-card">
 						<span
+							aria-hidden="true"
 							class="material-symbols-outlined feature-mat-icon"
-							style="color: var(--accent-secondary)">account_tree</span
+							style="color: var(--accent)">account_tree</span
 						>
-						<h3>{i18nStore.t('landing.featureDrillTitle')}</h3>
+						<h2>{i18nStore.t('landing.featureDrillTitle')}</h2>
 						<p>{i18nStore.t('landing.featureDrillDesc')}</p>
 					</div>
 					<div class="feature-card">
 						<span
+							aria-hidden="true"
 							class="material-symbols-outlined feature-mat-icon"
-							style="color: var(--accent-tertiary)">hub</span
+							style="color: var(--accent)">hub</span
 						>
-						<h3>{i18nStore.t('landing.featureBrowserTitle')}</h3>
+						<h2>{i18nStore.t('landing.featureBrowserTitle')}</h2>
 						<p>{i18nStore.t('landing.featureBrowserDesc')}</p>
 					</div>
 				</section>
@@ -388,7 +407,7 @@
 				<!-- SnippetEditor hidden from landing — available via direct URL -->
 
 				<footer class="landing-footer">
-					<span class="footer-copy">&copy; 2026 Ropeman. All rights reserved.</span>
+					<span class="footer-copy">&copy; 2026 Ropeman</span>
 					<a class="footer-link" href={resolve('/explore')}>
 						{i18nStore.locale === 'ko' ? '갤러리' : 'Explore'}
 					</a>
@@ -423,7 +442,7 @@
 		justify-content: center;
 		position: relative;
 		border: none;
-		transition: all 0.2s ease;
+		transition: background-color 0.2s ease;
 		overflow-y: auto;
 		overflow-x: hidden;
 		background-color: var(--bg-primary);
@@ -444,9 +463,11 @@
 		z-index: 1;
 	}
 
-	.dropzone-close:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+	@media (hover: hover) {
+		.dropzone-close:hover {
+			background: var(--bg-tertiary);
+			color: var(--text-primary);
+		}
 	}
 
 	/* Show the standard "copy" cursor ONLY while an actual drag is in progress,
@@ -471,46 +492,17 @@
 		animation: fadeInUp 0.5s ease both;
 	}
 
-	/* Radial glow backdrop spans the whole landing, not just hero, so the
-	   hero section blends seamlessly with the page background (Stitch v2). */
-	.landing::before,
-	.landing::after {
-		content: '';
-		position: absolute;
-		pointer-events: none;
-		border-radius: 50%;
-		filter: blur(120px);
-		z-index: 0;
-	}
-
-	.landing::before {
-		top: -5%;
-		left: -10%;
-		width: 500px;
-		height: 500px;
-		background: color-mix(in srgb, var(--accent, #a3a6ff) 5%, transparent);
-	}
-
-	.landing::after {
-		top: 40%;
-		right: -15%;
-		width: 600px;
-		height: 600px;
-		background: color-mix(in srgb, var(--accent-secondary, #53ddfc) 5%, transparent);
-	}
-
 	.landing > * {
 		position: relative;
 		z-index: 1;
 	}
 
+	/* One column: the promise, the actions, then the real product underneath */
 	.landing-hero {
 		display: grid;
-		grid-template-columns: 1.5fr 1fr;
-		gap: 64px;
-		align-items: center;
-		min-height: 500px;
-		padding: 64px 48px;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 48px;
+		padding: 64px 48px 32px;
 		background: transparent;
 	}
 
@@ -526,6 +518,13 @@
 
 	.hero-text h1 :global(.headline-accent) {
 		color: var(--accent);
+	}
+
+	.example-link.compact {
+		display: flex;
+		justify-content: center;
+		margin-left: 0;
+		padding: 12px 8px 0;
 	}
 
 	.hero-sub {
@@ -544,7 +543,6 @@
 	   selectable for a11y / copy-paste. */
 	.cta-btn,
 	.github-load-btn,
-	.explore-card-cta,
 	.hero-lang {
 		-webkit-user-select: none;
 		user-select: none;
@@ -555,25 +553,26 @@
 		align-items: center;
 		gap: 10px;
 		padding: 14px 28px;
-		background: linear-gradient(135deg, var(--accent, #a3a6ff) 0%, #9396ff 100%);
-		color: #ffffff;
+		background: var(--accent);
+		color: var(--on-accent);
 		border-radius: 8px;
 		font-family: var(--font-display);
 		font-size: 16px;
 		font-weight: 600;
 		cursor: pointer;
-		box-shadow:
-			0 10px 20px -5px color-mix(in srgb, var(--accent) 30%, transparent),
-			0 4px 6px -4px color-mix(in srgb, var(--accent) 20%, transparent);
-		transition: all 0.15s ease;
+		transition:
+			background-color 0.15s ease-out,
+			scale 0.15s ease-out;
 	}
 
-	.cta-btn:hover {
-		opacity: 0.9;
+	@media (hover: hover) {
+		.cta-btn:hover {
+			background: var(--accent-hover);
+		}
 	}
 
-	.cta-btn:active {
-		transform: scale(0.98);
+	.cta-btn:not(:disabled):active {
+		scale: 0.96;
 	}
 
 	.cta-icon {
@@ -583,7 +582,6 @@
 	.drag-hint {
 		margin-top: 16px;
 		margin-left: 8px;
-		font-family: var(--font-code);
 		font-size: 14px;
 		color: var(--text-muted);
 	}
@@ -607,141 +605,13 @@
 		color: var(--accent);
 	}
 
-	/* Explore Gallery card — Stitch design "Ropeman Landing - Gallery Focus"
-	   (.stitch-html/landing-gallery-focus.html) */
-	.explore-card {
-		position: relative;
-		display: block;
-		margin-top: 36px;
-		margin-left: 8px;
-		max-width: 640px;
-		background: var(--bg-tertiary, #1b2028);
-		border-radius: 12px;
-		overflow: hidden;
-		text-decoration: none;
-		color: var(--text-primary);
-		cursor: pointer;
-		transition: background 0.3s ease;
-	}
-
-	.explore-card:hover {
-		background: var(--bg-highest, #20262f);
-	}
-
-	.explore-card-accent {
-		position: absolute;
-		left: 0;
-		top: 0;
-		bottom: 0;
-		width: 2px;
-		background: var(--accent-secondary, #53ddfc);
-	}
-
-	.explore-card-inner {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 20px;
-		padding: 20px 24px;
-	}
-
-	.explore-card-icon {
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 44px;
-		height: 44px;
-		border-radius: 8px;
-		background: rgba(83, 221, 252, 0.1);
-		color: var(--accent-secondary, #53ddfc);
-	}
-
-	.explore-card-icon .material-symbols-outlined {
-		font-size: 22px;
-	}
-
-	.explore-card-text {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.explore-card-eyebrow {
-		display: block;
-		margin-bottom: 4px;
-		font-family: var(--font-display);
-		font-size: 11px;
-		font-weight: 700;
-		color: var(--accent-secondary, #53ddfc);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.explore-card-title {
-		margin: 0 0 4px;
-		font-family: var(--font-display);
-		font-size: 15px;
-		font-weight: 500;
-		color: var(--text-primary);
-	}
-
-	.explore-card-sub {
-		margin: 0;
-		font-family: var(--font-body, 'Inter', sans-serif);
-		font-size: 12px;
-		line-height: 1.5;
-		color: var(--text-muted);
-	}
-
-	.explore-card-cta {
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
-		color: var(--accent-secondary, #53ddfc);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		transition: transform 0.3s ease;
-	}
-
-	.explore-card-cta .material-symbols-outlined {
-		font-size: 16px;
-	}
-
-	.explore-card:hover .explore-card-cta {
-		transform: translateX(4px);
-	}
-
-	/* Accent bar thickens on hover (Stitch v2 spec) */
-	.explore-card:hover .explore-card-accent {
-		width: 4px;
-	}
-
-	.explore-card-accent {
-		transition: width 0.3s ease;
-	}
-
-	@media (max-width: 640px) {
-		.explore-card {
-			max-width: none;
-		}
-		.explore-card-inner {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 16px;
-		}
-	}
-
 	/* GitHub URL input */
 	.github-input-section {
 		margin-top: 36px;
 	}
 
 	.github-or {
-		font-family: var(--font-code);
+		display: block;
 		font-size: 14px;
 		color: var(--text-muted);
 		margin-bottom: 8px;
@@ -756,6 +626,7 @@
 
 	.github-input {
 		flex: 1;
+		min-width: 0;
 		padding: 10px 14px;
 		background: var(--bg-secondary);
 		border: 1px solid var(--ghost-border);
@@ -792,13 +663,17 @@
 		font-size: 14px;
 		font-weight: 600;
 		cursor: pointer;
-		transition: all 0.15s ease;
+		transition:
+			border-color 0.15s ease-out,
+			background-color 0.15s ease-out;
 		white-space: nowrap;
 	}
 
-	.github-load-btn:hover:not(:disabled) {
-		border-color: var(--accent);
-		color: var(--accent);
+	@media (hover: hover) {
+		.github-load-btn:hover:not(:disabled) {
+			border-color: var(--accent);
+			color: var(--accent);
+		}
 	}
 
 	.github-load-btn:disabled {
@@ -833,8 +708,49 @@
 	}
 
 	.hero-visual {
-		display: flex;
-		justify-content: center;
+		margin: 0;
+	}
+
+	.hero-shot {
+		display: block;
+		border-radius: 12px;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		box-shadow:
+			0 1px 2px rgba(0, 0, 0, 0.08),
+			0 16px 40px rgba(0, 0, 0, 0.22);
+		transition: border-color 0.15s ease-out;
+	}
+
+	.hero-shot img {
+		display: block;
+		width: 100%;
+		height: auto;
+		outline: 1px solid oklch(1 0 0 / 0.06);
+		outline-offset: -1px;
+	}
+
+	@media (hover: hover) {
+		.hero-shot:hover {
+			border-color: var(--accent-muted);
+		}
+	}
+
+	.hero-visual figcaption {
+		margin-top: 12px;
+		font-size: 13px;
+		color: var(--text-muted);
+	}
+
+	.example-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-left: 16px;
+		padding: 14px 8px;
+		font-size: 15px;
+		font-weight: 500;
+		color: var(--accent);
 	}
 
 	/* Technical Specs Strip — Stitch v2 */
@@ -857,16 +773,14 @@
 		align-items: center;
 		gap: 10px;
 		font-family: var(--font-display);
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
 		color: var(--text-secondary);
 	}
 
 	.specs-item .material-symbols-outlined {
 		font-size: 18px;
-		color: var(--text-secondary, #53ddfc);
+		color: var(--text-secondary);
 		opacity: 0.8;
 	}
 
@@ -896,7 +810,7 @@
 		display: block;
 	}
 
-	.feature-card h3 {
+	.feature-card h2 {
 		font-family: var(--font-display);
 		font-size: 18px;
 		font-weight: 700;
@@ -927,12 +841,13 @@
 	}
 
 	.loading-card {
-		background: rgba(27, 32, 40, 0.95);
-		backdrop-filter: blur(12px);
+		background: var(--bg-secondary);
 		padding: 32px 40px;
 		border-radius: 12px;
-		border: 1px solid rgba(163, 166, 255, 0.2);
-		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+		border: 1px solid var(--border);
+		box-shadow:
+			0 1px 2px rgba(0, 0, 0, 0.08),
+			0 8px 24px rgba(0, 0, 0, 0.16);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -950,7 +865,7 @@
 		width: 64px;
 		height: 64px;
 		border-radius: 50%;
-		border: 2px solid rgba(163, 166, 255, 0.1);
+		border: 2px solid var(--accent-muted);
 		border-top-color: var(--accent, #a3a6ff);
 		animation: spin 0.8s linear infinite;
 	}
@@ -980,16 +895,13 @@
 		font-family: var(--font-display);
 		font-size: 14px;
 		font-weight: 700;
-		color: white;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
+		color: var(--text-primary);
 		margin-bottom: 8px;
 	}
 
 	.progress {
-		font-family: var(--font-code);
 		font-size: 12px;
-		color: rgba(163, 166, 255, 0.7);
+		color: var(--text-secondary);
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -1011,7 +923,7 @@
 		}
 
 		.landing-hero {
-			grid-template-columns: 1fr;
+			grid-template-columns: minmax(0, 1fr);
 			text-align: center;
 			padding: 40px 24px;
 		}
@@ -1022,10 +934,6 @@
 
 		.hero-sub {
 			max-width: none;
-		}
-
-		.hero-visual {
-			order: -1;
 		}
 
 		.landing-specs-strip {
@@ -1059,7 +967,9 @@
 		transition: color 0.15s;
 	}
 
-	.footer-link:hover {
-		color: var(--accent);
+	@media (hover: hover) {
+		.footer-link:hover {
+			color: var(--accent);
+		}
 	}
 </style>

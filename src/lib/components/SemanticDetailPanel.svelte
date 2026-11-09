@@ -4,6 +4,8 @@
 	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import type { GraphNode } from '$lib/types/graph';
 	import { getFileIcon } from '$lib/utils/fileIcons';
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
+	import { splitFilePath } from '$lib/utils/filePath';
 
 	let { ondismiss }: { ondismiss?: () => void } = $props();
 
@@ -34,9 +36,17 @@
 {#if node}
 	<div class="semantic-detail-panel">
 		<div class="panel-header">
-			<span class="panel-label" style="color: {node.color};">{node.label}</span>
-			<button class="panel-close" onclick={handleClose} title="Close">
+			<span class="panel-dot" style="background: {node.color};" aria-hidden="true"></span>
+			<h2 class="panel-label">{node.label}</h2>
+			<button
+				type="button"
+				class="panel-close"
+				onclick={handleClose}
+				title={i18nStore.t('panel.close')}
+				aria-label={i18nStore.t('panel.close')}
+			>
 				<svg
+					aria-hidden="true"
 					width="14"
 					height="14"
 					viewBox="0 0 24 24"
@@ -54,24 +64,28 @@
 
 		{#if node.description}
 			<div class="panel-section">
-				<div class="section-title">Description</div>
+				<h3 class="section-title">{i18nStore.t('panel.description')}</h3>
 				<p class="panel-description">{node.description}</p>
 			</div>
 		{/if}
 
 		{#if node.filePaths.length > 0}
 			<div class="panel-section">
-				<div class="section-title">Files <span class="file-count">{node.fileCount}</span></div>
+				<h3 class="section-title">
+					{i18nStore.t('panel.files')} <span class="file-count">{node.fileCount}</span>
+				</h3>
 				<div class="file-list">
 					{#each node.filePaths as fp}
-						{@const fileName = fp.split('/').pop() ?? fp}
-						{@const fIcon = getFileIcon(fileName)}
-						<button class="file-item" onclick={() => handleFileClick(fp)}>
+						{@const parts = splitFilePath(fp)}
+						{@const fIcon = getFileIcon(parts.name)}
+						<button type="button" class="file-item" title={fp} onclick={() => handleFileClick(fp)}>
 							<span
+								aria-hidden="true"
 								class="file-icon material-symbols-outlined"
 								style={fIcon.color ? `color:${fIcon.color}` : ''}>{fIcon.icon}</span
 							>
-							<span class="file-path">{fp}</span>
+							<span class="file-name">{parts.name}</span>
+							{#if parts.dir}<span class="file-dir">{parts.dir}</span>{/if}
 						</button>
 					{/each}
 				</div>
@@ -80,7 +94,7 @@
 
 		{#if node.keySymbols.length > 0}
 			<div class="panel-section">
-				<div class="section-title">Key Symbols</div>
+				<h3 class="section-title">{i18nStore.t('panel.keySymbols')}</h3>
 				<div class="symbol-tags">
 					{#each node.keySymbols as sym}
 						<span class="symbol-tag">{sym}</span>
@@ -109,13 +123,20 @@
 		flex-shrink: 0;
 	}
 
+	.panel-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		margin-right: 10px;
+	}
+
 	.panel-label {
-		font-size: 14px;
-		font-weight: 700;
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
-		text-transform: uppercase;
-		letter-spacing: 0.025em;
+		font-size: 16px;
+		font-weight: 600;
+		font-family: var(--font-display);
 		line-height: 1.3;
+		color: var(--text-primary);
 		flex: 1;
 		min-width: 0;
 		word-break: break-word;
@@ -145,11 +166,9 @@
 	}
 
 	.section-title {
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
-		font-size: 11px;
+		font-family: var(--font-display);
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--text-muted);
 		margin-bottom: 16px;
 		display: flex;
@@ -158,7 +177,8 @@
 	}
 
 	.file-count {
-		font-size: 10px;
+		font-size: 11px;
+		font-variant-numeric: tabular-nums;
 		font-weight: 600;
 		background: var(--bg-tertiary);
 		color: var(--text-secondary);
@@ -205,13 +225,26 @@
 		flex-shrink: 0;
 	}
 
-	.file-path {
+	.file-name {
+		font-family: var(--font-code);
+		font-size: 12px;
+		color: var(--text-primary);
+		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		white-space: nowrap;
-		font-family: var(--font-code, 'JetBrains Mono', monospace);
-		flex: 1;
 		min-width: 0;
+		flex-shrink: 1;
+	}
+
+	/* The folder trails the file name and gives way first when space runs out */
+	.file-dir {
+		font-size: 11px;
+		color: var(--text-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+		flex: 1;
 	}
 
 	.symbol-tags {
@@ -221,7 +254,7 @@
 	}
 
 	.symbol-tag {
-		font-size: 10px;
+		font-size: 11px;
 		font-family: var(--font-code, 'JetBrains Mono', monospace);
 		color: var(--text-secondary);
 		background: var(--bg-tertiary, #1b2028);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scrollBehavior } from '$lib/utils/motion';
 	import { onMount } from 'svelte';
 	import Prism from 'prismjs';
 	import 'prismjs/components/prism-python';
@@ -28,7 +29,7 @@
 	$effect(() => {
 		if (codeEl && lineStart != null) {
 			const target = codeEl.querySelector(`[data-line="${lineStart}"]`);
-			target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			target?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
 		}
 	});
 

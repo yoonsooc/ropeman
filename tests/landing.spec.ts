@@ -54,7 +54,13 @@ test.describe('Landing Page', () => {
 
 	test('should have language toggle button', async ({ page }) => {
 		await page.goto('/');
-		const langBtn = page.locator('header .header-btn').filter({ hasText: /EN|한/ });
-		await expect(langBtn).toBeVisible();
+		const langBtn = page.locator('header .lang-toggle');
+		const width = page.viewportSize()?.width ?? 1280;
+		if (width <= 430) {
+			// Phones keep language in Settings so every header control fits at 320px
+			await expect(langBtn).toBeHidden();
+		} else {
+			await expect(langBtn).toBeVisible();
+		}
 	});
 });

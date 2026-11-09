@@ -12,7 +12,7 @@
 		function: 'var(--color-function)',
 		class: 'var(--color-class)',
 		method: 'var(--color-method)',
-		import: 'var(--color-import)',
+		import: 'var(--color-import)'
 	};
 
 	const kindIcons: Record<string, string> = {
@@ -21,7 +21,7 @@
 		function: 'f\u2099',
 		class: '\u25C7',
 		method: '\u2192',
-		import: '\u21E5',
+		import: '\u21E5'
 	};
 </script>
 
@@ -40,8 +40,17 @@
 
 		<div class="panel-content">
 			<div class="file-path">
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+				<svg
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
 				</svg>
 				<span>{node.filePath}</span>
 			</div>
@@ -110,8 +119,14 @@
 	}
 
 	@keyframes slideIn {
-		from { transform: translateX(16px); opacity: 0; }
-		to { transform: translateX(0); opacity: 1; }
+		from {
+			transform: translateX(16px);
+			opacity: 0;
+		}
+		to {
+			transform: translateX(0);
+			opacity: 1;
+		}
 	}
 
 	.panel-header {
@@ -136,11 +151,9 @@
 		gap: 4px;
 		padding: 3px 10px;
 		border-radius: 12px;
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 600;
 		color: #fff;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
 		width: fit-content;
 	}
 
@@ -162,7 +175,9 @@
 		padding: 4px;
 		border-radius: 4px;
 		flex-shrink: 0;
-		transition: background-color var(--transition), color var(--transition);
+		transition:
+			background-color var(--transition),
+			color var(--transition);
 	}
 
 	.close-btn:hover {
@@ -205,8 +220,6 @@
 	.section-title {
 		font-size: 12px;
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
 		color: var(--text-muted);
 	}
 

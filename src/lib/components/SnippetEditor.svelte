@@ -173,10 +173,8 @@
 
 	.divider-text {
 		font-family: var(--font-display);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 		color: var(--text-muted);
 		white-space: nowrap;
 	}
@@ -262,10 +260,8 @@
 		border-radius: 4px;
 		padding: 4px 8px;
 		font-family: var(--font-display);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		cursor: pointer;
 	}
 
@@ -342,13 +338,11 @@
 		margin-top: 16px;
 		padding: 12px 24px;
 		background: var(--accent);
-		color: var(--bg-primary);
+		color: var(--on-accent);
 		border-radius: 8px;
 		font-family: var(--font-display);
 		font-size: 14px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		cursor: pointer;
 		box-shadow:
 			0 10px 15px -3px rgba(163, 166, 255, 0.1),

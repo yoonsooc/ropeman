@@ -1,17 +1,24 @@
 <script lang="ts">
 	import { Handle, Position } from '@xyflow/svelte';
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 
 	let { data } = $props();
 
 	const maxSymbols = 4;
-	const displaySymbols = data.keySymbols?.slice(0, maxSymbols) ?? [];
-	const moreCount = (data.keySymbols?.length ?? 0) - maxSymbols;
-	const isLeaf = data.fileCount === 1;
-	const isCached: boolean = data.isCached ?? false;
-	const snapshotUnavailable: boolean = data.snapshotUnavailable ?? false;
+	const displaySymbols = $derived(data.keySymbols?.slice(0, maxSymbols) ?? []);
+	const moreCount = $derived((data.keySymbols?.length ?? 0) - maxSymbols);
+	const isLeaf = $derived(data.fileCount === 1);
+	const isCached: boolean = $derived(data.isCached ?? false);
+	const snapshotUnavailable: boolean = $derived(data.snapshotUnavailable ?? false);
 
-	const targetHandleCount: number = data.targetHandleCount ?? 1;
-	const sourceHandleCount: number = data.sourceHandleCount ?? 1;
+	const targetHandleCount: number = $derived(data.targetHandleCount ?? 1);
+	const sourceHandleCount: number = $derived(data.sourceHandleCount ?? 1);
+	const vertical = $derived(data.direction === 'TB');
+
+	function handleOpen(e: MouseEvent) {
+		e.stopPropagation();
+		data.onOpen?.(data.nodeId);
+	}
 
 	function handleReanalyze(e: MouseEvent) {
 		e.stopPropagation();
@@ -22,9 +29,9 @@
 {#each Array(targetHandleCount) as _, i}
 	<Handle
 		type="target"
-		position={Position.Left}
+		position={vertical ? Position.Top : Position.Left}
 		id="target-{i}"
-		style="top: {((i + 1) / (targetHandleCount + 1)) * 100}%;"
+		style="{vertical ? 'left' : 'top'}: {((i + 1) / (targetHandleCount + 1)) * 100}%;"
 	/>
 {/each}
 
@@ -33,20 +40,18 @@
 	class:highlighted={data.highlighted}
 	class:dimmed={data.dimmed}
 	class:selected={data.selected}
-	class:node-glow={data.glow}
 	class:snapshot-unavailable={snapshotUnavailable}
-	title={snapshotUnavailable ? 'Not in this snapshot — double-click for details' : undefined}
-	style="
-		--node-color: {data.color};
-	"
+	title={snapshotUnavailable ? i18nStore.t('node.notInSnapshot') : undefined}
+	style="--node-color: {data.color};"
 >
-	<div class="accent-bar" style="background: {data.color};"></div>
 	<div class="node-header">
+		<span class="node-dot" aria-hidden="true"></span>
 		<span class="node-label">{data.label}</span>
-		<span class="node-badge">
-			{data.fileCount}
-			{data.fileCount === 1 ? 'file' : 'files'}
-		</span>
+		<span class="node-badge"
+			>{i18nStore
+				.t(data.fileCount === 1 ? 'node.fileOne' : 'node.fileMany')
+				.replace('{n}', String(data.fileCount))}</span
+		>
 	</div>
 
 	{#if data.description}
@@ -64,164 +69,146 @@
 		</div>
 	{/if}
 
-	{#if !isLeaf}
-		<div class="drilldown-hint">
-			{#if isCached}
-				<button class="reanalyze-btn" title="Re-analyze" onclick={handleReanalyze}>
-					&#x21BB;
-				</button>
-			{/if}
-			<span class="drilldown-icon">&#x25B6;</span>
-		</div>
-	{/if}
+	<div class="node-footer">
+		{#if !isLeaf && isCached}
+			<button
+				type="button"
+				class="reanalyze-btn nodrag"
+				title={i18nStore.t('node.reanalyze')}
+				aria-label={i18nStore.t('node.reanalyze')}
+				onclick={handleReanalyze}
+				onkeydown={(e) => e.stopPropagation()}
+			>
+				&#x21BB;
+			</button>
+		{/if}
+		<button
+			type="button"
+			class="open-btn nodrag"
+			onclick={handleOpen}
+			onkeydown={(e) => e.stopPropagation()}
+		>
+			{isLeaf
+				? i18nStore.t('node.openCode')
+				: snapshotUnavailable
+					? i18nStore.t('node.notInSnapshotShort')
+					: i18nStore.t('node.openInside')}
+			<span aria-hidden="true">&#x203A;</span>
+		</button>
+	</div>
 </div>
 
 {#each Array(sourceHandleCount) as _, i}
 	<Handle
 		type="source"
-		position={Position.Right}
+		position={vertical ? Position.Bottom : Position.Right}
 		id="source-{i}"
-		style="top: {((i + 1) / (sourceHandleCount + 1)) * 100}%;"
+		style="{vertical ? 'left' : 'top'}: {((i + 1) / (sourceHandleCount + 1)) * 100}%;"
 	/>
 {/each}
 
 <style>
+	/* Node card: tinted by its domain color, three type steps (15 / 12 / 11) */
 	.semantic-node {
 		width: 256px;
-		min-height: 120px;
-		background: var(--bg-tertiary, #1b2028);
-		border: 1px solid var(--ghost-border);
-		border-radius: 8px;
-		padding: 16px;
+		min-height: 176px;
+		background: color-mix(in srgb, var(--node-color) 7%, var(--bg-secondary));
+		border: 1px solid color-mix(in srgb, var(--node-color) 30%, transparent);
+		border-radius: 10px;
+		padding: 14px 16px 10px;
 		cursor: pointer;
 		position: relative;
-		transition: background 0.15s ease;
+		transition:
+			background-color 0.15s ease-out,
+			opacity 0.2s ease-out;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
 	}
 
-	.accent-bar {
-		position: absolute;
-		left: 0;
-		top: 0;
-		bottom: 0;
-		width: 4px;
-		border-radius: 8px 0 0 8px;
-	}
-
-	.semantic-node:hover {
-		background: var(--bg-highest, #20262f);
+	@media (hover: hover) {
+		.semantic-node:hover {
+			background: color-mix(in srgb, var(--node-color) 12%, var(--bg-secondary));
+		}
 	}
 
 	.semantic-node.highlighted {
-		background: var(--bg-highest, #20262f);
-		box-shadow: 0 0 12px color-mix(in srgb, var(--node-color, var(--accent)) 20%, transparent);
-		animation: pulse 2s ease-in-out infinite;
+		background: color-mix(in srgb, var(--node-color) 14%, var(--bg-secondary));
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--node-color) 55%, transparent);
 	}
 
 	.semantic-node.selected {
-		border: 2px solid var(--accent, #a3a6ff);
-		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+		border-color: var(--node-color);
+		box-shadow:
+			0 0 0 2px color-mix(in srgb, var(--node-color) 55%, transparent),
+			0 8px 24px rgba(0, 0, 0, 0.2);
 	}
 
-	.semantic-node.node-glow {
-		filter: drop-shadow(0 0 8px rgba(83, 221, 252, 0.2));
-	}
-
+	/* Unrelated nodes step back but stay readable; neighbors of the selection stay lit */
 	.semantic-node.dimmed {
-		opacity: 0.4;
-		filter: grayscale(0.3);
-		transition:
-			opacity 0.3s ease,
-			filter 0.3s ease;
-	}
-
-	/* Snapshot viewers (share/explore): node's deeper analysis is not in the
-	   curated data. Dashed border + muted to set expectation; still clickable
-	   so the user can open the "analyze it yourself" prompt. */
-	.semantic-node.snapshot-unavailable {
-		border-style: dashed;
-		border-color: var(--ghost-border, rgba(148, 163, 184, 0.25));
-		opacity: 0.72;
-	}
-	.semantic-node.snapshot-unavailable:hover {
-		opacity: 0.92;
-	}
-	.semantic-node.snapshot-unavailable .drilldown-icon {
-		color: var(--accent-secondary, #53ddfc);
 		opacity: 0.6;
 	}
-	.semantic-node.snapshot-unavailable:hover .drilldown-icon {
-		opacity: 1;
+
+	/* Snapshot viewers (share/explore): the curated data has no deeper level
+	   for this node. Dashed border sets the expectation; still clickable. */
+	.semantic-node.snapshot-unavailable {
+		border-style: dashed;
+		opacity: 0.85;
 	}
 
-	@keyframes pulse {
-		0%,
-		100% {
-			box-shadow: 0 0 12px color-mix(in srgb, var(--node-color, var(--accent)) 20%, transparent);
-		}
-		50% {
-			box-shadow: 0 0 18px color-mix(in srgb, var(--node-color, var(--accent)) 30%, transparent);
-		}
-	}
-
-	/* Handles — hidden by default, visible on hover */
+	/* Handles stay invisible; edges attach without dots on the card */
 	.semantic-node :global(.svelte-flow__handle) {
 		width: 6px;
 		height: 6px;
-		background: var(--accent-secondary, #53ddfc);
+		background: var(--node-color);
 		border: none;
 		opacity: 0;
-		transition: opacity 0.15s ease;
-	}
-
-	.semantic-node:hover :global(.svelte-flow__handle) {
-		opacity: 1;
 	}
 
 	.node-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: 8px;
 	}
 
+	.node-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--node-color);
+		flex-shrink: 0;
+	}
+
 	.node-label {
-		font-size: 13px;
-		font-weight: 700;
-		letter-spacing: 0.025em;
-		text-transform: uppercase;
-		line-height: 1.2;
-		color: var(--text-primary, #f1f3fc);
+		font-size: 15px;
+		font-weight: 600;
+		line-height: 1.3;
+		color: var(--text-primary);
 		flex: 1;
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+		font-family: var(--font-display);
 	}
 
 	.node-badge {
-		font-size: 9px;
-		font-weight: 700;
-		text-transform: uppercase;
-		padding: 2px 6px;
-		border-radius: 4px;
-		background: color-mix(in srgb, var(--accent) 20%, transparent);
-		color: var(--accent, #a3a6ff);
+		font-size: 11px;
+		font-weight: 500;
+		color: var(--text-secondary);
+		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 		flex-shrink: 0;
 	}
 
 	.node-description {
-		font-size: 11px;
-		font-family: var(--font-body, 'Inter', sans-serif);
-		color: var(--text-secondary, #a8abb3);
-		line-height: 1.625;
-		margin: 0 0 12px 0;
+		font-size: 12px;
+		color: var(--text-secondary);
+		line-height: 1.5;
+		margin: 0;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
+		line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}
@@ -229,69 +216,90 @@
 	.node-symbols {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
+		gap: 4px;
 	}
 
 	.symbol-tag {
-		font-size: 10px;
-		font-family: var(--font-mono, monospace);
-		color: var(--text-muted, #72757d);
-		background: var(--bg-secondary, #151a21);
-		padding: 2px 8px;
+		font-size: 11px;
+		font-family: var(--font-code);
+		color: var(--text-secondary);
+		background: color-mix(in srgb, var(--node-color) 10%, transparent);
+		padding: 1px 6px;
 		border-radius: 4px;
-		max-width: 120px;
+		max-width: 112px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
 	.symbol-more {
-		font-size: 10px;
+		font-size: 11px;
 		color: var(--text-muted);
+		align-self: center;
 	}
 
-	.drilldown-hint {
-		position: absolute;
-		bottom: 8px;
-		right: 12px;
-		opacity: 0.3;
-		transition: opacity 0.15s ease;
+	.node-footer {
+		margin-top: auto;
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		gap: 4px;
 	}
 
-	.semantic-node:hover .drilldown-hint {
-		opacity: 0.7;
-	}
-
-	.drilldown-icon {
+	.open-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
 		font-size: 12px;
+		font-weight: 500;
+		color: color-mix(in srgb, var(--node-color) 70%, var(--text-primary));
+		padding: 2px 6px;
+		border-radius: 4px;
+		transition: background-color 0.15s ease-out;
+	}
+
+	/* Light surfaces: AI-picked node colors can be pale, so the label stays near text color */
+	:global([data-theme='light']) .open-btn {
+		color: color-mix(in srgb, var(--node-color) 35%, var(--text-primary));
+	}
+
+	.snapshot-unavailable .open-btn {
 		color: var(--text-secondary);
 	}
 
 	.reanalyze-btn {
-		display: none;
-		width: 20px;
-		height: 20px;
-		border: none;
-		border-radius: 4px;
-		background: var(--bg-tertiary, rgba(255, 255, 255, 0.08));
-		color: var(--text-secondary);
-		font-size: 14px;
-		cursor: pointer;
-		padding: 0;
-		line-height: 1;
-		transition:
-			background-color 0.15s ease,
-			color 0.15s ease;
-	}
-
-	.semantic-node:hover .reanalyze-btn {
-		display: flex;
+		width: 24px;
+		height: 24px;
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		border-radius: 4px;
+		color: var(--text-muted);
+		font-size: 14px;
+		line-height: 1;
+		opacity: 0;
+		transition:
+			opacity 0.15s ease-out,
+			background-color 0.15s ease-out;
 	}
 
-	.reanalyze-btn:hover {
-		background: var(--accent-bg, rgba(163, 166, 255, 0.12));
-		color: var(--accent, #a3a6ff);
+	.semantic-node:focus-within .reanalyze-btn {
+		opacity: 1;
+	}
+
+	@media (hover: hover) {
+		.semantic-node:hover .reanalyze-btn {
+			opacity: 1;
+		}
+
+		.open-btn:hover,
+		.reanalyze-btn:hover {
+			background: color-mix(in srgb, var(--node-color) 16%, transparent);
+		}
+	}
+
+	/* Zoomed out: titles and descriptions carry the map, symbol chips step aside */
+	:global(.zui-canvas[data-zoom='far']) .node-symbols {
+		display: none;
 	}
 </style>

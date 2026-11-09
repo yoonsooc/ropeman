@@ -382,10 +382,8 @@
 
 	.help-section-title {
 		font-family: var(--font-display);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
 		color: var(--text-secondary);
 		margin: 0;
 	}

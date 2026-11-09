@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scrollBehavior } from '$lib/utils/motion';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
@@ -170,7 +171,7 @@
 		if (highlightedPaths.length > 0 && treeContainer) {
 			const firstHighlighted = treeContainer.querySelector('.file-item.highlighted');
 			if (firstHighlighted) {
-				firstHighlighted.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+				firstHighlighted.scrollIntoView({ behavior: scrollBehavior(), block: 'nearest' });
 			}
 		}
 	});
@@ -354,10 +355,8 @@
 
 	.explorer-title {
 		font-family: var(--font-display, inherit);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--text-secondary);
 	}
 
@@ -582,7 +581,7 @@
 	}
 
 	.tree-file-icon.selected {
-		color: var(--accent-secondary, #53ddfc);
+		color: var(--accent);
 	}
 
 	.file-item .tree-label {

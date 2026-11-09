@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { injectThemeCSS } from '$lib/services/syntaxThemeService';
 	import { attachKeyboardInsetTracking } from '$lib/utils/keyboardInset';
 	import AnalysisStatus from '$lib/components/AnalysisStatus.svelte';
@@ -12,6 +13,11 @@
 
 	$effect(() => {
 		injectThemeCSS(settingsStore.syntaxTheme);
+	});
+
+	// Screen readers pick the voice from <html lang>, so it follows the UI locale
+	$effect(() => {
+		document.documentElement.lang = i18nStore.locale;
 	});
 
 	onMount(() => {

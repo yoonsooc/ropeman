@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scrollBehavior } from '$lib/utils/motion';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
@@ -191,7 +192,7 @@
 		// Scroll to line
 		const lineEl = document.querySelector(`[data-line="${sym.lineStart}"]`);
 		if (lineEl) {
-			lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			lineEl.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
 		}
 	}
 
@@ -391,10 +392,8 @@
 	}
 
 	.symbol-header {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--text-muted);
 		padding: 16px;
 		border-bottom: 1px solid var(--border);
@@ -446,7 +445,7 @@
 		color: var(--color-success);
 	}
 	.symbol-kind-icon.type {
-		color: var(--accent-tertiary, #ac8aff);
+		color: var(--accent);
 	}
 
 	.symbol-name {

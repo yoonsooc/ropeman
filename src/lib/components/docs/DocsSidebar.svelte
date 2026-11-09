@@ -62,10 +62,8 @@
 
 	.category-label {
 		font-family: var(--font-display);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
 		color: var(--text-secondary);
 		margin: 0 0 8px;
 		padding: 0 8px;

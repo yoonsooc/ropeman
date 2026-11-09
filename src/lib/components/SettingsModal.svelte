@@ -430,11 +430,9 @@
 	.btn-reset {
 		padding: 4px 8px;
 		border-radius: 4px;
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 700;
 		font-family: var(--font-display);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--error, #ff6e84);
 		background: rgba(255, 110, 132, 0.1);
 		border: none;
@@ -638,12 +636,10 @@
 	}
 	/* Settings-specific label override: Stitch 10px uppercase */
 	.settings-section :global(.form-label) {
-		font-size: 10px;
+		font-size: 12px;
 		font-family: var(--font-display);
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: #64748b;
+		color: var(--text-muted);
 		margin-bottom: 4px;
 	}
 	.settings-section :global(.select) {

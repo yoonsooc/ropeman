@@ -7,7 +7,11 @@
 	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
-	import { toSemanticFlowNodes, toSemanticFlowEdges } from '$lib/services/semanticGraphBuilder';
+	import {
+		toSemanticFlowNodes,
+		toSemanticFlowEdges,
+		neighborNodeIds
+	} from '$lib/services/semanticGraphBuilder';
 	import { analyzeDrilldown } from '$lib/services/semanticAnalysisService';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import ExportController from './ExportController.svelte';
@@ -107,6 +111,18 @@
 	// --- U1-6: Preserve user-dragged node positions ---
 	let userPositions = $state(new Map<string, { x: number; y: number }>());
 	let prevLevelParentId = $state<string | null | undefined>(undefined);
+
+	// Crossing the compact breakpoint switches LR <-> TB: positions dragged in the
+	// old layout no longer apply, and the new layout needs a fresh fit
+	let prevCompact: boolean | undefined;
+	$effect(() => {
+		const compact = isCompact;
+		if (prevCompact !== undefined && compact !== prevCompact) {
+			userPositions = new Map();
+			requestAnimationFrame(() => exportFns?.fitView());
+		}
+		prevCompact = compact;
+	});
 
 	// Clear userPositions when drill-down/drill-up changes the level
 	$effect(() => {
@@ -225,6 +241,8 @@
 		exportMarkdown: () => void;
 		exportHtml: () => void;
 		exportPdf: () => void;
+		fitView: () => void;
+		getZoom: () => number;
 	} | null>(null);
 
 	export function triggerExport() {
@@ -268,7 +286,10 @@
 
 		// Determine which node should be highlighted based on file selection
 		const highlightedNodeId = semanticStore.selectedSemanticNode?.id ?? null;
-		const nodes = toSemanticFlowNodes(level);
+		const neighbors = highlightedNodeId
+			? neighborNodeIds(level, highlightedNodeId)
+			: new Set<string>();
+		const nodes = toSemanticFlowNodes(level, isCompact ? 'TB' : 'LR');
 		for (const n of nodes) {
 			// U1-6: Apply user-dragged position if available
 			const userPos = userPositions.get(n.id);
@@ -296,12 +317,13 @@
 				n.data = {
 					...n.data,
 					highlighted: isSelected,
-					dimmed: !isSelected,
+					dimmed: !isSelected && !neighbors.has(n.id),
 					selected: isSelected,
 					isCached,
 					snapshotUnavailable,
 					nodeId: n.id,
-					onReanalyze: handleReanalyze
+					onReanalyze: handleReanalyze,
+					onOpen: handleOpenNode
 				};
 			} else {
 				n.data = {
@@ -312,7 +334,8 @@
 					isCached,
 					snapshotUnavailable,
 					nodeId: n.id,
-					onReanalyze: handleReanalyze
+					onReanalyze: handleReanalyze,
+					onOpen: handleOpenNode
 				};
 			}
 		}
@@ -409,6 +432,20 @@
 		}
 	}
 
+	// The card's own "open" button: same as double-click, discoverable without it
+	function handleOpenNode(id: string) {
+		const node = flowNodes.find((n) => n.id === id);
+		if (node) handleNodeDblClick(node);
+	}
+
+	// Below this zoom the cards are too small for symbol chips to read
+	const FAR_ZOOM = 0.7;
+	let zoomFar = $state(false);
+	function handleMove(_: MouseEvent | TouchEvent | null, viewport: { zoom: number }) {
+		const far = viewport.zoom < FAR_ZOOM;
+		if (far !== zoomFar) zoomFar = far;
+	}
+
 	function handlePaneClick(_: { event: MouseEvent }) {
 		exportMenuOpen = false;
 
@@ -425,7 +462,7 @@
 	}
 </script>
 
-<div class="zui-canvas" data-tour-step="5">
+<div class="zui-canvas" data-tour-step="5" data-zoom={zoomFar ? 'far' : 'near'}>
 	<SvelteFlow
 		nodes={flowNodes}
 		edges={flowEdges}
@@ -443,13 +480,20 @@
 		onnodepointerleave={handleNodePointerLeave}
 		onpaneclick={handlePaneClick}
 		proOptions={{ hideAttribution: true }}
+		onmove={handleMove}
 	>
 		<Controls />
 		{#if showMinimap && !isCompact}
-			<MiniMap />
+			<MiniMap nodeColor={(n) => (n.data?.color as string) ?? 'var(--bg-bright)'} />
 		{/if}
 		<Background gap={24} size={1} />
-		<ExportController onready={(fns) => (exportFns = fns)} />
+		<ExportController
+			onready={(fns) => {
+				exportFns = fns;
+				// fitView may not emit a move event; read the initial zoom once
+				requestAnimationFrame(() => handleMove(null, { zoom: fns.getZoom() }));
+			}}
+		/>
 	</SvelteFlow>
 
 	<!-- U1-2: Node hover relationship preview -->
@@ -691,8 +735,13 @@
 	}
 
 	.zui-canvas :global(.svelte-flow__minimap) {
+		/* xyflow paints its own white minimap; follow the app theme instead */
+		--xy-minimap-background-color: var(--bg-secondary);
+		--xy-minimap-mask-background-color: color-mix(in srgb, var(--bg-lowest) 60%, transparent);
+		--xy-minimap-node-background-color: var(--bg-bright);
+		--xy-minimap-node-stroke-color: transparent;
 		background: var(--bg-secondary);
-		border: none;
+		border: 1px solid var(--border);
 		border-radius: 4px;
 	}
 
@@ -744,17 +793,21 @@
 		border: 1px solid var(--border);
 		border-radius: 4px;
 		padding: 2px 6px;
-		font-size: 9px;
+		font-size: 11px;
 		font-weight: 500;
+		max-width: 180px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	/* U1-2: Hover relationship card */
 	.hover-relation-card {
 		position: absolute;
 		z-index: 20;
-		max-width: 320px;
+		max-width: 260px;
 		background: var(--surface-elevated, var(--bg-secondary));
-		border: 1px solid rgba(68, 72, 79, 0.15);
+		border: 1px solid var(--border);
 		border-radius: 8px;
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 		padding: 10px 12px;
@@ -835,11 +888,9 @@
 	}
 
 	.hover-shared-label {
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 600;
 		color: var(--text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.3px;
 	}
 
 	.hover-shared-file {
@@ -855,14 +906,15 @@
 	/* U1-9: Diagram top toolbar */
 	.diagram-toolbar {
 		position: absolute;
-		top: 12px;
+		/* Pages that float a breadcrumb over the canvas push the toolbar below it */
+		top: var(--canvas-toolbar-top, 12px);
 		right: 12px;
 		z-index: 5;
 		display: flex;
 		align-items: center;
 		gap: 4px;
 		background: var(--surface-elevated, var(--bg-secondary));
-		border: 1px solid rgba(68, 72, 79, 0.15);
+		border: 1px solid var(--border);
 		border-radius: 8px;
 		padding: 4px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -951,10 +1003,8 @@
 	}
 
 	.legend-header {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
 		color: var(--text-muted);
 		padding: 4px 12px 8px;
 		border-bottom: 1px solid var(--border);
@@ -1011,7 +1061,7 @@
 		height: 14px;
 		border-radius: 7px;
 		background: var(--accent, #3b82f6);
-		color: #fff;
+		color: var(--on-accent);
 		font-size: 9px;
 		font-weight: 700;
 		display: flex;

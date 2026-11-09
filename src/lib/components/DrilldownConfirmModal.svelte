@@ -123,10 +123,9 @@
 		flex-shrink: 0;
 	}
 	.drilldown-label {
-		font-size: 10px;
+		font-size: 12px;
 		font-family: var(--font-code);
 		color: var(--text-muted);
-		text-transform: uppercase;
 	}
 	.drilldown-desc {
 		font-size: 11px;

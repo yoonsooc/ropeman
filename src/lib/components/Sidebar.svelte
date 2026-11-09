@@ -236,10 +236,8 @@
 
 	.panel-title {
 		font-family: var(--font-display, inherit);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--text-secondary);
 	}
 

@@ -110,18 +110,6 @@
 
 	.connection-dot.dot-success {
 		background: var(--color-success, #7ad4a0);
-		animation: pulse-dot 2s ease-in-out infinite;
-		box-shadow: 0 0 8px rgba(122, 212, 160, 0.5);
-	}
-
-	@keyframes pulse-dot {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.6;
-		}
 	}
 
 	.connection-text {

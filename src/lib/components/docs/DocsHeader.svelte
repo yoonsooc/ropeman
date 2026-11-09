@@ -92,8 +92,6 @@
 		font-weight: 700;
 		color: var(--accent);
 		font-family: var(--font-display, 'Space Grotesk', sans-serif);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 		margin: 0;
 	}
 
@@ -143,10 +141,8 @@
 	}
 
 	.back-label {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 	}
 
 	.header-divider {

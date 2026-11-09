@@ -2,16 +2,23 @@
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 
 	const progress = $derived(projectStore.parsingProgress);
-	const pct = $derived(
-		progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0
-	);
+	const pct = $derived(progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0);
 </script>
 
 <div class="loading-overlay">
 	<div class="loading-card">
 		<div class="spinner">
 			<svg viewBox="0 0 50 50" class="spin-svg">
-				<circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="80 40" stroke-linecap="round" />
+				<circle
+					cx="25"
+					cy="25"
+					r="20"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="4"
+					stroke-dasharray="80 40"
+					stroke-linecap="round"
+				/>
 			</svg>
 		</div>
 
@@ -40,8 +47,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: rgba(0, 0, 0, 0.6);
-		backdrop-filter: blur(4px);
+		background: var(--modal-backdrop);
 	}
 
 	.loading-card {
@@ -70,7 +76,9 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.loading-title {

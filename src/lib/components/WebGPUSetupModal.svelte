@@ -248,15 +248,13 @@
 	.di-icon {
 		font-size: 18px;
 		flex-shrink: 0;
-		color: var(--accent-secondary, #53ddfc);
+		color: var(--accent);
 	}
 	.di-title {
 		flex: 1;
-		font-size: 11px;
+		font-size: 12px;
 		font-family: var(--font-display);
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--text-primary);
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -266,8 +264,7 @@
 		background: none;
 		border: none;
 		color: var(--text-secondary);
-		font-size: 10px;
-		text-transform: uppercase;
+		font-size: 12px;
 		font-weight: 700;
 		letter-spacing: -0.05em;
 		cursor: pointer;
@@ -286,10 +283,9 @@
 	}
 	.di-progress-fill {
 		height: 100%;
-		background: var(--accent-secondary, #53ddfc);
+		background: var(--accent);
 		border-radius: 9999px;
 		transition: width 0.3s ease;
-		box-shadow: 0 0 8px rgba(83, 221, 252, 0.4);
 	}
 	.di-info {
 		display: flex;
@@ -300,7 +296,7 @@
 	}
 	.di-percent {
 		font-weight: 700;
-		color: var(--accent-secondary, #53ddfc);
+		color: var(--accent);
 	}
 	.di-stage {
 		overflow: hidden;

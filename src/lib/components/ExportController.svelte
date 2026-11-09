@@ -18,10 +18,12 @@
 			exportMarkdown: () => void;
 			exportHtml: () => void;
 			exportPdf: () => void;
+			fitView: () => void;
+			getZoom: () => number;
 		}) => void;
 	} = $props();
 
-	const { getNodes, getNodesBounds } = useSvelteFlow();
+	const { getNodes, getNodesBounds, fitView, getViewport } = useSvelteFlow();
 
 	function getExportElement(): HTMLElement | null {
 		return document.querySelector('.svelte-flow__viewport') as HTMLElement | null;
@@ -120,7 +122,9 @@
 			exportSVG: handleExportSVG,
 			exportMarkdown: handleExportMarkdown,
 			exportHtml: handleExportHtml,
-			exportPdf: handleExportPdf
+			exportPdf: handleExportPdf,
+			fitView: () => void fitView(),
+			getZoom: () => getViewport().zoom
 		});
 	});
 </script>
