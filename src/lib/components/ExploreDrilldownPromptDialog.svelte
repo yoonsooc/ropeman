@@ -206,7 +206,7 @@
 
 	.btn-primary {
 		background: var(--accent);
-		color: var(--sidebar-icon-bg, #0f141a);
+		color: var(--on-accent);
 	}
 	.btn-primary:hover {
 		opacity: 0.85;

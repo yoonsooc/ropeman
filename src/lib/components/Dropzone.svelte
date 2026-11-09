@@ -291,6 +291,8 @@
 									autocomplete="off"
 									spellcheck="false"
 									class="github-input"
+									aria-invalid={error ? true : undefined}
+									aria-describedby={error ? 'landing-github-error' : undefined}
 									placeholder={i18nStore.t('landing.githubPlaceholder')}
 									bind:value={githubUrl}
 									onkeydown={handleGitHubKeydown}
@@ -341,7 +343,7 @@
 							{/each}
 						</div>
 						{#if error}
-							<p class="error-msg">{error}</p>
+							<p class="error-msg" id="landing-github-error" role="alert">{error}</p>
 						{/if}
 					</div>
 					<div class="hero-visual">

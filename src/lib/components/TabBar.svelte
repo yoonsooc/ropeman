@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scrollBehavior } from '$lib/utils/motion';
 	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import type { Tab } from '$lib/types/tab';
 
@@ -28,7 +29,7 @@
 		if (!id || !root) return;
 		queueMicrotask(() => {
 			const el = root.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(id)}"]`);
-			el?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+			el?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: scrollBehavior() });
 		});
 	});
 

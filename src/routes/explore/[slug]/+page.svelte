@@ -251,7 +251,7 @@
 		align-items: center;
 		padding: 6px 14px;
 		background: var(--accent);
-		color: var(--sidebar-icon-bg, #0f141a);
+		color: var(--on-accent);
 		border: none;
 		border-radius: 6px;
 		font-family: var(--font-display);

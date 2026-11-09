@@ -90,6 +90,7 @@
 				onclick={() => onanalyze?.()}
 				disabled={isParsing}
 				title={i18nStore.t('header.analyzeTitle')}
+				aria-label={i18nStore.t('header.analyzeTitle')}
 			>
 				{#if isParsing}
 					<span aria-hidden="true" class="material-symbols-outlined analyze-spinner"
@@ -112,7 +113,7 @@
 							points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
 						/>
 					</svg>
-					{i18nStore.t('header.analyze')}
+					<span class="analyze-label">{i18nStore.t('header.analyze')}</span>
 				{/if}
 			</button>
 		{/if}
@@ -325,7 +326,7 @@
 	}
 
 	.btn-label {
-		font-size: 11px;
+		font-size: 12px;
 	}
 
 	.analyze-btn {
@@ -334,7 +335,7 @@
 		gap: 6px;
 		padding: 4px 12px;
 		background: var(--accent);
-		color: var(--sidebar-icon-bg, #0f141a);
+		color: var(--on-accent);
 		border: none;
 		border-radius: 4px;
 		font-family: var(--font-display);
@@ -436,8 +437,7 @@
 	.track-label {
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--accent, #a3a6ff);
-		letter-spacing: -0.05em;
+		color: var(--accent);
 	}
 
 	.header-divider {
@@ -472,11 +472,31 @@
 		}
 	}
 
-	/* Language lives in Settings on phones, so every header control fits at 320px */
+	/* Phones: every header control must fit at 320px, with or without a project.
+	   Language lives in Settings; the gallery and docs links are on the landing page. */
 	@media (max-width: 430px) {
 		.lang-toggle,
-		.header-divider {
+		.header-divider,
+		.header-project,
+		.header-link,
+		.analyze-label {
 			display: none;
+		}
+
+		.header {
+			padding-left: max(12px, env(safe-area-inset-left));
+			padding-right: max(12px, env(safe-area-inset-right));
+		}
+
+		.header-btn,
+		.analyze-btn,
+		.share-btn {
+			min-width: 28px;
+			min-height: 28px;
+		}
+
+		.analyze-btn {
+			padding: 4px 8px;
 		}
 	}
 </style>

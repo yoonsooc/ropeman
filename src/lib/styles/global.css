@@ -407,7 +407,7 @@ a:hover {
 
 .btn-primary {
 	background: var(--accent);
-	color: var(--bg-primary);
+	color: var(--on-accent);
 }
 
 .btn-secondary {

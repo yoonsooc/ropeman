@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scrollBehavior } from '$lib/utils/motion';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
@@ -191,7 +192,7 @@
 		// Scroll to line
 		const lineEl = document.querySelector(`[data-line="${sym.lineStart}"]`);
 		if (lineEl) {
-			lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			lineEl.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
 		}
 	}
 

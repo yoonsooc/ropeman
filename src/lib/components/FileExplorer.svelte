@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scrollBehavior } from '$lib/utils/motion';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
@@ -170,7 +171,7 @@
 		if (highlightedPaths.length > 0 && treeContainer) {
 			const firstHighlighted = treeContainer.querySelector('.file-item.highlighted');
 			if (firstHighlighted) {
-				firstHighlighted.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+				firstHighlighted.scrollIntoView({ behavior: scrollBehavior(), block: 'nearest' });
 			}
 		}
 	});

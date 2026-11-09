@@ -251,7 +251,7 @@
 
 	.share-btn-confirm {
 		background: var(--accent);
-		color: var(--sidebar-icon-bg, #0f141a);
+		color: var(--on-accent);
 	}
 
 	.share-btn-confirm:hover {
@@ -260,7 +260,7 @@
 
 	.share-btn-copy {
 		background: var(--accent);
-		color: var(--sidebar-icon-bg, #0f141a);
+		color: var(--on-accent);
 	}
 
 	.share-btn-copy:hover {

@@ -639,7 +639,7 @@
 		font-size: 12px;
 		font-family: var(--font-display);
 		font-weight: 700;
-		color: #64748b;
+		color: var(--text-muted);
 		margin-bottom: 4px;
 	}
 	.settings-section :global(.select) {

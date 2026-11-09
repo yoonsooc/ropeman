@@ -338,7 +338,7 @@
 		margin-top: 16px;
 		padding: 12px 24px;
 		background: var(--accent);
-		color: var(--bg-primary);
+		color: var(--on-accent);
 		border-radius: 8px;
 		font-family: var(--font-display);
 		font-size: 14px;

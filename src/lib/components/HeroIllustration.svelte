@@ -1,12 +1,9 @@
 <script lang="ts">
-	// Hero illustration — Stitch "Ropeman Landing - Hero Redesign v2" (landing-hero-redesign-v2.html)
-	// Three glass-panel nodes (AppContainer / AuthModule / DataStore) connected by
-	// dashed cubic edges, with a pulsing primary glow anchored to the center.
+	// Hero illustration: three static nodes (AppContainer / AuthModule / DataStore)
+	// connected by dashed cubic edges. Flat surfaces, no glow or motion.
 </script>
 
 <div class="hero-illustration" aria-hidden="true">
-	<!-- Radial glow backdrop -->
-
 	<!-- SVG edges (dashed, colored like ZUICanvas edges) -->
 	<svg class="hero-edges" viewBox="0 0 400 400" preserveAspectRatio="none">
 		<path

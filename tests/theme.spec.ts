@@ -68,7 +68,7 @@ test.describe('Language Toggle', () => {
 		const width = page.viewportSize()?.width ?? 1280;
 		if (width <= 430) {
 			// Phones switch language from Settings, not the header
-			await page.locator('header .header-btn[title]').last().click();
+			await page.locator('header [data-tour-step="3"]').click();
 			await page.locator('#lang-select').selectOption('en');
 		} else {
 			await page.locator('header .lang-toggle').click();
