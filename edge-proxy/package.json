@@ -1,6 +1,7 @@
 {
 	"name": "edge-proxy",
 	"version": "0.0.0",
+	"license": "MIT",
 	"private": true,
 	"scripts": {
 		"deploy:demo": "wrangler deploy -c wrangler.demo.toml",

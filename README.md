@@ -131,4 +131,4 @@ edge-proxy/
 
 ## License
 
-TBD
+[MIT](LICENSE) © 2026 Yoonsoo Chang
