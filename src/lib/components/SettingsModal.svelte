@@ -48,6 +48,7 @@
 	let lang = $state<'ko' | 'en'>(settingsStore.language);
 	let syntaxTheme = $state(settingsStore.syntaxTheme);
 	let customSkipPatternsText = $state(settingsStore.customSkipPatterns.join('\n'));
+	let customIncludePatternsText = $state(settingsStore.customIncludePatterns.join('\n'));
 	let cacheSize = $state(0);
 
 	$effect(() => {
@@ -59,19 +60,30 @@
 			lang = settingsStore.language;
 			syntaxTheme = settingsStore.syntaxTheme;
 			customSkipPatternsText = settingsStore.customSkipPatterns.join('\n');
+			customIncludePatternsText = settingsStore.customIncludePatterns.join('\n');
 			getSemanticCacheSize().then((n) => {
 				cacheSize = n;
 			});
 		}
 	});
 
-	function handleCustomSkipPatternsBlur() {
-		const parsed = customSkipPatternsText
+	function parsePatternLines(text: string): string[] {
+		return text
 			.split('\n')
 			.map((s) => s.trim())
 			.filter(Boolean);
+	}
+
+	function handleCustomSkipPatternsBlur() {
+		const parsed = parsePatternLines(customSkipPatternsText);
 		settingsStore.customSkipPatterns = parsed;
 		customSkipPatternsText = parsed.join('\n');
+	}
+
+	function handleCustomIncludePatternsBlur() {
+		const parsed = parsePatternLines(customIncludePatternsText);
+		settingsStore.customIncludePatterns = parsed;
+		customIncludePatternsText = parsed.join('\n');
 	}
 
 	function handleSkeletonKBChange(e: Event) {
@@ -123,6 +135,7 @@
 		lang = 'ko';
 		syntaxTheme = 'tomorrow';
 		customSkipPatternsText = '';
+		customIncludePatternsText = '';
 		cacheSize = 0;
 		i18nStore.locale = 'ko';
 	}
@@ -246,6 +259,27 @@
 							spellcheck="false"
 						></textarea>
 						<p class="hint">{i18nStore.t('settingsCustomSkipPatternsHint')}</p>
+					</div>
+				</section>
+
+				<section class="settings-section">
+					<label class="form-label" for="settings-include-patterns">
+						{i18nStore.t('settingsCustomIncludePatterns')}
+					</label>
+					<div class="section-card">
+						<textarea
+							id="settings-include-patterns"
+							class="skip-patterns-input"
+							bind:value={customIncludePatternsText}
+							onblur={handleCustomIncludePatternsBlur}
+							placeholder={i18nStore.t('settingsCustomIncludePatternsPlaceholder')}
+							aria-describedby="settings-include-patterns-hint"
+							rows="4"
+							spellcheck="false"
+						></textarea>
+						<p class="hint" id="settings-include-patterns-hint">
+							{i18nStore.t('settingsCustomIncludePatternsHint')}
+						</p>
 					</div>
 				</section>
 

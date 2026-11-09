@@ -9,9 +9,18 @@ import dagre from '@dagrejs/dagre';
 
 export const BLACKLIST_EXTENSIONS = new Set([
 	// Images
-	'.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.bmp',
+	'.png',
+	'.jpg',
+	'.jpeg',
+	'.gif',
+	'.svg',
+	'.ico',
+	'.webp',
+	'.bmp',
 	// Source maps & minified
-	'.map', '.min.js', '.min.css',
+	'.map',
+	'.min.js',
+	'.min.css',
 	// Type declarations
 	'.d.ts',
 	// Markdown (except README.md — handled separately)
@@ -20,12 +29,27 @@ export const BLACKLIST_EXTENSIONS = new Set([
 
 export const BLACKLIST_FILES = new Set([
 	// Lock files
-	'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'poetry.lock',
-	'Pipfile.lock', 'bun.lockb', 'composer.lock', 'Gemfile.lock', 'Cargo.lock',
+	'package-lock.json',
+	'yarn.lock',
+	'pnpm-lock.yaml',
+	'poetry.lock',
+	'Pipfile.lock',
+	'bun.lockb',
+	'composer.lock',
+	'Gemfile.lock',
+	'Cargo.lock',
 	// Config / meta
-	'.gitignore', '.DS_Store', '.editorconfig', '.prettierrc', '.eslintrc',
-	'LICENSE', 'LICENCE', 'CHANGELOG', '.dockerignore',
-	'Dockerfile', 'docker-compose.yml'
+	'.gitignore',
+	'.DS_Store',
+	'.editorconfig',
+	'.prettierrc',
+	'.eslintrc',
+	'LICENSE',
+	'LICENCE',
+	'CHANGELOG',
+	'.dockerignore',
+	'Dockerfile',
+	'docker-compose.yml'
 ]);
 
 function isBlacklisted(filePath: string): boolean {
@@ -66,22 +90,16 @@ export function filterBlacklistedNodes(
 	}
 
 	const filteredNodes = nodes.filter((n) => !removedIds.has(n.id));
-	const filteredEdges = edges.filter(
-		(e) => !removedIds.has(e.source) && !removedIds.has(e.target)
-	);
+	const filteredEdges = edges.filter((e) => !removedIds.has(e.source) && !removedIds.has(e.target));
 
 	return { nodes: filteredNodes, edges: filteredEdges };
 }
 
 // --- Utility node detection ---
 
-const UTILITY_DIR_NAMES = new Set([
-	'utils', 'helpers', 'constants', 'common', 'shared'
-]);
+const UTILITY_DIR_NAMES = new Set(['utils', 'helpers', 'constants', 'common', 'shared']);
 
-const UTILITY_FILE_PREFIXES = [
-	'utils.', 'helpers.', 'constants.', 'config.', 'types.', 'index.'
-];
+const UTILITY_FILE_PREFIXES = ['utils.', 'helpers.', 'constants.', 'config.', 'types.', 'index.'];
 
 export function identifyUtilityNodes(nodes: GraphNode[]): Set<string> {
 	const utilIds = new Set<string>();
@@ -215,7 +233,14 @@ export function buildGraph(
 			}
 
 			for (const sym of symbols) {
-				if (sym.kind === 'variable' || sym.kind === 'interface' || sym.kind === 'type') {
+				// The file graph shows code symbols; Markdown outlines only feed the AI skeleton
+				if (
+					sym.kind === 'variable' ||
+					sym.kind === 'interface' ||
+					sym.kind === 'type' ||
+					sym.kind === 'heading' ||
+					sym.kind === 'frontmatter'
+				) {
 					continue;
 				}
 
@@ -285,10 +310,7 @@ function resolveImportTarget(
 ): string | null {
 	const dir = currentFilePath.substring(0, currentFilePath.lastIndexOf('/'));
 	const extensions = ['', '.ts', '.js', '.tsx', '.jsx', '.py', '.svelte'];
-	const basePaths = [
-		`${dir}/${importName}`,
-		`${dir}/${importName}/index`
-	];
+	const basePaths = [`${dir}/${importName}`, `${dir}/${importName}/index`];
 
 	for (const base of basePaths) {
 		for (const ext of extensions) {
@@ -330,7 +352,8 @@ function applyTreeLayout(nodes: GraphNode[]) {
 
 	while (layoutStack.length > 0) {
 		const { node, depth } = layoutStack.pop()!;
-		const sizeKey = node.kind === 'directory' ? 'directory' : node.kind === 'file' ? 'file' : 'symbol';
+		const sizeKey =
+			node.kind === 'directory' ? 'directory' : node.kind === 'file' ? 'file' : 'symbol';
 		const h = NODE_SIZES[sizeKey].height;
 
 		(node as any)._x = depth * INDENT_PX;
@@ -349,8 +372,7 @@ export function toFlowNodes(graphNodes: GraphNode[]) {
 	return graphNodes.map((n) => {
 		const sizeKey = n.kind === 'directory' ? 'directory' : n.kind === 'file' ? 'file' : 'symbol';
 		const size = NODE_SIZES[sizeKey];
-		const type =
-			n.kind === 'directory' ? 'directory' : n.kind === 'file' ? 'file' : 'symbol';
+		const type = n.kind === 'directory' ? 'directory' : n.kind === 'file' ? 'file' : 'symbol';
 
 		return {
 			id: n.id,
@@ -383,7 +405,10 @@ export function toFlowEdges(graphEdges: GraphEdge[]) {
 		target: e.target,
 		type: e.type === 'imports' ? 'smoothstep' : 'default',
 		animated: e.type === 'imports',
-		style: e.type === 'imports' ? 'stroke: #3b82f6; stroke-width: 1.5px;' : 'stroke: #666; stroke-width: 1px;',
+		style:
+			e.type === 'imports'
+				? 'stroke: #3b82f6; stroke-width: 1.5px;'
+				: 'stroke: #666; stroke-width: 1px;',
 		data: { edgeType: e.type }
 	}));
 }
@@ -423,12 +448,12 @@ export function applyGroupLayout(
 	for (const group of groups) {
 		const groupId = `arch-group:${group.name}`;
 		const members = group.nodeIds
-			.map(id => nodeMap.get(id))
+			.map((id) => nodeMap.get(id))
 			.filter((n): n is Node => n !== undefined);
 
 		if (members.length === 0) continue;
 
-		const memberSet = new Set(members.map(n => n.id));
+		const memberSet = new Set(members.map((n) => n.id));
 
 		// Create dagre graph for intra-group layout
 		const g = new dagre.graphlib.Graph();
@@ -459,8 +484,8 @@ export function applyGroupLayout(
 
 		// Read back group size from dagre
 		const graphInfo = g.graph();
-		const groupWidth = Math.max((graphInfo.width ?? 250), 250);
-		const groupHeight = Math.max((graphInfo.height ?? 150), 150);
+		const groupWidth = Math.max(graphInfo.width ?? 250, 250);
+		const groupHeight = Math.max(graphInfo.height ?? 150, 150);
 		groupSizes.set(groupId, { width: groupWidth, height: groupHeight });
 
 		// Set member positions relative to the group parent
@@ -533,8 +558,8 @@ export function applyGroupLayout(
 	}
 
 	// Build result: group parents first, then grouped members, then non-grouped nodes
-	const groupedMembers = Array.from(nodeMap.values()).filter(n => memberIds.has(n.id));
-	const nonGrouped = Array.from(nodeMap.values()).filter(n => !memberIds.has(n.id));
+	const groupedMembers = Array.from(nodeMap.values()).filter((n) => memberIds.has(n.id));
+	const nonGrouped = Array.from(nodeMap.values()).filter((n) => !memberIds.has(n.id));
 
 	return [...groupNodes, ...groupedMembers, ...nonGrouped];
 }

@@ -17,6 +17,9 @@ const SEMANTIC_COLORS = [
 	'#74c7ec'
 ];
 
+// Markdown entries carry an outline instead of code symbols (markdownOutline.ts)
+const MARKDOWN_RULE = `- Files with language "markdown" list frontmatter (name, description) and headings instead of code symbols; their imports are links to other files. In agent skill or instruction repositories, treat a SKILL.md with its references and scripts as one unit, and use headings as keySymbols`;
+
 const TOP_LEVEL_SYSTEM_PROMPT = `You are a code architecture analyzer. Given a project skeleton, identify the high-level semantic roles/domains in the codebase.
 
 Return ONLY valid JSON with this format:
@@ -47,7 +50,8 @@ Rules:
 - keySymbols should list 2-5 most important functions/classes
 - Edge types: depends_on, calls, extends, uses
 - Every file should belong to exactly one role
-- Focus on architecture, not implementation details`;
+- Focus on architecture, not implementation details
+${MARKDOWN_RULE}`;
 
 const DRILLDOWN_SYSTEM_PROMPT = `You are a code architecture analyzer. Given a subset of files belonging to a specific domain, identify the internal sub-roles within this domain.
 
@@ -77,7 +81,8 @@ Rules:
 - Be more granular than top-level analysis
 - Focus on internal structure and responsibilities
 - Every provided file should belong to exactly one sub-role
-- Edge types: depends_on, calls, extends, uses`;
+- Edge types: depends_on, calls, extends, uses
+${MARKDOWN_RULE}`;
 
 function getLocaleInstruction(): string {
 	const lang = i18nStore.locale;

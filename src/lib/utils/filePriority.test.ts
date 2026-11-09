@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { pathPriority, shouldSkipPath, SKIP_DIRS, getEffectiveSkipDirs } from './filePriority';
+import {
+	pathPriority,
+	shouldSkipPath,
+	SKIP_DIRS,
+	createPathFilter,
+	isIncludeAncestor,
+	isPathIncluded,
+	isPrimaryMarkdown
+} from './filePriority';
 
 describe('pathPriority', () => {
 	describe('GitHub tree paths (no repo prefix)', () => {
@@ -140,49 +148,124 @@ describe('shouldSkipPath', () => {
 		expect(shouldSkipPath('.git/')).toBe(true);
 	});
 
-	it('respects custom skipSet argument', () => {
-		const custom = new Set<string>(['target', 'generated']);
-		expect(shouldSkipPath('target/foo.rs', custom)).toBe(true);
-		expect(shouldSkipPath('generated/bar.ts', custom)).toBe(true);
-		// node_modules not in custom set → not skipped when only custom used
-		expect(shouldSkipPath('node_modules/x/y.js', custom)).toBe(false);
+	it('respects custom exclude entries on top of the defaults', () => {
+		const filter = createPathFilter(['target', 'generated']);
+		expect(shouldSkipPath('target/foo.rs', filter)).toBe(true);
+		expect(shouldSkipPath('generated/bar.ts', filter)).toBe(true);
+		expect(shouldSkipPath('node_modules/x/y.js', filter)).toBe(true);
+	});
+
+	it('checks the file name itself only when asked', () => {
+		expect(shouldSkipPath('.eslintrc')).toBe(false);
+		expect(shouldSkipPath('.eslintrc', undefined, true)).toBe(true);
 	});
 });
 
-describe('getEffectiveSkipDirs', () => {
-	it('returns defaults when customPatterns is empty', () => {
-		const effective = getEffectiveSkipDirs([]);
-		expect(effective.size).toBe(SKIP_DIRS.size);
-		expect(effective.has('node_modules')).toBe(true);
-		expect(effective.has('.git')).toBe(true);
+describe('createPathFilter', () => {
+	it('keeps the default skip list when nothing is added', () => {
+		const filter = createPathFilter();
+		expect(filter.skip.size).toBe(SKIP_DIRS.size);
+		expect(filter.skip.has('node_modules')).toBe(true);
 	});
 
-	it('merges defaults with custom patterns', () => {
-		const effective = getEffectiveSkipDirs(['target', 'third_party']);
-		expect(effective.has('target')).toBe(true);
-		expect(effective.has('third_party')).toBe(true);
-		expect(effective.has('node_modules')).toBe(true);
-		expect(effective.size).toBe(SKIP_DIRS.size + 2);
-	});
-
-	it('trims whitespace and removes empty entries', () => {
-		const effective = getEffectiveSkipDirs(['  target  ', '', '   ', 'generated']);
-		expect(effective.has('target')).toBe(true);
-		expect(effective.has('generated')).toBe(true);
-		expect(effective.has('')).toBe(false);
-		expect(effective.size).toBe(SKIP_DIRS.size + 2);
+	it('trims entries, drops empty lines and strips leading ./ and trailing /', () => {
+		const filter = createPathFilter(['  target  ', '', '   '], ['./docs/', ' tools/gen/ ']);
+		expect(filter.skip.has('target')).toBe(true);
+		expect(filter.skip.has('')).toBe(false);
+		expect(filter.includeNames.has('docs')).toBe(true);
+		expect(filter.includePaths).toContain('tools/gen');
 	});
 
 	it('does not mutate SKIP_DIRS', () => {
 		const before = SKIP_DIRS.size;
-		getEffectiveSkipDirs(['target']);
+		createPathFilter(['target']);
 		expect(SKIP_DIRS.size).toBe(before);
 		expect(SKIP_DIRS.has('target')).toBe(false);
 	});
+});
 
-	it('shouldSkipPath uses effective set to exclude target/', () => {
-		const effective = getEffectiveSkipDirs(['target']);
-		expect(shouldSkipPath('target/debug/foo.rs', effective)).toBe(true);
-		expect(shouldSkipPath('target/debug/foo.rs')).toBe(false); // defaults only
+describe('include entries', () => {
+	it('keeps agent instruction folders by default even though they are hidden', () => {
+		// Regression: .agents/skills, .claude/skills and Copilot instructions were dropped as hidden folders
+		expect(shouldSkipPath('.agents/skills/review/SKILL.md')).toBe(false);
+		expect(shouldSkipPath('.claude/skills/catchup/SKILL.md')).toBe(false);
+		expect(shouldSkipPath('.cursor/rules/style.mdc')).toBe(false);
+		expect(shouldSkipPath('.github/copilot-instructions.md')).toBe(false);
+		expect(shouldSkipPath('.github/instructions/ts.instructions.md')).toBe(false);
+	});
+
+	it('keeps the rest of those hidden folders out', () => {
+		expect(shouldSkipPath('.github/workflows/ci.yml')).toBe(true);
+		expect(shouldSkipPath('.claude/worktrees/feature/src/app.ts')).toBe(true);
+		expect(shouldSkipPath('.claude/settings.local.json', undefined, true)).toBe(true);
+	});
+
+	it('still skips excluded folders below an included one', () => {
+		expect(shouldSkipPath('.agents/skills/x/node_modules/pkg/index.js')).toBe(true);
+		expect(shouldSkipPath('.claude/skills/x/node_modules/pkg/index.js')).toBe(true);
+	});
+
+	it('supports path excludes from the root and Windows separators', () => {
+		const filter = createPathFilter(['src/generated', 'tools\\vendor\\']);
+		expect(shouldSkipPath('src/generated/api.ts', filter)).toBe(true);
+		expect(shouldSkipPath('lib/src/generated/api.ts', filter)).toBe(false);
+		expect(shouldSkipPath('tools/vendor/x.js', filter)).toBe(true);
+	});
+
+	it('keeps an include path inside a path exclude', () => {
+		const filter = createPathFilter(['src/generated'], ['src/generated/keep']);
+		expect(shouldSkipPath('src/generated/keep/a.ts', filter)).toBe(false);
+		expect(shouldSkipPath('src/generated/drop/a.ts', filter)).toBe(true);
+	});
+
+	it('lets a bare name override the exclude rules at any depth', () => {
+		const filter = createPathFilter([], ['docs']);
+		expect(shouldSkipPath('docs/guide.md', filter)).toBe(false);
+		expect(shouldSkipPath('packages/web/docs/api.md', filter)).toBe(false);
+		expect(shouldSkipPath('docs/guide.md')).toBe(true);
+	});
+
+	it('lets a path entry override only that path from the root', () => {
+		const filter = createPathFilter([], ['.github/workflows']);
+		expect(shouldSkipPath('.github/workflows/ci.yml', filter)).toBe(false);
+		expect(shouldSkipPath('.github/ISSUE_TEMPLATE/bug.md', filter)).toBe(true);
+		expect(shouldSkipPath('sub/.github/workflows/ci.yml', filter)).toBe(true);
+	});
+
+	it('wins over a custom exclude of the same name', () => {
+		const filter = createPathFilter(['generated'], ['generated']);
+		expect(shouldSkipPath('generated/api.ts', filter)).toBe(false);
+	});
+
+	it('marks folders that must be walked to reach an include path', () => {
+		expect(isIncludeAncestor('.github')).toBe(true);
+		expect(isIncludeAncestor('.claude')).toBe(true);
+		expect(isIncludeAncestor('.vscode')).toBe(false);
+	});
+
+	it('reports whether a path is explicitly included', () => {
+		expect(isPathIncluded('.github/instructions/a.md')).toBe(true);
+		expect(isPathIncluded('pkg/.agents/skills/a/SKILL.md')).toBe(true);
+		expect(isPathIncluded('src/app.ts')).toBe(false);
+		expect(isPathIncluded('scripts/build.sh', createPathFilter([], ['scripts']))).toBe(true);
+	});
+});
+
+describe('markdown priority', () => {
+	it('ranks ordinary docs last but keeps instruction files in place', () => {
+		// Regression: every README and doc became parseable and could crowd code out of MAX_FILES
+		expect(pathPriority('CHANGELOG.md')).toBe(3);
+		expect(pathPriority('src/notes.md')).toBe(3);
+		expect(pathPriority('README.md')).toBe(1);
+		expect(pathPriority('skills/review/SKILL.md')).toBe(2);
+		expect(pathPriority('repo/AGENTS.md', true)).toBe(1);
+	});
+
+	it('treats instruction names, Cursor rules and included paths as primary', () => {
+		expect(isPrimaryMarkdown('skills/x/SKILL.md')).toBe(true);
+		expect(isPrimaryMarkdown('.cursor/rules/style.mdc')).toBe(true);
+		expect(isPrimaryMarkdown('.claude/commands/sync.md')).toBe(true);
+		expect(isPrimaryMarkdown('skills/x/references/checklist.md')).toBe(false);
+		expect(isPrimaryMarkdown('docs/guide.md', createPathFilter([], ['docs']))).toBe(true);
 	});
 });

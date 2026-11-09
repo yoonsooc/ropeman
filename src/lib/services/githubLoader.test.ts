@@ -298,6 +298,67 @@ describe('loadGitHubRepo', () => {
 		expect(topNames).not.toContain('.github');
 	});
 
+	it('drops hidden files from the tree and the parse list, like a local folder', async () => {
+		// Regression: the include rework stopped checking a blob's own name on GitHub
+		const hiddenTree = {
+			...mockTreeResponse,
+			tree: [
+				{ path: '.gitignore', mode: '100644', type: 'blob' as const, sha: 'h1', url: '', size: 10 },
+				{
+					path: '.eslintrc.js',
+					mode: '100644',
+					type: 'blob' as const,
+					sha: 'h2',
+					url: '',
+					size: 10
+				},
+				{ path: 'index.js', mode: '100644', type: 'blob' as const, sha: 'h3', url: '', size: 10 }
+			]
+		};
+		const fetchMock = vi.fn() as Mock;
+		fetchMock.mockResolvedValueOnce({ ok: true, json: async () => hiddenTree });
+		fetchMock.mockResolvedValue({ ok: true, text: async () => 'const x = 1;' });
+		vi.stubGlobal('fetch', fetchMock);
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+		expect(projectStore.fileTree!.children!.map((c) => c.name)).toEqual(['index.js']);
+		expect([...projectStore.astMap.keys()]).toEqual(['repo/index.js']);
+	});
+
+	it('keeps included agent paths inside a skipped folder and only those', async () => {
+		const blob = (path: string) => ({
+			path,
+			mode: '100644',
+			type: 'blob' as const,
+			sha: path,
+			url: '',
+			size: 100
+		});
+		const agentTree = {
+			...mockTreeResponse,
+			tree: [
+				{ path: '.github', mode: '040000', type: 'tree' as const, sha: 'd1', url: '' },
+				{ path: '.github/workflows', mode: '040000', type: 'tree' as const, sha: 'd2', url: '' },
+				blob('.github/workflows/build.js'),
+				{ path: '.github/skills', mode: '040000', type: 'tree' as const, sha: 'd3', url: '' },
+				blob('.github/skills/lint.js'),
+				{ path: '.vscode', mode: '040000', type: 'tree' as const, sha: 'd4', url: '' }
+			]
+		};
+		const fetchMock = vi.fn() as Mock;
+		fetchMock.mockResolvedValueOnce({ ok: true, json: async () => agentTree });
+		fetchMock.mockResolvedValue({ ok: true, text: async () => 'const x = 1;' });
+		vi.stubGlobal('fetch', fetchMock);
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+		expect([...projectStore.astMap.keys()]).toEqual(['repo/.github/skills/lint.js']);
+		const github = projectStore.fileTree!.children!.find((c) => c.name === '.github')!;
+		expect(github.children!.map((c) => c.name)).toEqual(['skills']);
+		expect(projectStore.fileTree!.children!.map((c) => c.name)).not.toContain('.vscode');
+	});
+
 	it('keeps directories with hyphenated skip-word names (tests-integration)', async () => {
 		const hyphenTree = {
 			...mockTreeResponse,

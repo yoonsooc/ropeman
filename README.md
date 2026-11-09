@@ -16,7 +16,7 @@ Drop a folder, get an architecture diagram. Click any region to drill down furth
 
 - **Semantic-First** -- the main canvas shows role-based diagrams, not file trees
 - **Recursive Drill-down** -- click a region to get deeper AI analysis
-- **100% Local-First** -- source code never leaves the browser; only skeleton metadata is sent to AI
+- **100% Local-First** -- source code never leaves the browser; only skeleton metadata is sent to AI (symbols, signatures and imports; for Markdown, frontmatter name and description, headings and file links)
 - **Zero Friction** -- URL, drop folder, diagram. No install, no signup required for demo mode
 
 ## Features

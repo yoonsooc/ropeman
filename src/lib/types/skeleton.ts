@@ -1,6 +1,6 @@
 export interface SkeletonSymbol {
 	name: string;
-	kind: 'function' | 'class' | 'method' | 'import';
+	kind: 'function' | 'class' | 'method' | 'import' | 'frontmatter' | 'heading';
 	badges?: string[];
 	children?: SkeletonSymbol[];
 }

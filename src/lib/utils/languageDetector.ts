@@ -1,8 +1,12 @@
 const EXTENSION_MAP: Record<string, string> = {
 	'.py': 'python',
 	'.js': 'javascript',
+	'.mjs': 'javascript',
+	'.cjs': 'javascript',
 	'.jsx': 'javascript',
 	'.ts': 'typescript',
+	'.mts': 'typescript',
+	'.cts': 'typescript',
 	'.tsx': 'typescript',
 	'.go': 'go',
 	'.rs': 'rust',
@@ -18,7 +22,10 @@ const EXTENSION_MAP: Record<string, string> = {
 	'.kts': 'kotlin',
 	'.scala': 'scala',
 	'.sc': 'scala',
-	'.cs': 'csharp'
+	'.cs': 'csharp',
+	// Outlined without tree-sitter (markdownOutline.ts); `.mdc` is Cursor's rule format
+	'.md': 'markdown',
+	'.mdc': 'markdown'
 };
 
 const SUPPORTED_LANGUAGES = new Set([
@@ -35,7 +42,8 @@ const SUPPORTED_LANGUAGES = new Set([
 	'swift',
 	'kotlin',
 	'csharp',
-	'scala'
+	'scala',
+	'markdown'
 ]);
 
 export function detectLanguage(filename: string): string | null {

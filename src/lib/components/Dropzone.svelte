@@ -9,6 +9,8 @@
 		handleFallbackInput
 	} from '$lib/services/fileSystemService';
 	import { parseAllFiles } from '$lib/services/parserService';
+	import { settingsStore } from '$lib/stores/settingsStore.svelte';
+	import { createPathFilter } from '$lib/utils/filePriority';
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
@@ -21,6 +23,11 @@
 	const isCompact = $derived(breakpoint.isMobile || breakpoint.isTablet);
 
 	let { oncancel, onload }: { oncancel?: () => void; onload?: () => void } = $props();
+
+	// The landing page honors the same exclude and include settings as New
+	function currentPathFilter() {
+		return createPathFilter(settingsStore.customSkipPatterns, settingsStore.customIncludePatterns);
+	}
 
 	const languages = [
 		{
@@ -148,7 +155,7 @@
 		error = '';
 		try {
 			resetStores();
-			const tree = handleFallbackInput(input.files);
+			const tree = handleFallbackInput(input.files, currentPathFilter());
 			projectStore.projectName = tree.name;
 			projectStore.fileTree = tree;
 			projectStore.isLoading = true;
@@ -200,7 +207,7 @@
 		projectStore.projectName = dirHandle.name;
 		onload?.();
 
-		const tree = await readDirectoryRecursive(dirHandle);
+		const tree = await readDirectoryRecursive(dirHandle, '', currentPathFilter());
 		projectStore.fileTree = tree;
 
 		const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
