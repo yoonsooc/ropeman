@@ -8,7 +8,7 @@ interface Env {
 	DEMO_MODEL: string;
 }
 
-const DEFAULT_DEMO_MODEL = 'gemini-flash-latest';
+const DEFAULT_DEMO_MODEL = 'gemini-flash-lite-latest';
 /** Upstream statuses worth retrying with the next model: gone, per-model quota, or overloaded. */
 const RETRY_NEXT_MODEL = new Set([404, 429, 500, 502, 503, 504]);
 /**
