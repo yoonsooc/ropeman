@@ -8,6 +8,7 @@
 			"title": "Transformers",
 			"language": "Python",
 			"description": "State-of-the-art machine learning for JAX, PyTorch and TensorFlow — pretrained models for NLP, CV and audio.",
+			"descriptionKo": "JAX, PyTorch, TensorFlow를 위한 최신 머신러닝 라이브러리. 자연어, 비전, 오디오용 사전학습 모델을 제공합니다.",
 			"stars": "140k+"
 		},
 		{
@@ -17,6 +18,7 @@
 			"title": "FastAPI",
 			"language": "Python",
 			"description": "Modern, fast (high-performance) web framework for building APIs with Python type hints.",
+			"descriptionKo": "Python 타입 힌트로 API를 만드는 현대적이고 빠른 웹 프레임워크입니다.",
 			"stars": "82k+"
 		},
 		{
@@ -26,6 +28,7 @@
 			"title": "Gin",
 			"language": "Go",
 			"description": "HTTP web framework written in Go (Golang) — fast and minimal.",
+			"descriptionKo": "Go로 작성한 빠르고 가벼운 HTTP 웹 프레임워크입니다.",
 			"stars": "80k+"
 		},
 		{
@@ -35,6 +38,7 @@
 			"title": "React",
 			"language": "JavaScript",
 			"description": "A declarative, efficient, and flexible JavaScript library for building user interfaces.",
+			"descriptionKo": "사용자 인터페이스를 만드는 선언적이고 효율적이며 유연한 JavaScript 라이브러리입니다.",
 			"stars": "230k+"
 		},
 		{
@@ -44,6 +48,7 @@
 			"title": "Tokio",
 			"language": "Rust",
 			"description": "A runtime for writing reliable asynchronous applications with Rust — the de-facto async standard.",
+			"descriptionKo": "Rust로 신뢰할 수 있는 비동기 애플리케이션을 만드는 런타임. 사실상 표준 비동기 런타임입니다.",
 			"stars": "28k+"
 		}
 	]

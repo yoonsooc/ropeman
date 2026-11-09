@@ -11,7 +11,7 @@
 	import { parseAllFiles } from '$lib/services/parserService';
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
-	import HeroIllustration from './HeroIllustration.svelte';
+	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { parseGitHubUrl, githubLoadErrorKey } from '$lib/utils/githubUrl';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 
@@ -270,12 +270,20 @@
 								>
 								{i18nStore.t('landing.cta')}
 							</button>
+							<a class="example-link" href={resolve('/explore')} data-tour-step="explore">
+								{i18nStore.t('landing.exampleCta')}
+								<span aria-hidden="true">&#x2192;</span>
+							</a>
 							<p class="drag-hint">{i18nStore.t('landing.dragHint')}</p>
 						{:else}
 							<p class="mobile-folder-hint">
 								<span aria-hidden="true" class="material-symbols-outlined">info</span>
 								{i18nStore.t('landing.mobileFolderHint')}
 							</p>
+							<a class="example-link compact" href={resolve('/explore')} data-tour-step="explore">
+								{i18nStore.t('landing.exampleCta')}
+								<span aria-hidden="true">&#x2192;</span>
+							</a>
 						{/if}
 						<div class="github-input-section">
 							<label class="github-or" for="landing-github-url">
@@ -315,26 +323,6 @@
 								</button>
 							</div>
 						</div>
-						<a class="explore-card" href={resolve('/explore')} data-tour-step="explore">
-							<div class="explore-card-accent"></div>
-							<div class="explore-card-inner">
-								<div class="explore-card-icon">
-									<span aria-hidden="true" class="material-symbols-outlined">photo_library</span>
-								</div>
-								<div class="explore-card-text">
-									<span class="explore-card-eyebrow">
-										{i18nStore.t('landing.exploreCardEyebrow')}
-									</span>
-									<h3 class="explore-card-title">
-										{i18nStore.t('landing.exploreCardTitle')}
-									</h3>
-								</div>
-								<div class="explore-card-cta">
-									{i18nStore.t('landing.exploreCardCta')}
-									<span aria-hidden="true" class="material-symbols-outlined">arrow_forward</span>
-								</div>
-							</div>
-						</a>
 						<div class="hero-languages">
 							{#each languages as lang}
 								<span class="hero-lang" style="color: {lang.color}">
@@ -346,9 +334,20 @@
 							<p class="error-msg" id="landing-github-error" role="alert">{error}</p>
 						{/if}
 					</div>
-					<div class="hero-visual">
-						<HeroIllustration />
-					</div>
+					<figure class="hero-visual">
+						<a class="hero-shot" href={resolve('/explore/transformers')}>
+							<img
+								src={themeStore.current === 'dark'
+									? '/landing/explore-transformers-dark.webp'
+									: '/landing/explore-transformers-light.webp'}
+								width="1600"
+								height="928"
+								alt={i18nStore.t('landing.heroShotAlt')}
+								decoding="async"
+							/>
+						</a>
+						<figcaption>{i18nStore.t('landing.heroShotCaption')}</figcaption>
+					</figure>
 				</section>
 
 				<!-- Technical Specs Strip (Stitch v2) -->
@@ -378,7 +377,7 @@
 							class="material-symbols-outlined feature-mat-icon"
 							style="color: var(--accent)">psychology</span
 						>
-						<h3>{i18nStore.t('landing.featureAiTitle')}</h3>
+						<h2>{i18nStore.t('landing.featureAiTitle')}</h2>
 						<p>{i18nStore.t('landing.featureAiDesc')}</p>
 					</div>
 					<div class="feature-card">
@@ -387,7 +386,7 @@
 							class="material-symbols-outlined feature-mat-icon"
 							style="color: var(--accent)">account_tree</span
 						>
-						<h3>{i18nStore.t('landing.featureDrillTitle')}</h3>
+						<h2>{i18nStore.t('landing.featureDrillTitle')}</h2>
 						<p>{i18nStore.t('landing.featureDrillDesc')}</p>
 					</div>
 					<div class="feature-card">
@@ -396,7 +395,7 @@
 							class="material-symbols-outlined feature-mat-icon"
 							style="color: var(--accent)">hub</span
 						>
-						<h3>{i18nStore.t('landing.featureBrowserTitle')}</h3>
+						<h2>{i18nStore.t('landing.featureBrowserTitle')}</h2>
 						<p>{i18nStore.t('landing.featureBrowserDesc')}</p>
 					</div>
 				</section>
@@ -494,13 +493,12 @@
 		z-index: 1;
 	}
 
+	/* One column: the promise, the actions, then the real product underneath */
 	.landing-hero {
 		display: grid;
-		grid-template-columns: 1.5fr 1fr;
-		gap: 64px;
-		align-items: center;
-		min-height: 500px;
-		padding: 64px 48px;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 48px;
+		padding: 64px 48px 32px;
 		background: transparent;
 	}
 
@@ -516,6 +514,13 @@
 
 	.hero-text h1 :global(.headline-accent) {
 		color: var(--accent);
+	}
+
+	.example-link.compact {
+		display: flex;
+		justify-content: center;
+		margin-left: 0;
+		padding: 12px 8px 0;
 	}
 
 	.hero-sub {
@@ -534,7 +539,6 @@
 	   selectable for a11y / copy-paste. */
 	.cta-btn,
 	.github-load-btn,
-	.explore-card-cta,
 	.hero-lang {
 		-webkit-user-select: none;
 		user-select: none;
@@ -595,136 +599,6 @@
 	.mobile-folder-hint .material-symbols-outlined {
 		font-size: 18px;
 		color: var(--accent);
-	}
-
-	/* Explore Gallery card — Stitch design "Ropeman Landing - Gallery Focus"
-	   (.stitch-html/landing-gallery-focus.html) */
-	.explore-card {
-		position: relative;
-		display: block;
-		margin-top: 36px;
-		margin-left: 8px;
-		max-width: 640px;
-		background: var(--bg-tertiary, #1b2028);
-		border-radius: 12px;
-		overflow: hidden;
-		text-decoration: none;
-		color: var(--text-primary);
-		cursor: pointer;
-		transition: background 0.3s ease;
-	}
-
-	@media (hover: hover) {
-		.explore-card:hover {
-			background: var(--bg-highest, #20262f);
-		}
-	}
-
-	.explore-card-accent {
-		position: absolute;
-		left: 0;
-		top: 0;
-		bottom: 0;
-		width: 2px;
-		background: var(--accent);
-	}
-
-	.explore-card-inner {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 20px;
-		padding: 20px 24px;
-	}
-
-	.explore-card-icon {
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 44px;
-		height: 44px;
-		border-radius: 8px;
-		background: var(--accent-bg);
-		color: var(--accent);
-	}
-
-	.explore-card-icon .material-symbols-outlined {
-		font-size: 22px;
-	}
-
-	.explore-card-text {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.explore-card-eyebrow {
-		display: block;
-		margin-bottom: 4px;
-		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
-		color: var(--accent);
-	}
-
-	.explore-card-title {
-		margin: 0 0 4px;
-		font-family: var(--font-display);
-		font-size: 15px;
-		font-weight: 500;
-		color: var(--text-primary);
-	}
-
-	.explore-card-sub {
-		margin: 0;
-		font-family: var(--font-body, 'Inter', sans-serif);
-		font-size: 12px;
-		line-height: 1.5;
-		color: var(--text-muted);
-	}
-
-	.explore-card-cta {
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
-		color: var(--accent);
-		transition: transform 0.3s ease;
-	}
-
-	.explore-card-cta .material-symbols-outlined {
-		font-size: 16px;
-	}
-
-	@media (hover: hover) {
-		.explore-card:hover .explore-card-cta {
-			transform: translateX(4px);
-		}
-	}
-
-	@media (hover: hover) {
-		/* Accent bar thickens on hover (Stitch v2 spec) */
-		.explore-card:hover .explore-card-accent {
-			width: 4px;
-		}
-	}
-
-	.explore-card-accent {
-		transition: width 0.3s ease;
-	}
-
-	@media (max-width: 640px) {
-		.explore-card {
-			max-width: none;
-		}
-		.explore-card-inner {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 16px;
-		}
 	}
 
 	/* GitHub URL input */
@@ -830,8 +704,49 @@
 	}
 
 	.hero-visual {
-		display: flex;
-		justify-content: center;
+		margin: 0;
+	}
+
+	.hero-shot {
+		display: block;
+		border-radius: 12px;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		box-shadow:
+			0 1px 2px rgba(0, 0, 0, 0.08),
+			0 16px 40px rgba(0, 0, 0, 0.22);
+		transition: border-color 0.15s ease-out;
+	}
+
+	.hero-shot img {
+		display: block;
+		width: 100%;
+		height: auto;
+		outline: 1px solid oklch(1 0 0 / 0.06);
+		outline-offset: -1px;
+	}
+
+	@media (hover: hover) {
+		.hero-shot:hover {
+			border-color: var(--accent-muted);
+		}
+	}
+
+	.hero-visual figcaption {
+		margin-top: 12px;
+		font-size: 13px;
+		color: var(--text-muted);
+	}
+
+	.example-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-left: 16px;
+		padding: 14px 8px;
+		font-size: 15px;
+		font-weight: 500;
+		color: var(--accent);
 	}
 
 	/* Technical Specs Strip — Stitch v2 */
@@ -891,7 +806,7 @@
 		display: block;
 	}
 
-	.feature-card h3 {
+	.feature-card h2 {
 		font-family: var(--font-display);
 		font-size: 18px;
 		font-weight: 700;
@@ -1015,10 +930,6 @@
 
 		.hero-sub {
 			max-width: none;
-		}
-
-		.hero-visual {
-			order: -1;
 		}
 
 		.landing-specs-strip {

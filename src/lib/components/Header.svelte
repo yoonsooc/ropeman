@@ -53,7 +53,7 @@
 
 <header class="header">
 	<div class="header-left">
-		<h1 class="header-title">
+		<div class="header-title">
 			{#if hasProject && ongohome}
 				<button
 					type="button"
@@ -67,7 +67,7 @@
 			{:else}
 				{i18nStore.t('title')}
 			{/if}
-		</h1>
+		</div>
 		{#if projectStore.projectName}
 			<span class="header-project">{projectStore.projectName}</span>
 		{:else}

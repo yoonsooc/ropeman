@@ -256,15 +256,20 @@
 	}
 
 	.share-canvas-area {
+		--canvas-toolbar-top: 56px;
 		flex: 1;
 		min-height: 0;
 		position: relative;
 	}
 
+	/* Sits above the floating breadcrumb so the node title stays visible */
 	.share-detail-panel {
+		position: relative;
+		z-index: 11;
 		width: 320px;
 		border-left: 1px solid var(--ghost-border);
 		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	.share-loading {
@@ -320,9 +325,21 @@
 		line-height: 1.6;
 	}
 
+	/* Phones: the detail opens as a bottom sheet over the canvas */
 	@media (max-width: 768px) {
 		.share-detail-panel {
-			display: none;
+			position: fixed;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			width: auto;
+			max-height: 55dvh;
+			z-index: 30;
+			border-left: none;
+			border-top: 1px solid var(--border);
+			border-radius: 12px 12px 0 0;
+			box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.24);
+			padding-bottom: env(safe-area-inset-bottom);
 		}
 	}
 </style>

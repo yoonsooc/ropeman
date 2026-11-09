@@ -21,6 +21,8 @@ export interface CuratedEntry {
 	title: string;
 	language: string;
 	description: string;
+	/** Korean description, shown when the UI locale is ko */
+	descriptionKo?: string;
 	stars?: string;
 }
 
@@ -72,6 +74,7 @@ export function validateManifest(data: unknown): CuratedManifest | null {
 				title: e.title,
 				language: e.language,
 				description: e.description,
+				descriptionKo: typeof e.descriptionKo === 'string' ? e.descriptionKo : undefined,
 				stars: typeof e.stars === 'string' ? e.stars : undefined
 			});
 		}
