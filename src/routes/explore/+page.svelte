@@ -96,8 +96,12 @@
 						: 'No projects match your filters.'}
 				</div>
 			{:else}
-				{#each filtered as entry (entry.slug)}
-					<a class="explore-card" href={resolve(`/explore/${entry.slug}`)}>
+				{#each filtered as entry, index (entry.slug)}
+					<a
+						class="explore-card"
+						class:featured={index === 0 && (filtered.length + 1) % 3 === 0}
+						href={resolve(`/explore/${entry.slug}`)}
+					>
 						<img
 							class="card-thumb"
 							src="/explore/thumbs/{entry.slug}-{themeStore.current === 'dark'
@@ -106,7 +110,8 @@
 							width="800"
 							height="430"
 							alt=""
-							loading="lazy"
+							loading={index < 3 ? 'eager' : 'lazy'}
+							fetchpriority={index === 0 ? 'high' : 'auto'}
 							decoding="async"
 						/>
 						<div class="card-header">
@@ -256,14 +261,14 @@
 		border-color: var(--accent);
 	}
 
-	/* 5 projects: the first is featured across two columns so no row is left half empty */
+	/* When the count leaves one cell short of full rows, the first card spans two */
 	.explore-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 16px;
 	}
 
-	.explore-grid > .explore-card:first-child:not(:only-child) {
+	.explore-card.featured {
 		grid-column: span 2;
 	}
 
@@ -278,7 +283,7 @@
 			grid-template-columns: minmax(0, 1fr);
 		}
 
-		.explore-grid > .explore-card:first-child:not(:only-child) {
+		.explore-card.featured {
 			grid-column: auto;
 		}
 	}
@@ -318,7 +323,7 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.explore-grid > .explore-card:first-child:not(:only-child) .card-thumb {
+	.explore-card.featured .card-thumb {
 		aspect-ratio: 16 / 7;
 	}
 

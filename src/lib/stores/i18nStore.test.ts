@@ -105,12 +105,8 @@ describe('i18nStore', () => {
 
 		it('keeps the Korean landing free of the English strings it used to show', () => {
 			// Regression: the ko locale showed "or drag & drop a folder here",
-			// "Multi-Track AI" and "Explore Gallery" in English
-			for (const key of [
-				'landing.dragHint',
-				'landing.featureBrowserTitle',
-				'landing.exploreCardCta'
-			]) {
+			// "Multi-Track AI" and "Explore Gallery" in English (the gallery link is now landing.exampleCta)
+			for (const key of ['landing.dragHint', 'landing.featureBrowserTitle', 'landing.exampleCta']) {
 				expect(i18nStore.t(key)).toMatch(/[가-힣]/);
 			}
 		});

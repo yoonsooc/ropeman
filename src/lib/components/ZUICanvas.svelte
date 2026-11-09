@@ -112,6 +112,18 @@
 	let userPositions = $state(new Map<string, { x: number; y: number }>());
 	let prevLevelParentId = $state<string | null | undefined>(undefined);
 
+	// Crossing the compact breakpoint switches LR <-> TB: positions dragged in the
+	// old layout no longer apply, and the new layout needs a fresh fit
+	let prevCompact: boolean | undefined;
+	$effect(() => {
+		const compact = isCompact;
+		if (prevCompact !== undefined && compact !== prevCompact) {
+			userPositions = new Map();
+			requestAnimationFrame(() => exportFns?.fitView());
+		}
+		prevCompact = compact;
+	});
+
 	// Clear userPositions when drill-down/drill-up changes the level
 	$effect(() => {
 		const currentParentId = semanticStore.currentLevel?.parentId ?? null;
@@ -229,6 +241,8 @@
 		exportMarkdown: () => void;
 		exportHtml: () => void;
 		exportPdf: () => void;
+		fitView: () => void;
+		getZoom: () => number;
 	} | null>(null);
 
 	export function triggerExport() {
@@ -473,7 +487,13 @@
 			<MiniMap nodeColor={(n) => (n.data?.color as string) ?? 'var(--bg-bright)'} />
 		{/if}
 		<Background gap={24} size={1} />
-		<ExportController onready={(fns) => (exportFns = fns)} />
+		<ExportController
+			onready={(fns) => {
+				exportFns = fns;
+				// fitView may not emit a move event; read the initial zoom once
+				requestAnimationFrame(() => handleMove(null, { zoom: fns.getZoom() }));
+			}}
+		/>
 	</SvelteFlow>
 
 	<!-- U1-2: Node hover relationship preview -->

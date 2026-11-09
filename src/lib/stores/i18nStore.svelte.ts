@@ -25,12 +25,10 @@ interface LandingTranslations {
 	specWebgpu: string;
 	specSemantic: string;
 	specNoData: string;
-	exploreCardEyebrow: string;
-	exploreCardTitle: string;
-	exploreCardCta: string;
 	exampleCta: string;
 	heroShotAlt: string;
 	heroShotCaption: string;
+	heroShotLink: string;
 	dropRegion: string;
 	loadingTitle: string;
 	parsingLabel: string;
@@ -371,13 +369,11 @@ const translations: Record<Locale, TranslationSet> = {
 			specWebgpu: 'WebGPU 가속',
 			specSemantic: '시맨틱 인식',
 			specNoData: '데이터 수집 없음',
-			exploreCardEyebrow: '처음이신가요? 예시 둘러보기',
-			exploreCardTitle: '예시로 시작해보기',
-			exploreCardCta: '갤러리 보기',
 			exampleCta: '분석 예시 보기',
 			heroShotAlt:
 				'huggingface/transformers를 분석한 Ropeman 화면. 도메인별 노드와 연결, 오른쪽에 선택한 노드의 파일과 주요 심볼',
 			heroShotCaption: '실제 분석 결과: huggingface/transformers. 눌러서 직접 탐색해 보세요.',
+			heroShotLink: 'huggingface/transformers 분석 예시 열기',
 			dropRegion: '폴더 놓는 곳',
 			loadingTitle: '프로젝트 불러오는 중',
 			parsingLabel: '파일 분석 중',
@@ -687,13 +683,11 @@ const translations: Record<Locale, TranslationSet> = {
 			specWebgpu: 'WebGPU Accelerated',
 			specSemantic: 'Semantic Recognition',
 			specNoData: 'Zero Data Collection',
-			exploreCardEyebrow: 'New here? Browse examples',
-			exploreCardTitle: 'Start with an example',
-			exploreCardCta: 'Explore Gallery',
 			exampleCta: 'See an example',
 			heroShotAlt:
 				'Ropeman analysis of huggingface/transformers: domain nodes and their links, with the selected node’s files and key symbols on the right',
 			heroShotCaption: 'A real analysis of huggingface/transformers. Click to explore it.',
+			heroShotLink: 'Open the huggingface/transformers example',
 			dropRegion: 'Folder drop area',
 			loadingTitle: 'Loading project',
 			parsingLabel: 'Parsing files',

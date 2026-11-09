@@ -77,11 +77,17 @@
 				title={i18nStore.t('node.reanalyze')}
 				aria-label={i18nStore.t('node.reanalyze')}
 				onclick={handleReanalyze}
+				onkeydown={(e) => e.stopPropagation()}
 			>
 				&#x21BB;
 			</button>
 		{/if}
-		<button type="button" class="open-btn nodrag" onclick={handleOpen}>
+		<button
+			type="button"
+			class="open-btn nodrag"
+			onclick={handleOpen}
+			onkeydown={(e) => e.stopPropagation()}
+		>
 			{isLeaf
 				? i18nStore.t('node.openCode')
 				: snapshotUnavailable
@@ -252,8 +258,13 @@
 		transition: background-color 0.15s ease-out;
 	}
 
+	/* Light surfaces: AI-picked node colors can be pale, so the label stays near text color */
+	:global([data-theme='light']) .open-btn {
+		color: color-mix(in srgb, var(--node-color) 35%, var(--text-primary));
+	}
+
 	.snapshot-unavailable .open-btn {
-		color: var(--text-muted);
+		color: var(--text-secondary);
 	}
 
 	.reanalyze-btn {

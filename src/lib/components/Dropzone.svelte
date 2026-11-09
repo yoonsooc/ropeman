@@ -335,7 +335,11 @@
 						{/if}
 					</div>
 					<figure class="hero-visual">
-						<a class="hero-shot" href={resolve('/explore/transformers')}>
+						<a
+							class="hero-shot"
+							href={resolve('/explore/transformers')}
+							aria-label={i18nStore.t('landing.heroShotLink')}
+						>
 							<img
 								src={themeStore.current === 'dark'
 									? '/landing/explore-transformers-dark.webp'
