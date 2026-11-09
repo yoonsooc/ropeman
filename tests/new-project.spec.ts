@@ -23,7 +23,7 @@ test.describe('New project dialog', () => {
 
 	// Regression: New used to open the folder picker only, with no way to enter a GitHub URL
 	test('offers a GitHub URL field', async ({ page }) => {
-		await page.locator('button[title="Open New Project"]').click();
+		await page.locator('header .text-btn').click();
 
 		const dialog = page.getByRole('dialog');
 		await expect(dialog).toBeVisible();
@@ -44,7 +44,7 @@ test.describe('New project dialog', () => {
 			route.fulfill({ body: 'def run():\n    return 0\n' })
 		);
 
-		await page.locator('button[title="Open New Project"]').click();
+		await page.locator('header .text-btn').click();
 		const dialog = page.getByRole('dialog');
 		await dialog.locator('#newproject-github').fill('https://github.com/octo/demo-repo');
 		await dialog.locator('#newproject-github').press('Enter');
@@ -54,7 +54,7 @@ test.describe('New project dialog', () => {
 	});
 
 	test('keeps the open project when the URL is invalid', async ({ page }) => {
-		await page.locator('button[title="Open New Project"]').click();
+		await page.locator('header .text-btn').click();
 		const dialog = page.getByRole('dialog');
 		const input = dialog.locator('#newproject-github');
 
@@ -75,7 +75,7 @@ test.describe('New project dialog', () => {
 			route.fulfill({ status: 404, json: { message: 'Not Found' } })
 		);
 
-		await page.locator('button[title="Open New Project"]').click();
+		await page.locator('header .text-btn').click();
 		const dialog = page.getByRole('dialog');
 		const input = dialog.locator('#newproject-github');
 		await input.fill('https://github.com/octo/missing');

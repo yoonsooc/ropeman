@@ -324,9 +324,7 @@
 
 	.group-crumb {
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.3px;
-		font-size: 11px;
+		font-size: 12px;
 	}
 
 	.crumb-icon {

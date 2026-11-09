@@ -74,6 +74,37 @@ describe('i18nStore', () => {
 			expect(i18nStore.t('legend.title')).toBe('Legend');
 		});
 
+		it('resolves header and landing keys added for the redesign in both locales', () => {
+			const keys = [
+				'header.newLabel',
+				'header.analyze',
+				'header.analyzeTitle',
+				'header.languageToggle',
+				'header.gallery',
+				'landing.dropRegion',
+				'landing.loadingTitle',
+				'landing.parsingLabel'
+			];
+			for (const locale of ['ko', 'en'] as const) {
+				i18nStore.locale = locale;
+				for (const key of keys) {
+					expect(i18nStore.t(key)).not.toBe(key);
+				}
+			}
+		});
+
+		it('keeps the Korean landing free of the English strings it used to show', () => {
+			// Regression: the ko locale showed "or drag & drop a folder here",
+			// "Multi-Track AI" and "Explore Gallery" in English
+			for (const key of [
+				'landing.dragHint',
+				'landing.featureBrowserTitle',
+				'landing.exploreCardCta'
+			]) {
+				expect(i18nStore.t(key)).toMatch(/[가-힣]/);
+			}
+		});
+
 		it('resolves docs keys in ko', () => {
 			expect(i18nStore.t('docs.headerLink')).toBe('문서');
 			expect(i18nStore.t('docs.backToApp')).toBe('앱으로 돌아가기');

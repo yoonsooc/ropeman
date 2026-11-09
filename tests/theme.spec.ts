@@ -65,9 +65,14 @@ test.describe('Language Toggle', () => {
 		const subtitle = page.locator('.header-subtitle');
 		const initialText = await subtitle.textContent();
 
-		// Click language toggle button
-		const langBtn = page.locator('header .header-btn').filter({ hasText: /EN|한/ });
-		await langBtn.click();
+		const width = page.viewportSize()?.width ?? 1280;
+		if (width <= 430) {
+			// Phones switch language from Settings, not the header
+			await page.locator('header .header-btn[title]').last().click();
+			await page.locator('#lang-select').selectOption('en');
+		} else {
+			await page.locator('header .lang-toggle').click();
+		}
 
 		// Subtitle should have changed
 		const newText = await subtitle.textContent();

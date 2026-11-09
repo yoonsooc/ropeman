@@ -32,7 +32,7 @@
 
 <div class="explore-page" data-theme={themeStore.current}>
 	<header class="explore-header">
-		<a href={resolve('/')} class="explore-logo">ROPEMAN</a>
+		<a href={resolve('/')} class="explore-logo">Ropeman</a>
 		<nav class="explore-nav">
 			<a
 				class="explore-nav-btn"
@@ -150,8 +150,6 @@
 		font-weight: 700;
 		color: var(--accent);
 		text-decoration: none;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 	}
 
 	.explore-nav {

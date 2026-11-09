@@ -72,8 +72,7 @@
 	.prompt-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(10, 14, 20, 0.6);
-		backdrop-filter: blur(8px);
+		background: var(--modal-backdrop);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -149,8 +148,8 @@
 		width: 56px;
 		height: 56px;
 		border-radius: 12px;
-		background: rgba(83, 221, 252, 0.1);
-		color: var(--accent-secondary, #53ddfc);
+		background: var(--accent-bg);
+		color: var(--accent);
 		margin: 0 auto 16px;
 	}
 	.prompt-icon .material-symbols-outlined {

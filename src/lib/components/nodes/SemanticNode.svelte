@@ -33,7 +33,6 @@
 	class:highlighted={data.highlighted}
 	class:dimmed={data.dimmed}
 	class:selected={data.selected}
-	class:node-glow={data.glow}
 	class:snapshot-unavailable={snapshotUnavailable}
 	title={snapshotUnavailable ? 'Not in this snapshot — double-click for details' : undefined}
 	style="
@@ -116,17 +115,12 @@
 
 	.semantic-node.highlighted {
 		background: var(--bg-highest, #20262f);
-		box-shadow: 0 0 12px color-mix(in srgb, var(--node-color, var(--accent)) 20%, transparent);
-		animation: pulse 2s ease-in-out infinite;
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--node-color, var(--accent)) 45%, transparent);
 	}
 
 	.semantic-node.selected {
-		border: 2px solid var(--accent, #a3a6ff);
+		border: 2px solid var(--accent);
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-	}
-
-	.semantic-node.node-glow {
-		filter: drop-shadow(0 0 8px rgba(83, 221, 252, 0.2));
 	}
 
 	.semantic-node.dimmed {
@@ -149,28 +143,18 @@
 		opacity: 0.92;
 	}
 	.semantic-node.snapshot-unavailable .drilldown-icon {
-		color: var(--accent-secondary, #53ddfc);
+		color: var(--accent);
 		opacity: 0.6;
 	}
 	.semantic-node.snapshot-unavailable:hover .drilldown-icon {
 		opacity: 1;
 	}
 
-	@keyframes pulse {
-		0%,
-		100% {
-			box-shadow: 0 0 12px color-mix(in srgb, var(--node-color, var(--accent)) 20%, transparent);
-		}
-		50% {
-			box-shadow: 0 0 18px color-mix(in srgb, var(--node-color, var(--accent)) 30%, transparent);
-		}
-	}
-
 	/* Handles — hidden by default, visible on hover */
 	.semantic-node :global(.svelte-flow__handle) {
 		width: 6px;
 		height: 6px;
-		background: var(--accent-secondary, #53ddfc);
+		background: var(--accent);
 		border: none;
 		opacity: 0;
 		transition: opacity 0.15s ease;
@@ -191,7 +175,6 @@
 		font-size: 13px;
 		font-weight: 700;
 		letter-spacing: 0.025em;
-		text-transform: uppercase;
 		line-height: 1.2;
 		color: var(--text-primary, #f1f3fc);
 		flex: 1;
@@ -203,13 +186,12 @@
 	}
 
 	.node-badge {
-		font-size: 9px;
-		font-weight: 700;
-		text-transform: uppercase;
+		font-size: 10px;
+		font-weight: 600;
 		padding: 2px 6px;
 		border-radius: 4px;
 		background: color-mix(in srgb, var(--accent) 20%, transparent);
-		color: var(--accent, #a3a6ff);
+		color: var(--accent);
 		white-space: nowrap;
 		flex-shrink: 0;
 	}

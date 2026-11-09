@@ -651,11 +651,9 @@
 	.start-btn {
 		flex-shrink: 0;
 		padding: 4px 12px;
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 700;
 		font-family: var(--font-display);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 	}
 	.start-btn.wide {
 		width: 100%;

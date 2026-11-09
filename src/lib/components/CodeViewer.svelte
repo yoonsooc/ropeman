@@ -391,10 +391,8 @@
 	}
 
 	.symbol-header {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--text-muted);
 		padding: 16px;
 		border-bottom: 1px solid var(--border);
@@ -446,7 +444,7 @@
 		color: var(--color-success);
 	}
 	.symbol-kind-icon.type {
-		color: var(--accent-tertiary, #ac8aff);
+		color: var(--accent);
 	}
 
 	.symbol-name {

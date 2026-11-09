@@ -691,8 +691,13 @@
 	}
 
 	.zui-canvas :global(.svelte-flow__minimap) {
+		/* xyflow paints its own white minimap; follow the app theme instead */
+		--xy-minimap-background-color: var(--bg-secondary);
+		--xy-minimap-mask-background-color: color-mix(in srgb, var(--bg-lowest) 60%, transparent);
+		--xy-minimap-node-background-color: var(--bg-bright);
+		--xy-minimap-node-stroke-color: transparent;
 		background: var(--bg-secondary);
-		border: none;
+		border: 1px solid var(--border);
 		border-radius: 4px;
 	}
 
@@ -835,11 +840,9 @@
 	}
 
 	.hover-shared-label {
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 600;
 		color: var(--text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.3px;
 	}
 
 	.hover-shared-file {
@@ -951,10 +954,8 @@
 	}
 
 	.legend-header {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
 		color: var(--text-muted);
 		padding: 4px 12px 8px;
 		border-bottom: 1px solid var(--border);
@@ -1011,7 +1012,7 @@
 		height: 14px;
 		border-radius: 7px;
 		background: var(--accent, #3b82f6);
-		color: #fff;
+		color: var(--on-accent);
 		font-size: 9px;
 		font-weight: 700;
 		display: flex;

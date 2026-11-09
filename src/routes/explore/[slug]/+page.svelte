@@ -98,7 +98,7 @@
 
 <div class="explore-page" data-theme={themeStore.current}>
 	<header class="explore-header">
-		<a href={resolve('/')} class="explore-logo">ROPEMAN</a>
+		<a href={resolve('/')} class="explore-logo">Ropeman</a>
 		<a href={resolve('/explore')} class="back-link">
 			← {i18nStore.locale === 'ko' ? '갤러리' : 'Explore'}
 		</a>
@@ -204,8 +204,6 @@
 		font-weight: 700;
 		color: var(--accent);
 		text-decoration: none;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 	}
 
 	.back-link {
@@ -224,9 +222,8 @@
 	}
 
 	.badge {
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
 		padding: 2px 8px;
 		border-radius: 9999px;
 		background: var(--accent-bg);

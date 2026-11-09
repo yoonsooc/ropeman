@@ -127,7 +127,7 @@
 <div class="share-page" data-theme={themeStore.current}>
 	<!-- Header -->
 	<header class="share-header">
-		<a href={resolve('/')} class="share-logo">ROPEMAN</a>
+		<a href={resolve('/')} class="share-logo">Ropeman</a>
 		<span class="share-project-name">{snapshotMeta?.projectName ?? ''}</span>
 		<span class="share-badge">
 			{i18nStore.locale === 'ko' ? '공유됨' : 'Shared'}
@@ -197,8 +197,6 @@
 		font-weight: 700;
 		color: var(--accent);
 		text-decoration: none;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 	}
 
 	.share-project-name {
@@ -208,14 +206,12 @@
 	}
 
 	.share-badge {
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
 		padding: 2px 8px;
 		border-radius: 9999px;
 		background: var(--accent-bg);
 		color: var(--accent);
-		letter-spacing: 0.05em;
 	}
 
 	.share-header-actions {

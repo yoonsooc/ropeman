@@ -113,7 +113,6 @@
 		font-size: 14px;
 		font-weight: 700;
 		font-family: var(--font-display, 'Space Grotesk', sans-serif);
-		text-transform: uppercase;
 		letter-spacing: 0.025em;
 		line-height: 1.3;
 		flex: 1;
@@ -146,10 +145,8 @@
 
 	.section-title {
 		font-family: var(--font-display, 'Space Grotesk', sans-serif);
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--text-muted);
 		margin-bottom: 16px;
 		display: flex;

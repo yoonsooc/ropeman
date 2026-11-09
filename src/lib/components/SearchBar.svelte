@@ -382,14 +382,12 @@
 	}
 
 	.result-badge {
-		font-size: 10px;
+		font-size: 12px;
 		padding: 2px 6px;
 		border-radius: 4px;
 		background: var(--bg-primary);
 		color: var(--text-muted);
 		flex-shrink: 0;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
 	}
 
 	.no-results {

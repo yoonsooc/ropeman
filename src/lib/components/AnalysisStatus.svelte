@@ -318,9 +318,8 @@
 		align-items: center;
 		gap: 12px;
 		padding: 8px 16px;
-		background: rgba(21, 26, 33, 0.9);
-		backdrop-filter: blur(12px);
-		border: 1px solid rgba(172, 138, 255, 0.3);
+		background: var(--bg-secondary);
+		border: 1px solid var(--accent-muted);
 		border-radius: 9999px;
 		z-index: 50;
 		box-shadow:
@@ -331,7 +330,7 @@
 	}
 
 	.group-pill {
-		border-color: rgba(172, 138, 255, 0.5);
+		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 		z-index: 51;
 	}
 
@@ -348,7 +347,7 @@
 
 	.analysis-pill-icon {
 		font-size: 18px;
-		color: var(--accent-tertiary, #ac8aff);
+		color: var(--accent);
 		animation: spin-slow 2s linear infinite;
 		flex-shrink: 0;
 	}
@@ -369,10 +368,8 @@
 
 	.analysis-pill-title {
 		font-family: var(--font-display);
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 		color: var(--text-primary);
 		white-space: nowrap;
 	}
