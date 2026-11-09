@@ -36,10 +36,13 @@ function normalizePath(path: string, hasRepoPrefix: boolean): string {
  *                       (local FileNode paths), false for GitHub tree paths
  */
 export function pathPriority(path: string, hasRepoPrefix = false): number {
-	const normalized = normalizePath(path, hasRepoPrefix).toLowerCase();
+	const stripped = normalizePath(path, hasRepoPrefix);
+	const normalized = stripped.toLowerCase();
 	// Low-priority check first — tests/examples override core dir detection
 	// (e.g. src/__tests__/foo.ts is a test, not core source)
 	if (LOW_PRIORITY_PATTERN.test(normalized)) return 3;
+	// Ordinary docs must not push code out of the file limits; instruction files keep their place
+	if (isMarkdownPath(normalized) && !isPrimaryMarkdown(stripped)) return 3;
 	if (CORE_DIR_PATTERN.test(normalized)) return 0;
 	if (!normalized.includes('/')) return 1;
 	return 2;
@@ -148,12 +151,18 @@ export const DEFAULT_INCLUDE_PATHS: readonly string[] = [
 /** Folder names to skip plus include entries that override the skip rules. */
 export interface PathFilter {
 	skip: Set<string>;
+	skipPaths: string[];
 	includeNames: Set<string>;
 	includePaths: string[];
 }
 
 function normalizeEntry(raw: string): string {
-	return raw.trim().replace(/^\.\//, '').replace(/^\/+/, '').replace(/\/+$/, '');
+	return raw
+		.trim()
+		.replace(/\\/g, '/')
+		.replace(/^\.\//, '')
+		.replace(/^\/+/, '')
+		.replace(/\/+$/, '');
 }
 
 /**
@@ -165,9 +174,12 @@ export function createPathFilter(
 	customIncludePatterns: string[] = []
 ): PathFilter {
 	const skip = new Set(SKIP_DIRS);
+	const skipPaths: string[] = [];
 	for (const raw of customSkipPatterns) {
 		const entry = normalizeEntry(raw);
-		if (entry) skip.add(entry);
+		if (!entry) continue;
+		if (entry.includes('/')) skipPaths.push(entry);
+		else skip.add(entry);
 	}
 	const includeNames = new Set<string>();
 	const includePaths: string[] = [];
@@ -177,13 +189,13 @@ export function createPathFilter(
 		if (entry.includes('/')) includePaths.push(entry);
 		else includeNames.add(entry);
 	}
-	return { skip, includeNames, includePaths };
+	return { skip, skipPaths, includeNames, includePaths };
 }
 
 export const DEFAULT_PATH_FILTER: PathFilter = createPathFilter();
 
-function isExcludedSegment(seg: string, filter: PathFilter): boolean {
-	if (filter.skip.has(seg)) return true;
+function isExcludedSegment(seg: string, prefix: string, filter: PathFilter): boolean {
+	if (filter.skip.has(seg) || filter.skipPaths.includes(prefix)) return true;
 	if (seg.startsWith('.') && seg !== '.env') return true;
 	return seg.endsWith('.egg-info');
 }
@@ -194,7 +206,7 @@ function withinPath(path: string, entry: string): boolean {
 
 /**
  * Check if a path should be skipped. A segment is excluded when it is in the skip set,
- * hidden or an `.egg-info` folder, unless an include entry covers it: a name entry equal
+ * its path from the root is a path exclude entry, or it is hidden or an `.egg-info` folder, unless an include entry covers it: a name entry equal
  * to the segment, or a path entry at or below that segment that contains the whole path.
  * Only folder segments are checked unless `checkName` is set; a trailing slash marks a
  * folder path so its own name is checked.
@@ -212,7 +224,7 @@ export function shouldSkipPath(
 		const seg = segments[i];
 		if (!seg) continue;
 		prefix = prefix ? `${prefix}/${seg}` : seg;
-		if (!isExcludedSegment(seg, filter)) continue;
+		if (!isExcludedSegment(seg, prefix, filter)) continue;
 		if (filter.includeNames.has(seg)) continue;
 		const covered = filter.includePaths.some(
 			(entry) => entry.length >= prefix.length && withinPath(fullPath, entry)
@@ -234,9 +246,37 @@ export function isIncludeAncestor(
 	return filter.includePaths.some((entry) => entry.startsWith(dir + '/'));
 }
 
-/** True when an include entry explicitly covers the path, so later exclusions should not drop it. */
+/**
+ * True when an include entry explicitly covers the path, so later exclusions should not drop it.
+ * A name entry anywhere in the path counts; callers only use this against root-anchored
+ * exclusions, which an excluded folder nested under the include cannot match.
+ */
 export function isPathIncluded(path: string, filter: PathFilter = DEFAULT_PATH_FILTER): boolean {
 	const segments = path.split('/');
 	if (segments.some((seg) => filter.includeNames.has(seg))) return true;
 	return filter.includePaths.some((entry) => withinPath(path, entry));
+}
+
+const PRIMARY_MARKDOWN_NAMES = new Set([
+	'skill.md',
+	'agents.md',
+	'claude.md',
+	'gemini.md',
+	'readme.md'
+]);
+
+export function isMarkdownPath(path: string): boolean {
+	const lower = path.toLowerCase();
+	return lower.endsWith('.md') || lower.endsWith('.mdc');
+}
+
+/**
+ * Markdown that describes how the project or its agents work: skill and agent instruction
+ * files, READMEs, Cursor rules and anything under an include entry. Other Markdown (docs,
+ * changelogs) is outlined too but ranked last so it never displaces code.
+ */
+export function isPrimaryMarkdown(path: string, filter: PathFilter = DEFAULT_PATH_FILTER): boolean {
+	const name = path.substring(path.lastIndexOf('/') + 1).toLowerCase();
+	if (PRIMARY_MARKDOWN_NAMES.has(name) || name.endsWith('.mdc')) return true;
+	return isPathIncluded(path, filter);
 }

@@ -5,7 +5,8 @@ import {
 	SKIP_DIRS,
 	createPathFilter,
 	isIncludeAncestor,
-	isPathIncluded
+	isPathIncluded,
+	isPrimaryMarkdown
 } from './filePriority';
 
 describe('pathPriority', () => {
@@ -201,6 +202,20 @@ describe('include entries', () => {
 
 	it('still skips excluded folders below an included one', () => {
 		expect(shouldSkipPath('.agents/skills/x/node_modules/pkg/index.js')).toBe(true);
+		expect(shouldSkipPath('.claude/skills/x/node_modules/pkg/index.js')).toBe(true);
+	});
+
+	it('supports path excludes from the root and Windows separators', () => {
+		const filter = createPathFilter(['src/generated', 'tools\\vendor\\']);
+		expect(shouldSkipPath('src/generated/api.ts', filter)).toBe(true);
+		expect(shouldSkipPath('lib/src/generated/api.ts', filter)).toBe(false);
+		expect(shouldSkipPath('tools/vendor/x.js', filter)).toBe(true);
+	});
+
+	it('keeps an include path inside a path exclude', () => {
+		const filter = createPathFilter(['src/generated'], ['src/generated/keep']);
+		expect(shouldSkipPath('src/generated/keep/a.ts', filter)).toBe(false);
+		expect(shouldSkipPath('src/generated/drop/a.ts', filter)).toBe(true);
 	});
 
 	it('lets a bare name override the exclude rules at any depth', () => {
@@ -233,5 +248,24 @@ describe('include entries', () => {
 		expect(isPathIncluded('pkg/.agents/skills/a/SKILL.md')).toBe(true);
 		expect(isPathIncluded('src/app.ts')).toBe(false);
 		expect(isPathIncluded('scripts/build.sh', createPathFilter([], ['scripts']))).toBe(true);
+	});
+});
+
+describe('markdown priority', () => {
+	it('ranks ordinary docs last but keeps instruction files in place', () => {
+		// Regression: every README and doc became parseable and could crowd code out of MAX_FILES
+		expect(pathPriority('CHANGELOG.md')).toBe(3);
+		expect(pathPriority('src/notes.md')).toBe(3);
+		expect(pathPriority('README.md')).toBe(1);
+		expect(pathPriority('skills/review/SKILL.md')).toBe(2);
+		expect(pathPriority('repo/AGENTS.md', true)).toBe(1);
+	});
+
+	it('treats instruction names, Cursor rules and included paths as primary', () => {
+		expect(isPrimaryMarkdown('skills/x/SKILL.md')).toBe(true);
+		expect(isPrimaryMarkdown('.cursor/rules/style.mdc')).toBe(true);
+		expect(isPrimaryMarkdown('.claude/commands/sync.md')).toBe(true);
+		expect(isPrimaryMarkdown('skills/x/references/checklist.md')).toBe(false);
+		expect(isPrimaryMarkdown('docs/guide.md', createPathFilter([], ['docs']))).toBe(true);
 	});
 });

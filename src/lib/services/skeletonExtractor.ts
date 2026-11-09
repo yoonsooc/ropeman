@@ -7,7 +7,13 @@ import type {
 	SkeletonSymbol
 } from '$lib/types/skeleton';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
-import { createPathFilter, isPathIncluded, type PathFilter } from '$lib/utils/filePriority';
+import {
+	createPathFilter,
+	isMarkdownPath,
+	isPathIncluded,
+	isPrimaryMarkdown,
+	type PathFilter
+} from '$lib/utils/filePriority';
 
 const SKIP_KINDS = new Set(['variable', 'interface', 'type']);
 
@@ -57,6 +63,8 @@ function filePriority(filePath: string, filter: PathFilter, projectName?: string
 			if (pat.test(normalized)) return 0;
 		}
 	}
+	// Ordinary docs go last so the size budget is spent on code and instruction files first
+	if (isMarkdownPath(normalized) && !isPrimaryMarkdown(normalized, filter)) return 1;
 	for (const pat of CORE_DIR_PATTERNS) {
 		if (pat.test(normalized)) return 3;
 	}

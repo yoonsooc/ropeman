@@ -314,7 +314,7 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsCustomSkipPatterns: '추가 제외 디렉토리',
 		settingsCustomSkipPatternsPlaceholder: '1줄 1개, 예:\ntarget\nthird_party',
 		settingsCustomSkipPatternsHint:
-			'기본 제외 목록에 추가로 제외할 디렉토리 이름. 대형 모노레포나 생성된 코드 디렉토리를 분석 대상에서 빼고 싶을 때 사용합니다.',
+			'기본 제외 목록에 더할 디렉토리. 이름만 쓰면 어느 깊이든, /가 들어가면 프로젝트 루트부터의 경로를 뺍니다. 대형 모노레포나 생성된 코드 디렉토리를 분석 대상에서 빼고 싶을 때 사용합니다.',
 		settingsCustomIncludePatterns: '포함할 경로',
 		settingsCustomIncludePatternsPlaceholder: '1줄 1개, 예:\ndocs\n.github/workflows',
 		settingsCustomIncludePatternsHint:
@@ -631,7 +631,7 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsCustomSkipPatterns: 'Additional Excluded Directories',
 		settingsCustomSkipPatternsPlaceholder: 'One per line, e.g.:\ntarget\nthird_party',
 		settingsCustomSkipPatternsHint:
-			'Directory names to exclude in addition to the built-in list. Useful for large monorepos or generated code directories.',
+			'Directories to exclude in addition to the built-in list. A bare name matches at any depth; an entry with a slash matches that path from the project root. Useful for large monorepos or generated code directories.',
 		settingsCustomIncludePatterns: 'Included Paths',
 		settingsCustomIncludePatternsPlaceholder: 'One per line, e.g.:\ndocs\n.github/workflows',
 		settingsCustomIncludePatternsHint:

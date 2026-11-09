@@ -104,6 +104,45 @@ describe('extractMarkdownSymbols', () => {
 		expect(names).not.toContain('sk-secret');
 	});
 
+	it('stays fast on pathological lines', () => {
+		// Regression: the first heading and link patterns were quadratic on long lines,
+		// and markdown is outlined on the main thread
+		const md = ['# a' + ' '.repeat(40_000) + 'x#', '['.repeat(40_000), '# ok'].join('\n');
+
+		const started = performance.now();
+		const symbols = extractMarkdownSymbols(md);
+
+		expect(performance.now() - started).toBeLessThan(100);
+		expect(symbols.map((s) => s.name)).toEqual(['ok']);
+	});
+
+	it('does not close a fence on a line with an info string or a shorter fence', () => {
+		const md = ['````md', '```js', '# inside', '```', '````', '# after'].join('\n');
+
+		expect(extractMarkdownSymbols(md).map((s) => s.name)).toEqual(['after']);
+	});
+
+	it('skips headings and links inside HTML comments', () => {
+		const md = [
+			'<!--',
+			'# hidden',
+			'[x](secret/path.md)',
+			'-->',
+			'# shown <!-- [y](z.md) -->'
+		].join('\n');
+
+		expect(extractMarkdownSymbols(md).map((s) => s.name)).toEqual(['shown']);
+	});
+
+	it('strips closing hashes and ignores empty headings, which still end a section', () => {
+		const md = ['## Title ##', '#', '### C#'].join('\n');
+
+		const symbols = extractMarkdownSymbols(md);
+
+		expect(symbols.map((s) => s.name)).toEqual(['Title', 'C#']);
+		expect(symbols[0].lineEnd).toBe(1);
+	});
+
 	it('treats a file without frontmatter or headings as empty', () => {
 		expect(extractMarkdownSymbols('just text')).toEqual([]);
 	});

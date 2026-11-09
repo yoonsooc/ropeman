@@ -298,6 +298,34 @@ describe('loadGitHubRepo', () => {
 		expect(topNames).not.toContain('.github');
 	});
 
+	it('drops hidden files from the tree and the parse list, like a local folder', async () => {
+		// Regression: the include rework stopped checking a blob's own name on GitHub
+		const hiddenTree = {
+			...mockTreeResponse,
+			tree: [
+				{ path: '.gitignore', mode: '100644', type: 'blob' as const, sha: 'h1', url: '', size: 10 },
+				{
+					path: '.eslintrc.js',
+					mode: '100644',
+					type: 'blob' as const,
+					sha: 'h2',
+					url: '',
+					size: 10
+				},
+				{ path: 'index.js', mode: '100644', type: 'blob' as const, sha: 'h3', url: '', size: 10 }
+			]
+		};
+		const fetchMock = vi.fn() as Mock;
+		fetchMock.mockResolvedValueOnce({ ok: true, json: async () => hiddenTree });
+		fetchMock.mockResolvedValue({ ok: true, text: async () => 'const x = 1;' });
+		vi.stubGlobal('fetch', fetchMock);
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+		expect(projectStore.fileTree!.children!.map((c) => c.name)).toEqual(['index.js']);
+		expect([...projectStore.astMap.keys()]).toEqual(['repo/index.js']);
+	});
+
 	it('keeps included agent paths inside a skipped folder and only those', async () => {
 		const blob = (path: string) => ({
 			path,

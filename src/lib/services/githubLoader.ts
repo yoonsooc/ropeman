@@ -102,7 +102,7 @@ function buildFileTree(
 			// are only walked for an include path inside them appear once a kept file needs them
 			if (!shouldSkipPath(item.path + '/', filter)) ensureDir(item.path);
 		} else if (item.type === 'blob') {
-			if (shouldSkipPath(item.path, filter)) continue;
+			if (shouldSkipPath(item.path, filter, true)) continue;
 			const parts = item.path.split('/');
 			const parentPath = parts.slice(0, -1).join('/');
 			const parent = ensureDir(parentPath);
@@ -134,7 +134,7 @@ function collectSupportedItems(
 		.filter(
 			(item) =>
 				item.type === 'blob' &&
-				!shouldSkipPath(item.path, filter) &&
+				!shouldSkipPath(item.path, filter, true) &&
 				(item.size ?? 0) <= MAX_FILE_SIZE &&
 				detectLanguage(item.path) !== null &&
 				isSupported(detectLanguage(item.path)!)
