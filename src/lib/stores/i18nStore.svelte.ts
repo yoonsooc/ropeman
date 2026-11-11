@@ -1045,11 +1045,11 @@ const translations: Record<Locale, TranslationSet> = {
 		analysisCancelConfirmMessageSingle:
 			'Cancel the "{label}" analysis? All progress will be discarded.',
 		analysisCancelConfirmMessageAll:
-			'Cancel all {count} running analyses? All progress will be discarded.',
+			'Cancel all {count} running {count|analysis|analyses}? All progress will be discarded.',
 		analysisCancelConfirmOk: 'Cancel Analysis',
 		analysisCancelConfirmBack: 'Keep Running',
 		analysisCancelAll: 'Cancel All',
-		analysisGroupRunning: '{count} analyses running',
+		analysisGroupRunning: '{count} {count|analysis|analyses} running',
 		analysisInProgress: 'AI Analysis in Progress',
 		dontAskAgain: "Don't ask again",
 		settingsLanguage: 'Language',
@@ -1224,7 +1224,7 @@ const translations: Record<Locale, TranslationSet> = {
 		},
 		node: {
 			fileOne: '{n} file',
-			fileMany: '{n} files',
+			fileMany: '{n} {n|file|files}',
 			openInside: 'Open',
 			openCode: 'View code',
 			notInSnapshot: 'This snapshot has no deeper analysis. Click for details',
@@ -1396,7 +1396,7 @@ const translations: Record<Locale, TranslationSet> = {
 			project: 'Project',
 			error: 'Error',
 			beta: 'Beta',
-			symbolCount: '{n} symbols'
+			symbolCount: '{n} {n|symbol|symbols}'
 		},
 		track: {
 			edge: 'Demo',
@@ -1465,7 +1465,7 @@ const translations: Record<Locale, TranslationSet> = {
 		},
 		codeViewer: {
 			empty: 'Select a file from the Explorer or a semantic node to view code',
-			lines: '{n} lines',
+			lines: '{n} {n|line|lines}',
 			symbols: 'Symbols',
 			noProject: 'No project loaded',
 			notAccessible: 'File not accessible',
@@ -1505,7 +1505,7 @@ const translations: Record<Locale, TranslationSet> = {
 			edgeUses: 'uses'
 		},
 		settingsUi: {
-			cacheEntries: '{n} entries',
+			cacheEntries: '{n} {n|entry|entries}',
 			themeDark: 'Dark',
 			themeLight: 'Light'
 		},
@@ -1586,8 +1586,14 @@ function createI18nStore() {
 				}
 			}
 			if (!params) return value as string;
-			return (value as string).replace(/\{(\w+)\}/g, (match, name: string) =>
-				name in params ? String(params[name]) : match
+			const plural = new Intl.PluralRules(settingsStore.language);
+			return (value as string).replace(
+				/\{(\w+)(?:\|([^|{}]*)\|([^|{}]*))?\}/g,
+				(match, name: string, one?: string, other?: string) => {
+					if (!(name in params)) return match;
+					if (other === undefined) return String(params[name]);
+					return plural.select(Number(params[name])) === 'one' ? one! : other;
+				}
 			);
 		},
 		getProgressMessage(key: keyof AnalysisProgressTranslations): string {
