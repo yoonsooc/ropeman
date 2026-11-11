@@ -150,7 +150,9 @@ function startServer(
 		maxPayload: MAX_PAYLOAD_BYTES,
 		verifyClient: ({ origin, req }, done) => {
 			if (!isOriginAllowed(origin || undefined, auth.allowedOrigins)) {
-				log(`Rejected connection from origin ${origin} (not allowed)`);
+				log(
+					`Rejected connection from origin ${JSON.stringify(origin).slice(0, 100)} (not allowed)`
+				);
 				done(false, 403, 'Origin not allowed');
 				return;
 			}
@@ -306,10 +308,14 @@ async function main() {
 		log('You can also specify --cli <claude|gemini> flag.');
 	}
 
-	const auth: ServerAuth = {
-		token: resolveToken(argv, process.env),
-		allowedOrigins: parseAllowedOrigins(argv)
-	};
+	let token: string;
+	try {
+		token = resolveToken(argv, process.env);
+	} catch (err) {
+		console.error(`Cannot start: ${(err as Error).message}`);
+		process.exit(1);
+	}
+	const auth: ServerAuth = { token, allowedOrigins: parseAllowedOrigins(argv) };
 
 	const clients = new Set<WebSocket>();
 	startServer(port, clients, defaultCli, auth);

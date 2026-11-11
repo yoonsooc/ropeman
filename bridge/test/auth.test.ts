@@ -4,6 +4,7 @@ import os from 'os';
 import path from 'path';
 import {
 	DEFAULT_ALLOWED_ORIGINS,
+	MIN_TOKEN_LENGTH,
 	TOKEN_ENV,
 	isCLIType,
 	isOriginAllowed,
@@ -95,10 +96,24 @@ describe('bridge auth', () => {
 			fs.rmSync(dir, { recursive: true, force: true });
 		});
 
+		const flagToken = 'flag-token-0123456789';
+		const envToken = 'env-token-0123456789';
+
 		it('prefers --token, then the environment', () => {
-			expect(resolveToken(['--token', 'flag'], { [TOKEN_ENV]: 'env' }, tokenFile)).toBe('flag');
-			expect(resolveToken([], { [TOKEN_ENV]: 'env' }, tokenFile)).toBe('env');
+			expect(resolveToken(['--token', flagToken], { [TOKEN_ENV]: envToken }, tokenFile)).toBe(
+				flagToken
+			);
+			expect(resolveToken([], { [TOKEN_ENV]: envToken }, tokenFile)).toBe(envToken);
 			expect(fs.existsSync(tokenFile)).toBe(false);
+		});
+
+		it('refuses a given token shorter than the minimum', () => {
+			const short = 'x'.repeat(MIN_TOKEN_LENGTH - 1);
+			expect(() => resolveToken(['--token', short], {}, tokenFile)).toThrow(/at least 16/);
+			expect(() => resolveToken([], { [TOKEN_ENV]: short }, tokenFile)).toThrow(/at least 16/);
+			expect(resolveToken(['--token', 'x'.repeat(MIN_TOKEN_LENGTH)], {}, tokenFile)).toHaveLength(
+				MIN_TOKEN_LENGTH
+			);
 		});
 
 		it('creates an owner-only token file and reuses it on the next run', () => {
@@ -111,5 +126,22 @@ describe('bridge auth', () => {
 			expect(second).toBe(first);
 			expect(fs.statSync(tokenFile).mode & 0o777).toBe(0o600);
 		});
+
+		it.skipIf(process.platform === 'win32')(
+			'tightens an existing token file that others can read',
+			() => {
+				// Arrange
+				fs.mkdirSync(path.dirname(tokenFile), { recursive: true });
+				fs.writeFileSync(tokenFile, 'stored-token-0123456789\n', { mode: 0o644 });
+				fs.chmodSync(tokenFile, 0o644);
+
+				// Act
+				const token = resolveToken([], {}, tokenFile);
+
+				// Assert
+				expect(token).toBe('stored-token-0123456789');
+				expect(fs.statSync(tokenFile).mode & 0o777).toBe(0o600);
+			}
+		);
 	});
 });

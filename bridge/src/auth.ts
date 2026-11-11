@@ -9,12 +9,15 @@ export type CLIType = 'claude' | 'gemini';
 export const DEFAULT_ALLOWED_ORIGINS = [
 	'https://ropeman.dev',
 	'http://localhost:5173',
+	'http://localhost:5174',
 	'http://localhost:4173',
 	'http://127.0.0.1:5173',
 	'http://127.0.0.1:4173'
 ];
 
 export const TOKEN_ENV = 'ROPEMAN_BRIDGE_TOKEN';
+
+export const MIN_TOKEN_LENGTH = 16;
 
 export function isCLIType(value: unknown): value is CLIType {
 	return value === 'claude' || value === 'gemini';
@@ -56,7 +59,8 @@ export function defaultTokenFile(): string {
 
 /**
  * Precedence: `--token`, then the environment, then a token file kept across restarts so the
- * browser does not need a new token every run. The file is created owner-only.
+ * browser does not need a new token every run. The file is kept owner-only. Throws when a given
+ * token is shorter than MIN_TOKEN_LENGTH.
  */
 export function resolveToken(
 	args: string[],
@@ -64,14 +68,28 @@ export function resolveToken(
 	tokenFile: string = defaultTokenFile()
 ): string {
 	const idx = args.indexOf('--token');
-	if (idx !== -1 && args[idx + 1]) return args[idx + 1];
-	if (env[TOKEN_ENV]) return env[TOKEN_ENV] as string;
+	const given = idx !== -1 && args[idx + 1] ? args[idx + 1] : env[TOKEN_ENV];
+	if (given) {
+		if (given.length < MIN_TOKEN_LENGTH) {
+			throw new Error(`Token must be at least ${MIN_TOKEN_LENGTH} characters.`);
+		}
+		return given;
+	}
 
+	let stored = '';
 	try {
-		const stored = fs.readFileSync(tokenFile, 'utf8').trim();
-		if (stored) return stored;
+		stored = fs.readFileSync(tokenFile, 'utf8').trim();
 	} catch {
 		/* no token yet */
+	}
+	if (stored) {
+		// The mode option only applies when a file is created, so tighten a file made another way.
+		try {
+			fs.chmodSync(tokenFile, 0o600);
+		} catch {
+			/* e.g. a file owned by another user; reading it still works */
+		}
+		return stored;
 	}
 	const token = randomBytes(24).toString('base64url');
 	fs.mkdirSync(path.dirname(tokenFile), { recursive: true, mode: 0o700 });
