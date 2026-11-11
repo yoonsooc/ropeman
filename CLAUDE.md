@@ -152,6 +152,7 @@
 - `src/lib/services/` 또는 `src/lib/stores/` 파일 변경 시 대응하는 `.test.ts` 파일을 반드시 추가 또는 업데이트한다.
 - vitest, AAA 패턴, 외부 의존성은 `vi.mock()`.
 - 실제 발생했던 버그 케이스는 테스트에 포함 (regression test).
+- `edge-proxy/test/`는 루트 `npm run test:unit`에 들어가지 않는다. workerd에서 도는 `npm test --prefix edge-proxy`로 따로 실행한다(CI의 Worker tests 단계).
 
 ## Custom Commands(Claude Skills)
 
