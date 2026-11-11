@@ -85,7 +85,7 @@
 				analyzeTopLevel({ force: true });
 			}
 		} catch (err) {
-			error = `Failed to analyze snippet: ${err}`;
+			error = i18nStore.t('snippet.analyzeFailed', { error: String(err) });
 			projectStore.isLoading = false;
 		}
 	}

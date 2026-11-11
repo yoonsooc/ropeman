@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { webgpuStore, WEBGPU_MODELS } from '$lib/stores/webgpuStore.svelte';
 	import { initModel, cancelDownload } from '$lib/services/webllmService';
 
@@ -9,10 +10,10 @@
 	}
 
 	function estimateTime(mb: number): string {
-		if (mb < 600) return '< 1 min';
-		if (mb < 1200) return '1~3 min';
-		if (mb < 3000) return '3~6 min';
-		return '5~10 min';
+		if (mb < 600) return i18nStore.t('webgpuSetup.timeUnder1');
+		if (mb < 1200) return i18nStore.t('webgpuSetup.time1to3');
+		if (mb < 3000) return i18nStore.t('webgpuSetup.time3to6');
+		return i18nStore.t('webgpuSetup.time5to10');
 	}
 
 	function handleStartDownload() {
@@ -48,7 +49,7 @@
 	>
 		<div class="modal-card webgpu-card" role="dialog" aria-modal="true">
 			<div class="modal-header">
-				<h2>Browser AI Setup</h2>
+				<h2>{i18nStore.t('webgpuSetup.title')}</h2>
 				<button class="modal-close" onclick={handleCancel}>&#10005;</button>
 			</div>
 
@@ -58,14 +59,20 @@
 					<div class="error-section">
 						<div class="error-icon">&#9888;</div>
 						<p class="error-text">{webgpuStore.errorMessage}</p>
-						<button class="btn btn-primary" onclick={handleStartDownload}>Retry</button>
-						<button class="btn btn-secondary" onclick={handleCancel}>Close</button>
+						<button class="btn btn-primary" onclick={handleStartDownload}
+							>{i18nStore.t('common.retry')}</button
+						>
+						<button class="btn btn-secondary" onclick={handleCancel}
+							>{i18nStore.t('common.close')}</button
+						>
 					</div>
 				{:else}
 					<!-- Confirmation screen -->
 					<div class="confirm-section">
 						<div class="model-selector">
-							<label for="webgpu-model-select" class="form-label selector-label">Model</label>
+							<label for="webgpu-model-select" class="form-label selector-label"
+								>{i18nStore.t('webgpuSetup.model')}</label
+							>
 							<select
 								id="webgpu-model-select"
 								class="select model-select"
@@ -80,21 +87,21 @@
 						</div>
 						<div class="model-info">
 							<div class="info-row">
-								<span class="info-label">Parameters</span>
+								<span class="info-label">{i18nStore.t('webgpuSetup.parameters')}</span>
 								<span class="info-value">{webgpuStore.selectedModel.params}</span>
 							</div>
 							<div class="info-row">
-								<span class="info-label">VRAM</span>
+								<span class="info-label">{i18nStore.t('webgpuSetup.vram')}</span>
 								<span class="info-value">{formatSize(webgpuStore.selectedModel.vramMB)}</span>
 							</div>
 							<div class="info-row">
-								<span class="info-label">Download</span>
+								<span class="info-label">{i18nStore.t('webgpuSetup.download')}</span>
 								<span class="info-value"
 									>{formatSize(webgpuStore.selectedModel.downloadSizeMB)}</span
 								>
 							</div>
 							<div class="info-row">
-								<span class="info-label">Est. Time</span>
+								<span class="info-label">{i18nStore.t('webgpuSetup.estTime')}</span>
 								<span class="info-value"
 									>{estimateTime(webgpuStore.selectedModel.downloadSizeMB)}</span
 								>
@@ -102,25 +109,29 @@
 						</div>
 						{#if webgpuStore.selectedModel.vramMB > 3000}
 							<p class="notice notice-warning vram-warning">
-								This model requires {formatSize(webgpuStore.selectedModel.vramMB)} VRAM. Make sure your
-								GPU has enough memory.
+								{i18nStore.t('webgpuSetup.vramWarning', {
+									size: formatSize(webgpuStore.selectedModel.vramMB)
+								})}
 							</p>
 						{/if}
 						{#if webgpuStore.isCached}
 							<p class="hint confirm-desc notice notice-success cached-hint">
-								This model is already cached in your browser. Loading will take just a few seconds.
+								{i18nStore.t('webgpuSetup.cachedHint')}
 							</p>
 						{:else}
 							<p class="hint confirm-desc">
-								The model will download in the background. You can use other AI modes while waiting.
-								Once downloaded, the model is cached in your browser (IndexedDB).
+								{i18nStore.t('webgpuSetup.downloadHint')}
 							</p>
 						{/if}
 						<div class="confirm-actions">
 							<button class="btn btn-primary" onclick={handleStartDownload}>
-								{webgpuStore.isCached ? 'Load Model' : 'Download & Setup'}
+								{webgpuStore.isCached
+									? i18nStore.t('webgpuSetup.loadModel')
+									: i18nStore.t('webgpuSetup.downloadSetup')}
 							</button>
-							<button class="btn btn-secondary" onclick={handleCancel}> Cancel </button>
+							<button class="btn btn-secondary" onclick={handleCancel}>
+								{i18nStore.t('common.cancel')}
+							</button>
 						</div>
 					</div>
 				{/if}
@@ -134,9 +145,16 @@
 	<div class="download-indicator">
 		<div class="di-header">
 			<span class="di-icon material-symbols-outlined">download</span>
-			<span class="di-title">Downloading {webgpuStore.selectedModel.label}...</span>
-			<button class="di-cancel" onclick={() => cancelDownload()} aria-label="Cancel download"
-				>Cancel</button
+			<span class="di-title"
+				>{i18nStore.t('webgpuSetup.downloadingModel', {
+					model: webgpuStore.selectedModel.label
+				})}</span
+			>
+			<button
+				class="di-cancel"
+				onclick={() => cancelDownload()}
+				aria-label={i18nStore.t('webgpuSetup.cancelDownload')}
+				>{i18nStore.t('common.cancel')}</button
 			>
 		</div>
 		<div class="di-progress-track">
@@ -144,7 +162,9 @@
 		</div>
 		<div class="di-info">
 			<span class="di-percent">{webgpuStore.downloadProgress}%</span>
-			<span class="di-stage">{webgpuStore.downloadStage || 'Starting...'}</span>
+			<span class="di-stage"
+				>{webgpuStore.downloadStage || i18nStore.t('webgpuSetup.starting')}</span
+			>
 		</div>
 	</div>
 {/if}
@@ -153,7 +173,9 @@
 {#if webgpuStore.status === 'ready' && webgpuStore.downloadProgress === 100}
 	<div class="download-complete" role="status">
 		<span class="dc-icon">&#10003;</span>
-		<span class="dc-text">Browser AI ({webgpuStore.selectedModel.label}) is ready!</span>
+		<span class="dc-text"
+			>{i18nStore.t('webgpuSetup.ready', { model: webgpuStore.selectedModel.label })}</span
+		>
 		<button class="dc-dismiss" onclick={() => (webgpuStore.downloadProgress = 0)}>&#10005;</button>
 	</div>
 {/if}

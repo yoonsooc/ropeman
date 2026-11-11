@@ -112,14 +112,13 @@
 			// Fallback: check for files via webkitGetAsEntry
 			const entry = item.webkitGetAsEntry?.();
 			if (entry?.isDirectory) {
-				error =
-					'Drag & drop directory reading requires a Chromium browser. Please use the "Open Directory" button instead.';
+				error = i18nStore.t('dropzone.needsChromium');
 				return;
 			}
 
-			error = 'Please drop a folder, not individual files.';
+			error = i18nStore.t('dropzone.folderOnly');
 		} catch (err) {
-			error = `Failed to read directory: ${err}`;
+			error = i18nStore.t('dropzone.readFailed', { error: String(err) });
 		}
 	}
 
@@ -132,7 +131,7 @@
 				await loadFromDirectoryHandle(dirHandle);
 			} catch (err: any) {
 				if (err.name !== 'AbortError') {
-					error = `Failed to open directory: ${err.message}`;
+					error = i18nStore.t('dropzone.openFailed', { error: err.message });
 				}
 			}
 		} else {
@@ -165,7 +164,7 @@
 			projectStore.astMap = astMap;
 			projectStore.isLoading = false;
 		} catch (err) {
-			error = `Failed to process files: ${err}`;
+			error = i18nStore.t('dropzone.processFailed', { error: String(err) });
 			projectStore.isLoading = false;
 		}
 	}
@@ -228,7 +227,7 @@
 	aria-label={i18nStore.t('landing.dropRegion')}
 >
 	{#if oncancel}
-		<button class="dropzone-close" onclick={oncancel} title="Cancel">
+		<button class="dropzone-close" onclick={oncancel} title={i18nStore.t('common.cancel')}>
 			<svg
 				width="20"
 				height="20"
@@ -416,7 +415,7 @@
 				<footer class="landing-footer">
 					<span class="footer-copy">&copy; 2026 Ropeman</span>
 					<a class="footer-link" href={resolve('/explore')}>
-						{i18nStore.locale === 'ko' ? '갤러리' : 'Explore'}
+						{i18nStore.t('explore.navLabel')}
 					</a>
 					<a class="footer-link" href={resolve(`/docs/${i18nStore.locale}/getting-started`)}>
 						{i18nStore.t('docs.footerLink')}

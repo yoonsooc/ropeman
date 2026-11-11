@@ -31,7 +31,7 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="prompt-backdrop" onclick={handleBackdropClick}>
 		<div class="prompt-dialog" role="dialog" aria-modal="true">
-			<button class="prompt-close" onclick={onclose} aria-label="Close">
+			<button class="prompt-close" onclick={onclose} aria-label={i18nStore.t('common.close')}>
 				<span class="material-symbols-outlined">close</span>
 			</button>
 

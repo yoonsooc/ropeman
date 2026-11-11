@@ -39,13 +39,17 @@
 		const track = authStore.activeTrack;
 		switch (track) {
 			case 'bridge':
-				return { label: 'Bridge', color: 'var(--track-bridge)', icon: '🔗' };
+				return {
+					label: i18nStore.t('track.bridgeShort'),
+					color: 'var(--track-bridge)',
+					icon: '🔗'
+				};
 			case 'edge':
-				return { label: 'Demo', color: 'var(--track-demo)', icon: '⚡' };
+				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)', icon: '⚡' };
 			case 'webgpu':
-				return { label: 'WebGPU', color: 'var(--track-webgpu)', icon: '🧠' };
+				return { label: i18nStore.t('track.webgpu'), color: 'var(--track-webgpu)', icon: '🧠' };
 			case 'byok':
-				return { label: 'API Key', color: 'var(--track-byok)', icon: '🔑' };
+				return { label: i18nStore.t('track.byok'), color: 'var(--track-byok)', icon: '🔑' };
 			default:
 				return null;
 		}
@@ -148,6 +152,7 @@
 			</button>
 		{/if}
 		<div class="header-divider"></div>
+		<!-- Saves an explicit choice, so the browser language no longer applies -->
 		<button
 			class="header-btn lang-toggle"
 			onclick={() => (settingsStore.language = i18nStore.locale === 'ko' ? 'en' : 'ko')}
@@ -223,7 +228,7 @@
 				class="track-badge"
 				style="--track-color: {trackInfo.color}"
 				onclick={onconnect}
-				title="AI: {trackInfo.label} (click to change)"
+				title={i18nStore.t('header.trackBadgeTitle', { track: trackInfo.label })}
 			>
 				<span class="track-dot"></span>
 				<span class="track-label">{trackInfo.label}</span>

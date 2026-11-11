@@ -171,21 +171,12 @@
 	const showIndividualPills = $derived(requests.length > 0 && (!groupActive || groupExpanded));
 	const showGroupPill = $derived(groupActive);
 
-	// i18n helpers
-	function formatMsg(key: string, params: Record<string, string | number>): string {
-		let s = i18nStore.t(key);
-		for (const [k, v] of Object.entries(params)) {
-			s = s.replace(`{${k}}`, String(v));
-		}
-		return s;
-	}
-
 	const cancelConfirmMessage = $derived.by(() => {
 		if (!cancelTarget) return '';
 		if (cancelTarget.mode === 'single') {
-			return formatMsg('analysisCancelConfirmMessageSingle', { label: cancelTarget.nodeLabel });
+			return i18nStore.t('analysisCancelConfirmMessageSingle', { label: cancelTarget.nodeLabel });
 		}
-		return formatMsg('analysisCancelConfirmMessageAll', { count: requests.length });
+		return i18nStore.t('analysisCancelConfirmMessageAll', { count: requests.length });
 	});
 </script>
 
@@ -197,7 +188,7 @@
 		>
 			<span class="material-symbols-outlined analysis-pill-icon">auto_awesome</span>
 			<div class="analysis-pill-content">
-				<span class="analysis-pill-title">AI Analysis in Progress</span>
+				<span class="analysis-pill-title">{i18nStore.t('analysisInProgress')}</span>
 				<span class="analysis-pill-subtitle">
 					{req.progress ? `[${req.nodeLabel}] ${req.progress}` : req.nodeLabel}
 				</span>
@@ -220,7 +211,7 @@
 		<span class="material-symbols-outlined analysis-pill-icon">auto_awesome</span>
 		<div class="analysis-pill-content">
 			<span class="analysis-pill-title"
-				>{formatMsg('analysisGroupRunning', { count: requests.length })}</span
+				>{i18nStore.t('analysisGroupRunning', { count: requests.length })}</span
 			>
 			{#if !groupExpanded && requests.length > 0}
 				<span class="analysis-pill-subtitle">

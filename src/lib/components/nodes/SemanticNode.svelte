@@ -48,9 +48,9 @@
 		<span class="node-dot" aria-hidden="true"></span>
 		<span class="node-label">{data.label}</span>
 		<span class="node-badge"
-			>{i18nStore
-				.t(data.fileCount === 1 ? 'node.fileOne' : 'node.fileMany')
-				.replace('{n}', String(data.fileCount))}</span
+			>{i18nStore.t(data.fileCount === 1 ? 'node.fileOne' : 'node.fileMany', {
+				n: data.fileCount
+			})}</span
 		>
 	</div>
 

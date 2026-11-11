@@ -419,6 +419,18 @@ describe('settingsStore', () => {
 			expect(store.language).toBe('en');
 		});
 
+		it('keeps Korean for a user saved before English became the default', async () => {
+			// Arrange
+			storage.set(STORAGE_KEY, JSON.stringify({ language: 'ko' }));
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('ko');
+		});
+
 		it('ignores a saved language it does not support', async () => {
 			// Arrange
 			storage.set(STORAGE_KEY, JSON.stringify({ language: 'ja' }));

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 
 	const progress = $derived(projectStore.parsingProgress);
@@ -22,8 +23,8 @@
 			</svg>
 		</div>
 
-		<h2 class="loading-title">Parsing Project</h2>
-		<p class="loading-name">{projectStore.projectName || 'Loading...'}</p>
+		<h2 class="loading-title">{i18nStore.t('parsing.title')}</h2>
+		<p class="loading-name">{projectStore.projectName || i18nStore.t('common.loading')}</p>
 
 		<div class="progress-container">
 			<div class="progress-bar">
@@ -32,7 +33,12 @@
 			<div class="progress-info">
 				<span class="progress-pct">{pct}%</span>
 				{#if progress.total > 0}
-					<span class="progress-count">{progress.done} / {progress.total} files</span>
+					<span class="progress-count"
+						>{i18nStore.t('parsing.fileProgress', {
+							done: progress.done,
+							total: progress.total
+						})}</span
+					>
 				{/if}
 			</div>
 		</div>

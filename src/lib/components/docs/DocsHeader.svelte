@@ -41,7 +41,7 @@
 		<a
 			class="header-btn"
 			href={resolve(`/docs/${otherLang}/${slug || 'getting-started'}`)}
-			title="Toggle Language"
+			title={i18nStore.t('header.languageToggle')}
 			onclick={() => {
 				settingsStore.language = otherLang;
 			}}

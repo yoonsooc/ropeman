@@ -13,11 +13,19 @@
 		const track = authStore.activeTrack;
 		switch (track) {
 			case 'bridge':
-				return { label: 'Local Bridge', color: 'var(--track-bridge)', connected: true };
+				return {
+					label: i18nStore.t('track.bridge'),
+					color: 'var(--track-bridge)',
+					connected: true
+				};
 			case 'edge':
-				return { label: 'Demo', color: 'var(--track-demo)', connected: true };
+				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)', connected: true };
 			case 'webgpu':
-				return { label: 'WebGPU', color: 'var(--track-webgpu)', connected: true };
+				return {
+					label: i18nStore.t('track.webgpu'),
+					color: 'var(--track-webgpu)',
+					connected: true
+				};
 			case 'byok': {
 				const provider = settingsStore.aiProvider;
 				const model = settingsStore.aiModel;
@@ -305,7 +313,9 @@
 							>
 								<span class="toggle-knob"></span>
 							</button>
-							<span class="cache-size">{cacheSize} entries</span>
+							<span class="cache-size"
+								>{i18nStore.t('settingsUi.cacheEntries', { n: cacheSize })}</span
+							>
 							{#if cacheSize > 0}
 								<button class="btn-cache-clear" onclick={handleCacheClear}>
 									<span class="material-symbols-outlined" style="font-size:14px;">delete</span>
@@ -367,7 +377,9 @@
 							>
 								{#each SYNTAX_THEMES as theme}
 									<option value={theme.id}
-										>{theme.label} ({theme.mode === 'dark' ? 'Dark' : 'Light'})</option
+										>{theme.label} ({theme.mode === 'dark'
+											? i18nStore.t('settingsUi.themeDark')
+											: i18nStore.t('settingsUi.themeLight')})</option
 									>
 								{/each}
 							</select>

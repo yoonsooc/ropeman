@@ -112,4 +112,79 @@ describe('i18nStore', () => {
 			expect(i18nStore.t('docs.categorySupport')).toBe('도움말');
 		});
 	});
+
+	describe('t with params', () => {
+		it('fills every placeholder it is given', () => {
+			// Act
+			const text = i18nStore.t('parsing.fileProgress', { done: 3, total: 10 });
+
+			// Assert
+			expect(text).toBe('파일 3 / 10개');
+		});
+
+		it('leaves a placeholder without a value untouched', () => {
+			// Act
+			const text = i18nStore.t('parsing.fileProgress', { done: 3 });
+
+			// Assert
+			expect(text).toBe('파일 3 / {total}개');
+		});
+	});
+
+	describe('locale coverage', () => {
+		function leaves(value: unknown, path = ''): [string, unknown][] {
+			if (Array.isArray(value)) return value.flatMap((v, i) => leaves(v, `${path}[${i}]`));
+			if (value && typeof value === 'object') {
+				return Object.entries(value).flatMap(([k, v]) => leaves(v, path ? `${path}.${k}` : k));
+			}
+			return [[path, value]];
+		}
+
+		function messagesFor(locale: 'ko' | 'en') {
+			settingsStore.language = locale;
+			return new Map(leaves(i18nStore.messages));
+		}
+
+		it('gives every string a non-empty value in both languages', () => {
+			// Arrange
+			const ko = messagesFor('ko');
+			const en = messagesFor('en');
+
+			// Assert
+			expect([...ko.keys()].sort()).toEqual([...en.keys()].sort());
+			for (const [path, value] of [...ko, ...en]) {
+				expect(typeof value === 'string' && value.trim().length > 0, path).toBe(true);
+			}
+		});
+
+		it('shows the Bridge settings in Korean for the ko locale', () => {
+			// Regression: the Bridge card labels were hardcoded English in both locales
+			for (const key of [
+				'analyze.cliTool',
+				'analyze.cliAuto',
+				'analyze.token',
+				'analyze.tokenPlaceholder'
+			]) {
+				expect(i18nStore.t(key)).toMatch(/[가-힣]/);
+			}
+		});
+
+		it('keeps the English Bridge labels the E2E tests and users already know', () => {
+			// Arrange
+			settingsStore.language = 'en';
+
+			// Assert
+			expect(i18nStore.t('analyze.cliTool')).toBe('CLI Tool');
+			expect(i18nStore.t('analyze.tokenPlaceholder')).toBe('Printed by the bridge at startup');
+		});
+
+		it('links every FAQ answer to a docs page in both languages', () => {
+			for (const locale of ['ko', 'en'] as const) {
+				settingsStore.language = locale;
+				const items = i18nStore.messages.help.faqItems;
+				expect(items.length).toBe(8);
+				for (const item of items) expect(item.slug).toMatch(/^[a-z-]+$/);
+			}
+		});
+	});
 });

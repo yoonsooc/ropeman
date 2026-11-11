@@ -74,9 +74,11 @@
 
 		{#if !authStore.isReady}
 			<div class="chat-warning">
-				<span>AI not connected</span>
+				<span>{i18nStore.t('chat.notConnected')}</span>
 				{#if onconnect}
-					<button class="chat-warning-link" onclick={onconnect}> Connect </button>
+					<button class="chat-warning-link" onclick={onconnect}>
+						{i18nStore.t('chat.connect')}
+					</button>
 				{/if}
 			</div>
 		{/if}
@@ -89,7 +91,7 @@
 			{#each chatStore.messages as msg, i (msg.timestamp)}
 				<ChatMessage message={msg} />
 				{#if lastFromCache && i === chatStore.messages.length - 1 && msg.role === 'assistant'}
-					<div class="cache-hit-badge">cached</div>
+					<div class="cache-hit-badge">{i18nStore.t('chat.cached')}</div>
 				{/if}
 			{/each}
 

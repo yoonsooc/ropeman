@@ -508,7 +508,7 @@
 			>
 				{#if splitDropZone === 'right'}
 					<div class="split-drop-overlay">
-						<div class="split-drop-hint">Drop to split</div>
+						<div class="split-drop-hint">{i18nStore.t('pane.dropToSplit')}</div>
 					</div>
 				{/if}
 				{#if layoutStore.isSplit && !isMobile}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import FileExplorer from './FileExplorer.svelte';
 	import SemanticTree from './SemanticTree.svelte';
 	import SidebarResizeHandle from './SidebarResizeHandle.svelte';
@@ -79,7 +80,7 @@
 			class="icon-btn"
 			class:active={activePanel === 'files' && contentOpen}
 			onclick={() => handleIconClick('files')}
-			title="File Explorer"
+			title={i18nStore.t('sidebar.fileExplorer')}
 		>
 			<svg
 				width="18"
@@ -99,7 +100,9 @@
 			class:active={activePanel === 'semantic' && contentOpen}
 			class:disabled={!hasSemanticData}
 			onclick={() => handleIconClick('semantic')}
-			title={hasSemanticData ? 'Semantic Tree' : 'Semantic Tree (run AI analysis first)'}
+			title={hasSemanticData
+				? i18nStore.t('sidebar.semanticTree')
+				: i18nStore.t('sidebar.semanticTreeNeedsAnalysis')}
 		>
 			<svg
 				width="18"
@@ -127,8 +130,12 @@
 			{:else}
 				<div class="semantic-panel" data-tour-step="4">
 					<div class="panel-header">
-						<span class="panel-title">Semantic Tree</span>
-						<button class="panel-toggle" onclick={() => (contentOpen = false)} title="Hide Panel">
+						<span class="panel-title">{i18nStore.t('sidebar.semanticTree')}</span>
+						<button
+							class="panel-toggle"
+							onclick={() => (contentOpen = false)}
+							title={i18nStore.t('sidebar.hidePanel')}
+						>
 							<svg
 								width="14"
 								height="14"

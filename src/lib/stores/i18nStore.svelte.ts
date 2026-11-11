@@ -45,6 +45,7 @@ interface SnippetTranslations {
 	analyze: string;
 	lines: string;
 	emptyError: string;
+	analyzeFailed: string;
 }
 
 interface LegendTranslations {
@@ -83,7 +84,7 @@ interface HelpTranslations {
 	aiModeWebgpuDesc: string;
 	shortcutsTitle: string;
 	faqTitle: string;
-	faqItems: { q: string; a: string }[];
+	faqItems: { q: string; a: string; slug: string }[];
 }
 
 interface ShareTranslations {
@@ -100,6 +101,7 @@ interface ShareTranslations {
 	errorTitle: string;
 	errorMessage: string;
 	close: string;
+	tooLarge: string;
 }
 
 interface AIErrorTranslations {
@@ -117,10 +119,55 @@ interface AIErrorTranslations {
 	actionConnect: string;
 }
 
-interface AnalyzeTranslations {
-	demoNotice: string;
-	byokKeyNotice: string;
-}
+type Strings<K extends string> = Record<K, string>;
+
+type AnalyzeTranslations = Strings<
+	| 'demoNotice'
+	| 'byokKeyNotice'
+	| 'title'
+	| 'current'
+	| 'demoSub'
+	| 'active'
+	| 'start'
+	| 'byokName'
+	| 'keySet'
+	| 'notConfigured'
+	| 'provider'
+	| 'model'
+	| 'customModel'
+	| 'modelPlaceholder'
+	| 'apiKeyLabel'
+	| 'apiKeyPlaceholder'
+	| 'test'
+	| 'valid'
+	| 'invalid'
+	| 'startWithApiKey'
+	| 'bridgeDesktopOnly'
+	| 'connected'
+	| 'disconnected'
+	| 'cliTool'
+	| 'cliAuto'
+	| 'port'
+	| 'connect'
+	| 'disconnect'
+	| 'token'
+	| 'tokenPlaceholder'
+	| 'startWithBridge'
+	| 'webgpuName'
+	| 'webgpuDesktopOnly'
+	| 'webgpuUnsupported'
+	| 'modelLoaded'
+	| 'downloading'
+	| 'cachedNeedsLoading'
+	| 'notInitialized'
+	| 'startWithWebgpu'
+	| 'setupModel'
+	| 'payloadPreview'
+	| 'copyJson'
+	| 'limit'
+	| 'unlimited'
+	| 'footerHint'
+>;
 
 interface NewProjectTranslations {
 	title: string;
@@ -141,6 +188,7 @@ interface HeaderTranslations {
 	homeConfirmMessage: string;
 	homeConfirmOk: string;
 	homeConfirmCancel: string;
+	trackBadgeTitle: string;
 }
 
 interface NodeTranslations {
@@ -281,6 +329,104 @@ interface TranslationSet {
 	help: HelpTranslations;
 	onboarding: OnboardingTranslations;
 	docs: DocsTranslations;
+	analysisInProgress: string;
+	common: Strings<
+		'close' | 'cancel' | 'retry' | 'copy' | 'loading' | 'project' | 'error' | 'beta' | 'symbolCount'
+	>;
+	track: Strings<
+		| 'edge'
+		| 'byok'
+		| 'bridge'
+		| 'bridgeShort'
+		| 'webgpu'
+		| 'none'
+		| 'disconnected'
+		| 'bridgeConnected'
+		| 'bridgeDisconnected'
+	>;
+	webgpuSetup: Strings<
+		| 'title'
+		| 'model'
+		| 'parameters'
+		| 'vram'
+		| 'download'
+		| 'estTime'
+		| 'vramWarning'
+		| 'cachedHint'
+		| 'downloadHint'
+		| 'loadModel'
+		| 'downloadSetup'
+		| 'downloadingModel'
+		| 'cancelDownload'
+		| 'starting'
+		| 'ready'
+		| 'timeUnder1'
+		| 'time1to3'
+		| 'time3to6'
+		| 'time5to10'
+	>;
+	drilldown: Strings<'title' | 'badge' | 'desc' | 'trackLine' | 'confirm'>;
+	nodeDetail: Strings<
+		'title' | 'details' | 'language' | 'lines' | 'children' | 'parent' | 'id' | 'empty'
+	>;
+	explorer: Strings<'title' | 'hide' | 'show' | 'filterPlaceholder' | 'clearFilter'>;
+	sidebar: Strings<
+		'fileExplorer' | 'semanticTree' | 'semanticTreeNeedsAnalysis' | 'hidePanel' | 'semanticEmpty'
+	>;
+	codeViewer: Strings<'empty' | 'lines' | 'symbols' | 'noProject' | 'notAccessible' | 'loadFailed'>;
+	search: Strings<'placeholder' | 'noResults' | 'file'>;
+	statusBar: Strings<'zoom' | 'minimap'>;
+	parsing: Strings<'title' | 'fileProgress'>;
+	chat: Strings<'notConnected' | 'connect' | 'cached'>;
+	pane: Strings<'empty' | 'dropToSplit'>;
+	canvas: Strings<
+		| 'noDirectConnection'
+		| 'sharedFiles'
+		| 'moreFiles'
+		| 'minimap'
+		| 'analysisRequests'
+		| 'edgeDependsOn'
+		| 'edgeCalls'
+		| 'edgeExtends'
+		| 'edgeUses'
+	>;
+	settingsUi: Strings<'cacheEntries' | 'themeDark' | 'themeLight'>;
+	dropzone: Strings<'needsChromium' | 'folderOnly' | 'readFailed' | 'openFailed' | 'processFailed'>;
+	symbolBadge: Strings<
+		'static' | 'async' | 'generator' | 'route' | 'export_default' | 'decorator' | 'abstract'
+	>;
+	docsUi: Strings<'sidebarNav' | 'closeMenu' | 'loadingDocs'>;
+	explore: Strings<
+		| 'navLabel'
+		| 'pageTitle'
+		| 'home'
+		| 'heroTitle'
+		| 'heroDesc'
+		| 'searchPlaceholder'
+		| 'searchLabel'
+		| 'languageLabel'
+		| 'allLanguages'
+		| 'empty'
+		| 'entryTitle'
+		| 'analyzeOwn'
+		| 'loadingEntry'
+		| 'notAnalyzedTitle'
+		| 'notAnalyzedDesc'
+		| 'analyzeFromHome'
+		| 'viewOnGithub'
+		| 'backToGallery'
+	>;
+	shareView: Strings<
+		| 'badge'
+		| 'pageTitleFallback'
+		| 'projectFallback'
+		| 'analyzeOwn'
+		| 'loading'
+		| 'notFoundTitle'
+		| 'notFound'
+		| 'loadFailed'
+		| 'goHome'
+	>;
 }
 
 const translations: Record<Locale, TranslationSet> = {
@@ -338,6 +484,7 @@ const translations: Record<Locale, TranslationSet> = {
 		analysisCancelConfirmBack: '계속 진행',
 		analysisCancelAll: '전체 취소',
 		analysisGroupRunning: '{count}개 분석 중',
+		analysisInProgress: 'AI 분석 진행 중',
 		dontAskAgain: '다시 묻지 않기',
 		settingsLanguage: '언어',
 		settingsReset: '초기화',
@@ -398,7 +545,8 @@ const translations: Record<Locale, TranslationSet> = {
 			placeholder: '여기에 코드를 붙여넣으세요...',
 			analyze: '분석하기',
 			lines: '줄',
-			emptyError: '코드를 입력해주세요'
+			emptyError: '코드를 입력해주세요',
+			analyzeFailed: '스니펫을 분석하지 못했습니다: {error}'
 		},
 		legend: {
 			title: '범례',
@@ -435,7 +583,8 @@ const translations: Record<Locale, TranslationSet> = {
 			openNewTab: '새 탭에서 열기',
 			errorTitle: '공유 실패',
 			errorMessage: '공유 링크를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.',
-			close: '닫기'
+			close: '닫기',
+			tooLarge: '분석 데이터가 너무 큽니다 (1MB 초과). 더 작은 프로젝트로 시도해주세요.'
 		},
 		aiError: {
 			tpm: '요청이 모델의 토큰 한도를 초과했습니다. 코드 구조 요약 크기를 줄이거나 다른 모델을 선택하세요.',
@@ -455,7 +604,50 @@ const translations: Record<Locale, TranslationSet> = {
 			demoNotice:
 				'Google Gemini 무료 등급으로 처리됩니다. 무료 등급에서는 Google이 입력을 서비스 개선에 사용할 수 있으니, 공개하기 어려운 코드는 API 키나 로컬 브리지를 쓰세요.',
 			byokKeyNotice:
-				'키는 이 브라우저에만 저장됩니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 브라우저 제약 때문에 Ropeman 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.'
+				'키는 이 브라우저에만 저장됩니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 브라우저 제약 때문에 Ropeman 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.',
+			title: 'AI 아키텍처 분석',
+			current: '현재: {track}',
+			demoSub: '무료 · 설정 없음',
+			active: '사용 중',
+			start: '시작',
+			byokName: 'API 키 (BYOK)',
+			keySet: '키 설정됨',
+			notConfigured: '설정 안 됨',
+			provider: '제공자',
+			model: '모델',
+			customModel: '직접 입력...',
+			modelPlaceholder: '예: claude-sonnet-5-5',
+			apiKeyLabel: '{provider} API 키',
+			apiKeyPlaceholder: 'API 키 입력',
+			test: '테스트',
+			valid: '유효함',
+			invalid: '유효하지 않음',
+			startWithApiKey: 'API 키로 시작',
+			bridgeDesktopOnly: '데스크톱 전용 — 로컬 CLI 브리지가 필요합니다',
+			connected: '연결됨',
+			disconnected: '연결 안 됨',
+			cliTool: 'CLI 도구',
+			cliAuto: '자동 감지',
+			port: '포트',
+			connect: '연결',
+			disconnect: '연결 해제',
+			token: '토큰',
+			tokenPlaceholder: '브리지가 시작할 때 출력합니다',
+			startWithBridge: '브리지로 시작',
+			webgpuName: '브라우저 AI',
+			webgpuDesktopOnly: '데스크톱 전용 — WebGPU와 수 GB의 RAM이 필요합니다',
+			webgpuUnsupported: 'WebGPU 미지원',
+			modelLoaded: '모델 로드됨',
+			downloading: '다운로드 중... {n}%',
+			cachedNeedsLoading: '캐시됨 (불러오기 필요)',
+			notInitialized: '초기화 안 됨 (~{size} 다운로드)',
+			startWithWebgpu: 'WebGPU로 시작',
+			setupModel: '모델 설정',
+			payloadPreview: '전송 데이터 미리보기',
+			copyJson: 'JSON 복사',
+			limit: '한도: {value}',
+			unlimited: '제한 없음',
+			footerHint: '구조 분석을 시작할 방식을 고르세요.'
 		},
 		panel: {
 			close: '닫기',
@@ -484,7 +676,8 @@ const translations: Record<Locale, TranslationSet> = {
 			homeConfirmTitle: '처음 화면으로 돌아갈까요?',
 			homeConfirmMessage: '지금 열린 프로젝트와 분석 화면이 닫힙니다. 진행 중인 분석도 멈춥니다.',
 			homeConfirmOk: '처음 화면으로 돌아가기',
-			homeConfirmCancel: '계속 보기'
+			homeConfirmCancel: '계속 보기',
+			trackBadgeTitle: 'AI: {track} (클릭해서 변경)'
 		},
 		newProject: {
 			title: '새 프로젝트 열기',
@@ -500,19 +693,7 @@ const translations: Record<Locale, TranslationSet> = {
 			tabShortcuts: '단축키',
 			tabFaq: 'FAQ',
 			usageTitle: '기본 사용법',
-			usageSteps: [
-				'폴더 열기 — 프로젝트 디렉토리를 선택하면 AST 파싱이 자동으로 시작됩니다.',
-				'AI 분석 — AI 연결을 설정하면 코드베이스를 의미론적으로 분석하여 다이어그램을 생성합니다.',
-				'드릴다운 — 다이어그램 노드를 더블클릭하면 하위 수준으로 탐색합니다.',
-				'코드 보기 — 파일 탐색기에서 파일을 더블클릭하면 코드 뷰어가 열립니다.'
-			],
 			usageInteraction: '인터랙션',
-			usageInteractionItems: [
-				'노드 클릭 — 선택 및 상세 정보 확인',
-				'노드 더블클릭 — 드릴다운 탐색',
-				'파일 더블클릭 — 코드 뷰어에서 열기',
-				'탭 드래그 — 분할 뷰로 이동'
-			],
 			aiModesTitle: 'AI 분석 모드',
 			aiModeDemo: 'Demo',
 			aiModeDemoDesc:
@@ -528,22 +709,58 @@ const translations: Record<Locale, TranslationSet> = {
 				'브라우저 내장 AI를 활용합니다. 외부 서버 연결 없이 완전히 로컬에서 동작하지만, 성능은 기기 사양에 따라 달라집니다.',
 			shortcutsTitle: '키보드 단축키',
 			faqTitle: '자주 묻는 질문',
+			usageSteps: [
+				'폴더 열기 — 프로젝트 디렉토리를 선택하면 AST 파싱이 자동으로 시작됩니다.',
+				'AI 분석 — AI 연결을 설정하면 코드베이스를 의미론적으로 분석하여 다이어그램을 생성합니다.',
+				'드릴다운 — 다이어그램 노드를 더블클릭하면 하위 수준으로 탐색합니다.',
+				'코드 보기 — 파일 탐색기에서 파일을 더블클릭하면 코드 뷰어가 열립니다.'
+			],
+			usageInteractionItems: [
+				'노드 클릭 — 선택 및 상세 정보 확인',
+				'노드 더블클릭 — 드릴다운 탐색',
+				'파일 더블클릭 — 코드 뷰어에서 열기',
+				'탭 드래그 — 분할 뷰로 이동'
+			],
 			faqItems: [
 				{
-					q: '소스 코드가 서버로 전송되나요?',
-					a: '원본 소스 코드는 전송되지 않습니다. AI 분석 시에는 함수/클래스 시그니처만 추출한 코드 구조 요약(메타데이터)만 전송됩니다.'
+					q: '제 프로젝트의 원본 소스 코드가 외부 서버로 유출되나요?',
+					a: '안심하셔도 됩니다. 어떠한 경우에도 원본 소스 코드는 외부로 전송되지 않습니다. AI가 맥락을 파악하기 위해 필요한 최소한의 코드 구조 정보(메타데이터)만 활용되며, AI 연동 모드에 따라 다음과 같이 처리됩니다.\n\n• WebGPU 모드 (최고 보안): 100% 기기 내부에서 오프라인으로 처리되며, 어떠한 데이터도 외부로 나가지 않습니다.\n• Demo / API Key 모드: 보안이 적용된 자체 중계 서버를 거쳐 AI 모델 제공사로 안전하게 전달됩니다.\n• Bridge 모드: 로컬에 설치된 CLI 툴을 통해 AI 모델 제공사의 서버로 직접 전송됩니다.',
+					slug: 'security'
 				},
 				{
 					q: '어떤 프로그래밍 언어를 지원하나요?',
-					a: 'Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala를 지원합니다.'
+					a: 'Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala를 지원합니다.',
+					slug: 'getting-started'
 				},
 				{
 					q: '프로젝트 크기에 제한이 있나요?',
-					a: '파일 수 최대 2,000개, 개별 파일 최대 500KB까지 지원합니다. 대규모 프로젝트는 설정에서 코드 구조 요약 크기를 조절하세요.'
+					a: '파일 수 최대 2,000개, 개별 파일 최대 500KB까지 지원합니다. 대규모 프로젝트는 설정에서 코드 구조 요약 크기를 조절하세요.',
+					slug: 'troubleshooting'
 				},
 				{
-					q: 'API 키는 어디에 저장되나요?',
-					a: '브라우저의 localStorage에만 저장되며, 설정 초기화로 삭제할 수 있습니다. Anthropic·OpenAI 키는 요청할 때 Ropeman 프록시를 거쳐 전달되지만 프록시는 키를 저장하지 않습니다.'
+					q: 'GitHub URL로 분석할 수 있나요?',
+					a: '네. 랜딩 페이지에서 공개 GitHub 저장소의 URL을 입력하면 로컬에 프로젝트를 다운로드하지 않고도 바로 분석할 수 있습니다. 비공개 저장소는 지원되지 않습니다.',
+					slug: 'getting-started'
+				},
+				{
+					q: '분석 결과를 공유할 수 있나요?',
+					a: 'AI 분석이 완료된 후 헤더의 Share 버튼을 클릭하면 공개 링크가 생성됩니다. 이 링크를 통해 다른 사람과 분석 결과를 공유할 수 있습니다.',
+					slug: 'faq'
+				},
+				{
+					q: '특정 디렉토리를 분석에서 제외할 수 있나요?',
+					a: 'Settings → 추가 제외 디렉토리 textarea에 디렉토리 이름을 1줄 1개씩 입력하면 기본 제외 목록에 추가됩니다. Rust의 target, 생성된 코드가 있는 generated, 모노레포의 third_party 같은 대형 디렉토리를 분석 대상에서 빼고 싶을 때 유용합니다.',
+					slug: 'faq'
+				},
+				{
+					q: '진행 중인 분석을 취소하거나 여러 개 동시에 실행할 수 있나요?',
+					a: '우측 하단 pill의 빨간 "취소" 버튼으로 언제든 중단 가능합니다 (확인 다이얼로그 + "다시 묻지 않기"). 여러 영역을 동시에 드릴다운하면 pill이 개별 스택되며, 3개를 초과하면 "N개 분석 중" 그룹 배지로 자동 병합됩니다. 분석은 페이지 이동 간에도 계속 진행되며 pill은 어느 라우트에서든 보입니다.',
+					slug: 'faq'
+				},
+				{
+					q: '입력한 API 키는 안전하게 보관되나요?',
+					a: 'API 키는 저희 서버에 절대 저장되지 않으며, 오직 사용자 기기의 브라우저 로컬 저장소에만 보관됩니다.\n\n• API Key 모드: 브라우저에 저장된 키는 API 호출 시에만 일회성으로 사용되며, 보안 통신을 통해 AI 모델 제공사로 전달됩니다.\n• Bridge 모드: 별도의 API 키 입력 없이, 로컬에 연동된 CLI 툴의 인증 방식을 그대로 사용합니다.\n• WebGPU 모드: 오프라인으로 동작하므로 API 키 자체가 필요하지 않습니다.\n\n설정 초기화로 언제든 삭제할 수 있습니다.',
+					slug: 'security'
 				}
 			]
 		},
@@ -601,6 +818,182 @@ const translations: Record<Locale, TranslationSet> = {
 			headerLink: '문서',
 			footerLink: '문서',
 			learnMore: '자세히 보기'
+		},
+		common: {
+			close: '닫기',
+			cancel: '취소',
+			retry: '다시 시도',
+			copy: '복사',
+			loading: '불러오는 중...',
+			project: '프로젝트',
+			error: '오류',
+			beta: '베타',
+			symbolCount: '심볼 {n}개'
+		},
+		track: {
+			edge: '데모',
+			byok: 'API 키',
+			bridge: '로컬 브리지',
+			bridgeShort: '브리지',
+			webgpu: 'WebGPU',
+			none: '연결 안 됨',
+			disconnected: '연결 안 됨',
+			bridgeConnected: '브리지 연결됨',
+			bridgeDisconnected: '브리지 연결 끊김'
+		},
+		webgpuSetup: {
+			title: '브라우저 AI 설정',
+			model: '모델',
+			parameters: '파라미터',
+			vram: 'VRAM',
+			download: '다운로드',
+			estTime: '예상 시간',
+			vramWarning: '이 모델은 VRAM {size}이 필요합니다. GPU 메모리가 충분한지 확인하세요.',
+			cachedHint: '이 모델은 이미 브라우저에 캐시되어 있습니다. 몇 초면 불러옵니다.',
+			downloadHint:
+				'모델은 백그라운드에서 다운로드됩니다. 기다리는 동안 다른 AI 모드를 쓸 수 있습니다. 다운로드가 끝나면 모델은 브라우저(IndexedDB)에 캐시됩니다.',
+			loadModel: '모델 불러오기',
+			downloadSetup: '다운로드 후 설정',
+			downloadingModel: '{model} 다운로드 중...',
+			cancelDownload: '다운로드 취소',
+			starting: '시작하는 중...',
+			ready: '브라우저 AI({model})가 준비되었습니다!',
+			timeUnder1: '1분 미만',
+			time1to3: '1~3분',
+			time3to6: '3~6분',
+			time5to10: '5~10분'
+		},
+		drilldown: {
+			title: '추가 분석',
+			badge: '드릴다운',
+			desc: '{label} 도메인의 내부 구조를 분석합니다.',
+			trackLine: '{track} 모드로 분석',
+			confirm: '분석'
+		},
+		nodeDetail: {
+			title: '노드 상세',
+			details: '상세',
+			language: '언어',
+			lines: '줄',
+			children: '하위 항목',
+			parent: '상위 항목',
+			id: 'ID',
+			empty: '노드를 선택하면 상세 정보가 보입니다'
+		},
+		explorer: {
+			title: '탐색기',
+			hide: '탐색기 숨기기',
+			show: '탐색기 보이기',
+			filterPlaceholder: '파일 필터...',
+			clearFilter: '필터 지우기'
+		},
+		sidebar: {
+			fileExplorer: '파일 탐색기',
+			semanticTree: '시맨틱 트리',
+			semanticTreeNeedsAnalysis: '시맨틱 트리 (먼저 AI 분석을 실행하세요)',
+			hidePanel: '패널 숨기기',
+			semanticEmpty: '시맨틱 분석 데이터가 없습니다'
+		},
+		codeViewer: {
+			empty: '탐색기에서 파일이나 시맨틱 노드를 선택하면 코드가 보입니다',
+			lines: '{n}줄',
+			symbols: '심볼',
+			noProject: '불러온 프로젝트가 없습니다',
+			notAccessible: '파일에 접근할 수 없습니다',
+			loadFailed: '파일을 불러오지 못했습니다: {error}'
+		},
+		search: {
+			placeholder: '파일과 심볼 검색...',
+			noResults: '결과가 없습니다',
+			file: '파일'
+		},
+		statusBar: {
+			zoom: '확대 100%',
+			minimap: '미니맵'
+		},
+		parsing: {
+			title: '프로젝트 파싱 중',
+			fileProgress: '파일 {done} / {total}개'
+		},
+		chat: {
+			notConnected: 'AI 연결 안 됨',
+			connect: '연결',
+			cached: '캐시됨'
+		},
+		pane: {
+			empty: '파일을 열거나 탭을 여기로 끌어오세요',
+			dropToSplit: '놓으면 화면을 나눕니다'
+		},
+		canvas: {
+			noDirectConnection: '직접 연결 없음',
+			sharedFiles: '공유 파일 ({n}개):',
+			moreFiles: '... 외 {n}개',
+			minimap: '미니맵',
+			analysisRequests: '분석 요청',
+			edgeDependsOn: '의존',
+			edgeCalls: '호출',
+			edgeExtends: '상속',
+			edgeUses: '사용'
+		},
+		settingsUi: {
+			cacheEntries: '{n}개 항목',
+			themeDark: '다크',
+			themeLight: '라이트'
+		},
+		dropzone: {
+			needsChromium:
+				'폴더를 끌어다 놓아 읽으려면 Chromium 계열 브라우저가 필요합니다. 대신 "폴더 열기" 버튼을 쓰세요.',
+			folderOnly: '파일이 아니라 폴더를 놓아 주세요.',
+			readFailed: '폴더를 읽지 못했습니다: {error}',
+			openFailed: '폴더를 열지 못했습니다: {error}',
+			processFailed: '파일을 처리하지 못했습니다: {error}'
+		},
+		symbolBadge: {
+			static: '정적',
+			async: '비동기',
+			generator: '제너레이터',
+			route: '라우트 핸들러',
+			export_default: '기본 내보내기',
+			decorator: '데코레이터 적용',
+			abstract: '추상'
+		},
+		docsUi: {
+			sidebarNav: '문서 탐색',
+			closeMenu: '메뉴 닫기',
+			loadingDocs: '문서를 불러오는 중…'
+		},
+		explore: {
+			navLabel: '갤러리',
+			pageTitle: '갤러리 — 오픈소스 아키텍처 | Ropeman',
+			home: '홈',
+			heroTitle: '오픈소스 아키텍처 둘러보기',
+			heroDesc:
+				'인기 오픈소스 프로젝트의 AI 생성 아키텍처 다이어그램을 살펴보세요. 직접 분석한 결과를 공개 갤러리로 제공합니다.',
+			searchPlaceholder: '프로젝트 검색...',
+			searchLabel: '검색',
+			languageLabel: '언어',
+			allLanguages: '모든 언어',
+			empty: '조건에 맞는 프로젝트가 없습니다.',
+			entryTitle: '{title} 아키텍처 | Ropeman Explore',
+			analyzeOwn: '내 프로젝트 분석',
+			loadingEntry: '{title} 아키텍처 불러오는 중...',
+			notAnalyzedTitle: '아직 분석되지 않았습니다',
+			notAnalyzedDesc:
+				'{title}의 아키텍처 스냅샷은 곧 추가됩니다. 그동안 홈에서 GitHub URL로 직접 분석해보세요.',
+			analyzeFromHome: '홈에서 분석하기',
+			viewOnGithub: 'GitHub에서 보기',
+			backToGallery: '갤러리로'
+		},
+		shareView: {
+			badge: '공유됨',
+			pageTitleFallback: '공유됨',
+			projectFallback: '공유된 프로젝트',
+			analyzeOwn: '내 프로젝트 분석하기',
+			loading: '공유 데이터 불러오는 중...',
+			notFoundTitle: '링크를 찾을 수 없습니다',
+			notFound: '공유 링크를 찾을 수 없습니다. 만료되었거나 잘못된 링크입니다.',
+			loadFailed: '공유 데이터를 불러오는데 실패했습니다.',
+			goHome: 'Ropeman으로 이동'
 		}
 	},
 	en: {
@@ -657,6 +1050,7 @@ const translations: Record<Locale, TranslationSet> = {
 		analysisCancelConfirmBack: 'Keep Running',
 		analysisCancelAll: 'Cancel All',
 		analysisGroupRunning: '{count} analyses running',
+		analysisInProgress: 'AI Analysis in Progress',
 		dontAskAgain: "Don't ask again",
 		settingsLanguage: 'Language',
 		settingsReset: 'Reset',
@@ -718,7 +1112,8 @@ const translations: Record<Locale, TranslationSet> = {
 			placeholder: 'Paste your code here...',
 			analyze: 'Analyze',
 			lines: 'lines',
-			emptyError: 'Please enter some code'
+			emptyError: 'Please enter some code',
+			analyzeFailed: 'Failed to analyze snippet: {error}'
 		},
 		legend: {
 			title: 'Legend',
@@ -755,7 +1150,8 @@ const translations: Record<Locale, TranslationSet> = {
 			openNewTab: 'Open in new tab',
 			errorTitle: 'Share failed',
 			errorMessage: 'Could not generate a share link. Please try again later.',
-			close: 'Close'
+			close: 'Close',
+			tooLarge: 'Analysis data too large (exceeds 1MB). Try a smaller project.'
 		},
 		aiError: {
 			tpm: "The request exceeds the model's token limit. Reduce the code summary size or choose another model.",
@@ -775,7 +1171,50 @@ const translations: Record<Locale, TranslationSet> = {
 			demoNotice:
 				'Runs on the free tier of Google Gemini, where Google may use inputs to improve its products. For code you would not share, use an API key or the local bridge.',
 			byokKeyNotice:
-				"Keys are stored only in this browser. Gemini requests go straight to Google; Anthropic and OpenAI requests pass through Ropeman's proxy because of browser restrictions. The proxy does not store keys."
+				"Keys are stored only in this browser. Gemini requests go straight to Google; Anthropic and OpenAI requests pass through Ropeman's proxy because of browser restrictions. The proxy does not store keys.",
+			title: 'AI Architecture Analysis',
+			current: 'Current: {track}',
+			demoSub: 'Free · No setup',
+			active: 'Active',
+			start: 'Start',
+			byokName: 'API Key (BYOK)',
+			keySet: 'Key set',
+			notConfigured: 'Not configured',
+			provider: 'Provider',
+			model: 'Model',
+			customModel: 'Custom...',
+			modelPlaceholder: 'e.g. claude-sonnet-5-5',
+			apiKeyLabel: '{provider} API Key',
+			apiKeyPlaceholder: 'Enter API key',
+			test: 'Test',
+			valid: 'Valid',
+			invalid: 'Invalid',
+			startWithApiKey: 'Start with API Key',
+			bridgeDesktopOnly: 'Desktop only — needs a local CLI bridge',
+			connected: 'Connected',
+			disconnected: 'Disconnected',
+			cliTool: 'CLI Tool',
+			cliAuto: 'Auto-detect',
+			port: 'Port',
+			connect: 'Connect',
+			disconnect: 'Disconnect',
+			token: 'Token',
+			tokenPlaceholder: 'Printed by the bridge at startup',
+			startWithBridge: 'Start with Bridge',
+			webgpuName: 'Browser AI',
+			webgpuDesktopOnly: 'Desktop only — needs WebGPU + multi-GB RAM',
+			webgpuUnsupported: 'WebGPU not supported',
+			modelLoaded: 'Model loaded',
+			downloading: 'Downloading... {n}%',
+			cachedNeedsLoading: 'Cached (needs loading)',
+			notInitialized: 'Not initialized (~{size} download)',
+			startWithWebgpu: 'Start with WebGPU',
+			setupModel: 'Setup Model',
+			payloadPreview: 'Payload preview',
+			copyJson: 'Copy JSON',
+			limit: 'Limit: {value}',
+			unlimited: 'Unlimited',
+			footerHint: 'Select a track to begin the structural analysis.'
 		},
 		panel: {
 			close: 'Close',
@@ -805,7 +1244,8 @@ const translations: Record<Locale, TranslationSet> = {
 			homeConfirmMessage:
 				'This closes the open project and its analysis. Any analysis in progress stops.',
 			homeConfirmOk: 'Go back to start',
-			homeConfirmCancel: 'Keep working'
+			homeConfirmCancel: 'Keep working',
+			trackBadgeTitle: 'AI: {track} (click to change)'
 		},
 		newProject: {
 			title: 'Open a new project',
@@ -821,19 +1261,7 @@ const translations: Record<Locale, TranslationSet> = {
 			tabShortcuts: 'Shortcuts',
 			tabFaq: 'FAQ',
 			usageTitle: 'Getting Started',
-			usageSteps: [
-				'Open Folder — Select a project directory to start automatic AST parsing.',
-				'AI Analysis — Configure an AI connection to semantically analyze your codebase and generate diagrams.',
-				'Drill-down — Double-click a diagram node to explore deeper levels.',
-				'View Code — Double-click a file in the explorer to open the code viewer.'
-			],
 			usageInteraction: 'Interactions',
-			usageInteractionItems: [
-				'Click node — Select and view details',
-				'Double-click node — Drill-down navigation',
-				'Double-click file — Open in code viewer',
-				'Drag tab — Move to split view'
-			],
 			aiModesTitle: 'AI Analysis Modes',
 			aiModeDemo: 'Demo',
 			aiModeDemoDesc:
@@ -849,22 +1277,58 @@ const translations: Record<Locale, TranslationSet> = {
 				'Uses browser-built-in AI. Runs entirely locally without any external server connection, but performance depends on device specs.',
 			shortcutsTitle: 'Keyboard Shortcuts',
 			faqTitle: 'Frequently Asked Questions',
+			usageSteps: [
+				'Open Folder — Select a project directory to start automatic AST parsing.',
+				'AI Analysis — Configure an AI connection to semantically analyze your codebase and generate diagrams.',
+				'Drill-down — Double-click a diagram node to explore deeper levels.',
+				'View Code — Double-click a file in the explorer to open the code viewer.'
+			],
+			usageInteractionItems: [
+				'Click node — Select and view details',
+				'Double-click node — Drill-down navigation',
+				'Double-click file — Open in code viewer',
+				'Drag tab — Move to split view'
+			],
 			faqItems: [
 				{
-					q: 'Is my source code sent to a server?',
-					a: 'Your original source code is never sent. During AI analysis, only a code structure summary (metadata) containing function/class signatures is transmitted.'
+					q: 'Is my original source code ever sent to an external server?',
+					a: 'Rest assured — your original source code is never transmitted externally under any circumstances. Only minimal code structure information (metadata) is used for AI context, and it is handled securely based on your chosen AI mode.\n\n• WebGPU mode (highest security): Processed 100% offline on your device. No data leaves your machine.\n• Demo / API Key mode: Routed through our secure relay server to the AI model provider.\n• Bridge mode: Sent directly to the AI provider via your locally installed CLI tool.',
+					slug: 'security'
 				},
 				{
 					q: 'What programming languages are supported?',
-					a: 'Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, and Scala.'
+					a: 'Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, and Scala.',
+					slug: 'getting-started'
 				},
 				{
 					q: 'Are there project size limits?',
-					a: 'Up to 2,000 files and 500KB per individual file. For large projects, adjust the code summary size limit in Settings.'
+					a: 'Up to 2,000 files and 500KB per individual file. For large projects, adjust the code summary size limit in Settings.',
+					slug: 'troubleshooting'
 				},
 				{
-					q: 'Where are API keys stored?',
-					a: "Only in your browser's localStorage; resetting settings deletes them. Anthropic and OpenAI keys pass through Ropeman's proxy with each request, and the proxy does not store them."
+					q: 'Can I analyze a GitHub repository by URL?',
+					a: 'Yes. Paste a public GitHub repository URL into the input field on the landing page and click Load. Ropeman fetches the file structure and analyzes it just like a local folder. Private repositories are not supported.',
+					slug: 'getting-started'
+				},
+				{
+					q: 'Can I share my analysis results?',
+					a: 'Yes. After AI analysis completes, click the Share button in the header to generate a public link. You can share this link with anyone to let them view the analysis.',
+					slug: 'faq'
+				},
+				{
+					q: 'Can I exclude specific directories from analysis?',
+					a: "Yes. Go to Settings → Additional Excluded Directories and enter one directory name per line. Your custom patterns are merged with the built-in skip list. Useful for large monorepos or generated-code directories like Rust's target, third_party, or generated.",
+					slug: 'faq'
+				},
+				{
+					q: 'Can I cancel or run multiple analyses in parallel?',
+					a: 'Yes. The bottom-right pill has a red Cancel button (with a one-time confirm + "Don\'t ask again"). Double-click different nodes to drill down in parallel; each request gets its own pill. Beyond three concurrent analyses, pills collapse into a single "N analyses running" group badge. Analysis continues across in-app route navigation and the pill is visible everywhere.',
+					slug: 'faq'
+				},
+				{
+					q: 'Are my API keys stored securely?',
+					a: "API keys are never stored on our servers — they are kept only in your browser's local storage on your device.\n\n• API Key mode: Keys are used only at the moment of an API call and securely transmitted to the AI model provider.\n• Bridge mode: No API key input is needed. It inherits the authentication of your locally configured CLI tool.\n• WebGPU mode: Runs offline, so no API key is required at all.\n\nYou can delete keys anytime by resetting settings.",
+					slug: 'security'
 				}
 			]
 		},
@@ -922,6 +1386,183 @@ const translations: Record<Locale, TranslationSet> = {
 			headerLink: 'Docs',
 			footerLink: 'Docs',
 			learnMore: 'Learn more'
+		},
+		common: {
+			close: 'Close',
+			cancel: 'Cancel',
+			retry: 'Retry',
+			copy: 'Copy',
+			loading: 'Loading...',
+			project: 'Project',
+			error: 'Error',
+			beta: 'Beta',
+			symbolCount: '{n} symbols'
+		},
+		track: {
+			edge: 'Demo',
+			byok: 'API Key',
+			bridge: 'Local Bridge',
+			bridgeShort: 'Bridge',
+			webgpu: 'WebGPU',
+			none: 'Not connected',
+			disconnected: 'Disconnected',
+			bridgeConnected: 'Bridge Connected',
+			bridgeDisconnected: 'Bridge Disconnected'
+		},
+		webgpuSetup: {
+			title: 'Browser AI Setup',
+			model: 'Model',
+			parameters: 'Parameters',
+			vram: 'VRAM',
+			download: 'Download',
+			estTime: 'Est. Time',
+			vramWarning: 'This model requires {size} VRAM. Make sure your GPU has enough memory.',
+			cachedHint:
+				'This model is already cached in your browser. Loading will take just a few seconds.',
+			downloadHint:
+				'The model will download in the background. You can use other AI modes while waiting. Once downloaded, the model is cached in your browser (IndexedDB).',
+			loadModel: 'Load Model',
+			downloadSetup: 'Download & Setup',
+			downloadingModel: 'Downloading {model}...',
+			cancelDownload: 'Cancel download',
+			starting: 'Starting...',
+			ready: 'Browser AI ({model}) is ready!',
+			timeUnder1: '< 1 min',
+			time1to3: '1~3 min',
+			time3to6: '3~6 min',
+			time5to10: '5~10 min'
+		},
+		drilldown: {
+			title: 'Further analysis',
+			badge: 'DRILLDOWN',
+			desc: 'Analyzes the internal structure of the {label} domain.',
+			trackLine: 'Analyze in {track} mode',
+			confirm: 'Analyze'
+		},
+		nodeDetail: {
+			title: 'Node Details',
+			details: 'Details',
+			language: 'Language',
+			lines: 'Lines',
+			children: 'Children',
+			parent: 'Parent',
+			id: 'ID',
+			empty: 'Select a node to view details'
+		},
+		explorer: {
+			title: 'Explorer',
+			hide: 'Hide Explorer',
+			show: 'Show Explorer',
+			filterPlaceholder: 'Filter files...',
+			clearFilter: 'Clear filter'
+		},
+		sidebar: {
+			fileExplorer: 'File Explorer',
+			semanticTree: 'Semantic Tree',
+			semanticTreeNeedsAnalysis: 'Semantic Tree (run AI analysis first)',
+			hidePanel: 'Hide Panel',
+			semanticEmpty: 'No semantic analysis data'
+		},
+		codeViewer: {
+			empty: 'Select a file from the Explorer or a semantic node to view code',
+			lines: '{n} lines',
+			symbols: 'Symbols',
+			noProject: 'No project loaded',
+			notAccessible: 'File not accessible',
+			loadFailed: 'Failed to load file: {error}'
+		},
+		search: {
+			placeholder: 'Search files and symbols...',
+			noResults: 'No results found',
+			file: 'file'
+		},
+		statusBar: {
+			zoom: 'Zoom 100%',
+			minimap: 'Minimap'
+		},
+		parsing: {
+			title: 'Parsing Project',
+			fileProgress: '{done} / {total} files'
+		},
+		chat: {
+			notConnected: 'AI not connected',
+			connect: 'Connect',
+			cached: 'cached'
+		},
+		pane: {
+			empty: 'Open a file or drag a tab here',
+			dropToSplit: 'Drop to split'
+		},
+		canvas: {
+			noDirectConnection: 'No direct connection',
+			sharedFiles: 'Shared files ({n}):',
+			moreFiles: '... +{n} more',
+			minimap: 'Minimap',
+			analysisRequests: 'Analysis Requests',
+			edgeDependsOn: 'depends on',
+			edgeCalls: 'calls',
+			edgeExtends: 'extends',
+			edgeUses: 'uses'
+		},
+		settingsUi: {
+			cacheEntries: '{n} entries',
+			themeDark: 'Dark',
+			themeLight: 'Light'
+		},
+		dropzone: {
+			needsChromium:
+				'Drag & drop directory reading requires a Chromium browser. Please use the "Open Directory" button instead.',
+			folderOnly: 'Please drop a folder, not individual files.',
+			readFailed: 'Failed to read directory: {error}',
+			openFailed: 'Failed to open directory: {error}',
+			processFailed: 'Failed to process files: {error}'
+		},
+		symbolBadge: {
+			static: 'Static',
+			async: 'Async',
+			generator: 'Generator',
+			route: 'Route Handler',
+			export_default: 'Default Export',
+			decorator: 'Decorated',
+			abstract: 'Abstract'
+		},
+		docsUi: {
+			sidebarNav: 'Documentation navigation',
+			closeMenu: 'Close menu',
+			loadingDocs: 'Loading documentation…'
+		},
+		explore: {
+			navLabel: 'Explore',
+			pageTitle: 'Explore — Open-source architectures | Ropeman',
+			home: 'Home',
+			heroTitle: 'Explore Open-Source Architectures',
+			heroDesc:
+				'AI-generated architecture diagrams of popular open-source projects. Curated and refreshed periodically.',
+			searchPlaceholder: 'Search projects...',
+			searchLabel: 'Search',
+			languageLabel: 'Language',
+			allLanguages: 'All languages',
+			empty: 'No projects match your filters.',
+			entryTitle: '{title} architecture | Ropeman Explore',
+			analyzeOwn: 'Analyze your own',
+			loadingEntry: 'Loading {title} architecture...',
+			notAnalyzedTitle: 'Not analyzed yet',
+			notAnalyzedDesc:
+				'The architecture snapshot for {title} will be added soon. You can analyze it yourself by pasting the GitHub URL on the home page.',
+			analyzeFromHome: 'Analyze from home',
+			viewOnGithub: 'View on GitHub',
+			backToGallery: 'Back to Explore'
+		},
+		shareView: {
+			badge: 'Shared',
+			pageTitleFallback: 'Shared',
+			projectFallback: 'Shared Project',
+			analyzeOwn: 'Analyze your own',
+			loading: 'Loading shared data...',
+			notFoundTitle: 'Link not found',
+			notFound: 'Share link not found. It may have expired or the link is invalid.',
+			loadFailed: 'Failed to load shared data.',
+			goHome: 'Go to Ropeman'
 		}
 	}
 };
@@ -931,7 +1572,10 @@ function createI18nStore() {
 		get locale(): Locale {
 			return settingsStore.language;
 		},
-		t(key: string): string {
+		get messages(): TranslationSet {
+			return translations[settingsStore.language];
+		},
+		t(key: string, params?: Record<string, string | number>): string {
 			const keys = key.split('.');
 			let value: unknown = translations[settingsStore.language];
 			for (const k of keys) {
@@ -941,7 +1585,10 @@ function createI18nStore() {
 					return key;
 				}
 			}
-			return value as string;
+			if (!params) return value as string;
+			return (value as string).replace(/\{(\w+)\}/g, (match, name: string) =>
+				name in params ? String(params[name]) : match
+			);
 		},
 		getProgressMessage(key: keyof AnalysisProgressTranslations): string {
 			return translations[settingsStore.language].analysisProgress[key];

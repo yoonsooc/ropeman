@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import CodePanel from '$lib/components/CodePanel.svelte';
 
@@ -35,7 +36,9 @@
 				</span>
 				<h3 class="node-name">{node.label}</h3>
 			</div>
-			<button class="close-btn" onclick={onclose} title="Close">&#10005;</button>
+			<button class="close-btn" onclick={onclose} title={i18nStore.t('common.close')}
+				>&#10005;</button
+			>
 		</div>
 
 		<div class="panel-content">
@@ -67,32 +70,32 @@
 			{/if}
 
 			<section class="metadata-section">
-				<h4 class="section-title">Details</h4>
+				<h4 class="section-title">{i18nStore.t('nodeDetail.details')}</h4>
 				<div class="meta-grid">
 					{#if node.language}
 						<div class="meta-item">
-							<span class="meta-label">Language</span>
+							<span class="meta-label">{i18nStore.t('nodeDetail.language')}</span>
 							<span class="meta-value">{node.language}</span>
 						</div>
 					{/if}
 					{#if node.lineStart != null && node.lineEnd != null}
 						<div class="meta-item">
-							<span class="meta-label">Lines</span>
+							<span class="meta-label">{i18nStore.t('nodeDetail.lines')}</span>
 							<span class="meta-value">{node.lineStart} - {node.lineEnd}</span>
 						</div>
 					{/if}
 					<div class="meta-item">
-						<span class="meta-label">Children</span>
+						<span class="meta-label">{i18nStore.t('nodeDetail.children')}</span>
 						<span class="meta-value">{node.childCount}</span>
 					</div>
 					{#if node.parentId}
 						<div class="meta-item">
-							<span class="meta-label">Parent</span>
+							<span class="meta-label">{i18nStore.t('nodeDetail.parent')}</span>
 							<span class="meta-value mono">{node.parentId}</span>
 						</div>
 					{/if}
 					<div class="meta-item">
-						<span class="meta-label">ID</span>
+						<span class="meta-label">{i18nStore.t('nodeDetail.id')}</span>
 						<span class="meta-value mono">{node.id}</span>
 					</div>
 				</div>
@@ -100,11 +103,11 @@
 		</div>
 	{:else}
 		<div class="panel-header">
-			<h3 class="node-name">Node Details</h3>
+			<h3 class="node-name">{i18nStore.t('nodeDetail.title')}</h3>
 			<button class="close-btn" onclick={onclose}>&#10005;</button>
 		</div>
 		<div class="panel-content">
-			<p class="empty">Select a node to view details</p>
+			<p class="empty">{i18nStore.t('nodeDetail.empty')}</p>
 		</div>
 	{/if}
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { Handle, Position } from '@xyflow/svelte';
 
 	let { data } = $props();
@@ -29,7 +30,9 @@
 					<span class="lang-badge" style="background: {langColor};">{data.language}</span>
 				{/if}
 				{#if data.childCount > 0}
-					<span class="symbol-count">{data.childCount} symbols</span>
+					<span class="symbol-count"
+						>{i18nStore.t('common.symbolCount', { n: data.childCount })}</span
+					>
 				{/if}
 			</div>
 		</div>
@@ -49,7 +52,9 @@
 		font-size: 12px;
 		color: #1f2937;
 		cursor: pointer;
-		transition: box-shadow 0.15s ease, border-color 0.15s ease;
+		transition:
+			box-shadow 0.15s ease,
+			border-color 0.15s ease;
 	}
 
 	.file-node:hover {
