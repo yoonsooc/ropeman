@@ -260,6 +260,7 @@ export const xxxStore = createXxxStore();
 - **브라우저 전용**: Chromium 기반 (비-localhost는 fallback input)
 - **파일 제한**: MAX_FILES=2000, MAX_FILE_SIZE=500KB
 - **AST 파싱**: 14개 언어 tree-sitter WASM (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala)
+  - 문법 WASM은 `static/`에 커밋한다. 언어별 파일은 `languageDetector.getGrammarFile()`이 고른다. `.tsx`는 언어는 TypeScript 그대로 두고 JSX를 읽는 `tree-sitter-tsx.wasm`(`tree-sitter-wasms` 0.1.13)으로 파싱한다. `.ts`는 `<T>value` 캐스트를 JSX로 오인하지 않도록 `tree-sitter-typescript.wasm`을 유지한다
 - **코드 구조 요약 크기**: 기본 250KB (50-1000KB 범위), 대형 모델 토큰 한도 내 안전 범위
 - **정적 분석만**: 런타임 동작 분석 불가
 - **Edge Worker**: Gemini API 지역 제한 → placement hint 필요
