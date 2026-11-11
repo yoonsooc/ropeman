@@ -19,14 +19,14 @@
 	import type { GitHubRepoInfo } from '$lib/utils/githubUrl';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
-	import { semanticStore, setSemanticCacheDeps } from '$lib/stores/semanticStore.svelte';
+	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import { layoutStore } from '$lib/stores/layoutStore.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import SplitPane from '$lib/components/SplitPane.svelte';
-	import { analyzeTopLevel } from '$lib/services/semanticAnalysisService';
+	import { analyzeTopLevel, restoreCachedAnalysis } from '$lib/services/semanticAnalysisService';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { loadTestProject } from '$lib/services/testLoader';
 	import { graphStore } from '$lib/stores/graphStore.svelte';
@@ -42,12 +42,6 @@
 	import { analysisUiStore } from '$lib/stores/analysisUiStore.svelte';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import { onMount, onDestroy } from 'svelte';
-
-	// Wire semantic cache deps (avoids circular import in semanticStore)
-	setSemanticCacheDeps(() => ({
-		cacheEnabled: settingsStore.cacheEnabled,
-		projectName: projectStore.projectName
-	}));
 
 	// Wire bridgeService callbacks to authStore (stateless service pattern)
 	setBridgeCallbacks({
@@ -186,10 +180,10 @@
 	);
 	const isSnippetMode = $derived(projectStore.isSnippetMode);
 
-	// Restore semantic cache from IndexedDB when project loads
+	// Restore the cached analysis of this exact skeleton, model and prompt when the project loads
 	$effect(() => {
 		if (projectStore.fileTree && !projectStore.isLoading && projectStore.projectName) {
-			semanticStore.restoreCache(projectStore.projectName);
+			restoreCachedAnalysis();
 		}
 	});
 

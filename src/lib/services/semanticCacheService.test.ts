@@ -1,157 +1,116 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock Cache API
-const mockCacheEntries = new Map<string, Response>();
+// In-memory CacheStorage: named caches holding URL -> body
+const storage = new Map<string, Map<string, string>>();
 
-const mockCache = {
-	put: vi.fn(async (req: Request, resp: Response) => {
-		mockCacheEntries.set(req.url, resp.clone());
-	}),
-	match: vi.fn(async (req: Request) => {
-		return mockCacheEntries.get(req.url)?.clone() ?? undefined;
-	}),
-	keys: vi.fn(async () => {
-		return Array.from(mockCacheEntries.keys()).map((url) => new Request(url));
-	}),
-	delete: vi.fn()
+function openCache(name: string) {
+	if (!storage.has(name)) storage.set(name, new Map());
+	const entries = storage.get(name)!;
+	return {
+		put: async (req: Request, resp: Response) => {
+			entries.set(req.url, await resp.text());
+		},
+		match: async (req: Request) => {
+			const body = entries.get(req.url);
+			return body === undefined ? undefined : new Response(body);
+		},
+		keys: async () => [...entries.keys()].map((url) => new Request(url))
+	};
+}
+
+const fakeCaches = {
+	open: vi.fn(async (name: string) => openCache(name)),
+	delete: vi.fn(async (name: string) => storage.delete(name))
 };
 
-const mockCaches = {
-	open: vi.fn(async () => mockCache),
-	delete: vi.fn(async () => true)
+// v1 entry keyed by project name, present before the module loads
+storage.set(
+	'ropeman/semantic',
+	new Map([['https://ropeman.local/semantic/paseo/__root__', '{"nodes":[]}']])
+);
+
+vi.stubGlobal('caches', fakeCaches);
+vi.stubGlobal('indexedDB', { deleteDatabase: vi.fn() });
+
+const { loadCachedResponse, saveCachedResponse, clearSemanticCache, getSemanticCacheSize } =
+	await import('./semanticCacheService');
+
+const request = {
+	model: 'byok:anthropic:claude-sonnet-4-5',
+	system: 'You are a code architecture analyzer.',
+	user: 'Analyze this project:\n\n{"projectName":"paseo","files":[{"path":"a.ts"}]}'
 };
-
-// Assign to globalThis before import
-(globalThis as any).caches = mockCaches;
-
-// Stub indexedDB.deleteDatabase (one-time migration in module)
-(globalThis as any).indexedDB = { deleteDatabase: vi.fn() };
-
-import {
-	loadSemanticCache,
-	saveSemanticLevel,
-	clearSemanticCache,
-	getSemanticCacheSize
-} from './semanticCacheService';
 
 describe('semanticCacheService', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		mockCacheEntries.clear();
+	beforeEach(async () => {
+		await clearSemanticCache();
 	});
 
-	describe('saveSemanticLevel', () => {
-		it('stores a level in the cache', async () => {
-			const level = {
-				parentId: null,
-				nodes: [],
-				edges: [],
-				breadcrumbLabel: 'Root'
-			};
+	it('returns the saved response for the same request', async () => {
+		await saveCachedResponse(request, 'response-A');
 
-			await saveSemanticLevel('my-project', 'root', level);
-
-			expect(mockCaches.open).toHaveBeenCalledWith('ropeman/semantic');
-			expect(mockCache.put).toHaveBeenCalledTimes(1);
-
-			const [req, resp] = mockCache.put.mock.calls[0];
-			expect(req.url).toContain('my-project');
-			expect(req.url).toContain('root');
-			const body = await resp.json();
-			expect(body).toEqual(level);
-		});
-
-		it('silently fails when cache API throws', async () => {
-			mockCaches.open.mockRejectedValueOnce(new Error('Cache API unavailable'));
-
-			await expect(
-				saveSemanticLevel('proj', 'key', {
-					parentId: null,
-					nodes: [],
-					edges: [],
-					breadcrumbLabel: ''
-				})
-			).resolves.toBeUndefined();
-		});
+		expect(await loadCachedResponse({ ...request })).toBe('response-A');
 	});
 
-	describe('loadSemanticCache', () => {
-		it('returns empty map when no entries exist', async () => {
-			const result = await loadSemanticCache('empty-project');
-			expect(result).toBeInstanceOf(Map);
-			expect(result.size).toBe(0);
-		});
+	it('misses when the skeleton payload changes', async () => {
+		await saveCachedResponse(request, 'response-A');
 
-		it('loads cached levels for the given project', async () => {
-			// Arrange: put entries directly
-			const level = {
-				parentId: null,
-				nodes: [],
-				edges: [],
-				breadcrumbLabel: 'Root'
-			};
-			const url = `https://ropeman.local/semantic/${encodeURIComponent('proj')}/${encodeURIComponent('level-1')}`;
-			mockCacheEntries.set(
-				url,
-				new Response(JSON.stringify(level), {
-					headers: { 'Content-Type': 'application/json' }
-				})
-			);
+		const otherFiles = { ...request, user: request.user.replace('a.ts', 'b.ts') };
 
-			const result = await loadSemanticCache('proj');
-			expect(result.size).toBe(1);
-			expect(result.get('level-1')).toEqual(level);
-		});
-
-		it('ignores entries from other projects', async () => {
-			const url = `https://ropeman.local/semantic/${encodeURIComponent('other-proj')}/${encodeURIComponent('lv')}`;
-			mockCacheEntries.set(
-				url,
-				new Response(JSON.stringify({ parentId: null, nodes: [], edges: [], breadcrumbLabel: '' }))
-			);
-
-			const result = await loadSemanticCache('my-proj');
-			expect(result.size).toBe(0);
-		});
-
-		it('silently returns empty map on cache error', async () => {
-			mockCaches.open.mockRejectedValueOnce(new Error('fail'));
-
-			const result = await loadSemanticCache('proj');
-			expect(result.size).toBe(0);
-		});
+		expect(await loadCachedResponse(otherFiles)).toBeNull();
 	});
 
-	describe('clearSemanticCache', () => {
-		it('deletes the entire cache', async () => {
-			await clearSemanticCache();
-			expect(mockCaches.delete).toHaveBeenCalledWith('ropeman/semantic');
-		});
+	it('misses when the model changes', async () => {
+		await saveCachedResponse(request, 'response-A');
 
-		it('silently handles errors', async () => {
-			mockCaches.delete.mockRejectedValueOnce(new Error('fail'));
-			await expect(clearSemanticCache()).resolves.toBeUndefined();
-		});
+		expect(
+			await loadCachedResponse({ ...request, model: 'byok:google:gemini-2.5-pro' })
+		).toBeNull();
 	});
 
-	describe('getSemanticCacheSize', () => {
-		it('returns 0 when cache is empty', async () => {
-			const size = await getSemanticCacheSize();
-			expect(size).toBe(0);
-		});
+	it('misses when the prompt text changes', async () => {
+		await saveCachedResponse(request, 'response-A');
 
-		it('returns the number of entries', async () => {
-			mockCacheEntries.set('https://ropeman.local/semantic/a/b', new Response('{}'));
-			mockCacheEntries.set('https://ropeman.local/semantic/a/c', new Response('{}'));
+		expect(await loadCachedResponse({ ...request, system: request.system + ' v2' })).toBeNull();
+	});
 
-			const size = await getSemanticCacheSize();
-			expect(size).toBe(2);
-		});
+	it('keeps requests that differ only in field boundaries apart', async () => {
+		await saveCachedResponse({ model: 'm', system: 'ab', user: 'c' }, 'response-A');
 
-		it('returns 0 on cache error', async () => {
-			mockCaches.open.mockRejectedValueOnce(new Error('fail'));
-			const size = await getSemanticCacheSize();
-			expect(size).toBe(0);
-		});
+		expect(await loadCachedResponse({ model: 'm', system: 'a', user: 'bc' })).toBeNull();
+	});
+
+	// Regression: v1 keyed by project name, so a second "paseo" folder got the first one's diagram
+	it('misses for a different skeleton under the same project name', async () => {
+		await saveCachedResponse(request, 'response-A');
+
+		const sameNameOtherProject = {
+			...request,
+			user: 'Analyze this project:\n\n{"projectName":"paseo","files":[{"path":"README.md"}]}'
+		};
+
+		expect(await loadCachedResponse(sameNameOtherProject)).toBeNull();
+	});
+
+	it('evicts the legacy project-name cache on load', () => {
+		expect(fakeCaches.delete).toHaveBeenCalledWith('ropeman/semantic');
+		expect(storage.has('ropeman/semantic')).toBe(false);
+	});
+
+	it('counts and clears saved entries', async () => {
+		await saveCachedResponse(request, 'response-A');
+		await saveCachedResponse({ ...request, model: 'edge' }, 'response-B');
+		expect(await getSemanticCacheSize()).toBe(2);
+
+		await clearSemanticCache();
+
+		expect(await getSemanticCacheSize()).toBe(0);
+		expect(await loadCachedResponse(request)).toBeNull();
+	});
+
+	it('returns null when the Cache API fails', async () => {
+		fakeCaches.open.mockRejectedValueOnce(new Error('SecurityError'));
+
+		expect(await loadCachedResponse(request)).toBeNull();
 	});
 });

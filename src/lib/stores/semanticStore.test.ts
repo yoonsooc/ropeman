@@ -125,10 +125,10 @@ describe('semanticStore', () => {
 		});
 	});
 
-	describe('cacheLevel / getCachedLevel', () => {
+	describe('setCachedLevel / getCachedLevel', () => {
 		it('caches and retrieves a level', () => {
 			const level = makeSemanticLevel([makeSemanticNode('n1', 'UI')]);
-			semanticStore.cacheLevel('key1', level);
+			semanticStore.setCachedLevel('key1', level);
 			expect(semanticStore.getCachedLevel('key1')).toEqual(level);
 		});
 
@@ -140,7 +140,7 @@ describe('semanticStore', () => {
 	describe('hasCachedLevel', () => {
 		it('returns true when level is cached', () => {
 			const level = makeSemanticLevel([makeSemanticNode('n1', 'UI')]);
-			semanticStore.cacheLevel('key1', level);
+			semanticStore.setCachedLevel('key1', level);
 			expect(semanticStore.hasCachedLevel('key1')).toBe(true);
 		});
 
@@ -152,7 +152,7 @@ describe('semanticStore', () => {
 	describe('invalidateCache', () => {
 		it('removes a cached level', () => {
 			const level = makeSemanticLevel([makeSemanticNode('n1', 'UI')]);
-			semanticStore.cacheLevel('key1', level);
+			semanticStore.setCachedLevel('key1', level);
 			expect(semanticStore.hasCachedLevel('key1')).toBe(true);
 
 			semanticStore.invalidateCache('key1');
@@ -168,8 +168,8 @@ describe('semanticStore', () => {
 		it('does not affect other cached levels', () => {
 			const level1 = makeSemanticLevel([makeSemanticNode('n1', 'UI')]);
 			const level2 = makeSemanticLevel([makeSemanticNode('n2', 'API')]);
-			semanticStore.cacheLevel('key1', level1);
-			semanticStore.cacheLevel('key2', level2);
+			semanticStore.setCachedLevel('key1', level1);
+			semanticStore.setCachedLevel('key2', level2);
 
 			semanticStore.invalidateCache('key1');
 			expect(semanticStore.hasCachedLevel('key1')).toBe(false);
@@ -194,7 +194,7 @@ describe('semanticStore', () => {
 		it('returns true and sets level when cached', () => {
 			const node = makeSemanticNode('n1', 'UI');
 			const level = makeSemanticLevel([makeSemanticNode('child1', 'Button')], 'n1');
-			semanticStore.cacheLevel('n1', level);
+			semanticStore.setCachedLevel('n1', level);
 
 			const result = semanticStore.drillDown(node);
 			expect(result).toBe(true);
@@ -231,7 +231,7 @@ describe('semanticStore', () => {
 
 		it('restores cached level when drilling up', () => {
 			const parentLevel = makeSemanticLevel([makeSemanticNode('p1', 'Parent')], 'n1');
-			semanticStore.cacheLevel('n1', parentLevel);
+			semanticStore.setCachedLevel('n1', parentLevel);
 			semanticStore.drilldownPath = [
 				{ nodeId: 'n1', label: 'A' },
 				{ nodeId: 'n2', label: 'B' }
@@ -243,7 +243,7 @@ describe('semanticStore', () => {
 
 		it('restores root level when drilling up to root', () => {
 			const rootLevel = makeSemanticLevel([makeSemanticNode('r1', 'Root')]);
-			semanticStore.cacheLevel('__root__', rootLevel);
+			semanticStore.setCachedLevel('__root__', rootLevel);
 			semanticStore.drilldownPath = [{ nodeId: 'n1', label: 'A' }];
 
 			semanticStore.drillUp();
@@ -255,7 +255,7 @@ describe('semanticStore', () => {
 	describe('goToLevel', () => {
 		it('goes to root when index is negative', () => {
 			const rootLevel = makeSemanticLevel([makeSemanticNode('r1', 'Root')]);
-			semanticStore.cacheLevel('__root__', rootLevel);
+			semanticStore.setCachedLevel('__root__', rootLevel);
 			semanticStore.drilldownPath = [
 				{ nodeId: 'n1', label: 'A' },
 				{ nodeId: 'n2', label: 'B' }
@@ -268,7 +268,7 @@ describe('semanticStore', () => {
 
 		it('goes to specific level index', () => {
 			const levelA = makeSemanticLevel([makeSemanticNode('a1', 'A child')], 'n1');
-			semanticStore.cacheLevel('n1', levelA);
+			semanticStore.setCachedLevel('n1', levelA);
 			semanticStore.drilldownPath = [
 				{ nodeId: 'n1', label: 'A' },
 				{ nodeId: 'n2', label: 'B' },
@@ -309,7 +309,7 @@ describe('semanticStore', () => {
 			semanticStore.drilldownPath = [{ nodeId: 'n1', label: 'A' }];
 			semanticStore.viewMode = 'semantic';
 			semanticStore.isAnalyzing = true;
-			semanticStore.cacheLevel('key', makeSemanticLevel([]));
+			semanticStore.setCachedLevel('key', makeSemanticLevel([]));
 			semanticStore.selectedSemanticNode = makeSemanticNode('n1', 'UI');
 			semanticStore.readOnlyMode = 'snapshot';
 			semanticStore.snapshotMeta = { owner: 'facebook', repo: 'react' };

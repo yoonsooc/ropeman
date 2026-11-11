@@ -1,52 +1,59 @@
-import type { SemanticLevel } from '$lib/types/semantic';
+/**
+ * Persists AI answers to semantic analysis requests in the Cache API.
+ *
+ * An entry is keyed by a SHA-256 of the exact request: model, system prompt and
+ * user prompt (which embeds the skeleton payload). A different file set, model,
+ * prompt text or locale therefore misses instead of returning another input's
+ * diagram. The raw response is stored, not the parsed level, so parser changes
+ * apply to cached answers too.
+ */
 
-const CACHE_NAME = 'ropeman/semantic';
+const CACHE_NAME = 'ropeman/semantic-v2';
+const KEY_PREFIX = 'https://ropeman.local/semantic/';
 
-// One-time migration: delete old IndexedDB
+// v1 keyed entries by project name, so any project with the same folder name got
+// the same diagram. Those entries are never read again; drop them.
+const LEGACY_CACHE_NAMES = ['ropeman/semantic'];
 try {
 	indexedDB.deleteDatabase('ropeman-semantic-cache');
+	for (const name of LEGACY_CACHE_NAMES) caches.delete(name).catch(() => {});
 } catch {
 	/* ignore */
 }
 
-function makeKey(projectName: string, levelKey: string): string {
-	return `https://ropeman.local/semantic/${encodeURIComponent(projectName)}/${encodeURIComponent(levelKey)}`;
+export interface SemanticRequest {
+	/** Track and model answering the request, e.g. `byok:anthropic:claude-sonnet-4-5`. */
+	model: string;
+	/** System prompt as sent, locale instruction included. */
+	system: string;
+	/** User prompt as sent, skeleton payload included. */
+	user: string;
 }
 
-export async function loadSemanticCache(projectName: string): Promise<Map<string, SemanticLevel>> {
-	const result = new Map<string, SemanticLevel>();
+async function requestUrl(req: SemanticRequest): Promise<string> {
+	const bytes = new TextEncoder().encode(JSON.stringify([req.model, req.system, req.user]));
+	const digest = await crypto.subtle.digest('SHA-256', bytes);
+	const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+	return KEY_PREFIX + hex;
+}
+
+export async function loadCachedResponse(req: SemanticRequest): Promise<string | null> {
 	try {
 		const cache = await caches.open(CACHE_NAME);
-		const keys = await cache.keys();
-		const prefix = `https://ropeman.local/semantic/${encodeURIComponent(projectName)}/`;
-		for (const req of keys) {
-			if (req.url.startsWith(prefix)) {
-				const levelKey = decodeURIComponent(req.url.slice(prefix.length));
-				const resp = await cache.match(req);
-				if (resp) {
-					const level = (await resp.json()) as SemanticLevel;
-					result.set(levelKey, level);
-				}
-			}
-		}
+		const resp = await cache.match(new Request(await requestUrl(req)));
+		return resp ? await resp.text() : null;
 	} catch {
-		// silent fail
+		return null;
 	}
-	return result;
 }
 
-export async function saveSemanticLevel(
-	projectName: string,
-	levelKey: string,
-	level: SemanticLevel
-): Promise<void> {
+export async function saveCachedResponse(req: SemanticRequest, response: string): Promise<void> {
 	try {
 		const cache = await caches.open(CACHE_NAME);
-		const url = makeKey(projectName, levelKey);
-		const resp = new Response(JSON.stringify(level), {
-			headers: { 'Content-Type': 'application/json' }
-		});
-		await cache.put(new Request(url), resp);
+		await cache.put(
+			new Request(await requestUrl(req)),
+			new Response(response, { headers: { 'Content-Type': 'text/plain' } })
+		);
 	} catch {
 		// silent fail
 	}
