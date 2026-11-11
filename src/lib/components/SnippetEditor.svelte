@@ -82,7 +82,7 @@
 			projectStore.isLoading = false;
 			// Auto-trigger semantic analysis if AI is connected
 			if (authStore.isReady) {
-				analyzeTopLevel();
+				analyzeTopLevel({ force: true });
 			}
 		} catch (err) {
 			error = i18nStore.t('snippet.analyzeFailed', { error: String(err) });

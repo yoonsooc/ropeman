@@ -44,7 +44,7 @@ src/
 │   │   ├── bridgeService.ts          # 로컬 Bridge WebSocket 연결
 │   │   ├── webllmService.ts          # WebLLM Worker 래퍼
 │   │   ├── cacheService.ts           # IndexedDB 채팅 캐시 (Orama)
-│   │   ├── semanticCacheService.ts   # Cache API 시맨틱 분석 결과 캐시
+│   │   ├── semanticCacheService.ts   # Cache API 시맨틱 분석 응답 캐시 (요청 해시 키)
 │   │   ├── embeddingService.ts       # 온디맨드 임베딩 (Orama)
 │   │   ├── exportService.ts          # 다이어그램 PNG/SVG 내보내기
 │   │   ├── architectureService.ts    # 아키텍처 그룹 분석 (legacy)
@@ -156,6 +156,24 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택
 
 재분석: 노드 hover 시 리프레시 버튼 → invalidateCache() → 새로 AI 호출
 ```
+
+### 분석 결과 캐시
+
+AI 응답은 브라우저 Cache API(`ropeman/semantic-v2`)에 저장한다. 키는 실제로 보내는 요청 전체의 SHA-256이다.
+
+```
+키 = SHA-256([모델 ID, 시스템 프롬프트, 사용자 프롬프트])
+  모델 ID       byok:{provider}:{model} · webgpu:{modelId} · bridge:{cli} · edge
+  시스템 프롬프트 TOP_LEVEL/DRILLDOWN 프롬프트 + 언어 지시문 (프롬프트를 고치면 키가 바뀐다)
+  사용자 프롬프트 스켈레톤 페이로드 그대로 (generatedAt 타임스탬프는 비워서 보낸다)
+값 = AI 응답 원문 (복원할 때 parseSemanticLevel로 다시 파싱하므로 파서 변경이 반영된다)
+```
+
+- 저장: `analyzeTopLevel` / `analyzeDrilldown`이 응답 파싱에 성공하면 저장한다 (설정의 캐시 on일 때). 같은 키는 덮어쓴다.
+- 최상위 재사용: `analyzeTopLevel`은 같은 요청의 캐시가 있으면 AI를 부르지 않는다 (새로고침 뒤 트랙을 고르는 경우). 사용자가 다시 분석을 요청하면 `force`로 캐시를 건너뛴다. 다이어그램이 떠 있는 상태에서 트랙을 고를 때와 스니펫 분석 버튼이 그렇다. 드릴다운 재분석은 영구 캐시를 읽지 않으므로 항상 AI를 부른다.
+- 복원: 프로젝트 로드가 끝나면 `+page.svelte`가 `restoreCachedAnalysis()`를 부른다. 지금 보낼 최상위 요청으로 루트를 찾고, 복원된 노드마다 드릴다운 요청을 만들어 하위 레벨을 차례로 찾는다. 이미 열려 있는 레벨은 덮어쓰지 않는다. 캐시를 읽는 동안 다른 프로젝트를 열거나 트랙, 언어가 바뀌면(최상위 요청이 달라지면) 결과를 버린다.
+- 이름이 같아도 파일, 모델, 프롬프트, 언어, 스켈레톤 예산 중 하나라도 다르면 캐시를 쓰지 않는다. v1(`ropeman/semantic`)은 프로젝트 이름을 키로 써서 같은 이름의 다른 폴더에 엉뚱한 다이어그램을 보여 줬다. v1 캐시는 모듈 로드 때 지운다.
+- 한계: edge와 bridge는 서버나 CLI가 모델을 고르므로, 그쪽에서 모델이 바뀌면 키가 그대로다.
 
 ---
 
