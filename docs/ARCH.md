@@ -28,7 +28,7 @@ src/
 │   │   ├── layoutStore.svelte.ts     # Split Pane 레이아웃 상태
 │   │   ├── onboardingStore.svelte.ts # 온보딩 투어 상태 (Phase 1/2, currentStep, localStorage)
 │   │   ├── chatStore.svelte.ts       # 채팅 히스토리 (Svelte 5 runes)
-│   │   ├── i18nStore.svelte.ts       # 다국어 지원 (Svelte 5 runes + Help/Onboarding 확장)
+│   │   ├── i18nStore.svelte.ts       # 다국어 지원 (Svelte 5 runes + Help/Onboarding 확장). 언어 값은 settingsStore.language를 읽기만 한다
 │   │   └── themeStore.svelte.ts      # 다크/라이트 테마 (Svelte 5 runes)
 │   │
 │   ├── services/                 # 순수 함수 / stateless 모듈
@@ -97,6 +97,7 @@ src/
 │   │
 │   └── utils/
 │       ├── languageDetector.ts       # 확장자 → 언어 매핑
+│       ├── locale.ts                 # UI 언어 결정 (저장된 선택 > 브라우저 언어 ko* > en)
 │       ├── fileIcons.ts              # 파일 유형별 Material Symbols + 색상 매핑
 │       └── contextBuilder.ts         # 채팅용 코드 컨텍스트 구성
 

@@ -1,6 +1,7 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { AIErrorType, classifyAIError, getAIErrorInfo } from './ai';
 import { i18nStore } from '$lib/stores/i18nStore.svelte';
+import { settingsStore } from '$lib/stores/settingsStore.svelte';
 
 const t = (key: string) => i18nStore.t(key);
 
@@ -147,6 +148,10 @@ describe('classifyAIError', () => {
 });
 
 describe('getAIErrorInfo', () => {
+	beforeEach(() => {
+		settingsStore.language = 'ko';
+	});
+
 	it('returns user-friendly message for TPM_EXCEEDED', () => {
 		const info = getAIErrorInfo(AIErrorType.TPM_EXCEEDED, undefined, t);
 		expect(info.type).toBe(AIErrorType.TPM_EXCEEDED);
@@ -200,6 +205,10 @@ describe('getAIErrorInfo', () => {
 });
 
 describe('getAIErrorInfo for the demo', () => {
+	beforeEach(() => {
+		settingsStore.language = 'ko';
+	});
+
 	it('resolves every message and label through i18n', () => {
 		for (const type of Object.values(AIErrorType)) {
 			const info = getAIErrorInfo(type, undefined, t);
@@ -214,19 +223,15 @@ describe('getAIErrorInfo for the demo', () => {
 		expect(info.actions.map((a) => a.target)).toEqual(['explore', 'analyze']);
 	});
 
-	afterEach(() => {
-		i18nStore.locale = 'ko';
-	});
-
 	it('returns English text when the locale is en', () => {
-		i18nStore.locale = 'en';
+		settingsStore.language = 'en';
 		const info = getAIErrorInfo(AIErrorType.DEMO_UNAVAILABLE, undefined, t);
 		expect(info.message).toContain('free demo is unavailable');
 		expect(info.actions[0].label).toBe('Open Explore');
 	});
 
 	it('still shows the raw message for UNKNOWN in either locale', () => {
-		i18nStore.locale = 'en';
+		settingsStore.language = 'en';
 		expect(getAIErrorInfo(AIErrorType.UNKNOWN, 'boom', t).message).toBe('boom');
 	});
 });

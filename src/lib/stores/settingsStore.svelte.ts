@@ -1,3 +1,5 @@
+import { browserLanguages, detectLocale, parseLocale, type Locale } from '$lib/utils/locale';
+
 export type AIProviderId = 'google' | 'anthropic' | 'openai';
 export type BridgeCliId = 'claude' | 'gemini' | 'auto';
 
@@ -13,6 +15,7 @@ function loadStoredSettings() {
 
 function createSettingsStore() {
 	const initial = loadStoredSettings();
+	const browserLocale = detectLocale(browserLanguages());
 
 	let geminiApiKey = $state<string>(initial.geminiApiKey ?? '');
 	let anthropicApiKey = $state<string>(initial.anthropicApiKey ?? '');
@@ -22,7 +25,8 @@ function createSettingsStore() {
 	let maxSkeletonKB = $state<number>(initial.maxSkeletonKB ?? 250);
 	let skeletonUnlimited = $state<boolean>(initial.skeletonUnlimited ?? false);
 	let cacheEnabled = $state<boolean>(initial.cacheEnabled ?? true);
-	let language = $state<'ko' | 'en'>(initial.language ?? 'ko');
+	// null means the user never picked a language, so the browser's preference applies
+	let language = $state<Locale | null>(parseLocale(initial.language));
 	let syntaxTheme = $state<string>(initial.syntaxTheme ?? 'tomorrow');
 	let skipDrilldownConfirm = $state<boolean>(initial.skipDrilldownConfirm ?? false);
 	let showSymbols = $state<boolean>(initial.showSymbols ?? false);
@@ -126,10 +130,10 @@ function createSettingsStore() {
 			persist();
 		},
 
-		get language() {
-			return language;
+		get language(): Locale {
+			return language ?? browserLocale;
 		},
-		set language(v: 'ko' | 'en') {
+		set language(v: Locale) {
 			language = v;
 			persist();
 		},
@@ -229,7 +233,7 @@ function createSettingsStore() {
 			maxSkeletonKB = 250;
 			skeletonUnlimited = false;
 			cacheEnabled = true;
-			language = 'ko';
+			language = null;
 			syntaxTheme = 'tomorrow';
 			skipDrilldownConfirm = false;
 			showSymbols = false;

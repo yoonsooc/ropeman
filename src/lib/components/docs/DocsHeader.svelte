@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
+	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 
 	let {
 		lang,
@@ -42,7 +43,7 @@
 			href={resolve(`/docs/${otherLang}/${slug || 'getting-started'}`)}
 			title="Toggle Language"
 			onclick={() => {
-				i18nStore.locale = otherLang;
+				settingsStore.language = otherLang;
 			}}
 		>
 			{lang === 'ko' ? 'EN' : '한'}

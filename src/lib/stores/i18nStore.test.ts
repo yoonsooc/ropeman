@@ -1,39 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { i18nStore } from './i18nStore.svelte';
+import { settingsStore } from './settingsStore.svelte';
 
 describe('i18nStore', () => {
 	beforeEach(() => {
-		i18nStore.locale = 'ko';
+		settingsStore.language = 'ko';
 	});
 
 	describe('locale', () => {
-		it('defaults to ko', () => {
-			expect(i18nStore.locale).toBe('ko');
-		});
+		it('follows the language saved in settingsStore', () => {
+			// Act
+			settingsStore.language = 'en';
 
-		it('can be set to en', () => {
-			i18nStore.locale = 'en';
+			// Assert
 			expect(i18nStore.locale).toBe('en');
-		});
-	});
-
-	describe('toggleLocale', () => {
-		it('toggles from ko to en', () => {
-			i18nStore.toggleLocale();
-			expect(i18nStore.locale).toBe('en');
-		});
-
-		it('toggles from en to ko', () => {
-			i18nStore.locale = 'en';
-			i18nStore.toggleLocale();
-			expect(i18nStore.locale).toBe('ko');
-		});
-
-		it('toggles back and forth', () => {
-			i18nStore.toggleLocale();
-			expect(i18nStore.locale).toBe('en');
-			i18nStore.toggleLocale();
-			expect(i18nStore.locale).toBe('ko');
+			expect(i18nStore.t('landing.cta')).toBe('Open Folder');
 		});
 	});
 
@@ -43,7 +24,7 @@ describe('i18nStore', () => {
 		});
 
 		it('returns English translation when locale is en', () => {
-			i18nStore.locale = 'en';
+			settingsStore.language = 'en';
 			expect(i18nStore.t('subtitle')).toBe('Explore codebases visually');
 		});
 
@@ -52,7 +33,7 @@ describe('i18nStore', () => {
 		});
 
 		it('resolves nested English keys', () => {
-			i18nStore.locale = 'en';
+			settingsStore.language = 'en';
 			expect(i18nStore.t('landing.cta')).toBe('Open Folder');
 		});
 
@@ -65,12 +46,12 @@ describe('i18nStore', () => {
 		});
 
 		it('resolves snippet keys', () => {
-			i18nStore.locale = 'en';
+			settingsStore.language = 'en';
 			expect(i18nStore.t('snippet.analyze')).toBe('Analyze');
 		});
 
 		it('resolves legend keys', () => {
-			i18nStore.locale = 'en';
+			settingsStore.language = 'en';
 			expect(i18nStore.t('legend.title')).toBe('Legend');
 		});
 
@@ -96,7 +77,7 @@ describe('i18nStore', () => {
 				'landing.parsingLabel'
 			];
 			for (const locale of ['ko', 'en'] as const) {
-				i18nStore.locale = locale;
+				settingsStore.language = locale;
 				for (const key of keys) {
 					expect(i18nStore.t(key)).not.toBe(key);
 				}
@@ -118,7 +99,7 @@ describe('i18nStore', () => {
 		});
 
 		it('resolves docs keys in en', () => {
-			i18nStore.locale = 'en';
+			settingsStore.language = 'en';
 			expect(i18nStore.t('docs.headerLink')).toBe('Docs');
 			expect(i18nStore.t('docs.backToApp')).toBe('Back to App');
 			expect(i18nStore.t('docs.onThisPage')).toBe('On this page');

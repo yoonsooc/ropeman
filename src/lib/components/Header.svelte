@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
+	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
@@ -149,7 +150,7 @@
 		<div class="header-divider"></div>
 		<button
 			class="header-btn lang-toggle"
-			onclick={() => i18nStore.toggleLocale()}
+			onclick={() => (settingsStore.language = i18nStore.locale === 'ko' ? 'en' : 'ko')}
 			title={i18nStore.t('header.languageToggle')}
 			aria-label={i18nStore.t('header.languageToggle')}
 		>
