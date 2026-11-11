@@ -166,7 +166,7 @@ describe('getAIErrorInfo', () => {
 
 	it('returns user-friendly message for AUTH_ERROR with action', () => {
 		const info = getAIErrorInfo(AIErrorType.AUTH_ERROR, undefined, t);
-		expect(info.message).toContain('API Key');
+		expect(info.message).toContain('API 키');
 		expect(info.actions.length).toBeGreaterThan(0);
 		expect(info.actions[0].target).toBe('analyze');
 	});

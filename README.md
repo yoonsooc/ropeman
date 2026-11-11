@@ -1,6 +1,6 @@
 # Ropeman
 
-> Semantic code architecture visualizer -- Local-First, AI-powered
+> See a codebase's architecture as a diagram. Parsing runs in your browser, and an AI groups the code by role.
 
 **Live**: [https://ropeman.dev](https://ropeman.dev)
 
@@ -8,28 +8,29 @@
 
 ## Overview
 
-Ropeman analyzes any codebase in the browser and generates **AI-driven semantic architecture diagrams**. Instead of showing raw file trees, it surfaces the _roles and relationships_ that define your project's architecture.
+Ropeman parses a codebase in the browser and asks an AI to group its files by role. The main canvas shows those groups and the dependencies between them, so you see the architecture before the file tree.
 
-Drop a folder, get an architecture diagram. Click any region to drill down further -- the AI recursively analyzes sub-structures on demand.
+Open a folder and you get a diagram. Double-click a group to drill down, and the AI analyzes that group's inner structure on request.
 
-### Key Value Propositions
+### Highlights
 
-- **Semantic-First** -- the main canvas shows role-based diagrams, not file trees
-- **Recursive Drill-down** -- click a region to get deeper AI analysis
-- **100% Local-First** -- source code never leaves the browser; only skeleton metadata is sent to AI (symbols, signatures and imports; for Markdown, frontmatter name and description, headings and file links)
-- **Zero Friction** -- URL, drop folder, diagram. No install, no signup required for demo mode
+- The main canvas is a diagram of roles. The file tree is a side panel.
+- Drill-down is recursive. Each level is a new AI analysis of one group.
+- Source code stays in the browser. The AI receives only a code summary, called the skeleton: symbols, signatures and imports, and for Markdown files the frontmatter name and description, headings and file links.
+- Demo mode needs no install and no account. Open the site, open a folder, and the diagram appears.
 
 ## Features
 
-- **AI Semantic Analysis** -- LLM-based architecture diagram generation
-- **Recursive Drill-down** -- click any node to expand its internal structure
-- **Multi-Track AI** -- four modes to suit different needs (see below)
-- **Local-First** -- WASM-based AST parsing in-browser; only code skeletons reach the AI
-- **Polyglot** -- 14 languages (Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala)
-- **Code Viewer** -- syntax-highlighted source with split view
-- **Code Snippet Analysis** -- paste and analyze code snippets directly
-- **Semantic Caching** -- Cache API persistence across sessions
-- **Search** -- full-text and semantic search via Orama
+- AI analysis that turns the skeleton into an architecture diagram
+- Recursive drill-down into any node
+- Four AI modes, described below
+- WASM AST parsing in the browser, so only skeletons reach the AI
+- 14 languages: Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C# and Scala
+- Public GitHub repositories load by URL, without a clone
+- Code viewer with syntax highlighting and split view
+- Code snippet analysis: paste code and analyze it directly
+- Analysis cache in the Cache API, kept across sessions
+- Full-text and semantic search with Orama
 
 ## Tech Stack
 
@@ -55,7 +56,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in a Chromium-based browser (Chrome / Edge recommended for File System Access API support).
+Open [http://localhost:5173](http://localhost:5173) in Chrome or Edge. Folder picking uses the File System Access API, which only Chromium browsers support in full.
 
 ### Scripts
 
@@ -73,12 +74,12 @@ Open [http://localhost:5173](http://localhost:5173) in a Chromium-based browser 
 
 ## AI Modes
 
-Ropeman supports four AI tracks:
+Ropeman has four AI modes:
 
-1. **Demo** -- free, no setup required. Uses an edge proxy with rate limiting. Great for trying out the tool.
-2. **API Key (BYOK)** -- bring your own Google Gemini, Anthropic, or OpenAI key. Keys stay in the browser (localStorage), requests go through a secure edge proxy.
-3. **Local Bridge** -- connect to a locally running AI (Claude Code, Gemini CLI, etc.) via a bridge server. Source code stays entirely on your machine.
-4. **Browser AI** -- WebGPU-powered in-browser inference via web-llm. Fully offline, experimental.
+1. **Demo** is free and needs no setup. Requests go through Ropeman's edge proxy, which rate-limits them, to the Google Gemini free tier. Google may use free-tier inputs to improve its products.
+2. **API Key (BYOK)** uses your own Google Gemini, Anthropic or OpenAI key. The key stays in the browser (localStorage). Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's edge proxy because of browser restrictions, and the proxy does not store keys.
+3. **Local Bridge** connects to an AI CLI on your machine (Claude Code, Gemini CLI and others) through a small bridge server. The bridge hands the skeleton to the CLI, and the CLI sends it to its own provider. Source files stay on your machine.
+4. **Browser AI** runs a model in the browser with WebGPU through web-llm. After the one-time model download, analysis runs offline. This mode is experimental.
 
 ## Architecture
 
@@ -101,7 +102,7 @@ edge-proxy/
 2. Parser Worker (web-tree-sitter WASM) extracts AST skeletons per file
 3. AI adapter sends skeletons to the selected AI track
 4. Response is parsed into semantic nodes/edges and rendered via SvelteFlow
-5. Results are cached (Cache API) for instant reload
+5. The Cache API keeps results, so reopening a project skips the AI call
 
 ## Caching
 
@@ -125,9 +126,9 @@ edge-proxy/
 
 ## Browser Requirements
 
-- Chromium-based browser recommended (Chrome, Edge) for full File System Access API support
-- Firefox / Safari: limited to drag-and-drop folder upload
-- WebGPU AI mode requires a WebGPU-capable browser
+- A Chromium browser (Chrome, Edge) supports the full File System Access API and is recommended.
+- Firefox and Safari can only read a folder through drag and drop.
+- Browser AI mode needs a browser with WebGPU.
 
 ## License
 
