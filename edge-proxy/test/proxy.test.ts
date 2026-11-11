@@ -81,6 +81,85 @@ describe('proxy worker', () => {
 		});
 	});
 
+	describe('chat', () => {
+		const chat = {
+			model: 'claude-opus-5-5',
+			messages: [{ role: 'user', content: 'hi' }],
+			system: 'be brief',
+		};
+
+		it('answers 200 with the normalized text, the raw reply and CORS headers', async () => {
+			// Arrange
+			const reply = {
+				content: [
+					{ type: 'thinking', thinking: 'hmm' },
+					{ type: 'text', text: 'hel' },
+					{ type: 'text', text: 'lo' },
+				],
+			};
+			fetchMock.mockResolvedValue(new Response(JSON.stringify(reply)));
+
+			// Act
+			const response = await worker.fetch(proxyRequest({ provider: 'anthropic', apiKey: 'sk-ant', ...chat }), {
+				...env,
+				AI_GATEWAY_TOKEN: 'gw-token',
+			});
+
+			// Assert
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+			expect(await response.json()).toEqual({ text: 'hello', raw: reply });
+			const [url, init] = fetchMock.mock.calls[0];
+			expect(url).toBe('https://gateway.test/v1/acct/gw/anthropic/v1/messages');
+			expect(init.headers['x-api-key']).toBe('sk-ant');
+			expect(init.headers['cf-aig-authorization']).toBe('Bearer gw-token');
+			expect(JSON.parse(init.body).system).toBe('be brief');
+		});
+
+		it('reads the Gemini candidate text and sends the key to the Gemini API', async () => {
+			fetchMock.mockResolvedValue(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'gemini says hi' }] } }] })));
+
+			const response = await worker.fetch(proxyRequest({ provider: 'google', apiKey: 'g-key', ...chat }), env);
+
+			expect(response.status).toBe(200);
+			expect(((await response.json()) as { text: string }).text).toBe('gemini says hi');
+			expect(fetchMock.mock.calls[0][0]).toBe(
+				'https://generativelanguage.googleapis.com/v1beta/models/claude-opus-5-5:generateContent?key=g-key',
+			);
+		});
+
+		it('passes a provider error status through with its body, without retrying', async () => {
+			const failure = { error: { type: 'authentication_error' } };
+			fetchMock.mockResolvedValue(new Response(JSON.stringify(failure), { status: 401 }));
+
+			const response = await worker.fetch(proxyRequest({ provider: 'anthropic', apiKey: 'bad', ...chat }), env);
+
+			expect(response.status).toBe(401);
+			expect(await response.json()).toEqual({ error: 'anthropic API error: 401', detail: failure });
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		it('answers 400 when a required field is missing', async () => {
+			const response = await worker.fetch(proxyRequest({ provider: 'anthropic', apiKey: 'sk-ant', model: 'm' }), env);
+
+			expect(response.status).toBe(400);
+			expect(fetchMock).not.toHaveBeenCalled();
+		});
+
+		it('rejects an origin outside the allowlist before calling a provider', async () => {
+			const request = new Request('https://proxy.ropeman.dev/', {
+				method: 'POST',
+				headers: { Origin: 'https://evil.example', 'Content-Type': 'application/json' },
+				body: JSON.stringify({ provider: 'anthropic', apiKey: 'sk-ant', ...chat }),
+			});
+
+			const response = await worker.fetch(request, env);
+
+			expect(response.status).toBe(403);
+			expect(fetchMock).not.toHaveBeenCalled();
+		});
+	});
+
 	it('sends max_completion_tokens to OpenAI, which GPT-5 and o-series require', async () => {
 		fetchMock.mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: 'done' } }] })));
 
