@@ -14,7 +14,7 @@ async function openHelp(page: Page): Promise<void> {
 	await expect(page.locator('.modal-card.help-card')).toBeVisible();
 }
 
-test.describe('Mobile modal sheet pattern', () => {
+test.describe('Mobile modal sheet pattern', { tag: '@responsive' }, () => {
 	test.beforeEach(async ({ page }) => {
 		await page.addInitScript(() => {
 			localStorage.setItem(

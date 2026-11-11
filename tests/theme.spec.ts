@@ -58,7 +58,7 @@ test.describe('Theme Toggle', () => {
 });
 
 test.describe('Language Toggle', () => {
-	test('should toggle header subtitle language', async ({ page }) => {
+	test('should toggle header subtitle language', { tag: '@responsive' }, async ({ page }) => {
 		await page.goto('/');
 
 		// Default locale is ko, subtitle should be in Korean
