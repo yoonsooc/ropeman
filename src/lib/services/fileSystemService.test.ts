@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('$lib/utils/languageDetector', () => ({
 	detectLanguage: vi.fn((name: string) => {
@@ -10,10 +10,7 @@ vi.mock('$lib/utils/languageDetector', () => ({
 	isSupported: (lang: string) => ['typescript', 'python', 'javascript'].includes(lang)
 }));
 
-vi.mock('$lib/stores/projectStore.svelte', () => ({ projectStore: { cutFiles: [] } }));
-
 import { handleFallbackInput, readDirectoryRecursive } from './fileSystemService';
-import { projectStore } from '$lib/stores/projectStore.svelte';
 import { MAX_FILES } from '$lib/utils/filePriority';
 import type { FileNode } from '$lib/types/fileTree';
 
@@ -32,6 +29,11 @@ function paseoLikePaths(): string[] {
 function filePaths(node: FileNode): string[] {
 	if (node.kind === 'file') return [node.path];
 	return (node.children ?? []).flatMap(filePaths);
+}
+
+function directoryPaths(node: FileNode): string[] {
+	if (node.kind === 'file') return [];
+	return [node.path, ...(node.children ?? []).flatMap(directoryPaths)];
 }
 
 function topPackages(paths: string[]): Set<string> {
@@ -86,17 +88,13 @@ function fakeFolder(name: string, paths: string[]): FileSystemDirectoryHandle {
 }
 
 describe('fileSystemService', () => {
-	beforeEach(() => {
-		projectStore.cutFiles = [];
-	});
-
 	describe('readDirectoryRecursive', () => {
 		it('keeps every package when folder order would fill the file limit with one', async () => {
 			// Regression (PASEO, 2026-11-11): the walk stopped at 2000 files inside packages/app,
 			// so server, cli and protocol never reached the parser
 			const paths = paseoLikePaths();
 
-			const tree = await readDirectoryRecursive(fakeFolder('paseo', paths));
+			const { tree } = await readDirectoryRecursive(fakeFolder('paseo', paths));
 
 			const kept = filePaths(tree);
 			expect(kept).toHaveLength(MAX_FILES);
@@ -109,17 +107,27 @@ describe('fileSystemService', () => {
 		it('records the files left out by the limit', async () => {
 			const paths = paseoLikePaths();
 
-			await readDirectoryRecursive(fakeFolder('paseo', paths));
+			const { cut } = await readDirectoryRecursive(fakeFolder('paseo', paths));
 
-			expect(projectStore.cutFiles).toHaveLength(paths.length - MAX_FILES);
-			expect(projectStore.cutFiles.every((c) => c.reason === 'file-limit')).toBe(true);
-			expect(topPackages(projectStore.cutFiles.map((c) => c.path))).toEqual(
-				new Set(['packages/app'])
+			expect(cut).toHaveLength(paths.length - MAX_FILES);
+			expect(cut.every((c) => c.reason === 'file-limit')).toBe(true);
+			expect(topPackages(cut.map((c) => c.path))).toEqual(new Set(['packages/app']));
+		});
+
+		it('drops folders whose files were all cut by the limit', async () => {
+			// Regression (#41 follow-up): a folder of low ranked files stayed in the tree empty
+			const source = Array.from({ length: MAX_FILES }, (_, i) => `src/f${i}.ts`);
+
+			const { tree, cut } = await readDirectoryRecursive(
+				fakeFolder('proj', [...source, 'notes/a.md', 'notes/deep/b.md'])
 			);
+
+			expect(cut.map((c) => c.path).sort()).toEqual(['notes/a.md', 'notes/deep/b.md']);
+			expect(directoryPaths(tree)).toEqual(['proj', 'src']);
 		});
 
 		it('returns file nodes with handles that read the file, and skips excluded folders', async () => {
-			const tree = await readDirectoryRecursive(
+			const { tree, cut } = await readDirectoryRecursive(
 				fakeFolder('proj', ['src/a.ts', 'node_modules/x/index.js', 'README'])
 			);
 
@@ -129,7 +137,7 @@ describe('fileSystemService', () => {
 			const file = await (src.children![0].handle as FileSystemFileHandle).getFile();
 			expect(file.name).toBe('a.ts');
 			expect(src.children![0].language).toBe('typescript');
-			expect(projectStore.cutFiles).toEqual([]);
+			expect(cut).toEqual([]);
 		});
 	});
 
@@ -163,7 +171,7 @@ describe('fileSystemService', () => {
 				{ name: 'utils.ts', path: 'myproject/src/utils.ts' }
 			]);
 
-			const tree = handleFallbackInput(files);
+			const { tree } = handleFallbackInput(files);
 
 			expect(tree.name).toBe('myproject');
 			expect(tree.kind).toBe('directory');
@@ -178,7 +186,7 @@ describe('fileSystemService', () => {
 		it('extracts project name from first file path', () => {
 			const files = makeFileList([{ name: 'app.py', path: 'cool-project/app.py' }]);
 
-			const tree = handleFallbackInput(files);
+			const { tree } = handleFallbackInput(files);
 			expect(tree.name).toBe('cool-project');
 		});
 
@@ -188,7 +196,7 @@ describe('fileSystemService', () => {
 				{ name: 'lodash.js', path: 'proj/node_modules/lodash/lodash.js' }
 			]);
 
-			const tree = handleFallbackInput(files);
+			const { tree } = handleFallbackInput(files);
 
 			// Should only have main.ts, not node_modules
 			const allNames = (tree.children ?? []).map((c) => c.name);
@@ -203,7 +211,7 @@ describe('fileSystemService', () => {
 				{ name: 'index.ts', path: 'repo/src/index.ts' }
 			]);
 
-			const tree = handleFallbackInput(files);
+			const { tree } = handleFallbackInput(files);
 
 			const names = JSON.stringify(tree);
 			expect(names).toContain('SKILL.md');
@@ -216,16 +224,16 @@ describe('fileSystemService', () => {
 			const { createPathFilter } = await import('$lib/utils/filePriority');
 			const files = makeFileList([{ name: 'guide.md', path: 'repo/docs/guide.md' }]);
 
-			expect(JSON.stringify(handleFallbackInput(files))).not.toContain('guide.md');
-			expect(JSON.stringify(handleFallbackInput(files, createPathFilter([], ['docs'])))).toContain(
-				'guide.md'
-			);
+			expect(JSON.stringify(handleFallbackInput(files).tree)).not.toContain('guide.md');
+			expect(
+				JSON.stringify(handleFallbackInput(files, createPathFilter([], ['docs'])).tree)
+			).toContain('guide.md');
 		});
 
 		it('detects language for known extensions', () => {
 			const files = makeFileList([{ name: 'app.ts', path: 'proj/app.ts' }]);
 
-			const tree = handleFallbackInput(files);
+			const { tree } = handleFallbackInput(files);
 			const fileNode = tree.children![0];
 			expect(fileNode.language).toBe('typescript');
 		});
@@ -237,7 +245,7 @@ describe('fileSystemService', () => {
 				{ name: 'index.ts', path: 'proj/lib/index.ts' }
 			]);
 
-			const tree = handleFallbackInput(files);
+			const { tree } = handleFallbackInput(files);
 			const names = (tree.children ?? []).map((c) => c.name);
 			// Directory 'lib' should come first
 			expect(names[0]).toBe('lib');
@@ -252,18 +260,19 @@ describe('fileSystemService', () => {
 				paths.map((p) => ({ name: p.split('/').pop()!, path: `paseo/${p}` }))
 			);
 
-			const kept = filePaths(handleFallbackInput(files));
+			const { tree, cut } = handleFallbackInput(files);
 
+			const kept = filePaths(tree);
 			expect(kept).toHaveLength(MAX_FILES);
 			expect(topPackages(kept)).toEqual(
 				new Set(['packages/app', 'packages/server', 'packages/cli', 'packages/protocol'])
 			);
-			expect(projectStore.cutFiles).toHaveLength(paths.length - MAX_FILES);
+			expect(cut).toHaveLength(paths.length - MAX_FILES);
 		});
 
 		it('returns project name "project" for empty FileList', () => {
 			const files = makeFileList([]);
-			const tree = handleFallbackInput(files);
+			const { tree } = handleFallbackInput(files);
 			expect(tree.name).toBe('project');
 		});
 	});
