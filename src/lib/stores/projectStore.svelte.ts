@@ -1,5 +1,6 @@
 import type { FileNode } from '$lib/types/fileTree';
 import type { ASTSymbol } from '$lib/types/ast';
+import type { CutFile } from '$lib/utils/filePriority';
 
 interface ProjectState {
 	fileTree: FileNode | null;
@@ -18,6 +19,7 @@ function createProjectStore() {
 	let projectName = $state('');
 	let parsingProgress = $state({ done: 0, total: 0 });
 	let isSnippetMode = $state(false);
+	let cutFiles = $state.raw<CutFile[]>([]);
 
 	return {
 		get fileTree() {
@@ -70,6 +72,14 @@ function createProjectStore() {
 			isSnippetMode = v;
 		},
 
+		/** Files the loader left out of the open project, with the reason */
+		get cutFiles() {
+			return cutFiles;
+		},
+		set cutFiles(v: CutFile[]) {
+			cutFiles = v;
+		},
+
 		reset() {
 			fileTree = null;
 			astMap = new Map();
@@ -78,6 +88,7 @@ function createProjectStore() {
 			projectName = '';
 			parsingProgress = { done: 0, total: 0 };
 			isSnippetMode = false;
+			cutFiles = [];
 		}
 	};
 }

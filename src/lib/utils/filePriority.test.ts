@@ -6,7 +6,9 @@ import {
 	createPathFilter,
 	isIncludeAncestor,
 	isPathIncluded,
-	isPrimaryMarkdown
+	isPrimaryMarkdown,
+	rankFiles,
+	capFiles
 } from './filePriority';
 
 describe('pathPriority', () => {
@@ -267,5 +269,83 @@ describe('markdown priority', () => {
 		expect(isPrimaryMarkdown('.claude/commands/sync.md')).toBe(true);
 		expect(isPrimaryMarkdown('skills/x/references/checklist.md')).toBe(false);
 		expect(isPrimaryMarkdown('docs/guide.md', createPathFilter([], ['docs']))).toBe(true);
+	});
+});
+
+describe('rankFiles and capFiles', () => {
+	const files = (folder: string, count: number) =>
+		Array.from({ length: count }, (_, i) => `${folder}/f${String(i).padStart(3, '0')}.ts`);
+	const topPackage = (path: string) => path.split('/').slice(0, 2).join('/');
+
+	it('keeps every package when one large package comes first in folder order', () => {
+		// Regression (PASEO): a 2000-file cap applied in folder order filled up on packages/app
+		const paths = [
+			...files('packages/app/src', 50),
+			...files('packages/server/src', 12),
+			...files('packages/cli/src', 4),
+			...files('packages/protocol/src', 3)
+		];
+
+		const { kept, cut } = capFiles(paths, (p) => p, 20);
+
+		expect(new Set(kept.map(topPackage))).toEqual(
+			new Set(['packages/app', 'packages/server', 'packages/cli', 'packages/protocol'])
+		);
+		expect(kept.filter((p) => p.startsWith('packages/cli/'))).toHaveLength(4);
+		expect(kept.filter((p) => p.startsWith('packages/protocol/'))).toHaveLength(3);
+		expect(kept.filter((p) => p.startsWith('packages/app/'))).toHaveLength(7);
+		expect(kept.filter((p) => p.startsWith('packages/server/'))).toHaveLength(6);
+		expect(cut).toHaveLength(paths.length - 20);
+	});
+
+	it('reports every file past the limit once, with the file-limit reason', () => {
+		const paths = [...files('a/src', 5), ...files('b/src', 5)];
+
+		const { kept, cut } = capFiles(paths, (p) => p, 6);
+
+		expect(cut.every((c) => c.reason === 'file-limit')).toBe(true);
+		expect([...kept, ...cut.map((c) => c.path)].sort()).toEqual([...paths].sort());
+	});
+
+	it('keeps nothing cut when the files fit', () => {
+		expect(capFiles(['src/a.ts', 'b.png'], (p) => p).cut).toEqual([]);
+	});
+
+	it('ranks code before tests and docs, and parseable files before the rest', () => {
+		const ranked = rankFiles(
+			['assets/logo.png', 'src/__tests__/a.test.ts', 'CHANGELOG.md', 'scripts/run.ts', 'src/a.ts'],
+			(p) => p
+		);
+
+		expect(ranked).toEqual([
+			'scripts/run.ts',
+			'src/a.ts',
+			'CHANGELOG.md',
+			'src/__tests__/a.test.ts',
+			'assets/logo.png'
+		]);
+	});
+
+	it('keeps instruction files and small code folders when core source alone exceeds the limit', () => {
+		// Regression: ranking every src/ file ahead of everything else dropped AGENTS.md,
+		// skills/ and scripts/ from PASEO even though they are a handful of files
+		const paths = [
+			...files('packages/app/src', 30),
+			'AGENTS.md',
+			'skills/review/SKILL.md',
+			'scripts/release.ts'
+		];
+
+		const { kept } = capFiles(paths, (p) => p, 10);
+
+		expect(kept).toEqual(
+			expect.arrayContaining(['AGENTS.md', 'skills/review/SKILL.md', 'scripts/release.ts'])
+		);
+	});
+
+	it('gives files directly in a folder one shared turn beside each subfolder', () => {
+		const ranked = rankFiles(['src/x.ts', 'src/y.ts', 'src/z.ts', 'src/core/a.ts'], (p) => p);
+
+		expect(ranked.slice(0, 2)).toEqual(['src/x.ts', 'src/core/a.ts']);
 	});
 });

@@ -1,11 +1,13 @@
 /**
  * File loading priority utility for G5 file limit strategy.
  *
- * Used by both `githubLoader` and `parserService` to sort source files
- * by relevance before applying MAX_TOTAL_SIZE limit.
+ * Used by `fileSystemService`, `githubLoader` and `parserService` to rank files
+ * by relevance before applying the MAX_FILES and MAX_TOTAL_SIZE limits.
  *
  * Lower score = higher priority (parsed first).
  */
+
+import { detectLanguage, isSupported } from '$lib/utils/languageDetector';
 
 const CORE_DIR_PATTERN = /(^|\/)(src|lib|app|pkg|internal|cmd)\//;
 const LOW_PRIORITY_PATTERN =
@@ -56,6 +58,98 @@ export const MAX_FILE_SIZE = 500_000; // 500KB
 
 /** Maximum file count safety cap. */
 export const MAX_FILES = 2000;
+
+/** Why a loader left a file out of the project. */
+export type CutReason = 'file-limit' | 'file-size' | 'total-size';
+
+export interface CutFile {
+	path: string;
+	reason: CutReason;
+}
+
+/**
+ * Coarse rank for the file limit: code and instruction files, then tests and ordinary docs,
+ * then files no grammar can read. The finer `pathPriority` scores are not used here, so a
+ * folder of scripts or skills still gets its turn beside core source.
+ */
+function rankBand(path: string): number {
+	const language = detectLanguage(path);
+	if (!language || !isSupported(language)) return 2;
+	return pathPriority(path) === 3 ? 1 : 0;
+}
+
+interface RankEntry<T> {
+	item: T;
+	segments: string[];
+}
+
+/**
+ * Round-robin over the folders at `depth`, recursing into each, so every folder gets an
+ * equal turn and a large sibling cannot use up a cap before a small one is reached.
+ * Files sitting directly in the folder share one turn, in name order.
+ */
+function interleaveByFolder<T>(entries: RankEntry<T>[], depth: number): T[] {
+	const looseFiles: RankEntry<T>[] = [];
+	const folders = new Map<string, RankEntry<T>[]>();
+	for (const entry of entries) {
+		if (entry.segments.length - 1 <= depth) {
+			looseFiles.push(entry);
+			continue;
+		}
+		const name = entry.segments[depth];
+		const group = folders.get(name);
+		if (group) group.push(entry);
+		else folders.set(name, [entry]);
+	}
+	looseFiles.sort((a, b) => a.segments[depth].localeCompare(b.segments[depth]));
+	const queues = [
+		looseFiles.map((entry) => entry.item),
+		...[...folders.keys()]
+			.sort((a, b) => a.localeCompare(b))
+			.map((name) => interleaveByFolder(folders.get(name)!, depth + 1))
+	];
+
+	const ordered: T[] = [];
+	let open = queues;
+	for (let turn = 0; ; turn++) {
+		open = open.filter((queue) => turn < queue.length);
+		if (open.length === 0) return ordered;
+		for (const queue of open) ordered.push(queue[turn]);
+	}
+}
+
+/**
+ * Order files for a count cap. Each band from `rankBand` comes after the one before it;
+ * inside a band every folder level takes turns, so one large folder cannot crowd out its
+ * siblings. Paths are relative to the project root, without the project name.
+ */
+export function rankFiles<T>(items: readonly T[], pathOf: (item: T) => string): T[] {
+	const bands = new Map<number, RankEntry<T>[]>();
+	for (const item of items) {
+		const path = pathOf(item);
+		const band = rankBand(path);
+		const entry = { item, segments: path.split('/') };
+		const group = bands.get(band);
+		if (group) group.push(entry);
+		else bands.set(band, [entry]);
+	}
+	return [...bands.keys()]
+		.sort((a, b) => a - b)
+		.flatMap((band) => interleaveByFolder(bands.get(band)!, 0));
+}
+
+/** Rank the files, keep the first `limit` and report the rest as cut by the file limit. */
+export function capFiles<T>(
+	items: readonly T[],
+	pathOf: (item: T) => string,
+	limit = MAX_FILES
+): { kept: T[]; cut: CutFile[] } {
+	const ranked = rankFiles(items, pathOf);
+	return {
+		kept: ranked.slice(0, limit),
+		cut: ranked.slice(limit).map((item) => ({ path: pathOf(item), reason: 'file-limit' }))
+	};
+}
 
 /**
  * Directory names to exclude from file collection.
