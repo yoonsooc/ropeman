@@ -18,7 +18,6 @@ import type {
 	SemanticNode,
 	SemanticEdge
 } from '$lib/types/semantic';
-import type { SkeletonPayload } from '$lib/types/skeleton';
 
 const SEMANTIC_COLORS = [
 	'#89b4fa',
@@ -121,11 +120,6 @@ function activeModelId(): string {
 	}
 }
 
-// generatedAt is a wall-clock stamp. Sent as is, it makes every request unique and the cache never hits.
-function payloadAsSent(skeleton: SkeletonPayload): string {
-	return formatPayloadPreview({ ...skeleton, generatedAt: '' });
-}
-
 /** A request plus the files its answer must assign, which the cache key leaves out. */
 interface LevelRequest extends SemanticRequest {
 	inputPaths: readonly string[];
@@ -141,7 +135,7 @@ function topLevelRequest(): LevelRequest | null {
 	return {
 		model: activeModelId(),
 		system: TOP_LEVEL_SYSTEM_PROMPT + getLocaleInstruction(),
-		user: `Analyze the semantic architecture of this project:\n\n${payloadAsSent(skeleton)}`,
+		user: `Analyze the semantic architecture of this project:\n\n${formatPayloadPreview(skeleton)}`,
 		inputPaths: skeleton.files.map((f) => f.path)
 	};
 }
@@ -156,7 +150,7 @@ function drilldownRequest(parentNode: SemanticNode): LevelRequest | null {
 	return {
 		model: activeModelId(),
 		system: DRILLDOWN_SYSTEM_PROMPT + getLocaleInstruction(),
-		user: `Analyze the internal structure of the "${parentNode.label}" domain:\n\n${payloadAsSent(subSkeleton)}`,
+		user: `Analyze the internal structure of the "${parentNode.label}" domain:\n\n${formatPayloadPreview(subSkeleton)}`,
 		inputPaths: parentNode.filePaths
 	};
 }

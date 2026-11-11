@@ -12,7 +12,9 @@
 	import {
 		extractSkeleton,
 		estimatePayloadSize,
-		formatPayloadPreview
+		formatPayloadPreview,
+		SAFE_PAYLOAD_BYTES,
+		BYOK_MIN_CONTEXT_TOKENS
 	} from '$lib/services/skeletonExtractor';
 	import type { AIProviderId } from '$lib/stores/settingsStore.svelte';
 	import WebGPUSetupModal from './WebGPUSetupModal.svelte';
@@ -73,6 +75,12 @@
 	);
 	const payloadSize = $derived(skeleton ? estimatePayloadSize(skeleton) : null);
 	const payloadPreview = $derived(skeleton ? formatPayloadPreview(skeleton) : '');
+	const demoTooLarge = $derived((payloadSize?.bytes ?? 0) > SAFE_PAYLOAD_BYTES.edge);
+	const byokTooLarge = $derived((payloadSize?.bytes ?? 0) > SAFE_PAYLOAD_BYTES.byok);
+
+	function formatTokens(tokens: number): string {
+		return tokens < 1000 ? String(tokens) : `${Math.round(tokens / 1000)}K`;
+	}
 
 	const trackInfo = $derived.by(() => {
 		const t = authStore.activeTrack;
@@ -243,6 +251,15 @@
 						</button>
 					</div>
 					<p class="track-note">{i18nStore.t('analyze.demoNotice')}</p>
+					{#if payloadSize && demoTooLarge}
+						<p class="track-note payload-warn" data-testid="demo-size-warning">
+							<span class="material-symbols-outlined">warning</span>
+							{i18nStore.t('analyze.demoTooLarge', {
+								size: payloadSize.formatted,
+								limit: `${SAFE_PAYLOAD_BYTES.edge / 1000} KB`
+							})}
+						</p>
+					{/if}
 				</div>
 
 				<!-- BYOK -->
@@ -338,6 +355,15 @@
 								<span class="cfg-status error">{testError || i18nStore.t('analyze.invalid')}</span>
 							{/if}
 							<p class="cfg-note">{i18nStore.t('analyze.byokKeyNotice')}</p>
+							{#if payloadSize && byokTooLarge}
+								<p class="cfg-note payload-warn" data-testid="byok-size-warning">
+									<span class="material-symbols-outlined">warning</span>
+									{i18nStore.t('analyze.byokTooLarge', {
+										tokens: formatTokens(payloadSize.tokens),
+										context: formatTokens(BYOK_MIN_CONTEXT_TOKENS)
+									})}
+								</p>
+							{/if}
 							{#if apiKeyValue}
 								<button
 									class="btn btn-primary start-btn wide"
@@ -547,7 +573,13 @@
 						</div>
 						<div class="preview-meta">
 							{#if payloadSize}
-								<span class="meta-item">{payloadSize.formatted}</span>
+								<span class="meta-item" data-testid="payload-size">{payloadSize.formatted}</span>
+								<span class="meta-sep">&middot;</span>
+								<span class="meta-item"
+									>{i18nStore.t('analyze.payloadTokens', {
+										n: formatTokens(payloadSize.tokens)
+									})}</span
+								>
 								<span class="meta-sep">&middot;</span>
 							{/if}
 							<span class="meta-item"
@@ -806,6 +838,17 @@
 		font-size: 11px;
 		color: var(--text-secondary);
 		opacity: 0.4;
+	}
+	.payload-warn {
+		display: flex;
+		gap: 6px;
+		align-items: flex-start;
+		color: var(--text-primary);
+	}
+	.payload-warn .material-symbols-outlined {
+		font-size: 14px;
+		line-height: 1.2;
+		color: var(--color-warning);
 	}
 	.preview-json {
 		background: var(--bg-secondary);

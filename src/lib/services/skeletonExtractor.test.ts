@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
 	extractSkeleton,
 	extractSubSkeleton,
@@ -64,7 +64,6 @@ describe('extractSkeleton', () => {
 		expect(result.projectName).toBe('test-project');
 		expect(result.totalFiles).toBe(3);
 		expect(result.files).toHaveLength(3);
-		expect(result.generatedAt).toBeTruthy();
 	});
 
 	it('filters out variable, interface, and type symbols from output', () => {
@@ -209,46 +208,135 @@ describe('extractSubSkeleton', () => {
 	});
 });
 
-describe('estimatePayloadSize', () => {
-	it('returns byte size and formatted string', () => {
-		const payload: SkeletonPayload = {
-			projectName: 'test',
-			totalFiles: 0,
-			totalSymbols: 0,
-			files: [],
-			generatedAt: new Date().toISOString()
-		};
-		const { bytes, formatted } = estimatePayloadSize(payload);
-		expect(bytes).toBeGreaterThan(0);
-		expect(formatted).toMatch(/\d+(\.\d+)?\s*(B|KB|MB)/);
+function manyFiles(count: number): { tree: FileNode; astMap: Map<string, ASTSymbol[]> } {
+	const astMap = new Map<string, ASTSymbol[]>();
+	const children: FileNode[] = [];
+	for (let i = 0; i < count; i++) {
+		const path = `src/module${i}/service${i}.ts`;
+		children.push({ name: `service${i}.ts`, path, kind: 'file', language: 'typescript' });
+		astMap.set(
+			path,
+			Array.from({ length: 8 }, (_, j) => ({
+				name: `handleRequest${i}_${j}`,
+				kind: 'function' as const,
+				lineStart: j,
+				lineEnd: j
+			}))
+		);
+	}
+	return { tree: { name: 'repo', path: '', kind: 'directory', children }, astMap };
+}
+
+const byteLength = (text: string) => new TextEncoder().encode(text).byteLength;
+
+describe('skeleton budget', () => {
+	afterEach(() => {
+		settingsStore.maxSkeletonKB = 250;
+		settingsStore.skeletonUnlimited = false;
+		vi.useRealTimers();
 	});
 
-	it('formats sizes correctly', () => {
-		const smallPayload: SkeletonPayload = {
+	it('never sends more bytes than the budget allows', () => {
+		// Regression: the budget was measured on compact JSON while indented JSON was sent,
+		// so PASEO's 250KB budget went out as 464KB.
+		const { tree, astMap } = manyFiles(400);
+		for (const kb of [50, 60, 75, 100]) {
+			settingsStore.maxSkeletonKB = kb;
+
+			const sent = formatPayloadPreview(extractSkeleton('repo', tree, astMap));
+
+			expect(byteLength(sent)).toBeLessThanOrEqual(kb * 1000);
+			expect(byteLength(sent)).toBeGreaterThan(kb * 1000 - 1000);
+		}
+	});
+
+	it('sends every file when the budget is unlimited', () => {
+		const { tree, astMap } = manyFiles(400);
+		settingsStore.maxSkeletonKB = 50;
+		settingsStore.skeletonUnlimited = true;
+
+		const skeleton = extractSkeleton('repo', tree, astMap);
+
+		expect(skeleton.totalFiles).toBe(400);
+		expect(skeleton.projectName).toBe('repo');
+	});
+
+	it('serializes the same project to the same string at different times', () => {
+		// Regression: a generatedAt stamp made every request unique, so the response cache never hit
+		const { tree, astMap } = manyFiles(3);
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+		const first = formatPayloadPreview(extractSkeleton('repo', tree, astMap));
+		vi.setSystemTime(new Date('2026-06-01T00:00:00Z'));
+
+		const second = formatPayloadPreview(extractSkeleton('repo', tree, astMap));
+
+		expect(second).toBe(first);
+	});
+});
+
+describe('estimatePayloadSize', () => {
+	it('reports the UTF-8 bytes of the string that is sent', () => {
+		const payload: SkeletonPayload = {
+			projectName: '프로젝트',
+			totalFiles: 1,
+			totalSymbols: 1,
+			files: [
+				{
+					path: 'src/한글.ts',
+					language: 'typescript',
+					symbols: [{ name: 'run', kind: 'function' }],
+					imports: []
+				}
+			]
+		};
+		const sent = formatPayloadPreview(payload);
+
+		const { bytes } = estimatePayloadSize(payload);
+
+		expect(bytes).toBe(byteLength(sent));
+		expect(bytes).toBeGreaterThan(sent.length);
+	});
+
+	it('formats sizes in the same decimal KB as the budget setting', () => {
+		const { tree, astMap } = manyFiles(400);
+		settingsStore.maxSkeletonKB = 50;
+		const skeleton = extractSkeleton('repo', tree, astMap);
+
+		const { bytes, formatted } = estimatePayloadSize(skeleton);
+
+		expect(formatted).toBe(`${(bytes / 1000).toFixed(1)} KB`);
+		settingsStore.maxSkeletonKB = 250;
+	});
+
+	it('shows a small payload in bytes with an approximate token count', () => {
+		const payload: SkeletonPayload = {
 			projectName: 'x',
 			totalFiles: 0,
 			totalSymbols: 0,
-			files: [],
-			generatedAt: ''
+			files: []
 		};
-		const { formatted } = estimatePayloadSize(smallPayload);
-		// Small payload should be in bytes
-		expect(formatted).toMatch(/B$/);
+
+		const { bytes, tokens, formatted } = estimatePayloadSize(payload);
+
+		expect(formatted).toBe(`${bytes} B`);
+		expect(tokens).toBeGreaterThan(0);
+		expect(tokens).toBeLessThan(bytes);
 	});
 });
 
 describe('formatPayloadPreview', () => {
-	it('returns valid JSON string', () => {
+	it('returns the skeleton as compact JSON', () => {
 		const payload: SkeletonPayload = {
 			projectName: 'test',
 			totalFiles: 1,
 			totalSymbols: 2,
-			files: [],
-			generatedAt: '2024-01-01T00:00:00Z'
+			files: []
 		};
+
 		const preview = formatPayloadPreview(payload);
-		const parsed = JSON.parse(preview);
-		expect(parsed.projectName).toBe('test');
-		expect(parsed.totalFiles).toBe(1);
+
+		expect(JSON.parse(preview)).toEqual(payload);
+		expect(preview).not.toMatch(/\n/);
 	});
 });

@@ -35,6 +35,8 @@ const { semanticStore } = await import('$lib/stores/semanticStore.svelte');
 const { projectStore } = await import('$lib/stores/projectStore.svelte');
 const { settingsStore } = await import('$lib/stores/settingsStore.svelte');
 const { authStore } = await import('$lib/stores/authStore.svelte');
+const { extractSkeleton, formatPayloadPreview, estimatePayloadSize } =
+	await import('./skeletonExtractor');
 
 function role(id: string, label: string, filePaths: string[]) {
 	return { id, label, description: `${label} role`, filePaths, keySymbols: [] };
@@ -259,5 +261,21 @@ describe('semantic analysis cache', () => {
 
 		expect(semanticStore.currentLevel).toBe(open);
 		expect(open?.parentId).toBe('sem:core');
+	});
+
+	it('sends the skeleton string whose size the analyze modal shows', async () => {
+		callAI.mockResolvedValueOnce(ROOT_RESPONSE);
+		const skeleton = extractSkeleton(
+			projectStore.projectName,
+			projectStore.fileTree,
+			projectStore.astMap
+		);
+
+		await analyzeTopLevel();
+
+		const user = callAI.mock.calls[0][0].user;
+		const sent = user.slice(user.indexOf('{'));
+		expect(sent).toBe(formatPayloadPreview(skeleton));
+		expect(new TextEncoder().encode(sent).byteLength).toBe(estimatePayloadSize(skeleton).bytes);
 	});
 });

@@ -166,6 +166,9 @@ type AnalyzeTranslations = Strings<
 	| 'copyJson'
 	| 'limit'
 	| 'unlimited'
+	| 'payloadTokens'
+	| 'demoTooLarge'
+	| 'byokTooLarge'
 	| 'footerHint'
 >;
 
@@ -648,6 +651,11 @@ const translations: Record<Locale, TranslationSet> = {
 			copyJson: 'JSON 복사',
 			limit: '한도: {value}',
 			unlimited: '제한 없음',
+			payloadTokens: '약 {n} 토큰',
+			demoTooLarge:
+				'이번 요청은 {size}입니다. {limit}를 넘으면 무료 데모가 시간 초과로 실패할 수 있습니다. 설정에서 코드 구조 요약 크기를 줄이거나 API 키나 브리지를 쓰세요.',
+			byokTooLarge:
+				'이번 요청은 약 {tokens} 토큰입니다. 컨텍스트 창이 {context} 토큰인 모델은 받지 못할 수 있습니다. 창이 더 큰 모델을 고르거나 설정에서 코드 구조 요약 크기를 줄이세요.',
 			footerHint: '분석을 시작할 방식을 고르세요.'
 		},
 		panel: {
@@ -1214,6 +1222,11 @@ const translations: Record<Locale, TranslationSet> = {
 			copyJson: 'Copy JSON',
 			limit: 'Limit: {value}',
 			unlimited: 'Unlimited',
+			payloadTokens: '~{n} tokens',
+			demoTooLarge:
+				'This request is {size}. Above {limit} the free demo may time out. Lower the code summary size in Settings, or use an API key or the bridge.',
+			byokTooLarge:
+				'This request is about {tokens} tokens. Models with a {context}-token context window may reject it. Choose a model with a larger window, or lower the code summary size in Settings.',
 			footerHint: 'Pick a mode to start the analysis.'
 		},
 		panel: {
