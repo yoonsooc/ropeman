@@ -47,14 +47,34 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+      # E2E runs on pull requests only. PR CI already ran it on the PR merged into main
+      - name: Read Playwright version
+        if: github.event_name == 'pull_request'
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        if: github.event_name == 'pull_request'
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
       - name: Install Playwright Chromium
+        if: github.event_name == 'pull_request' && steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
+      - name: Install Playwright system dependencies
+        if: github.event_name == 'pull_request' && steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
       - name: E2E tests
+        if: github.event_name == 'pull_request'
         run: npm run test:e2e
 
       - name: Upload Playwright report
-        if: ${{ !cancelled() }}
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report

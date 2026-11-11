@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Mobile read-only routes', () => {
+test.describe('Mobile read-only routes', { tag: '@responsive' }, () => {
 	test.beforeEach(async ({ page }) => {
 		await page.addInitScript(() => {
 			localStorage.setItem(
