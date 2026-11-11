@@ -54,19 +54,10 @@ Phase 3에서 재활용 가능한 **위협 모델 시나리오 카탈로그**. P
 - **우선순위**: Medium
 - **상태**: Active
 
-### S-3: github.ts 경유 내부망 SSRF 시도
+### S-3: 서버 측 URL 조립 경유 SSRF
 
-- **전제**: github worker의 `/github/file/{owner}/{repo}/{ref}/{path}` 정규식 파싱
-- **스텝**:
-  1. 공격자가 `ref` 또는 `path`에 `../` 또는 URL encoded payload 주입
-  2. Worker가 `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}`로 조립
-  3. `raw.githubusercontent.com`이 악의적 path를 정규화해 의도하지 않은 파일 반환? (실제로는 GitHub이 `../`를 거부하므로 실패하지만 검증 필요)
-- **영향**: 낮음. GitHub이 외부 도메인으로 리다이렉트하지 않으므로 SSRF로 이어지지 않음. 다만 cache key poisoning 가능성.
-- **완화**:
-  - `owner`/`repo`/`ref`/`path`에 strict regex 검증 추가 (`[a-zA-Z0-9._/-]+`)
-  - `path`에서 `..` 시퀀스 제거
-- **우선순위**: Low
-- **상태**: Active
+- **전제**: 사용자 입력(owner, repo, ref, path)으로 업스트림 URL을 조립하던 GitHub 프록시 워커
+- **상태**: Retired (2026-11-11). 워커가 배포된 적 없이 삭제되어 이 공격면은 사라졌다. 새 워커가 사용자 입력으로 URL을 조립하면 이 유형으로 다시 연다.
 
 ### S-4: Share slug 열거 (비공개 정보 유출)
 

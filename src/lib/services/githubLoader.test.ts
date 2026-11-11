@@ -27,10 +27,6 @@ vi.mock('$lib/stores/projectStore.svelte', () => {
 	return { projectStore: store };
 });
 
-vi.mock('$lib/config', () => ({
-	GITHUB_PROXY_URL: ''
-}));
-
 import { loadGitHubRepo, GitHubLoadError } from './githubLoader';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 
@@ -91,6 +87,14 @@ describe('loadGitHubRepo', () => {
 
 		// Loading was set to false
 		expect(projectStore.isLoading).toBe(false);
+
+		// Tree from the GitHub API, file contents from raw.githubusercontent.com pinned to the tree commit
+		const [treeUrl, ...fileUrls] = fetchMock.mock.calls.map(([url]) => url);
+		expect(treeUrl).toBe('https://api.github.com/repos/owner/repo/git/trees/HEAD?recursive=1');
+		expect(fileUrls.sort()).toEqual([
+			'https://raw.githubusercontent.com/owner/repo/abc123/src/index.ts',
+			'https://raw.githubusercontent.com/owner/repo/abc123/src/utils.ts'
+		]);
 	});
 
 	it('throws GitHubLoadError on 404', async () => {

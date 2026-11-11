@@ -6,13 +6,12 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 
 ## 1. Cloudflare Edge Workers (`edge-proxy/src/`)
 
-| Worker       | 도메인                | 엔드포인트                                                                | 인증                | KV                            | Secret                   |
-| ------------ | --------------------- | ------------------------------------------------------------------------- | ------------------- | ----------------------------- | ------------------------ |
-| `demo.ts`    | `demo.ropeman.dev`    | POST `/` (Gemini proxy)                                                   | 없음                | —                             | `GEMINI_API_KEY`         |
-| `proxy.ts`   | `proxy.ropeman.dev`   | POST `/` (BYOK passthrough)                                               | 없음                | —                             | `AI_GATEWAY_TOKEN`(선택) |
-| `github.ts`  | (설정 가능)           | GET `/github/tree/{o}/{r}/{ref}`, GET `/github/file/{o}/{r}/{ref}/{path}` | 없음                | `GITHUB_CACHE` 24h            | `GITHUB_PAT`             |
-| `share.ts`   | `share.ropeman.dev`   | POST `/share`, GET `/share/{slug}`                                        | 없음                | `ROPEMAN_SHARE_STORE` 14d TTL | —                        |
-| `explore.ts` | `explore.ropeman.dev` | GET `/explore`, GET `/explore/{slug}`, POST/DELETE `/explore/{slug}`      | POST/DELETE: Bearer | `ROPEMAN_EXPLORE_STORE` ∞     | `EXPLORE_ADMIN_TOKEN`    |
+| Worker       | 도메인                | 엔드포인트                                                           | 인증                | KV                            | Secret                   |
+| ------------ | --------------------- | -------------------------------------------------------------------- | ------------------- | ----------------------------- | ------------------------ |
+| `demo.ts`    | `demo.ropeman.dev`    | POST `/` (Gemini proxy)                                              | 없음                | —                             | `GEMINI_API_KEY`         |
+| `proxy.ts`   | `proxy.ropeman.dev`   | POST `/` (BYOK passthrough)                                          | 없음                | —                             | `AI_GATEWAY_TOKEN`(선택) |
+| `share.ts`   | `share.ropeman.dev`   | POST `/share`, GET `/share/{slug}`                                   | 없음                | `ROPEMAN_SHARE_STORE` 14d TTL | —                        |
+| `explore.ts` | `explore.ropeman.dev` | GET `/explore`, GET `/explore/{slug}`, POST/DELETE `/explore/{slug}` | POST/DELETE: Bearer | `ROPEMAN_EXPLORE_STORE` ∞     | `EXPLORE_ADMIN_TOKEN`    |
 
 공통 (`shared.ts`): `getAllowedOrigin()` (정확 매칭), `callGemini()` (maxOutputTokens 16384), `jsonResponse()`.
 
@@ -20,10 +19,9 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 
 - 모든 워커: **CF-Connecting-IP 신뢰** → 프록시 뒤 클라이언트 스푸핑 가능성
 - `demo.ts` / `proxy.ts`: Gemini/upstream 에러 응답을 **원문 그대로 반환** (에러 메시지에 quota/auth/region 정보 노출)
-- `github.ts`: `filePath` 정규식에 **경로 순회 방어 없음** (`raw.githubusercontent.com`이 간접 방어 중)
 - `share.ts`: body **구조 검증 없음** (explore와 달리 `isValidSnapshot` 없음)
 - `explore.ts`: Origin-optional — 브라우저 아닌 경우 통과, Bearer 토큰이 유일한 쓰기 방어
-- Rate limit: `demo`/`github`/`share`는 **인메모리 Map** (워커 재시작/isolate별 리셋)
+- Rate limit: `demo`/`share`는 **인메모리 Map** (워커 재시작/isolate별 리셋)
 
 ## 2. SPA 클라이언트 (`src/`)
 
@@ -76,8 +74,7 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 ## 4. 인프라 / CI
 
 - Root `wrangler.toml`: Pages 설정, 변수 없음
-- `edge-proxy/wrangler.*.toml` 5종: `[vars] ALLOWED_ORIGINS` 평문 (공개 의도)
-- `wrangler.github.toml`: KV id `REPLACE_WITH_KV_ID` 플레이스홀더 **미치환 상태**
+- `edge-proxy/wrangler.*.toml` 4종: `[vars] ALLOWED_ORIGINS` 평문 (공개 의도)
 - `bun.lock`: `.gitignore`에 제외 선언됐지만 **실제로는 커밋됨** (정책 불일치)
 - `.github/workflows/ci.yml`: `actions/checkout@v4`, `setup-node@v4`, npm ci + lint + build + test:unit + test:e2e
 - Dependabot: **없음**
