@@ -6,12 +6,133 @@ vi.mock('$lib/utils/languageDetector', () => ({
 		if (name.endsWith('.py')) return 'python';
 		if (name.endsWith('.js')) return 'javascript';
 		return null;
-	})
+	}),
+	isSupported: (lang: string) => ['typescript', 'python', 'javascript'].includes(lang)
 }));
 
-import { handleFallbackInput } from './fileSystemService';
+vi.mock('$lib/stores/projectStore.svelte', () => ({ projectStore: { cutFiles: [] } }));
+
+import { handleFallbackInput, readDirectoryRecursive } from './fileSystemService';
+import { projectStore } from '$lib/stores/projectStore.svelte';
+import { MAX_FILES } from '$lib/utils/filePriority';
+import type { FileNode } from '$lib/types/fileTree';
+
+/** Folder layout where folder order would spend the whole file limit on packages/app */
+function paseoLikePaths(): string[] {
+	const files = (folder: string, count: number) =>
+		Array.from({ length: count }, (_, i) => `${folder}/f${i}.ts`);
+	return [
+		...files('packages/app/src', MAX_FILES + 100),
+		...files('packages/server/src', 30),
+		...files('packages/cli/src', 10),
+		'packages/protocol/src/schema.ts'
+	];
+}
+
+function filePaths(node: FileNode): string[] {
+	if (node.kind === 'file') return [node.path];
+	return (node.children ?? []).flatMap(filePaths);
+}
+
+function topPackages(paths: string[]): Set<string> {
+	return new Set(paths.map((p) => p.split('/').slice(0, 2).join('/')));
+}
+
+type FakeEntry = FakeDir | { kind: 'file'; name: string };
+interface FakeDir {
+	kind: 'directory';
+	name: string;
+	entries: FakeEntry[];
+}
+
+function fakeFileHandle(name: string) {
+	return { kind: 'file', name, getFile: async () => new File([''], name) };
+}
+
+/** Directory handle whose `values()` yields entries in insertion order */
+function fakeDirectoryHandle(dir: FakeDir): FileSystemDirectoryHandle {
+	return {
+		kind: 'directory',
+		name: dir.name,
+		async *values() {
+			for (const entry of dir.entries) {
+				yield entry.kind === 'directory' ? fakeDirectoryHandle(entry) : fakeFileHandle(entry.name);
+			}
+		},
+		async getFileHandle(name: string) {
+			const found = dir.entries.find((e) => e.kind === 'file' && e.name === name);
+			if (!found) throw new DOMException('missing', 'NotFoundError');
+			return fakeFileHandle(name);
+		}
+	} as unknown as FileSystemDirectoryHandle;
+}
+
+function fakeFolder(name: string, paths: string[]): FileSystemDirectoryHandle {
+	const root: FakeDir = { kind: 'directory', name, entries: [] };
+	for (const path of paths) {
+		const parts = path.split('/');
+		let dir = root;
+		for (const part of parts.slice(0, -1)) {
+			let next = dir.entries.find((e): e is FakeDir => e.kind === 'directory' && e.name === part);
+			if (!next) {
+				next = { kind: 'directory', name: part, entries: [] };
+				dir.entries.push(next);
+			}
+			dir = next;
+		}
+		dir.entries.push({ kind: 'file', name: parts[parts.length - 1] });
+	}
+	return fakeDirectoryHandle(root);
+}
 
 describe('fileSystemService', () => {
+	beforeEach(() => {
+		projectStore.cutFiles = [];
+	});
+
+	describe('readDirectoryRecursive', () => {
+		it('keeps every package when folder order would fill the file limit with one', async () => {
+			// Regression (PASEO, 2026-11-11): the walk stopped at 2000 files inside packages/app,
+			// so server, cli and protocol never reached the parser
+			const paths = paseoLikePaths();
+
+			const tree = await readDirectoryRecursive(fakeFolder('paseo', paths));
+
+			const kept = filePaths(tree);
+			expect(kept).toHaveLength(MAX_FILES);
+			expect(topPackages(kept)).toEqual(
+				new Set(['packages/app', 'packages/server', 'packages/cli', 'packages/protocol'])
+			);
+			expect(kept.filter((p) => p.startsWith('packages/server/'))).toHaveLength(30);
+		});
+
+		it('records the files left out by the limit', async () => {
+			const paths = paseoLikePaths();
+
+			await readDirectoryRecursive(fakeFolder('paseo', paths));
+
+			expect(projectStore.cutFiles).toHaveLength(paths.length - MAX_FILES);
+			expect(projectStore.cutFiles.every((c) => c.reason === 'file-limit')).toBe(true);
+			expect(topPackages(projectStore.cutFiles.map((c) => c.path))).toEqual(
+				new Set(['packages/app'])
+			);
+		});
+
+		it('returns file nodes with handles that read the file, and skips excluded folders', async () => {
+			const tree = await readDirectoryRecursive(
+				fakeFolder('proj', ['src/a.ts', 'node_modules/x/index.js', 'README'])
+			);
+
+			expect(tree.name).toBe('proj');
+			expect(filePaths(tree).sort()).toEqual(['README', 'src/a.ts']);
+			const src = tree.children!.find((c) => c.name === 'src')!;
+			const file = await (src.children![0].handle as FileSystemFileHandle).getFile();
+			expect(file.name).toBe('a.ts');
+			expect(src.children![0].language).toBe('typescript');
+			expect(projectStore.cutFiles).toEqual([]);
+		});
+	});
+
 	describe('handleFallbackInput', () => {
 		function makeFileList(files: { name: string; path: string; size?: number }[]): FileList {
 			const list = files.map((f) => ({
@@ -123,6 +244,21 @@ describe('fileSystemService', () => {
 			// Then files alphabetically
 			expect(names[1]).toBe('a.ts');
 			expect(names[2]).toBe('z.ts');
+		});
+
+		it('keeps every package past the file limit and records the cut', () => {
+			const paths = paseoLikePaths();
+			const files = makeFileList(
+				paths.map((p) => ({ name: p.split('/').pop()!, path: `paseo/${p}` }))
+			);
+
+			const kept = filePaths(handleFallbackInput(files));
+
+			expect(kept).toHaveLength(MAX_FILES);
+			expect(topPackages(kept)).toEqual(
+				new Set(['packages/app', 'packages/server', 'packages/cli', 'packages/protocol'])
+			);
+			expect(projectStore.cutFiles).toHaveLength(paths.length - MAX_FILES);
 		});
 
 		it('returns project name "project" for empty FileList', () => {

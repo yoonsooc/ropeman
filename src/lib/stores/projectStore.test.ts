@@ -85,6 +85,7 @@ describe('projectStore', () => {
 			projectStore.projectName = 'test';
 			projectStore.parsingProgress = { done: 3, total: 5 };
 			projectStore.isSnippetMode = true;
+			projectStore.cutFiles = [{ path: 'src/a.ts', reason: 'file-limit' }];
 
 			projectStore.reset();
 
@@ -94,6 +95,8 @@ describe('projectStore', () => {
 			expect(projectStore.projectName).toBe('');
 			expect(projectStore.parsingProgress).toEqual({ done: 0, total: 0 });
 			expect(projectStore.isSnippetMode).toBe(false);
+			// A new project must not show the previous project's cut files
+			expect(projectStore.cutFiles).toEqual([]);
 		});
 
 		it('is idempotent', () => {
