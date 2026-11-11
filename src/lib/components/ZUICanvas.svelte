@@ -162,12 +162,17 @@
 	let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 	let hoverRelation = $state<RelationshipInfo | null>(null);
 
-	const EDGE_TYPE_LABELS: Record<string, string> = {
-		depends_on: 'depends on',
-		calls: 'calls',
-		extends: 'extends',
-		uses: 'uses'
+	const EDGE_VERB_KEYS: Record<string, string> = {
+		depends_on: 'canvas.edgeDependsOn',
+		calls: 'canvas.edgeCalls',
+		extends: 'canvas.edgeExtends',
+		uses: 'canvas.edgeUses'
 	};
+
+	function edgeVerb(type: string): string {
+		const key = EDGE_VERB_KEYS[type];
+		return key ? i18nStore.t(key) : type;
+	}
 
 	function handleNodePointerEnter({ node, event }: { node: Node; event: PointerEvent }) {
 		hoverNodeId = node.id;
@@ -501,7 +506,11 @@
 		<div class="hover-relation-card" style="left: {hoverRelation.x}px; top: {hoverRelation.y}px;">
 			<div class="hover-relation-header">{hoverRelation.hoveredLabel}</div>
 			<div class="hover-relation-desc">{hoverRelation.hoveredDescription}</div>
-			<div class="hover-relation-meta">{hoverRelation.hoveredFileCount} files</div>
+			<div class="hover-relation-meta">
+				{i18nStore.t(hoverRelation.hoveredFileCount === 1 ? 'node.fileOne' : 'node.fileMany', {
+					n: hoverRelation.hoveredFileCount
+				})}
+			</div>
 
 			{#if semanticStore.selectedSemanticNode}
 				<div class="hover-relation-divider"></div>
@@ -516,32 +525,34 @@
 							{#if edge.direction === 'outgoing'}
 								<span class="hover-edge-label">
 									<strong>{semanticStore.selectedSemanticNode.label}</strong>
-									→ {EDGE_TYPE_LABELS[edge.type] ?? edge.type}
+									→ {edgeVerb(edge.type)}
 									{#if edge.label}<em>({edge.label})</em>{/if}
 								</span>
 							{:else}
 								<span class="hover-edge-label">
 									<strong>{hoverRelation.hoveredLabel}</strong>
-									→ {EDGE_TYPE_LABELS[edge.type] ?? edge.type}
+									→ {edgeVerb(edge.type)}
 									{#if edge.label}<em>({edge.label})</em>{/if}
 								</span>
 							{/if}
 						</div>
 					{/each}
 				{:else}
-					<div class="hover-relation-none">No direct connection</div>
+					<div class="hover-relation-none">{i18nStore.t('canvas.noDirectConnection')}</div>
 				{/if}
 
 				{#if hoverRelation.sharedFiles.length > 0}
 					<div class="hover-relation-shared">
 						<span class="hover-shared-label"
-							>Shared files ({hoverRelation.sharedFiles.length}):</span
+							>{i18nStore.t('canvas.sharedFiles', { n: hoverRelation.sharedFiles.length })}</span
 						>
 						{#each hoverRelation.sharedFiles.slice(0, 5) as fp}
 							<div class="hover-shared-file">{fp}</div>
 						{/each}
 						{#if hoverRelation.sharedFiles.length > 5}
-							<div class="hover-shared-file">... +{hoverRelation.sharedFiles.length - 5} more</div>
+							<div class="hover-shared-file">
+								{i18nStore.t('canvas.moreFiles', { n: hoverRelation.sharedFiles.length - 5 })}
+							</div>
 						{/if}
 					</div>
 				{/if}
@@ -599,7 +610,7 @@
 				class="toolbar-btn"
 				class:active={showMinimap}
 				onclick={() => (showMinimap = !showMinimap)}
-				title="Minimap"
+				title={i18nStore.t('canvas.minimap')}
 			>
 				<svg
 					width="16"
@@ -656,7 +667,7 @@
 					<button
 						class="toolbar-btn active"
 						onclick={() => (analysisRequestsOpen = !analysisRequestsOpen)}
-						title="Analysis Requests"
+						title={i18nStore.t('canvas.analysisRequests')}
 					>
 						<svg
 							width="16"
@@ -675,7 +686,7 @@
 					</button>
 					{#if analysisRequestsOpen}
 						<div class="toolbar-dropdown analysis-requests-panel">
-							<div class="legend-header">Analysis Requests</div>
+							<div class="legend-header">{i18nStore.t('canvas.analysisRequests')}</div>
 							{#each [...semanticStore.analysisRequests.values()] as req (req.nodeId)}
 								<div class="analysis-request-item" data-node-id={req.nodeId}>
 									<div class="analysis-request-info">
@@ -685,7 +696,7 @@
 									<button
 										class="analysis-request-cancel"
 										onclick={() => semanticStore.cancelAnalysisRequest(req.nodeId)}
-										title="Cancel"
+										title={i18nStore.t('common.cancel')}
 									>
 										<svg
 											width="12"

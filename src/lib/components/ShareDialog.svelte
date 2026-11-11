@@ -61,11 +61,7 @@
 			const snapshot = buildSnapshot();
 			const body = JSON.stringify(snapshot);
 			if (body.length > 1_048_576) {
-				throw new Error(
-					i18nStore.locale === 'ko'
-						? '분석 데이터가 너무 큽니다 (1MB 초과). 더 작은 프로젝트로 시도해주세요.'
-						: 'Analysis data too large (exceeds 1MB). Try a smaller project.'
-				);
+				throw new Error(i18nStore.t('share.tooLarge'));
 			}
 			const res = await fetch(`${SHARE_URL}/share`, {
 				method: 'POST',

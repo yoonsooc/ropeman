@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { scrollBehavior } from '$lib/utils/motion';
 	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import type { Tab } from '$lib/types/tab';
@@ -18,6 +19,13 @@
 		onclose?: (id: string) => void;
 		ondroptab?: (tabId: string, fromPane: string) => void;
 	} = $props();
+
+	// The root diagram tab stores 'Project' as data; show it in the current language
+	function tabLabel(tab: Tab): string {
+		return tab.type === 'diagram' && !tab.drilldownPath?.length
+			? i18nStore.t('common.project')
+			: tab.label;
+	}
 
 	let dropTarget = $state(false);
 	let tabBarEl = $state<HTMLDivElement | undefined>(undefined);
@@ -98,7 +106,7 @@
 					onmousedown={(e) => handleMouseDown(e, tab.id)}
 					ondblclick={() => handleDblClick(tab.id)}
 					ondragstart={(e) => handleDragStart(e, tab)}
-					title={tab.type === 'code' ? (tab.filePath ?? tab.label) : tab.label}
+					title={tab.type === 'code' ? (tab.filePath ?? tab.label) : tabLabel(tab)}
 					role="tab"
 					tabindex="0"
 					aria-selected={tab.id === activeTabId}
@@ -137,14 +145,14 @@
 							</svg>
 						{/if}
 					</span>
-					<span class="tab-label">{tab.label}</span>
+					<span class="tab-label">{tabLabel(tab)}</span>
 					<button
 						class="tab-close"
 						onclick={(e) => {
 							e.stopPropagation();
 							onclose(tab.id);
 						}}
-						title="Close"
+						title={i18nStore.t('common.close')}
 					>
 						<svg
 							width="10"

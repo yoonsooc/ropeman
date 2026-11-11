@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { scrollBehavior } from '$lib/utils/motion';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
@@ -190,8 +191,8 @@
 	{/if}
 	<aside class="file-explorer" class:mobile data-tour-step="7">
 		<div class="explorer-header">
-			<span class="explorer-title">Explorer</span>
-			<button class="explorer-toggle" onclick={ontoggle} title="Hide Explorer">
+			<span class="explorer-title">{i18nStore.t('explorer.title')}</span>
+			<button class="explorer-toggle" onclick={ontoggle} title={i18nStore.t('explorer.hide')}>
 				<svg
 					width="14"
 					height="14"
@@ -225,12 +226,16 @@
 				</svg>
 				<input
 					type="text"
-					placeholder="Filter files..."
+					placeholder={i18nStore.t('explorer.filterPlaceholder')}
 					bind:value={searchQuery}
 					class="search-input"
 				/>
 				{#if searchQuery}
-					<button class="search-clear" onclick={() => (searchQuery = '')} title="Clear filter">
+					<button
+						class="search-clear"
+						onclick={() => (searchQuery = '')}
+						title={i18nStore.t('explorer.clearFilter')}
+					>
 						<svg
 							width="12"
 							height="12"
@@ -256,7 +261,7 @@
 		</div>
 	</aside>
 {:else}
-	<button class="explorer-collapsed-toggle" onclick={ontoggle} title="Show Explorer">
+	<button class="explorer-collapsed-toggle" onclick={ontoggle} title={i18nStore.t('explorer.show')}>
 		<svg
 			width="14"
 			height="14"

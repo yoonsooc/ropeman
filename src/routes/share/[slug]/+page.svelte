@@ -31,15 +31,9 @@
 			const res = await fetch(`${shareBase}/share/${slug}`);
 			if (!res.ok) {
 				if (res.status === 404) {
-					error =
-						i18nStore.locale === 'ko'
-							? '공유 링크를 찾을 수 없습니다. 만료되었거나 잘못된 링크입니다.'
-							: 'Share link not found. It may have expired or the link is invalid.';
+					error = i18nStore.t('shareView.notFound');
 				} else {
-					error =
-						i18nStore.locale === 'ko'
-							? '공유 데이터를 불러오는데 실패했습니다.'
-							: 'Failed to load shared data.';
+					error = i18nStore.t('shareView.loadFailed');
 				}
 				return;
 			}
@@ -52,7 +46,9 @@
 			}
 
 			const projectName =
-				typeof snapshot.projectName === 'string' ? snapshot.projectName : 'Shared Project';
+				typeof snapshot.projectName === 'string'
+					? snapshot.projectName
+					: i18nStore.t('shareView.projectFallback');
 
 			// Inject into stores (read-only mode)
 			projectStore.projectName = projectName;
@@ -91,10 +87,7 @@
 				fileCount: filePaths.length
 			};
 		} catch (err) {
-			error =
-				i18nStore.locale === 'ko'
-					? '공유 데이터를 불러오는데 실패했습니다.'
-					: 'Failed to load shared data.';
+			error = i18nStore.t('shareView.loadFailed');
 		} finally {
 			loading = false;
 		}
@@ -112,7 +105,7 @@
 </script>
 
 <svelte:head>
-	<title>{snapshotMeta?.projectName ?? 'Shared'} | Ropeman</title>
+	<title>{snapshotMeta?.projectName ?? i18nStore.t('shareView.pageTitleFallback')} | Ropeman</title>
 	<meta
 		name="description"
 		content={snapshotMeta
@@ -130,12 +123,12 @@
 		<a href={resolve('/')} class="share-logo">Ropeman</a>
 		<span class="share-project-name">{snapshotMeta?.projectName ?? ''}</span>
 		<span class="share-badge">
-			{i18nStore.locale === 'ko' ? '공유됨' : 'Shared'}
+			{i18nStore.t('shareView.badge')}
 		</span>
 		<div class="share-header-actions">
 			<button class="share-cta" onclick={() => (window.location.href = resolve('/'))}>
 				<span class="material-symbols-outlined" style="font-size: 16px;">add</span>
-				{i18nStore.locale === 'ko' ? '내 프로젝트 분석하기' : 'Analyze your own'}
+				{i18nStore.t('shareView.analyzeOwn')}
 			</button>
 		</div>
 	</header>
@@ -145,15 +138,15 @@
 		{#if loading}
 			<div class="share-loading">
 				<div class="loading-ring"></div>
-				<p>{i18nStore.locale === 'ko' ? '공유 데이터 불러오는 중...' : 'Loading shared data...'}</p>
+				<p>{i18nStore.t('shareView.loading')}</p>
 			</div>
 		{:else if error}
 			<div class="share-error">
 				<span class="material-symbols-outlined share-error-icon">link_off</span>
-				<h2>{i18nStore.locale === 'ko' ? '링크를 찾을 수 없습니다' : 'Link not found'}</h2>
+				<h2>{i18nStore.t('shareView.notFoundTitle')}</h2>
 				<p>{error}</p>
 				<a href={resolve('/')} class="share-cta">
-					{i18nStore.locale === 'ko' ? 'Ropeman으로 이동' : 'Go to Ropeman'}
+					{i18nStore.t('shareView.goHome')}
 				</a>
 			</div>
 		{:else}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { layoutStore } from '$lib/stores/layoutStore.svelte';
 	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import TabBar from './TabBar.svelte';
@@ -168,7 +169,7 @@
 				<CodeViewer filePath={secondaryActiveTab.filePath} />
 			{:else}
 				<div class="empty-pane">
-					<p>Open a file or drag a tab here</p>
+					<p>{i18nStore.t('pane.empty')}</p>
 				</div>
 			{/if}
 		</div>

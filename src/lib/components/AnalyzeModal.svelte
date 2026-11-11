@@ -78,13 +78,13 @@
 		const t = authStore.activeTrack;
 		switch (t) {
 			case 'bridge':
-				return { label: 'Local Bridge', color: 'var(--track-bridge)' };
+				return { label: i18nStore.t('track.bridge'), color: 'var(--track-bridge)' };
 			case 'edge':
-				return { label: 'Demo', color: 'var(--track-demo)' };
+				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)' };
 			case 'webgpu':
-				return { label: 'WebGPU', color: 'var(--track-webgpu)' };
+				return { label: i18nStore.t('track.webgpu'), color: 'var(--track-webgpu)' };
 			case 'byok':
-				return { label: 'API Key', color: 'var(--track-byok)' };
+				return { label: i18nStore.t('track.byok'), color: 'var(--track-byok)' };
 			default:
 				return null;
 		}
@@ -205,12 +205,14 @@
 						<span class="material-symbols-outlined" style="font-size:18px; color: var(--accent);"
 							>auto_awesome</span
 						>
-						AI Architecture Analysis
+						{i18nStore.t('analyze.title')}
 					</h2>
 					{#if trackInfo}
 						<div class="current-track">
 							<span class="ct-dot" style="background: {trackInfo.color}"></span>
-							<span class="ct-label">Current: {trackInfo.label}</span>
+							<span class="ct-label"
+								>{i18nStore.t('analyze.current', { track: trackInfo.label })}</span
+							>
 						</div>
 					{/if}
 				</div>
@@ -224,11 +226,11 @@
 					<div class="track-row" onclick={() => toggleCard('edge')}>
 						<span class="track-icon"><span class="material-symbols-outlined">bolt</span></span>
 						<div class="track-info">
-							<span class="track-name">Demo</span>
-							<span class="track-sub">Free &middot; No setup</span>
+							<span class="track-name">{i18nStore.t('track.edge')}</span>
+							<span class="track-sub">{i18nStore.t('analyze.demoSub')}</span>
 						</div>
 						{#if authStore.activeTrack === 'edge'}
-							<span class="badge badge-accent">Active</span>
+							<span class="badge badge-accent">{i18nStore.t('analyze.active')}</span>
 						{/if}
 						<button
 							class="btn btn-primary start-btn"
@@ -237,7 +239,7 @@
 								startAnalysis('edge');
 							}}
 						>
-							Start
+							{i18nStore.t('analyze.start')}
 						</button>
 					</div>
 					<p class="track-note">{i18nStore.t('analyze.demoNotice')}</p>
@@ -249,24 +251,26 @@
 					<div class="track-row" onclick={() => toggleCard('byok')}>
 						<span class="track-icon"><span class="material-symbols-outlined">vpn_key</span></span>
 						<div class="track-info">
-							<span class="track-name">API Key (BYOK)</span>
+							<span class="track-name">{i18nStore.t('analyze.byokName')}</span>
 							<span class="track-sub">
 								{currentProvider?.label ?? 'Google'} &middot;
 								{#if settingsStore.hasApiKey}
-									Key set
+									{i18nStore.t('analyze.keySet')}
 								{:else}
-									Not configured
+									{i18nStore.t('analyze.notConfigured')}
 								{/if}
 							</span>
 						</div>
 						{#if authStore.activeTrack === 'byok'}
-							<span class="badge badge-accent">Active</span>
+							<span class="badge badge-accent">{i18nStore.t('analyze.active')}</span>
 						{/if}
 						<span class="expand-arrow" class:expanded={expandedCard === 'byok'}>&#9656;</span>
 					</div>
 					{#if expandedCard === 'byok'}
 						<div class="track-config">
-							<label class="form-label" for="analyze-provider-select">Provider</label>
+							<label class="form-label" for="analyze-provider-select"
+								>{i18nStore.t('analyze.provider')}</label
+							>
 							<select
 								id="analyze-provider-select"
 								class="select"
@@ -277,7 +281,9 @@
 									<option value={provider.id}>{provider.label}</option>
 								{/each}
 							</select>
-							<label class="form-label" for="analyze-model-select">Model</label>
+							<label class="form-label" for="analyze-model-select"
+								>{i18nStore.t('analyze.model')}</label
+							>
 							<select
 								id="analyze-model-select"
 								class="select"
@@ -289,13 +295,13 @@
 								{#each providerModels as model}
 									<option value={model.id}>{model.label}</option>
 								{/each}
-								<option value="__custom__">Custom...</option>
+								<option value="__custom__">{i18nStore.t('analyze.customModel')}</option>
 							</select>
 							{#if !providerModels.some((m) => m.id === selectedModel)}
 								<input
 									class="input"
 									type="text"
-									placeholder="e.g. claude-sonnet-5-5"
+									placeholder={i18nStore.t('analyze.modelPlaceholder')}
 									value={selectedModel}
 									oninput={(e) => {
 										const v = (e.target as HTMLInputElement).value;
@@ -305,14 +311,16 @@
 								/>
 							{/if}
 							<label class="form-label" for="analyze-api-key"
-								>{currentProvider?.label ?? ''} API Key</label
+								>{i18nStore.t('analyze.apiKeyLabel', {
+									provider: currentProvider?.label ?? ''
+								})}</label
 							>
 							<div class="form-row">
 								<input
 									id="analyze-api-key"
 									type="password"
 									class="input"
-									placeholder="Enter API key"
+									placeholder={i18nStore.t('analyze.apiKeyPlaceholder')}
 									value={apiKeyValue}
 									oninput={handleApiKeyInput}
 								/>
@@ -321,13 +329,13 @@
 									onclick={testKey}
 									disabled={!apiKeyValue || testStatus === 'testing'}
 								>
-									{testStatus === 'testing' ? '...' : 'Test'}
+									{testStatus === 'testing' ? '...' : i18nStore.t('analyze.test')}
 								</button>
 							</div>
 							{#if testStatus === 'success'}
-								<span class="cfg-status success">Valid</span>
+								<span class="cfg-status success">{i18nStore.t('analyze.valid')}</span>
 							{:else if testStatus === 'error'}
-								<span class="cfg-status error">{testError || 'Invalid'}</span>
+								<span class="cfg-status error">{testError || i18nStore.t('analyze.invalid')}</span>
 							{/if}
 							<p class="cfg-note">{i18nStore.t('analyze.byokKeyNotice')}</p>
 							{#if apiKeyValue}
@@ -335,7 +343,7 @@
 									class="btn btn-primary start-btn wide"
 									onclick={() => startAnalysis('byok')}
 								>
-									Start with API Key
+									{i18nStore.t('analyze.startWithApiKey')}
 								</button>
 							{/if}
 						</div>
@@ -352,19 +360,19 @@
 					<div class="track-row" onclick={() => !isCompact && toggleCard('bridge')}>
 						<span class="track-icon"><span class="material-symbols-outlined">link</span></span>
 						<div class="track-info">
-							<span class="track-name">Local Bridge</span>
+							<span class="track-name">{i18nStore.t('track.bridge')}</span>
 							<span class="track-sub">
 								{#if isCompact}
-									Desktop only — needs a local CLI bridge
+									{i18nStore.t('analyze.bridgeDesktopOnly')}
 								{:else if authStore.bridgeStatus === 'connected'}
-									Connected
+									{i18nStore.t('analyze.connected')}
 								{:else}
-									Disconnected
+									{i18nStore.t('analyze.disconnected')}
 								{/if}
 							</span>
 						</div>
 						{#if authStore.activeTrack === 'bridge'}
-							<span class="badge badge-accent">Active</span>
+							<span class="badge badge-accent">{i18nStore.t('analyze.active')}</span>
 						{/if}
 						{#if !isCompact}
 							<span class="expand-arrow" class:expanded={expandedCard === 'bridge'}>&#9656;</span>
@@ -372,7 +380,9 @@
 					</div>
 					{#if expandedCard === 'bridge' && !isCompact}
 						<div class="track-config">
-							<label class="form-label" for="analyze-cli-select">CLI Tool</label>
+							<label class="form-label" for="analyze-cli-select"
+								>{i18nStore.t('analyze.cliTool')}</label
+							>
 							<select
 								id="analyze-cli-select"
 								class="select"
@@ -383,11 +393,13 @@
 										| 'gemini'
 										| 'auto')}
 							>
-								<option value="auto">Auto-detect</option>
+								<option value="auto">{i18nStore.t('analyze.cliAuto')}</option>
 								<option value="claude">Claude Code</option>
 								<option value="gemini">Gemini CLI</option>
 							</select>
-							<label class="form-label" for="analyze-bridge-port">Port</label>
+							<label class="form-label" for="analyze-bridge-port"
+								>{i18nStore.t('analyze.port')}</label
+							>
 							<div class="form-row">
 								<input
 									id="analyze-bridge-port"
@@ -398,25 +410,31 @@
 										(bridgePort = parseInt((e.target as HTMLInputElement).value) || 9876)}
 								/>
 								{#if authStore.bridgeStatus === 'connected'}
-									<button class="btn btn-danger" onclick={disconnectBridge}>Disconnect</button>
+									<button class="btn btn-danger" onclick={disconnectBridge}
+										>{i18nStore.t('analyze.disconnect')}</button
+									>
 								{:else}
 									<button
 										class="btn btn-primary"
 										onclick={handleBridgeConnect}
 										disabled={authStore.bridgeStatus === 'connecting'}
 									>
-										{authStore.bridgeStatus === 'connecting' ? '...' : 'Connect'}
+										{authStore.bridgeStatus === 'connecting'
+											? '...'
+											: i18nStore.t('analyze.connect')}
 									</button>
 								{/if}
 							</div>
-							<label class="form-label" for="analyze-bridge-token">Token</label>
+							<label class="form-label" for="analyze-bridge-token"
+								>{i18nStore.t('analyze.token')}</label
+							>
 							<input
 								id="analyze-bridge-token"
 								type="password"
 								class="input"
 								autocomplete="off"
 								spellcheck="false"
-								placeholder="Printed by the bridge at startup"
+								placeholder={i18nStore.t('analyze.tokenPlaceholder')}
 								value={settingsStore.bridgeToken}
 								oninput={(e) => (settingsStore.bridgeToken = (e.target as HTMLInputElement).value)}
 							/>
@@ -432,7 +450,7 @@
 									class="btn btn-primary start-btn wide"
 									onclick={() => startAnalysis('bridge')}
 								>
-									Start with Bridge
+									{i18nStore.t('analyze.startWithBridge')}
 								</button>
 							{/if}
 						</div>
@@ -453,27 +471,33 @@
 						<span class="track-icon"><span class="material-symbols-outlined">psychology</span></span
 						>
 						<div class="track-info">
-							<span class="track-name">Browser AI <span class="badge badge-muted">Beta</span></span>
+							<span class="track-name"
+								>{i18nStore.t('analyze.webgpuName')}
+								<span class="badge badge-muted">{i18nStore.t('common.beta')}</span></span
+							>
 							<span class="track-sub">
 								{#if isCompact}
-									Desktop only — needs WebGPU + multi-GB RAM
+									{i18nStore.t('analyze.webgpuDesktopOnly')}
 								{:else if !webgpuStore.isSupported}
-									WebGPU not supported
+									{i18nStore.t('analyze.webgpuUnsupported')}
 								{:else if webgpuStore.isReady}
-									Model loaded
+									{i18nStore.t('analyze.modelLoaded')}
 								{:else if webgpuStore.status === 'downloading'}
-									Downloading... {webgpuStore.downloadProgress}%
+									{i18nStore.t('analyze.downloading', { n: webgpuStore.downloadProgress })}
 								{:else if webgpuStore.isCached}
-									Cached (needs loading)
+									{i18nStore.t('analyze.cachedNeedsLoading')}
 								{:else}
-									Not initialized (~{webgpuStore.selectedModel.downloadSizeMB >= 1000
-										? (webgpuStore.selectedModel.downloadSizeMB / 1000).toFixed(1) + 'GB'
-										: webgpuStore.selectedModel.downloadSizeMB + 'MB'} download)
+									{i18nStore.t('analyze.notInitialized', {
+										size:
+											webgpuStore.selectedModel.downloadSizeMB >= 1000
+												? (webgpuStore.selectedModel.downloadSizeMB / 1000).toFixed(1) + 'GB'
+												: webgpuStore.selectedModel.downloadSizeMB + 'MB'
+									})}
 								{/if}
 							</span>
 						</div>
 						{#if authStore.activeTrack === 'webgpu'}
-							<span class="badge badge-accent">Active</span>
+							<span class="badge badge-accent">{i18nStore.t('analyze.active')}</span>
 						{/if}
 						{#if webgpuStore.isSupported && !isCompact}
 							<span class="expand-arrow" class:expanded={expandedCard === 'webgpu'}>&#9656;</span>
@@ -486,11 +510,11 @@
 									class="btn btn-primary start-btn wide"
 									onclick={() => startAnalysis('webgpu')}
 								>
-									Start with WebGPU
+									{i18nStore.t('analyze.startWithWebgpu')}
 								</button>
 							{:else}
 								<button class="btn btn-primary" onclick={() => (showWebGPUSetup = true)}>
-									Setup Model
+									{i18nStore.t('analyze.setupModel')}
 								</button>
 							{/if}
 						</div>
@@ -502,7 +526,7 @@
 					<div class="preview-section">
 						<div class="preview-header">
 							<button class="preview-toggle" onclick={() => (showPreview = !showPreview)}>
-								Payload preview
+								{i18nStore.t('analyze.payloadPreview')}
 								<span class="toggle-arrow" class:expanded={showPreview}>&#9656;</span>
 							</button>
 							{#if showPreview}
@@ -513,7 +537,7 @@
 										copyFeedback = true;
 										setTimeout(() => (copyFeedback = false), 1500);
 									}}
-									title="Copy JSON"
+									title={i18nStore.t('analyze.copyJson')}
 								>
 									<span class="material-symbols-outlined"
 										>{copyFeedback ? 'check' : 'content_copy'}</span
@@ -526,14 +550,20 @@
 								<span class="meta-item">{payloadSize.formatted}</span>
 								<span class="meta-sep">&middot;</span>
 							{/if}
-							<span class="meta-item">{skeleton.totalFiles} files</span>
-							<span class="meta-sep">&middot;</span>
-							<span class="meta-item">{skeleton.totalSymbols} symbols</span>
+							<span class="meta-item"
+								>{i18nStore.t('node.fileMany', { n: skeleton.totalFiles })}</span
+							>
 							<span class="meta-sep">&middot;</span>
 							<span class="meta-item"
-								>Limit: {settingsStore.skeletonUnlimited
-									? 'Unlimited'
-									: settingsStore.maxSkeletonKB + ' KB'}</span
+								>{i18nStore.t('common.symbolCount', { n: skeleton.totalSymbols })}</span
+							>
+							<span class="meta-sep">&middot;</span>
+							<span class="meta-item"
+								>{i18nStore.t('analyze.limit', {
+									value: settingsStore.skeletonUnlimited
+										? i18nStore.t('analyze.unlimited')
+										: settingsStore.maxSkeletonKB + ' KB'
+								})}</span
 							>
 						</div>
 						{#if showPreview}
@@ -544,7 +574,7 @@
 			</div>
 
 			<div class="analyze-footer">
-				<p class="analyze-footer-hint">Select a track to begin the structural analysis.</p>
+				<p class="analyze-footer-hint">{i18nStore.t('analyze.footerHint')}</p>
 			</div>
 		</div>
 	</div>

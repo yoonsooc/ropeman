@@ -82,7 +82,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.entry.title} architecture | Ropeman Explore</title>
+	<title>{i18nStore.t('explore.entryTitle', { title: data.entry.title })}</title>
 	<meta
 		name="description"
 		content={`${data.entry.title} (${data.entry.owner}/${data.entry.repo}) — AI-generated architecture diagram. ${data.entry.description}`}
@@ -100,7 +100,7 @@
 	<header class="explore-header">
 		<a href={resolve('/')} class="explore-logo">Ropeman</a>
 		<a href={resolve('/explore')} class="back-link">
-			← {i18nStore.locale === 'ko' ? '갤러리' : 'Explore'}
+			← {i18nStore.t('explore.navLabel')}
 		</a>
 		<span class="project-name">{data.entry.owner}/{data.entry.repo}</span>
 		<span class="badge">{data.entry.language}</span>
@@ -114,7 +114,7 @@
 				GitHub →
 			</a>
 			<button class="cta" onclick={() => (window.location.href = resolve('/'))}>
-				{i18nStore.locale === 'ko' ? '내 프로젝트 분석' : 'Analyze your own'}
+				{i18nStore.t('explore.analyzeOwn')}
 			</button>
 		</div>
 	</header>
@@ -124,25 +124,21 @@
 			<div class="state state-loading">
 				<div class="loading-ring"></div>
 				<p>
-					{i18nStore.locale === 'ko'
-						? `${data.entry.title} 아키텍처 불러오는 중...`
-						: `Loading ${data.entry.title} architecture...`}
+					{i18nStore.t('explore.loadingEntry', { title: data.entry.title })}
 				</p>
 			</div>
 		{:else if status === 'not-analyzed'}
 			<div class="state state-empty">
 				<span class="material-symbols-outlined state-icon">hourglass_empty</span>
 				<h2>
-					{i18nStore.locale === 'ko' ? '아직 분석되지 않았습니다' : 'Not analyzed yet'}
+					{i18nStore.t('explore.notAnalyzedTitle')}
 				</h2>
 				<p>
-					{i18nStore.locale === 'ko'
-						? `${data.entry.title}의 아키텍처 스냅샷은 곧 추가됩니다. 그동안 홈에서 GitHub URL로 직접 분석해보세요.`
-						: `The architecture snapshot for ${data.entry.title} will be added soon. You can analyze it yourself by pasting the GitHub URL on the home page.`}
+					{i18nStore.t('explore.notAnalyzedDesc', { title: data.entry.title })}
 				</p>
 				<div class="state-actions">
 					<a href={resolve('/')} class="cta">
-						{i18nStore.locale === 'ko' ? '홈에서 분석하기' : 'Analyze from home'}
+						{i18nStore.t('explore.analyzeFromHome')}
 					</a>
 					<a
 						href={`https://github.com/${data.entry.owner}/${data.entry.repo}`}
@@ -150,17 +146,17 @@
 						rel="noopener noreferrer"
 						class="cta cta-secondary"
 					>
-						{i18nStore.locale === 'ko' ? 'GitHub에서 보기' : 'View on GitHub'} ↗
+						{i18nStore.t('explore.viewOnGithub')} ↗
 					</a>
 				</div>
 			</div>
 		{:else if status === 'error'}
 			<div class="state state-error">
 				<span class="material-symbols-outlined state-icon">error</span>
-				<h2>{i18nStore.locale === 'ko' ? '오류' : 'Error'}</h2>
+				<h2>{i18nStore.t('common.error')}</h2>
 				<p>{errorMessage}</p>
 				<a href={resolve('/explore')} class="cta">
-					{i18nStore.locale === 'ko' ? '갤러리로' : 'Back to Explore'}
+					{i18nStore.t('explore.backToGallery')}
 				</a>
 			</div>
 		{:else}

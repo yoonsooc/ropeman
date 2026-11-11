@@ -1,26 +1,52 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 
 	const connectionInfo = $derived.by(() => {
 		const track = authStore.activeTrack;
-		if (!track) return { status: 'Disconnected', color: 'var(--text-muted)', dotClass: '' };
+		if (!track)
+			return {
+				status: i18nStore.t('track.disconnected'),
+				color: 'var(--text-muted)',
+				dotClass: ''
+			};
 		switch (track) {
 			case 'edge':
-				return { status: 'Demo', color: 'var(--color-success)', dotClass: 'dot-success' };
+				return {
+					status: i18nStore.t('track.edge'),
+					color: 'var(--color-success)',
+					dotClass: 'dot-success'
+				};
 			case 'byok':
-				return { status: 'API Key', color: 'var(--color-success)', dotClass: 'dot-success' };
+				return {
+					status: i18nStore.t('track.byok'),
+					color: 'var(--color-success)',
+					dotClass: 'dot-success'
+				};
 			case 'bridge':
 				return authStore.bridgeStatus === 'connected'
 					? {
-							status: 'Bridge Connected',
+							status: i18nStore.t('track.bridgeConnected'),
 							color: 'var(--color-success)',
 							dotClass: 'dot-success'
 						}
-					: { status: 'Bridge Disconnected', color: 'var(--text-muted)', dotClass: '' };
+					: {
+							status: i18nStore.t('track.bridgeDisconnected'),
+							color: 'var(--text-muted)',
+							dotClass: ''
+						};
 			case 'webgpu':
-				return { status: 'WebGPU', color: 'var(--color-success)', dotClass: 'dot-success' };
+				return {
+					status: i18nStore.t('track.webgpu'),
+					color: 'var(--color-success)',
+					dotClass: 'dot-success'
+				};
 			default:
-				return { status: 'Disconnected', color: 'var(--text-muted)', dotClass: '' };
+				return {
+					status: i18nStore.t('track.disconnected'),
+					color: 'var(--text-muted)',
+					dotClass: ''
+				};
 		}
 	});
 </script>
@@ -29,11 +55,11 @@
 	<div class="status-left">
 		<div class="status-item">
 			<span class="material-symbols-outlined status-icon">zoom_in</span>
-			<span class="status-text">Zoom 100%</span>
+			<span class="status-text">{i18nStore.t('statusBar.zoom')}</span>
 		</div>
 		<div class="status-item">
 			<span class="material-symbols-outlined status-icon">map</span>
-			<span class="status-text">Minimap</span>
+			<span class="status-text">{i18nStore.t('statusBar.minimap')}</span>
 		</div>
 	</div>
 	<div class="status-right">

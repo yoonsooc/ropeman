@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { graphStore } from '$lib/stores/graphStore.svelte';
@@ -181,7 +182,7 @@
 				<input
 					type="text"
 					class="search-field"
-					placeholder="Search files and symbols..."
+					placeholder={i18nStore.t('search.placeholder')}
 					bind:value={query}
 					bind:this={inputEl}
 					oninput={handleInput}
@@ -206,13 +207,15 @@
 										>{shortenPath(result.path)}{#if result.lineStart}:{result.lineStart}{/if}</span
 									>
 								</span>
-								<span class="result-badge">{result.type === 'file' ? 'file' : result.kind}</span>
+								<span class="result-badge"
+									>{result.type === 'file' ? i18nStore.t('search.file') : result.kind}</span
+								>
 							</button>
 						</li>
 					{/each}
 				</ul>
 			{:else if query.length > 0}
-				<div class="no-results">No results found</div>
+				<div class="no-results">{i18nStore.t('search.noResults')}</div>
 			{/if}
 		</div>
 	</div>

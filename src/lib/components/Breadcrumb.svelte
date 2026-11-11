@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { tabStore } from '$lib/stores/tabStore.svelte';
@@ -155,7 +156,7 @@
 				}}
 			>
 				<span class="crumb-icon">&#9673;</span>
-				<span class="crumb-label">Project</span>
+				<span class="crumb-label">{i18nStore.t('common.project')}</span>
 				{#if semanticPath.length === 0}
 					<span class="crumb-chevron">&#9662;</span>
 				{/if}

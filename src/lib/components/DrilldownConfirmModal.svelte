@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 
@@ -19,17 +20,21 @@
 	const trackInfo = $derived.by(() => {
 		switch (authStore.activeTrack) {
 			case 'bridge':
-				return { label: 'Local Bridge', color: 'var(--track-bridge)' };
+				return { label: i18nStore.t('track.bridge'), color: 'var(--track-bridge)' };
 			case 'edge':
-				return { label: 'Demo', color: 'var(--track-demo)' };
+				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)' };
 			case 'webgpu':
-				return { label: 'WebGPU', color: 'var(--track-webgpu)' };
+				return { label: i18nStore.t('track.webgpu'), color: 'var(--track-webgpu)' };
 			case 'byok':
-				return { label: 'API Key', color: 'var(--track-byok)' };
+				return { label: i18nStore.t('track.byok'), color: 'var(--track-byok)' };
 			default:
-				return { label: 'Not connected', color: 'var(--text-muted)' };
+				return { label: i18nStore.t('track.none'), color: 'var(--text-muted)' };
 		}
 	});
+
+	// The bold label and the track name sit at different spots in each language
+	const descParts = $derived(i18nStore.t('drilldown.desc').split('{label}'));
+	const trackParts = $derived(i18nStore.t('drilldown.trackLine').split('{track}'));
 
 	function handleConfirm() {
 		if (dontAskAgain) {
@@ -67,25 +72,30 @@
 			<div class="drilldown-header">
 				<div class="drilldown-title">
 					<span class="title-dot" style="background: {trackInfo.color}"></span>
-					추가 분석
+					{i18nStore.t('drilldown.title')}
 				</div>
-				<span class="drilldown-label">DRILLDOWN</span>
+				<span class="drilldown-label">{i18nStore.t('drilldown.badge')}</span>
 			</div>
 			<p class="drilldown-desc">
-				<strong>{nodeLabel}</strong> 도메인의 내부 구조를 분석합니다.
+				{descParts[0]}<strong>{nodeLabel}</strong>{descParts[1]}
 			</p>
 			<div class="drilldown-track">
+				{#if trackParts[0].trim()}<span class="track-suffix">{trackParts[0].trim()}</span>{/if}
 				<span class="track-dot" style="background: {trackInfo.color}"></span>
 				<span class="track-name" style="color: {trackInfo.color}">{trackInfo.label}</span>
-				<span class="track-suffix">모드로 분석</span>
+				{#if trackParts[1]?.trim()}<span class="track-suffix">{trackParts[1].trim()}</span>{/if}
 			</div>
 			<label class="dont-ask">
 				<input type="checkbox" bind:checked={dontAskAgain} />
-				다시 묻지 않기
+				{i18nStore.t('dontAskAgain')}
 			</label>
 			<div class="drilldown-actions">
-				<button class="btn btn-secondary drilldown-btn" onclick={handleCancel}>취소</button>
-				<button class="btn btn-primary drilldown-btn" onclick={handleConfirm}>분석</button>
+				<button class="btn btn-secondary drilldown-btn" onclick={handleCancel}
+					>{i18nStore.t('common.cancel')}</button
+				>
+				<button class="btn btn-primary drilldown-btn" onclick={handleConfirm}
+					>{i18nStore.t('drilldown.confirm')}</button
+				>
 			</div>
 		</div>
 	</div>

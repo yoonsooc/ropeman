@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { scrollBehavior } from '$lib/utils/motion';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
@@ -140,7 +141,7 @@
 
 		try {
 			const tree = projectStore.fileTree;
-			if (!tree) throw new Error('No project loaded');
+			if (!tree) throw new Error(i18nStore.t('codeViewer.noProject'));
 
 			const fileNode = findFileNode(tree, path) as (FileNode & { _absolutePath?: string }) | null;
 
@@ -180,9 +181,9 @@
 				}
 			}
 
-			throw new Error('File not accessible');
+			throw new Error(i18nStore.t('codeViewer.notAccessible'));
 		} catch (err) {
-			loadError = `Failed to load file: ${(err as Error).message}`;
+			loadError = i18nStore.t('codeViewer.loadFailed', { error: (err as Error).message });
 		} finally {
 			isLoadingFile = false;
 		}
@@ -203,12 +204,12 @@
 	{#if !currentFilePath && !targetFilePath}
 		<div class="code-empty">
 			<div class="empty-icon">&#128196;</div>
-			<p class="empty-text">Select a file from the Explorer or a semantic node to view code</p>
+			<p class="empty-text">{i18nStore.t('codeViewer.empty')}</p>
 		</div>
 	{:else if isLoadingFile}
 		<div class="code-loading">
 			<div class="loading-spinner"></div>
-			<span>Loading...</span>
+			<span>{i18nStore.t('common.loading')}</span>
 		</div>
 	{:else if loadError}
 		<div class="code-error">
@@ -220,14 +221,16 @@
 			{#if langLabel}
 				<span class="code-lang-badge">{langLabel}</span>
 			{/if}
-			<span class="code-line-count">{highlightedLines.length} lines</span>
+			<span class="code-line-count"
+				>{i18nStore.t('codeViewer.lines', { n: highlightedLines.length })}</span
+			>
 		</div>
 
 		<div class="code-layout">
 			<!-- Symbol sidebar -->
 			{#if settingsStore.showSymbols && fileSymbols.length > 0}
 				<div class="symbol-sidebar">
-					<div class="symbol-header">Symbols</div>
+					<div class="symbol-header">{i18nStore.t('codeViewer.symbols')}</div>
 					{#each fileSymbols as sym}
 						<button
 							class="symbol-item"

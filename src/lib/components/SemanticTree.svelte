@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
@@ -210,7 +211,7 @@
 <div class="semantic-tree">
 	{#if tree.length === 0}
 		<div class="empty-state">
-			<span class="empty-text">No semantic analysis data</span>
+			<span class="empty-text">{i18nStore.t('sidebar.semanticEmpty')}</span>
 		</div>
 	{:else}
 		{#each tree as node}
@@ -243,7 +244,7 @@
 			{#if node.status === 'cached' && node.fileCount > 1}
 				<button
 					class="tree-reanalyze-btn"
-					title="Re-analyze"
+					title={i18nStore.t('node.reanalyze')}
 					onclick={(e) => handleReanalyze(e, node)}
 				>
 					&#x21BB;

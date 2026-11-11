@@ -47,7 +47,7 @@
 		<button
 			type="button"
 			class="sidebar-backdrop"
-			aria-label="Close menu"
+			aria-label={i18nStore.t('docsUi.closeMenu')}
 			onclick={() => (sidebarOpen = false)}
 		></button>
 	{/if}

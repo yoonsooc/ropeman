@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import type { SidebarCategory } from '$lib/services/docsService';
@@ -18,7 +19,7 @@
 	const currentSlug = $derived(page.params.slug ?? '');
 </script>
 
-<aside class="docs-sidebar" class:open aria-label="Documentation navigation">
+<aside class="docs-sidebar" class:open aria-label={i18nStore.t('docsUi.sidebarNav')}>
 	<nav>
 		{#each categories as category (category.id)}
 			<div class="category">

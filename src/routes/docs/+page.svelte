@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -17,7 +18,7 @@
 </svelte:head>
 
 <div class="redirect-notice">
-	<p>Loading documentation…</p>
+	<p>{i18nStore.t('docsUi.loadingDocs')}</p>
 	<p class="hint">
 		<a href={resolve('/docs/en/getting-started')}>English</a> ·
 		<a href={resolve('/docs/ko/getting-started')}>한국어</a>

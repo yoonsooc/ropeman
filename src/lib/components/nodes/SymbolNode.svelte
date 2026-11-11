@@ -1,30 +1,31 @@
 <script lang="ts">
+	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { Handle, Position } from '@xyflow/svelte';
 
 	let { data } = $props();
 
 	const kindIcons: Record<string, string> = {
-		'function': 'fn',
-		'class': 'C',
-		'method': 'm',
-		'import': '&#8594;'
+		function: 'fn',
+		class: 'C',
+		method: 'm',
+		import: '&#8594;'
 	};
 
 	const kindColors: Record<string, { bg: string; border: string; text: string }> = {
-		'function': { bg: '#eff6ff', border: '#3b82f6', text: '#1d4ed8' },
-		'class': { bg: '#faf5ff', border: '#a855f7', text: '#7c3aed' },
-		'method': { bg: '#ecfdf5', border: '#22c55e', text: '#15803d' },
-		'import': { bg: '#f0f9ff', border: '#06b6d4', text: '#0e7490' }
+		function: { bg: '#eff6ff', border: '#3b82f6', text: '#1d4ed8' },
+		class: { bg: '#faf5ff', border: '#a855f7', text: '#7c3aed' },
+		method: { bg: '#ecfdf5', border: '#22c55e', text: '#15803d' },
+		import: { bg: '#f0f9ff', border: '#06b6d4', text: '#0e7490' }
 	};
 
-	const badgeConfig: Record<string, { emoji: string; title: string }> = {
-		'static': { emoji: '\u2699\uFE0F', title: 'Static' },
-		'async': { emoji: '\u26A1', title: 'Async' },
-		'generator': { emoji: '\uD83D\uDD04', title: 'Generator' },
-		'route': { emoji: '\uD83C\uDF10', title: 'Route Handler' },
-		'export_default': { emoji: '\uD83D\uDCE6', title: 'Default Export' },
-		'decorator': { emoji: '\uD83C\uDFF7\uFE0F', title: 'Decorated' },
-		'abstract': { emoji: '\uD83D\uDCD0', title: 'Abstract' }
+	const badgeEmoji: Record<string, string> = {
+		static: '\u2699\uFE0F',
+		async: '\u26A1',
+		generator: '\uD83D\uDD04',
+		route: '\uD83C\uDF10',
+		export_default: '\uD83D\uDCE6',
+		decorator: '\uD83C\uDFF7\uFE0F',
+		abstract: '\uD83D\uDCD0'
 	};
 
 	const colors = $derived(kindColors[data.kind] ?? kindColors['function']);
@@ -50,7 +51,11 @@
 		{#if data.badges?.length}
 			<span class="badges">
 				{#each data.badges as badge}
-					<span class="badge-pill" title={badgeConfig[badge]?.title}>{badgeConfig[badge]?.emoji}</span>
+					<span
+						class="badge-pill"
+						title={badge in badgeEmoji ? i18nStore.t(`symbolBadge.${badge}`) : undefined}
+						>{badgeEmoji[badge]}</span
+					>
 				{/each}
 			</span>
 		{/if}

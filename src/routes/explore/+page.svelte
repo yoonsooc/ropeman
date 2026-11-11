@@ -15,7 +15,7 @@
 </script>
 
 <svelte:head>
-	<title>Explore — Open-source architectures | Ropeman</title>
+	<title>{i18nStore.t('explore.pageTitle')}</title>
 	<meta
 		name="description"
 		content="Browse AI-generated architecture diagrams of popular open-source projects: React, Vue, Svelte, FastAPI, Gin and more."
@@ -37,8 +37,8 @@
 			<a
 				class="explore-nav-btn"
 				href={resolve('/')}
-				title={i18nStore.locale === 'ko' ? '홈' : 'Home'}
-				aria-label={i18nStore.locale === 'ko' ? '홈' : 'Home'}
+				title={i18nStore.t('explore.home')}
+				aria-label={i18nStore.t('explore.home')}
 			>
 				<span class="material-symbols-outlined">home</span>
 			</a>
@@ -46,7 +46,7 @@
 				class="explore-nav-btn"
 				href={resolve(`/docs/${i18nStore.locale}/getting-started`)}
 				title={i18nStore.t('docs.headerLink')}
-				aria-label="Docs"
+				aria-label={i18nStore.t('docs.headerLink')}
 			>
 				<span class="material-symbols-outlined">menu_book</span>
 			</a>
@@ -56,14 +56,10 @@
 	<main class="explore-main">
 		<section class="explore-hero">
 			<h1>
-				{i18nStore.locale === 'ko'
-					? '오픈소스 아키텍처 둘러보기'
-					: 'Explore Open-Source Architectures'}
+				{i18nStore.t('explore.heroTitle')}
 			</h1>
 			<p>
-				{i18nStore.locale === 'ko'
-					? '인기 오픈소스 프로젝트의 AI 생성 아키텍처 다이어그램을 살펴보세요. 직접 분석한 결과를 공개 갤러리로 제공합니다.'
-					: 'AI-generated architecture diagrams of popular open-source projects. Curated and refreshed periodically.'}
+				{i18nStore.t('explore.heroDesc')}
 			</p>
 		</section>
 
@@ -71,18 +67,17 @@
 			<input
 				type="search"
 				bind:value={query}
-				placeholder={i18nStore.locale === 'ko' ? '프로젝트 검색...' : 'Search projects...'}
+				placeholder={i18nStore.t('explore.searchPlaceholder')}
 				class="filter-input"
-				aria-label="Search"
+				aria-label={i18nStore.t('explore.searchLabel')}
 			/>
-			<select bind:value={language} class="filter-select" aria-label="Language">
+			<select
+				bind:value={language}
+				class="filter-select"
+				aria-label={i18nStore.t('explore.languageLabel')}
+			>
 				{#each languages as lang (lang)}
-					<option value={lang}
-						>{lang === 'all'
-							? i18nStore.locale === 'ko'
-								? '모든 언어'
-								: 'All languages'
-							: lang}</option
+					<option value={lang}>{lang === 'all' ? i18nStore.t('explore.allLanguages') : lang}</option
 					>
 				{/each}
 			</select>
@@ -91,9 +86,7 @@
 		<section class="explore-grid">
 			{#if filtered.length === 0}
 				<div class="explore-empty">
-					{i18nStore.locale === 'ko'
-						? '조건에 맞는 프로젝트가 없습니다.'
-						: 'No projects match your filters.'}
+					{i18nStore.t('explore.empty')}
 				</div>
 			{:else}
 				{#each filtered as entry, index (entry.slug)}
