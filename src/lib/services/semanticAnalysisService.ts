@@ -161,6 +161,10 @@ function drilldownRequest(parentNode: SemanticNode): LevelRequest | null {
 	};
 }
 
+function isSameRequest(a: SemanticRequest, b: SemanticRequest | null): boolean {
+	return b !== null && a.model === b.model && a.system === b.system && a.user === b.user;
+}
+
 async function loadCachedLevel(
 	request: LevelRequest,
 	parentId: string | null,
@@ -207,7 +211,8 @@ export async function restoreCachedAnalysis(): Promise<void> {
 	const request = topLevelRequest();
 	if (!request) return;
 	const tree = await loadCachedTree(request);
-	if (!tree) return;
+	// Another project, track or locale may have taken over while the cache was read
+	if (!tree || !isSameRequest(request, topLevelRequest())) return;
 	// Keep what the user already has open or analyzed in this session
 	for (const [key, level] of tree) {
 		if (!semanticStore.hasCachedLevel(key)) semanticStore.setCachedLevel(key, level);
@@ -234,7 +239,8 @@ function waitForParsing(timeoutMs = 60000): Promise<void> {
 	});
 }
 
-export async function analyzeTopLevel(): Promise<void> {
+/** `force` skips the cached answer, for when the user explicitly asks to analyze again. */
+export async function analyzeTopLevel({ force = false }: { force?: boolean } = {}): Promise<void> {
 	if (semanticStore.isAnalyzing) return;
 
 	const nodeId = '__top_level__';
@@ -265,11 +271,11 @@ export async function analyzeTopLevel(): Promise<void> {
 
 		// The track is often chosen only now (Edge is not remembered across reloads), so the
 		// load-time restore could not match yet. Reuse the answer to this exact request.
-		const tree = settingsStore.cacheEnabled ? await loadCachedTree(request) : null;
+		const tree = settingsStore.cacheEnabled && !force ? await loadCachedTree(request) : null;
+		throwIfAborted(abortController);
 		for (const [key, cached] of tree ?? []) semanticStore.setCachedLevel(key, cached);
 		let level = tree?.get('__root__');
 		if (!level) {
-			throwIfAborted(abortController);
 			semanticStore.updateAnalysisProgress(nodeId, i18nStore.getProgressMessage('requestingAI'));
 			const responseText = await callAI({
 				system: request.system,
@@ -286,7 +292,6 @@ export async function analyzeTopLevel(): Promise<void> {
 			semanticStore.setCachedLevel('__root__', level);
 			if (settingsStore.cacheEnabled) void saveCachedResponse(request, responseText);
 		}
-		throwIfAborted(abortController);
 
 		semanticStore.currentLevel = level;
 		semanticStore.drilldownPath = [];

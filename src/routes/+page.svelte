@@ -76,7 +76,9 @@
 		} else {
 			authStore.edgeEnabled = false;
 		}
-		analyzeTopLevel();
+		// Picking a track with a diagram on screen asks for a new answer. Without one, as after a
+		// reload, reuse the cached answer to the same request.
+		analyzeTopLevel({ force: semanticStore.currentLevel !== null });
 	}
 
 	let fallbackInput: HTMLInputElement | undefined = $state(undefined);

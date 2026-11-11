@@ -192,6 +192,51 @@ describe('semantic analysis cache', () => {
 		expect(semanticStore.hasCachedLevel('sem:core')).toBe(true);
 	});
 
+	it('calls AI and replaces the cached answer when the top level is forced', async () => {
+		await analyzeAndReload();
+		const NEW_ROOT = JSON.stringify({
+			roles: [role('fresh', 'Fresh', ['src/a.ts', 'src/b.ts'])],
+			edges: []
+		});
+		callAI.mockResolvedValueOnce(NEW_ROOT);
+
+		await analyzeTopLevel({ force: true });
+
+		expect(callAI).toHaveBeenCalledTimes(1);
+		expect(semanticStore.currentLevel?.nodes.map((n) => n.label)).toEqual(['Fresh']);
+		await vi.waitFor(() =>
+			expect([...storage.get('ropeman/semantic-v2')!.values()]).toContain(NEW_ROOT)
+		);
+		semanticStore.clear();
+		await restoreCachedAnalysis();
+		expect(semanticStore.currentLevel?.nodes.map((n) => n.label)).toEqual(['Fresh']);
+	});
+
+	// Regression: opening project B while A's cache was still being read put A's levels into B
+	it('drops a restore that finishes after another project opened', async () => {
+		await analyzeAndReload();
+
+		const restoring = restoreCachedAnalysis();
+		semanticStore.clear();
+		loadProject('other', ['lib/x.ts', 'lib/y.ts']);
+		await restoring;
+
+		expect(semanticStore.currentLevel).toBeNull();
+		expect(semanticStore.cache.size).toBe(0);
+	});
+
+	it('writes nothing when the project is closed while analysis reads the cache', async () => {
+		await analyzeAndReload();
+
+		const analyzing = analyzeTopLevel();
+		semanticStore.clear();
+		await analyzing;
+
+		expect(semanticStore.currentLevel).toBeNull();
+		expect(semanticStore.cache.size).toBe(0);
+		expect(callAI).not.toHaveBeenCalled();
+	});
+
 	it('calls AI again when a drill-down is re-analyzed', async () => {
 		await analyzeAndReload();
 		await restoreCachedAnalysis();
