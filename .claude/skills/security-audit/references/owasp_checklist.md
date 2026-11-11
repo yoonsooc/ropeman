@@ -80,7 +80,7 @@ osv-scanner --lockfile=bun.lock --lockfile=bridge/package-lock.json
 
 ```
 You are auditing the Ropeman Cloudflare Worker layer for security.
-Scope: edge-proxy/src/*.ts (demo, proxy, github, share, explore) + shared.ts
+Scope: edge-proxy/src/*.ts (demo, proxy, share, explore) + shared.ts
 Methodology: For each worker, walk OWASP API Top 10 and return Pass / Fail / N-A:
   1. Broken Object Level Authorization — slug/path parameter tampering
   2. Broken Authentication — Bearer token handling, admin endpoint guard
@@ -146,8 +146,8 @@ Methodology:
      - Any secrets exposed in env / logs?
      - artifact upload/download paths — any way to poison?
   2. Cloudflare Worker configuration
-     - Placeholder values not yet replaced (REPLACE_WITH_KV_ID in wrangler.github.toml)
-     - ALLOWED_ORIGINS consistency across 5 wrangler toml files
+     - Placeholder values not yet replaced (REPLACE_WITH_* in any wrangler.*.toml)
+     - ALLOWED_ORIGINS consistency across 4 wrangler toml files
      - observability flags, custom_domain correctness
      - Secret names referenced in code but not documented in config
   3. Lockfile policy

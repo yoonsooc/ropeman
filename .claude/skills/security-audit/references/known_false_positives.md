@@ -86,7 +86,7 @@ Phase 1 Grep 히트나 Phase 2 Agent 보고 중 **실제로는 위험이 없다�
 
 ### FP-7: `ALLOWED_ORIGINS` 평문 wrangler.\*.toml
 
-- 파일: `edge-proxy/wrangler.{demo,proxy,github,share,explore}.toml` 의 `[vars]` 섹션
+- 파일: `edge-proxy/wrangler.{demo,proxy,share,explore}.toml` 의 `[vars]` 섹션
 - 소스: Phase 1 secret leak Grep (origin URL 패턴)
 - 판정 이유: `[vars]`는 Cloudflare에서 **public**으로 설계된 환경변수. ALLOWED_ORIGINS는 CORS 허용 목록이므로 노출 의도. secret이 아님.
 - 재평가 조건: `[vars]` 섹션에 Bearer 토큰, API 키 등 실제 비밀값이 추가되면 Critical.

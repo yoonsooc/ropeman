@@ -3,7 +3,6 @@ import type { FileNode } from '$lib/types/fileTree';
 import { detectLanguage, isSupported } from '$lib/utils/languageDetector';
 import { parseFile } from '$lib/services/parserService';
 import { projectStore } from '$lib/stores/projectStore.svelte';
-import { GITHUB_PROXY_URL } from '$lib/config';
 import {
 	pathPriority,
 	MAX_FILES,
@@ -46,16 +45,10 @@ const BATCH_SIZE = 20;
 
 function buildTreeUrl(info: GitHubRepoInfo): string {
 	const ref = info.branch || 'HEAD';
-	if (GITHUB_PROXY_URL) {
-		return `${GITHUB_PROXY_URL}/github/tree/${info.owner}/${info.repo}/${ref}`;
-	}
 	return `https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${ref}?recursive=1`;
 }
 
 function buildRawUrl(info: GitHubRepoInfo, path: string, ref: string): string {
-	if (GITHUB_PROXY_URL) {
-		return `${GITHUB_PROXY_URL}/github/file/${info.owner}/${info.repo}/${ref}/${path}`;
-	}
 	return `https://raw.githubusercontent.com/${info.owner}/${info.repo}/${ref}/${path}`;
 }
 
