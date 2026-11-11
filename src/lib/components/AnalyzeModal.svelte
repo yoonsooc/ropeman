@@ -158,7 +158,7 @@
 
 	async function handleBridgeConnect() {
 		try {
-			await connectBridge(bridgePort);
+			await connectBridge(bridgePort, settingsStore.bridgeToken);
 		} catch {
 			/* handled by authStore */
 		}
@@ -409,6 +409,17 @@
 									</button>
 								{/if}
 							</div>
+							<label class="form-label" for="analyze-bridge-token">Token</label>
+							<input
+								id="analyze-bridge-token"
+								type="password"
+								class="input"
+								autocomplete="off"
+								spellcheck="false"
+								placeholder="Printed by the bridge at startup"
+								value={settingsStore.bridgeToken}
+								oninput={(e) => (settingsStore.bridgeToken = (e.target as HTMLInputElement).value)}
+							/>
 							<div class="cfg-command">
 								<code
 									>npx @ropeman/bridge --port {bridgePort}{settingsStore.bridgeCli !== 'auto'

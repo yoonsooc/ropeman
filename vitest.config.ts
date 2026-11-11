@@ -11,7 +11,7 @@ export default defineConfig({
 	},
 	test: {
 		// edge-proxy workers only use fetch/Request/Response, so they run in Node as well
-		include: ['src/**/*.test.ts', 'edge-proxy/test/**/*.test.ts'],
+		include: ['src/**/*.test.ts', 'edge-proxy/test/**/*.test.ts', 'bridge/test/**/*.test.ts'],
 		globals: true,
 		environment: 'node'
 	}

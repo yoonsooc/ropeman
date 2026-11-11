@@ -27,6 +27,7 @@ function createSettingsStore() {
 	let skipDrilldownConfirm = $state<boolean>(initial.skipDrilldownConfirm ?? false);
 	let showSymbols = $state<boolean>(initial.showSymbols ?? false);
 	let bridgeCli = $state<BridgeCliId>(initial.bridgeCli ?? 'auto');
+	let bridgeToken = $state<string>(initial.bridgeToken ?? '');
 	let codeFontSize = $state<number>(initial.codeFontSize ?? 13);
 	let customSkipPatterns = $state<string[]>(initial.customSkipPatterns ?? []);
 	let customIncludePatterns = $state<string[]>(initial.customIncludePatterns ?? []);
@@ -50,6 +51,7 @@ function createSettingsStore() {
 					skipDrilldownConfirm,
 					showSymbols,
 					bridgeCli,
+					bridgeToken,
 					codeFontSize,
 					customSkipPatterns,
 					customIncludePatterns,
@@ -164,6 +166,14 @@ function createSettingsStore() {
 			persist();
 		},
 
+		get bridgeToken() {
+			return bridgeToken;
+		},
+		set bridgeToken(v: string) {
+			bridgeToken = v.trim();
+			persist();
+		},
+
 		get codeFontSize() {
 			return codeFontSize;
 		},
@@ -224,6 +234,7 @@ function createSettingsStore() {
 			skipDrilldownConfirm = false;
 			showSymbols = false;
 			bridgeCli = 'auto';
+			bridgeToken = '';
 			codeFontSize = 13;
 			customSkipPatterns = [];
 			customIncludePatterns = [];

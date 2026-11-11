@@ -178,6 +178,14 @@ callAI({ system, user, signal }): Promise<string>
 | byok (google)    | fetch(Gemini API)     | —             | 직접 호출 가능 |
 | byok (anthropic) | fetch(PROXY_URL)      | ropeman-proxy | Worker CORS    |
 
+Bridge는 받은 프롬프트로 로컬 CLI를 실행한다. 그래서 연결을 받기 전에 세 가지를 검사한다(`bridge/src/auth.ts`).
+
+- `127.0.0.1`에만 바인딩한다.
+- Origin 허용 목록을 확인한다. 기본은 `https://ropeman.dev`과 로컬 개발 서버이고, `--allow-origin`으로 더할 수 있다.
+- 소켓 URL의 `?token=`을 확인한다. 토큰은 `--token`, `ROPEMAN_BRIDGE_TOKEN`, `~/.ropeman/bridge-token` 순서로 정한다. 직접 준 토큰이 16자보다 짧으면 시작하지 않는다. 토큰 파일은 시작할 때마다 0600으로 맞춘다.
+
+클라이언트가 보낸 `cli` 값은 `claude`나 `gemini`일 때만 실행한다. 클라이언트(`bridgeService.ts`)는 `ws://127.0.0.1:{port}/?token=`으로 연결하고, 토큰은 `settingsStore.bridgeToken`에 저장한다.
+
 ### Edge Proxy 구조
 
 ```

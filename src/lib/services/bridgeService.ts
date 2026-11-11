@@ -23,6 +23,7 @@ const pendingRequests = new Map<
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let lastPort: number = 9800;
+let lastToken = '';
 let intentionalClose = false;
 // Internal status tracking (replaces reading from authStore)
 let currentStatus: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error' =
@@ -69,7 +70,7 @@ function scheduleReconnect(): void {
 
 	reconnectTimer = setTimeout(() => {
 		reconnectTimer = null;
-		connectBridge(lastPort).catch(() => {
+		connectBridge(lastPort, lastToken).catch(() => {
 			// connectBridge failure triggers onclose → scheduleReconnect again
 		});
 	}, delay);
@@ -82,10 +83,25 @@ function rejectAllPending(): void {
 	}
 }
 
-export function connectBridge(port: number = 9800): Promise<void> {
+/**
+ * The bridge listens on 127.0.0.1 only (`localhost` can resolve to ::1 first) and refuses
+ * sockets without the token it prints at startup.
+ */
+export function bridgeUrl(port: number, token: string): string {
+	return `ws://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`;
+}
+
+export function connectBridge(port: number = 9800, token: string = ''): Promise<void> {
 	return new Promise((resolve, reject) => {
 		if (ws && ws.readyState === WebSocket.OPEN) {
 			resolve();
+			return;
+		}
+
+		if (!token) {
+			setStatus('error');
+			setError('Bridge token required');
+			reject(new Error('Bridge token required'));
 			return;
 		}
 
@@ -98,6 +114,7 @@ export function connectBridge(port: number = 9800): Promise<void> {
 		}
 
 		lastPort = port;
+		lastToken = token;
 		const isReconnecting = currentStatus === 'reconnecting';
 		if (!isReconnecting) {
 			setStatus('connecting');
@@ -106,7 +123,7 @@ export function connectBridge(port: number = 9800): Promise<void> {
 		intentionalClose = false;
 
 		try {
-			ws = new WebSocket(`ws://localhost:${port}`);
+			ws = new WebSocket(bridgeUrl(port, token));
 		} catch (err) {
 			setStatus('error');
 			setError((err as Error).message);
@@ -152,7 +169,8 @@ export function connectBridge(port: number = 9800): Promise<void> {
 			clearTimeout(timeout);
 			if (currentStatus !== 'reconnecting') {
 				setStatus('error');
-				setError('WebSocket connection failed');
+				// A refused handshake (wrong token or origin) looks the same as no server to the browser
+				setError('Connection failed. Check that the bridge is running and the token matches.');
 			}
 			reject(new Error('WebSocket connection failed'));
 		};

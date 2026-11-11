@@ -103,7 +103,7 @@
 
 	async function handleConnect() {
 		try {
-			await connectBridge(bridgePort);
+			await connectBridge(bridgePort, settingsStore.bridgeToken);
 		} catch {
 			// error is handled by authStore
 		}
@@ -308,6 +308,7 @@
 						<label class="form-label connect-label" for="connect-bridge-port">Bridge Port</label>
 						<div class="connect-row">
 							<input
+								id="connect-bridge-port"
 								type="number"
 								class="input connect-input"
 								value={bridgePort}
@@ -325,6 +326,18 @@
 								</button>
 							{/if}
 						</div>
+
+						<label class="form-label connect-label" for="connect-bridge-token">Bridge Token</label>
+						<input
+							id="connect-bridge-token"
+							type="password"
+							class="input connect-input"
+							autocomplete="off"
+							spellcheck="false"
+							placeholder="Printed by the bridge at startup"
+							value={settingsStore.bridgeToken}
+							oninput={(e) => (settingsStore.bridgeToken = (e.target as HTMLInputElement).value)}
+						/>
 
 						<div class="bridge-status">
 							{#if authStore.bridgeStatus === 'connected'}
@@ -374,6 +387,7 @@
 							{:else}
 								Requires Gemini CLI installed.
 							{/if}
+							On startup the bridge prints a token. Paste it above; it is kept in this browser.
 						</p>
 					</section>
 				{:else if activeTab === 'webgpu'}
