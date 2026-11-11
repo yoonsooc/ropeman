@@ -4,7 +4,12 @@ import { i18nStore } from '$lib/stores/i18nStore.svelte';
 import { extractSkeleton, formatPayloadPreview } from './skeletonExtractor';
 import { extractSubSkeleton } from './skeletonExtractor';
 import { callAI } from './aiAdapter';
-import type { SemanticLevel, SemanticNode, SemanticEdge } from '$lib/types/semantic';
+import type {
+	AssignmentCounts,
+	SemanticLevel,
+	SemanticNode,
+	SemanticEdge
+} from '$lib/types/semantic';
 
 const SEMANTIC_COLORS = [
 	'#89b4fa',
@@ -16,6 +21,8 @@ const SEMANTIC_COLORS = [
 	'#fab387',
 	'#74c7ec'
 ];
+
+const UNCLASSIFIED_COLOR = '#9399b2';
 
 // Markdown entries carry an outline instead of code symbols (markdownOutline.ts)
 const MARKDOWN_RULE = `- Files with language "markdown" list frontmatter (name, description) and headings instead of code symbols; their imports are links to other files. In agent skill or instruction repositories, treat a SKILL.md with its references and scripts as one unit, and use headings as keySymbols`;
@@ -154,7 +161,12 @@ export async function analyzeTopLevel(): Promise<void> {
 
 		throwIfAborted(abortController);
 		semanticStore.updateAnalysisProgress(nodeId, i18nStore.getProgressMessage('generatingDiagram'));
-		const level = parseSemanticLevel(responseText, null, 0);
+		const level = parseSemanticLevel(
+			responseText,
+			null,
+			0,
+			skeleton.files.map((f) => f.path)
+		);
 
 		semanticStore.currentLevel = level;
 		semanticStore.cacheLevel('__root__', level);
@@ -215,7 +227,12 @@ export async function analyzeDrilldown(parentNode: SemanticNode): Promise<void> 
 			parentNode.id,
 			i18nStore.getProgressMessage('generatingDiagram')
 		);
-		const level = parseSemanticLevel(responseText, parentNode.id, parentNode.depth + 1);
+		const level = parseSemanticLevel(
+			responseText,
+			parentNode.id,
+			parentNode.depth + 1,
+			parentNode.filePaths
+		);
 
 		// Always cache the result
 		semanticStore.cacheLevel(parentNode.id, level);
@@ -454,7 +471,8 @@ export function closeBrackets(text: string): string {
 export function parseSemanticLevel(
 	text: string,
 	parentId: string | null,
-	depth: number
+	depth: number,
+	inputPaths: readonly string[]
 ): SemanticLevel {
 	// Extract JSON from response (may be wrapped in markdown code block)
 	// First try complete JSON object, then fall back to truncated (opening { without closing })
@@ -510,19 +528,42 @@ export function parseSemanticLevel(
 
 	raw.roles = roles;
 
-	const roleIds = new Set(raw.roles.map((r) => r.id));
+	const { assigned, leftOut, counts } = assignFiles(
+		raw.roles.map((role) => role.filePaths),
+		inputPaths
+	);
 
-	const nodes: SemanticNode[] = raw.roles.map((role, i) => ({
+	// A role with no files left has nothing to show or drill into, so it leaves the diagram
+	const kept = raw.roles.flatMap((role, i) =>
+		assigned[i].length > 0 ? [{ role, files: assigned[i] }] : []
+	);
+	const roleIds = new Set(kept.map(({ role }) => role.id));
+
+	const nodes: SemanticNode[] = kept.map(({ role, files }, i) => ({
 		id: `sem:${role.id}`,
 		label: role.label,
 		description: role.description || '',
 		color: SEMANTIC_COLORS[i % SEMANTIC_COLORS.length],
-		filePaths: role.filePaths || [],
+		filePaths: files,
 		keySymbols: role.keySymbols || [],
 		parentId,
 		depth,
-		fileCount: (role.filePaths || []).length
+		fileCount: files.length
 	}));
+
+	if (leftOut.length > 0) {
+		nodes.push({
+			id: `sem:unclassified:${parentId ?? 'root'}`,
+			label: i18nStore.t('node.unclassified'),
+			description: i18nStore.t('node.unclassifiedDesc'),
+			color: UNCLASSIFIED_COLOR,
+			filePaths: leftOut,
+			keySymbols: [],
+			parentId,
+			depth,
+			fileCount: leftOut.length
+		});
+	}
 
 	const edges: SemanticEdge[] = (raw.edges || [])
 		.filter((e) => roleIds.has(e.source) && roleIds.has(e.target))
@@ -540,8 +581,67 @@ export function parseSemanticLevel(
 		parentId,
 		nodes,
 		edges,
-		breadcrumbLabel: parentLabel
+		breadcrumbLabel: parentLabel,
+		assignment: { ...counts, emptied: raw.roles.length - kept.length }
 	};
+}
+
+/**
+ * Give each input file exactly one owner. The first role that lists a file keeps it,
+ * listed paths that match no input file are dropped, and unlisted files come back as `leftOut`.
+ */
+function assignFiles(
+	listedPerRole: readonly unknown[],
+	inputPaths: readonly string[]
+): {
+	assigned: string[][];
+	leftOut: string[];
+	counts: Omit<AssignmentCounts, 'emptied'>;
+} {
+	const resolve = createPathResolver(inputPaths);
+	const owned = new Set<string>();
+	let duplicated = 0;
+	let invented = 0;
+
+	const assigned = listedPerRole.map((listed) => {
+		const files: string[] = [];
+		for (const path of Array.isArray(listed) ? listed : []) {
+			const file = typeof path === 'string' ? resolve(path) : undefined;
+			if (file === undefined) invented++;
+			else if (owned.has(file)) duplicated++;
+			else {
+				owned.add(file);
+				files.push(file);
+			}
+		}
+		return files;
+	});
+
+	const leftOut = [...new Set(inputPaths)].filter((path) => !owned.has(path));
+	return { assigned, leftOut, counts: { leftOut: leftOut.length, duplicated, invented } };
+}
+
+/**
+ * Map a path the model wrote back to the input path it means. Local folder paths share the
+ * project folder name as a root ("ropeman/src/a.ts"), and models often drop it or add "./".
+ */
+function createPathResolver(inputPaths: readonly string[]): (path: string) => string | undefined {
+	const byKey = new Map<string, string>(inputPaths.map((path) => [path, path]));
+	const root = sharedRoot(inputPaths);
+	if (root) {
+		for (const path of inputPaths) {
+			const withoutRoot = path.substring(root.length);
+			if (!byKey.has(withoutRoot)) byKey.set(withoutRoot, path);
+		}
+	}
+	return (path) => byKey.get(path) ?? byKey.get(path.replace(/^\.?\//, ''));
+}
+
+function sharedRoot(paths: readonly string[]): string | null {
+	const slash = paths[0]?.indexOf('/') ?? -1;
+	if (slash === -1) return null;
+	const root = paths[0].substring(0, slash + 1);
+	return paths.every((path) => path.startsWith(root)) ? root : null;
 }
 
 function validateEdgeType(type: string): SemanticEdge['type'] {

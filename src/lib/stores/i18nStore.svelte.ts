@@ -151,6 +151,8 @@ interface NodeTranslations {
 	notInSnapshot: string;
 	notInSnapshotShort: string;
 	reanalyze: string;
+	unclassified: string;
+	unclassifiedDesc: string;
 }
 
 interface PanelTranslations {
@@ -468,7 +470,9 @@ const translations: Record<Locale, TranslationSet> = {
 			openCode: '코드 보기',
 			notInSnapshot: '이 스냅샷에는 더 깊은 분석이 없습니다. 눌러서 자세히 보기',
 			notInSnapshotShort: '스냅샷에 없음',
-			reanalyze: '다시 분석'
+			reanalyze: '다시 분석',
+			unclassified: '미분류',
+			unclassifiedDesc: '분석이 어느 그룹에도 넣지 않은 파일'
 		},
 		header: {
 			newLabel: '새로 열기',
@@ -786,7 +790,9 @@ const translations: Record<Locale, TranslationSet> = {
 			openCode: 'View code',
 			notInSnapshot: 'This snapshot has no deeper analysis. Click for details',
 			notInSnapshotShort: 'Not in snapshot',
-			reanalyze: 'Re-analyze'
+			reanalyze: 'Re-analyze',
+			unclassified: 'Unclassified',
+			unclassifiedDesc: 'Files the analysis did not place in any group'
 		},
 		header: {
 			newLabel: 'New',
