@@ -47,12 +47,15 @@ class MockWebSocket {
 // Module-level import (uses our MockWebSocket)
 import type { BridgeCallbacks } from './bridgeService';
 import {
+	bridgeUrl,
 	connectBridge,
 	disconnectBridge,
 	sendViaBridge,
 	setBridgeCallbacks,
 	getBridgeReconnectInfo
 } from './bridgeService';
+
+const TOKEN = 'tok/+=en';
 
 describe('bridgeService', () => {
 	let callbacks: BridgeCallbacks;
@@ -77,7 +80,7 @@ describe('bridgeService', () => {
 
 	describe('connectBridge', () => {
 		it('resolves on successful connection', async () => {
-			const connectPromise = connectBridge(9800);
+			const connectPromise = connectBridge(9800, TOKEN);
 
 			// Simulate WebSocket open
 			const ws = wsInstances[wsInstances.length - 1];
@@ -91,7 +94,7 @@ describe('bridgeService', () => {
 		});
 
 		it('rejects on connection error', async () => {
-			const connectPromise = connectBridge(9800);
+			const connectPromise = connectBridge(9800, TOKEN);
 
 			const ws = wsInstances[wsInstances.length - 1];
 			ws.simulateError();
@@ -102,20 +105,55 @@ describe('bridgeService', () => {
 
 		it('resolves immediately if already connected', async () => {
 			// First: connect
-			const p1 = connectBridge(9800);
+			const p1 = connectBridge(9800, TOKEN);
 			wsInstances[wsInstances.length - 1].simulateOpen();
 			await p1;
 
 			// Second: should resolve immediately (no new WebSocket)
 			const countBefore = wsInstances.length;
-			await connectBridge(9800);
+			await connectBridge(9800, TOKEN);
 			expect(wsInstances.length).toBe(countBefore);
+		});
+		it('connects to 127.0.0.1 with the token in the URL', async () => {
+			// Act
+			const p = connectBridge(9800, TOKEN);
+			const ws = wsInstances[wsInstances.length - 1];
+			ws.simulateOpen();
+			await p;
+
+			// Assert — token is URL-encoded, host avoids localhost resolving to ::1
+			expect(ws.url).toBe('ws://127.0.0.1:9800/?token=tok%2F%2B%3Den');
+			expect(bridgeUrl(9800, TOKEN)).toBe(ws.url);
+		});
+
+		it('rejects without a token and opens no socket', async () => {
+			// Act
+			const p = connectBridge(9800, '');
+
+			// Assert
+			await expect(p).rejects.toThrow('Bridge token required');
+			expect(wsInstances.length).toBe(0);
+			expect(callbacks.onStatusChange).toHaveBeenCalledWith('error');
+		});
+
+		it('reuses the token when reconnecting', async () => {
+			// Arrange — connect, then lose the connection
+			const p = connectBridge(9800, TOKEN);
+			wsInstances[wsInstances.length - 1].simulateOpen();
+			await p;
+			wsInstances[wsInstances.length - 1].close();
+
+			// Act — first backoff step
+			vi.advanceTimersByTime(1000);
+
+			// Assert
+			expect(wsInstances[wsInstances.length - 1].url).toBe(bridgeUrl(9800, TOKEN));
 		});
 	});
 
 	describe('disconnectBridge', () => {
 		it('sets status to disconnected', async () => {
-			const p = connectBridge(9800);
+			const p = connectBridge(9800, TOKEN);
 			wsInstances[wsInstances.length - 1].simulateOpen();
 			await p;
 
@@ -133,7 +171,7 @@ describe('bridgeService', () => {
 
 		it('sends message and resolves with response', async () => {
 			// Connect
-			const p = connectBridge(9800);
+			const p = connectBridge(9800, TOKEN);
 			wsInstances[wsInstances.length - 1].simulateOpen();
 			await p;
 
@@ -154,7 +192,7 @@ describe('bridgeService', () => {
 		});
 
 		it('rejects on error response from server', async () => {
-			const p = connectBridge(9800);
+			const p = connectBridge(9800, TOKEN);
 			wsInstances[wsInstances.length - 1].simulateOpen();
 			await p;
 
@@ -168,7 +206,7 @@ describe('bridgeService', () => {
 		});
 
 		it('times out after 5 minutes', async () => {
-			const p = connectBridge(9800);
+			const p = connectBridge(9800, TOKEN);
 			wsInstances[wsInstances.length - 1].simulateOpen();
 			await p;
 
@@ -181,7 +219,7 @@ describe('bridgeService', () => {
 		});
 
 		it('rejects immediately when signal is already aborted', async () => {
-			const p = connectBridge(9800);
+			const p = connectBridge(9800, TOKEN);
 			wsInstances[wsInstances.length - 1].simulateOpen();
 			await p;
 
@@ -192,7 +230,7 @@ describe('bridgeService', () => {
 		});
 
 		it('rejects when signal is aborted during request', async () => {
-			const p = connectBridge(9800);
+			const p = connectBridge(9800, TOKEN);
 			wsInstances[wsInstances.length - 1].simulateOpen();
 			await p;
 

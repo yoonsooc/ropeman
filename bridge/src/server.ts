@@ -4,12 +4,28 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { spawn } from 'child_process';
 import { promisify } from 'util';
 import { exec as execCb } from 'child_process';
+import {
+	type CLIType,
+	isCLIType,
+	isOriginAllowed,
+	parseAllowedOrigins,
+	resolveToken,
+	tokenFromRequestUrl,
+	tokensMatch
+} from './auth.js';
 
 const exec = promisify(execCb);
 
 const DEFAULT_PORT = 9800;
+/** Loopback only: nothing else on the network can reach the CLI. */
+const HOST = '127.0.0.1';
+/** Skeleton payloads are a few hundred KB; this leaves room without accepting arbitrary sizes. */
+const MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
 
-type CLIType = 'claude' | 'gemini';
+interface ServerAuth {
+	token: string;
+	allowedOrigins: Set<string>;
+}
 
 interface BridgeMessage {
 	id?: number;
@@ -122,10 +138,32 @@ function runCLI(cli: CLIType, prompt: string, timeoutMs = 120000): Promise<strin
 	});
 }
 
-function startServer(port: number, clients: Set<WebSocket>, defaultCli: CLIType | null): void {
-	const wss = new WebSocketServer({ port });
+function startServer(
+	port: number,
+	clients: Set<WebSocket>,
+	defaultCli: CLIType | null,
+	auth: ServerAuth
+): void {
+	const wss = new WebSocketServer({
+		host: HOST,
+		port,
+		maxPayload: MAX_PAYLOAD_BYTES,
+		verifyClient: ({ origin, req }, done) => {
+			if (!isOriginAllowed(origin || undefined, auth.allowedOrigins)) {
+				log(`Rejected connection from origin ${origin} (not allowed)`);
+				done(false, 403, 'Origin not allowed');
+				return;
+			}
+			if (!tokensMatch(tokenFromRequestUrl(req.url), auth.token)) {
+				log('Rejected connection: missing or wrong token');
+				done(false, 401, 'Invalid token');
+				return;
+			}
+			done(true);
+		}
+	});
 
-	log(`Ropeman Bridge server starting on ws://localhost:${port}`);
+	log(`Ropeman Bridge server starting on ws://${HOST}:${port}`);
 
 	wss.on('connection', (ws, req) => {
 		const addr = req.socket.remoteAddress ?? 'unknown';
@@ -161,6 +199,11 @@ function startServer(port: number, clients: Set<WebSocket>, defaultCli: CLIType 
 					const prompt =
 						msg.message ||
 						(typeof msg.payload === 'string' ? msg.payload : JSON.stringify(msg.payload));
+					if (msg.cli !== undefined && !isCLIType(msg.cli)) {
+						response.error = `Unknown CLI: ${String(msg.cli)}. Use 'claude' or 'gemini'.`;
+						ws.send(JSON.stringify(response));
+						return;
+					}
 					const cliToUse = msg.cli || defaultCli;
 
 					if (!cliToUse) {
@@ -240,7 +283,10 @@ function startServer(port: number, clients: Set<WebSocket>, defaultCli: CLIType 
 	process.on('SIGINT', shutdown);
 	process.on('SIGTERM', shutdown);
 
-	log(`Bridge server ready on ws://localhost:${port}`);
+	log(`Bridge server ready on ws://${HOST}:${port}`);
+	log(`Token: ${auth.token}`);
+	log('Paste this token into the Bridge tab in Ropeman to connect.');
+	log(`Allowed origins: ${[...auth.allowedOrigins].join(', ')}`);
 }
 
 async function main() {
@@ -260,8 +306,13 @@ async function main() {
 		log('You can also specify --cli <claude|gemini> flag.');
 	}
 
+	const auth: ServerAuth = {
+		token: resolveToken(argv, process.env),
+		allowedOrigins: parseAllowedOrigins(argv)
+	};
+
 	const clients = new Set<WebSocket>();
-	startServer(port, clients, defaultCli);
+	startServer(port, clients, defaultCli, auth);
 }
 
 main();

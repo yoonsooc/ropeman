@@ -196,6 +196,31 @@ describe('settingsStore', () => {
 		});
 	});
 
+	describe('bridgeToken getter/setter', () => {
+		it('defaults to empty', () => {
+			expect(settingsStore.bridgeToken).toBe('');
+		});
+
+		it('trims a pasted token', () => {
+			// Act — tokens are usually copied from a terminal line with surrounding whitespace
+			settingsStore.bridgeToken = '  abc123\n';
+
+			// Assert
+			expect(settingsStore.bridgeToken).toBe('abc123');
+		});
+
+		it('is cleared by clearAll', () => {
+			// Arrange
+			settingsStore.bridgeToken = 'abc123';
+
+			// Act
+			settingsStore.clearAll();
+
+			// Assert
+			expect(settingsStore.bridgeToken).toBe('');
+		});
+	});
+
 	describe('hasApiKey for openai', () => {
 		it('returns true when openaiApiKey is set and provider is openai', () => {
 			// Arrange
