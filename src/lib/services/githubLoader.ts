@@ -4,7 +4,7 @@ import { detectLanguage, isSupported } from '$lib/utils/languageDetector';
 import { parseFile } from '$lib/services/parserService';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import {
-	pathPriority,
+	rankFiles,
 	MAX_FILES,
 	MAX_FILE_SIZE,
 	MAX_TOTAL_SIZE,
@@ -12,6 +12,7 @@ import {
 	sortFileTree,
 	createPathFilter,
 	DEFAULT_PATH_FILTER,
+	type CutFile,
 	type PathFilter
 } from '$lib/utils/filePriority';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
@@ -117,40 +118,37 @@ function buildFileTree(
 }
 
 /**
- * Collect all supported files from tree items, respecting limits.
+ * Pick the supported files to download: rank them with the same rule as a local folder,
+ * then apply the size and count limits. Returns what was left out, with the reason.
  */
 function collectSupportedItems(
 	items: GitHubTreeItem[],
 	filter: PathFilter = DEFAULT_PATH_FILTER
-): GitHubTreeItem[] {
-	const supported = items
-		.filter(
-			(item) =>
-				item.type === 'blob' &&
-				!shouldSkipPath(item.path, filter, true) &&
-				(item.size ?? 0) <= MAX_FILE_SIZE &&
-				detectLanguage(item.path) !== null &&
-				isSupported(detectLanguage(item.path)!)
-		)
-		.sort((a, b) => {
-			const pa = pathPriority(a.path);
-			const pb = pathPriority(b.path);
-			if (pa !== pb) return pa - pb;
-			// Within same priority, smaller files first (more files covered)
-			return (a.size ?? 0) - (b.size ?? 0);
-		});
-
-	// Apply both file count and total size limits
-	const result: GitHubTreeItem[] = [];
-	let totalSize = 0;
-	for (const item of supported) {
-		if (result.length >= MAX_FILES) break;
-		const size = item.size ?? 0;
-		if (totalSize + size > MAX_TOTAL_SIZE) break;
-		totalSize += size;
-		result.push(item);
+): { kept: GitHubTreeItem[]; cut: CutFile[] } {
+	const cut: CutFile[] = [];
+	const candidates: GitHubTreeItem[] = [];
+	for (const item of items) {
+		if (item.type !== 'blob' || shouldSkipPath(item.path, filter, true)) continue;
+		const language = detectLanguage(item.path);
+		if (language === null || !isSupported(language)) continue;
+		if ((item.size ?? 0) > MAX_FILE_SIZE) cut.push({ path: item.path, reason: 'file-size' });
+		else candidates.push(item);
 	}
-	return result;
+
+	const kept: GitHubTreeItem[] = [];
+	let totalSize = 0;
+	for (const item of rankFiles(candidates, (candidate) => candidate.path)) {
+		const size = item.size ?? 0;
+		if (kept.length >= MAX_FILES) {
+			cut.push({ path: item.path, reason: 'file-limit' });
+		} else if (totalSize + size > MAX_TOTAL_SIZE) {
+			cut.push({ path: item.path, reason: 'total-size' });
+		} else {
+			totalSize += size;
+			kept.push(item);
+		}
+	}
+	return { kept, cut };
 }
 
 /**
@@ -190,7 +188,8 @@ export async function loadGitHubRepo(
 	);
 
 	// 2. Collect files to parse + set progress before fileTree (so isParsing is true when Header appears)
-	const supportedItems = collectSupportedItems(treeData.tree, filter);
+	const { kept: supportedItems, cut } = collectSupportedItems(treeData.tree, filter);
+	projectStore.cutFiles = cut;
 	const total = supportedItems.length;
 	projectStore.parsingProgress = { done: 0, total };
 

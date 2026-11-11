@@ -4,7 +4,9 @@ export default defineWorkersConfig({
 	test: {
 		poolOptions: {
 			workers: {
-				wrangler: { configPath: './wrangler.jsonc' },
+				// Tests import each worker module directly, so this config only sets the workerd
+				// compatibility date and flags, which the demo and proxy configs share
+				wrangler: { configPath: './wrangler.proxy.toml' },
 			},
 		},
 	},

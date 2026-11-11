@@ -1,12 +1,14 @@
 import type { FileNode } from '$lib/types/fileTree';
 import { detectLanguage } from '$lib/utils/languageDetector';
 import {
+	capFiles,
 	DEFAULT_PATH_FILTER,
 	isIncludeAncestor,
 	shouldSkipPath,
 	sortFileTree,
 	type PathFilter
 } from '$lib/utils/filePriority';
+import { projectStore } from '$lib/stores/projectStore.svelte';
 
 export async function openDirectory(): Promise<FileSystemDirectoryHandle> {
 	if (!('showDirectoryPicker' in window)) {
@@ -16,80 +18,84 @@ export async function openDirectory(): Promise<FileSystemDirectoryHandle> {
 }
 
 const MAX_DEPTH = 30;
-const MAX_FILES = 2000;
 
-interface ScanContext {
-	fileCount: number;
-	filter: PathFilter;
+/** A file seen during the walk. Its handle is fetched again only if it survives the cap. */
+interface FoundFile {
+	path: string;
+	name: string;
+	parent: FileNode;
 }
 
+/**
+ * Read the folder tree, then keep the MAX_FILES highest ranked files. Every path is collected
+ * before the cap so folder order cannot decide which packages are kept. The files that do not
+ * fit are recorded in `projectStore.cutFiles`.
+ */
 export async function readDirectoryRecursive(
 	dirHandle: FileSystemDirectoryHandle,
 	basePath = '',
-	filter: PathFilter = DEFAULT_PATH_FILTER,
-	depth = 0,
-	ctx?: ScanContext
+	filter: PathFilter = DEFAULT_PATH_FILTER
 ): Promise<FileNode> {
-	if (!ctx) {
-		ctx = { fileCount: 0, filter };
-	}
+	const found: FoundFile[] = [];
+	const root = await walkDirectory(dirHandle, basePath, filter, 0, found);
+	const { kept, cut } = capFiles(found, (file) => file.path);
 
-	const children: FileNode[] = [];
+	await Promise.all(
+		kept.map(async ({ path, name, parent }) => {
+			try {
+				const handle = await (parent.handle as FileSystemDirectoryHandle).getFileHandle(name);
+				parent.children!.push({
+					name,
+					path,
+					kind: 'file',
+					handle,
+					language: detectLanguage(name) ?? undefined
+				});
+			} catch {
+				// Deleted or renamed since the walk: nothing left to show
+			}
+		})
+	);
 
-	if (depth >= MAX_DEPTH || ctx.fileCount >= MAX_FILES) {
-		return {
-			name: dirHandle.name,
-			path: basePath || dirHandle.name,
-			kind: 'directory',
-			children: [],
-			handle: dirHandle
-		};
-	}
+	projectStore.cutFiles = cut;
+	sortFileTree(root);
+	return root;
+}
+
+async function walkDirectory(
+	dirHandle: FileSystemDirectoryHandle,
+	basePath: string,
+	filter: PathFilter,
+	depth: number,
+	found: FoundFile[]
+): Promise<FileNode> {
+	const dirNode: FileNode = {
+		name: dirHandle.name,
+		path: basePath || dirHandle.name,
+		kind: 'directory',
+		children: [],
+		handle: dirHandle
+	};
+	if (depth >= MAX_DEPTH) return dirNode;
 
 	for await (const entry of dirHandle.values()) {
-		if (ctx.fileCount >= MAX_FILES) break;
 		const entryPath = basePath ? `${basePath}/${entry.name}` : entry.name;
 
 		if (entry.kind === 'directory') {
 			// A skipped folder is still walked when an include path lies inside it;
 			// its files are then checked one by one below
-			if (
-				shouldSkipPath(entryPath + '/', ctx.filter) &&
-				!isIncludeAncestor(entryPath, ctx.filter)
-			) {
+			if (shouldSkipPath(entryPath + '/', filter) && !isIncludeAncestor(entryPath, filter)) {
 				continue;
 			}
-			const child = await readDirectoryRecursive(
-				entry as FileSystemDirectoryHandle,
-				entryPath,
-				ctx.filter,
-				depth + 1,
-				ctx
+			dirNode.children!.push(
+				await walkDirectory(entry as FileSystemDirectoryHandle, entryPath, filter, depth + 1, found)
 			);
-			children.push(child);
 		} else {
 			// Hidden files are skipped too unless an include entry covers them
-			if (shouldSkipPath(entryPath, ctx.filter, true)) continue;
-			ctx.fileCount++;
-			const language = detectLanguage(entry.name);
-			children.push({
-				name: entry.name,
-				path: entryPath,
-				kind: 'file',
-				handle: entry as FileSystemFileHandle,
-				language: language ?? undefined
-			});
+			if (shouldSkipPath(entryPath, filter, true)) continue;
+			found.push({ path: entryPath, name: entry.name, parent: dirNode });
 		}
 	}
-
-	const dirNode: FileNode = {
-		name: dirHandle.name,
-		path: basePath || dirHandle.name,
-		kind: 'directory',
-		children,
-		handle: dirHandle
-	};
-	if (depth === 0) sortFileTree(dirNode);
 	return dirNode;
 }
 
@@ -112,12 +118,15 @@ export function handleFallbackInput(
 	const dirMap = new Map<string, FileNode>();
 	dirMap.set('', root);
 
-	for (const file of Array.from(files)) {
-		const relativePath = file.webkitRelativePath;
-		const parts = relativePath.split('/');
-		// Skip the root dir name from webkitRelativePath
-		const pathParts = parts.slice(1);
-		if (shouldSkipPath(pathParts.join('/'), filter, true)) continue;
+	// Skip the root dir name from webkitRelativePath
+	const candidates = Array.from(files)
+		.map((file) => ({ file, path: file.webkitRelativePath.split('/').slice(1).join('/') }))
+		.filter(({ path }) => !shouldSkipPath(path, filter, true));
+	const { kept, cut } = capFiles(candidates, (candidate) => candidate.path);
+	projectStore.cutFiles = cut;
+
+	for (const { file, path } of kept) {
+		const pathParts = path.split('/');
 
 		let currentPath = '';
 		let parentNode = root;
@@ -142,13 +151,11 @@ export function handleFallbackInput(
 		}
 
 		const fileName = pathParts[pathParts.length - 1];
-
-		const filePath = currentPath ? `${currentPath}/${fileName}` : fileName;
 		const language = detectLanguage(fileName);
 
 		parentNode.children!.push({
 			name: fileName,
-			path: filePath,
+			path,
 			kind: 'file',
 			language: language ?? undefined,
 			size: file.size,
