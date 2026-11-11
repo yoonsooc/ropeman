@@ -52,7 +52,7 @@ test.describe('Landing Page', () => {
 		await expect(settingsBtn).toBeVisible();
 	});
 
-	test('should have language toggle button', async ({ page }) => {
+	test('should have language toggle button', { tag: '@responsive' }, async ({ page }) => {
 		await page.goto('/');
 		const langBtn = page.locator('header .lang-toggle');
 		const width = page.viewportSize()?.width ?? 1280;

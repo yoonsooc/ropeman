@@ -5,7 +5,7 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 1 : 0,
-	workers: process.env.CI ? 1 : undefined,
+	workers: process.env.CI ? 4 : undefined,
 	reporter: 'html',
 
 	use: {
@@ -14,6 +14,7 @@ export default defineConfig({
 		trace: 'on-first-retry'
 	},
 
+	// Mobile and tablet run only the tests whose behavior depends on the viewport
 	projects: [
 		{
 			name: 'chromium',
@@ -21,6 +22,7 @@ export default defineConfig({
 		},
 		{
 			name: 'mobile-chromium',
+			grep: /@responsive/,
 			use: { ...devices['Pixel 5'] }
 		},
 		{
@@ -28,6 +30,7 @@ export default defineConfig({
 			// because we only download Chromium browsers in CI. iOS Safari is
 			// covered manually via Simulator.
 			name: 'tablet-chromium',
+			grep: /@responsive/,
 			use: { ...devices['Galaxy Tab S9'] }
 		}
 	],

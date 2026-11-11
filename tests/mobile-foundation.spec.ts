@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Mobile foundation (viewport + safe-area)', () => {
+test.describe('Mobile foundation (viewport + safe-area)', { tag: '@responsive' }, () => {
 	test.beforeEach(async ({ page }) => {
 		await page.addInitScript(() => {
 			localStorage.setItem(
