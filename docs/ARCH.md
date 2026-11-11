@@ -264,6 +264,7 @@ export const xxxStore = createXxxStore();
   - 묶음 안에서는 폴더마다 차례로 한 파일씩 고른다. 큰 패키지 하나가 상한을 다 써서 다른 패키지가 통째로 빠지는 일을 막는다.
   - 잘린 파일은 이유(`file-limit`, `file-size`, `total-size`)와 함께 `projectStore.cutFiles`에 남는다. 로컬 폴더는 남긴 파일의 핸들만 다시 받는다.
 - **AST 파싱**: 14개 언어 tree-sitter WASM (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala)
+  - 문법 WASM은 `static/`에 커밋한다. 언어별 파일은 `languageDetector.getGrammarFile()`이 고른다. `.tsx`는 언어는 TypeScript 그대로 두고 JSX를 읽는 `tree-sitter-tsx.wasm`(`tree-sitter-wasms` 0.1.13)으로 파싱한다. `.ts`는 `<T>value` 캐스트를 JSX로 오인하지 않도록 `tree-sitter-typescript.wasm`을 유지한다
 - **코드 구조 요약 크기**: 기본 250KB (50-1000KB 범위), 대형 모델 토큰 한도 내 안전 범위
 - **정적 분석만**: 런타임 동작 분석 불가
 - **Edge Worker**: Gemini API 지역 제한 → placement hint 필요
@@ -276,8 +277,8 @@ export const xxxStore = createXxxStore();
 Pages 프로젝트 `ropeman`은 직접 업로드 방식이라 GitHub과 연결되어 있지 않다. 운영 배포는 `ci.yml`의 `deploy` job이 맡는다.
 
 ```
-PR        → ci job (lint, svelte-check, build, unit, e2e)
-main push → ci job (lint, svelte-check, build, unit)
+PR        → ci job (lint, svelte-check, build, unit, worker tests, e2e)
+main push → ci job (lint, svelte-check, build, unit, worker tests)
           → deploy job
               1. npm run deploy                     앱 (Pages, --branch=main)
               2. scripts/changed-workers.mjs        바뀐 워커만 고름

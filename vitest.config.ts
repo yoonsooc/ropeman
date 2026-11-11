@@ -10,8 +10,8 @@ export default defineConfig({
 		}
 	},
 	test: {
-		// edge-proxy workers only use fetch/Request/Response, so they run in Node as well
-		include: ['src/**/*.test.ts', 'edge-proxy/test/**/*.test.ts', 'bridge/test/**/*.test.ts'],
+		// edge-proxy tests run in workerd through edge-proxy/vitest.config.mts
+		include: ['src/**/*.test.ts', 'bridge/test/**/*.test.ts'],
 		globals: true,
 		environment: 'node'
 	}

@@ -12,7 +12,7 @@
 		"deploy:explore": "wrangler deploy -c wrangler.explore.toml",
 		"dev:share": "wrangler dev -c wrangler.share.toml",
 		"dev:explore": "wrangler dev -c wrangler.explore.toml",
-		"test": "vitest"
+		"test": "vitest run"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.12.4",

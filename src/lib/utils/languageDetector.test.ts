@@ -30,7 +30,7 @@ describe('detectLanguage', () => {
 		expect(detectLanguage('SKILL.md')).toBe('markdown');
 		expect(detectLanguage('style.mdc')).toBe('markdown');
 		expect(isSupported('markdown')).toBe(true);
-		expect(getGrammarFile('markdown')).toBeNull();
+		expect(getGrammarFile('markdown', 'SKILL.md')).toBeNull();
 	});
 
 	it('detects TypeScript from .tsx extension', () => {
@@ -140,27 +140,33 @@ describe('isSupported', () => {
 
 describe('getGrammarFile', () => {
 	it('returns WASM file path for supported languages', () => {
-		expect(getGrammarFile('python')).toBe('tree-sitter-python.wasm');
-		expect(getGrammarFile('javascript')).toBe('tree-sitter-javascript.wasm');
-		expect(getGrammarFile('typescript')).toBe('tree-sitter-typescript.wasm');
-		expect(getGrammarFile('go')).toBe('tree-sitter-go.wasm');
-		expect(getGrammarFile('rust')).toBe('tree-sitter-rust.wasm');
-		expect(getGrammarFile('java')).toBe('tree-sitter-java.wasm');
-		expect(getGrammarFile('c')).toBe('tree-sitter-c.wasm');
-		expect(getGrammarFile('cpp')).toBe('tree-sitter-cpp.wasm');
+		expect(getGrammarFile('python', 'main.py')).toBe('tree-sitter-python.wasm');
+		expect(getGrammarFile('javascript', 'index.js')).toBe('tree-sitter-javascript.wasm');
+		expect(getGrammarFile('typescript', 'service.ts')).toBe('tree-sitter-typescript.wasm');
+		expect(getGrammarFile('go', 'main.go')).toBe('tree-sitter-go.wasm');
+		expect(getGrammarFile('rust', 'lib.rs')).toBe('tree-sitter-rust.wasm');
+		expect(getGrammarFile('java', 'Main.java')).toBe('tree-sitter-java.wasm');
+		expect(getGrammarFile('c', 'main.c')).toBe('tree-sitter-c.wasm');
+		expect(getGrammarFile('cpp', 'main.cpp')).toBe('tree-sitter-cpp.wasm');
 	});
 
 	it('returns WASM file path for Tier 2 languages', () => {
-		expect(getGrammarFile('ruby')).toBe('tree-sitter-ruby.wasm');
-		expect(getGrammarFile('php')).toBe('tree-sitter-php.wasm');
-		expect(getGrammarFile('swift')).toBe('tree-sitter-swift.wasm');
-		expect(getGrammarFile('kotlin')).toBe('tree-sitter-kotlin.wasm');
-		expect(getGrammarFile('csharp')).toBe('tree-sitter-c_sharp.wasm');
-		expect(getGrammarFile('scala')).toBe('tree-sitter-scala.wasm');
+		expect(getGrammarFile('ruby', 'app.rb')).toBe('tree-sitter-ruby.wasm');
+		expect(getGrammarFile('php', 'index.php')).toBe('tree-sitter-php.wasm');
+		expect(getGrammarFile('swift', 'App.swift')).toBe('tree-sitter-swift.wasm');
+		expect(getGrammarFile('kotlin', 'Main.kt')).toBe('tree-sitter-kotlin.wasm');
+		expect(getGrammarFile('csharp', 'Program.cs')).toBe('tree-sitter-c_sharp.wasm');
+		expect(getGrammarFile('scala', 'App.scala')).toBe('tree-sitter-scala.wasm');
+	});
+
+	it('picks the tsx grammar for .tsx and keeps .ts on the typescript grammar', () => {
+		expect(getGrammarFile('typescript', 'src/App.tsx')).toBe('tree-sitter-tsx.wasm');
+		expect(getGrammarFile('typescript', 'src/app.ts')).toBe('tree-sitter-typescript.wasm');
+		expect(getGrammarFile('typescript', 'src/tool.mts')).toBe('tree-sitter-typescript.wasm');
 	});
 
 	it('returns null for unsupported languages', () => {
-		expect(getGrammarFile('')).toBeNull();
-		expect(getGrammarFile('brainfuck')).toBeNull();
+		expect(getGrammarFile('', 'file')).toBeNull();
+		expect(getGrammarFile('brainfuck', 'prog.bf')).toBeNull();
 	});
 });

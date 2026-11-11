@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import type { ASTSymbol, SymbolKind } from '$lib/types/ast';
+import { getGrammarFile } from '$lib/utils/languageDetector';
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -52,7 +53,7 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 				return;
 			}
 
-			const grammar = await getGrammar(msg.language);
+			const grammar = await getGrammar(msg.language, msg.filePath);
 			parserInstance.setLanguage(grammar);
 
 			const tree = parserInstance.parse(msg.content);
@@ -73,33 +74,15 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 	}
 };
 
-async function getGrammar(language: string) {
-	if (loadedGrammars.has(language)) {
-		return loadedGrammars.get(language);
-	}
+async function getGrammar(language: string, filePath: string) {
+	const grammarFile = getGrammarFile(language, filePath);
+	if (!grammarFile) throw new Error(`Unsupported language: ${language}`);
 
-	const grammarMap: Record<string, string> = {
-		python: '/tree-sitter-python.wasm',
-		javascript: '/tree-sitter-javascript.wasm',
-		typescript: '/tree-sitter-typescript.wasm',
-		go: '/tree-sitter-go.wasm',
-		rust: '/tree-sitter-rust.wasm',
-		java: '/tree-sitter-java.wasm',
-		c: '/tree-sitter-c.wasm',
-		cpp: '/tree-sitter-cpp.wasm',
-		ruby: '/tree-sitter-ruby.wasm',
-		php: '/tree-sitter-php.wasm',
-		swift: '/tree-sitter-swift.wasm',
-		kotlin: '/tree-sitter-kotlin.wasm',
-		csharp: '/tree-sitter-c_sharp.wasm',
-		scala: '/tree-sitter-scala.wasm'
-	};
+	const cached = loadedGrammars.get(grammarFile);
+	if (cached) return cached;
 
-	const wasmPath = grammarMap[language];
-	if (!wasmPath) throw new Error(`Unsupported language: ${language}`);
-
-	const grammar = await Language.load(wasmPath);
-	loadedGrammars.set(language, grammar);
+	const grammar = await Language.load(`/${grammarFile}`);
+	loadedGrammars.set(grammarFile, grammar);
 	return grammar;
 }
 
