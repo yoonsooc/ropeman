@@ -137,7 +137,8 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택
   └─ webgpu: webllmGenerate() → Web Worker → 로컬 모델
 → semanticAnalysisService.parseSemanticLevel()
   → repairJSON() → closeBrackets() (스택 기반) → progressive truncation
-→ SemanticLevel (nodes + edges) → semanticStore
+  → assignFiles()                        # 입력 파일마다 노드 하나. 중복은 첫 배정 유지, 없는 경로는 버림, 빠진 파일은 "미분류" 노드
+→ SemanticLevel (nodes + edges + assignment 개수) → semanticStore
 → semanticGraphBuilder → SvelteFlow 노드/엣지 → ZUICanvas 렌더링
 ```
 
@@ -149,7 +150,7 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택
   ├─ 캐시 있음: 즉시 드릴다운 (팝업 없이)
   └─ 캐시 없음: DrilldownConfirmModal (skipDrilldownConfirm 설정 존중)
 → 해당 영역 파일들의 sub-skeleton 추출
-→ aiAdapter.callAI() → 하위 역할 분석
+→ aiAdapter.callAI() → 하위 역할 분석 (배정 대상은 부모 노드의 filePaths)
 → 하위 SemanticLevel → 캔버스 업데이트 + 브레드크럼 + 탭
 
 재분석: 노드 hover 시 리프레시 버튼 → invalidateCache() → 새로 AI 호출
@@ -222,7 +223,8 @@ AI 응답 텍스트
 → parseSemanticLevel()
   → 7. 대체 키 탐색 (roles/nodes/groups/components/modules)
   → 8. 엣지 source/target 검증
-→ SemanticLevel
+  → 9. 파일 배정: 경로를 입력 경로로 되돌림 (공통 루트 폴더 생략, "./" 허용), 단계마다 파일 하나에 노드 하나
+→ SemanticLevel (assignment: leftOut, duplicated, invented)
 ```
 
 ---

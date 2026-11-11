@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { settingsStore } from '$lib/stores/settingsStore.svelte';
 import {
 	repairJSON,
 	closeBrackets,
 	escapeControlCharsInStrings,
 	parseSemanticLevel
 } from './semanticAnalysisService';
+import type { SemanticLevel } from '$lib/types/semantic';
 
 // --- closeBrackets ---
 
@@ -158,9 +160,10 @@ describe('parseSemanticLevel', () => {
 		],
 		edges: [{ source: 'core', target: 'utils', label: 'uses', type: 'dependency' }]
 	});
+	const validInputs = ['src/core.ts', 'src/utils.ts'];
 
 	it('parses valid JSON response into SemanticLevel', () => {
-		const level = parseSemanticLevel(validResponse, null, 0);
+		const level = parseSemanticLevel(validResponse, null, 0, validInputs);
 		expect(level.nodes).toHaveLength(2);
 		expect(level.edges).toHaveLength(1);
 		expect(level.nodes[0].label).toBe('Core Module');
@@ -169,12 +172,12 @@ describe('parseSemanticLevel', () => {
 
 	it('extracts JSON from markdown code block', () => {
 		const wrapped = '```json\n' + validResponse + '\n```';
-		const level = parseSemanticLevel(wrapped, null, 0);
+		const level = parseSemanticLevel(wrapped, null, 0, validInputs);
 		expect(level.nodes).toHaveLength(2);
 	});
 
 	it('sets parentId and depth correctly', () => {
-		const level = parseSemanticLevel(validResponse, 'parent-1', 2);
+		const level = parseSemanticLevel(validResponse, 'parent-1', 2, validInputs);
 		expect(level.parentId).toBe('parent-1');
 		expect(level.nodes[0].parentId).toBe('parent-1');
 		expect(level.nodes[0].depth).toBe(2);
@@ -185,7 +188,7 @@ describe('parseSemanticLevel', () => {
 			roles: [{ id: 'a', label: 'A', description: 'd', filePaths: [], keySymbols: [] }],
 			edges: [{ source: 'a', target: 'nonexistent', label: 'x', type: 'dependency' }]
 		});
-		const level = parseSemanticLevel(response, null, 0);
+		const level = parseSemanticLevel(response, null, 0, []);
 		expect(level.edges).toHaveLength(0); // filtered out
 	});
 
@@ -193,7 +196,7 @@ describe('parseSemanticLevel', () => {
 		const response = JSON.stringify({
 			nodes: [{ id: 'a', label: 'A', description: 'd', filePaths: [], keySymbols: [] }]
 		});
-		const level = parseSemanticLevel(response, null, 0);
+		const level = parseSemanticLevel(response, null, 0, []);
 		expect(level.nodes).toHaveLength(1);
 	});
 
@@ -201,29 +204,268 @@ describe('parseSemanticLevel', () => {
 		// No closing } — should use { fallback
 		const truncated =
 			'```json\n{"roles":[{"id":"a","label":"A","description":"d","filePaths":["x.ts"],"keySymbols":["fn"';
-		const level = parseSemanticLevel(truncated, null, 0);
+		const level = parseSemanticLevel(truncated, null, 0, ['x.ts']);
 		expect(level.nodes.length).toBeGreaterThanOrEqual(1);
 	});
 
 	it('throws on response with no JSON at all', () => {
-		expect(() => parseSemanticLevel('This is just plain text with no JSON', null, 0)).toThrow();
+		expect(() => parseSemanticLevel('This is just plain text with no JSON', null, 0, [])).toThrow();
 	});
 
 	it('assigns colors to nodes', () => {
-		const level = parseSemanticLevel(validResponse, null, 0);
+		const level = parseSemanticLevel(validResponse, null, 0, validInputs);
 		expect(level.nodes[0].color).toBeTruthy();
 		expect(level.nodes[1].color).toBeTruthy();
 	});
 
 	it('prefixes node IDs with sem:', () => {
-		const level = parseSemanticLevel(validResponse, null, 0);
+		const level = parseSemanticLevel(validResponse, null, 0, validInputs);
 		expect(level.nodes[0].id).toBe('sem:core');
 		expect(level.nodes[1].id).toBe('sem:utils');
 	});
 
 	it('prefixes edge IDs and source/target with sem:', () => {
-		const level = parseSemanticLevel(validResponse, null, 0);
+		const level = parseSemanticLevel(validResponse, null, 0, validInputs);
 		expect(level.edges[0].source).toBe('sem:core');
 		expect(level.edges[0].target).toBe('sem:utils');
+	});
+});
+
+describe('parseSemanticLevel file assignment', () => {
+	beforeEach(() => {
+		settingsStore.language = 'en';
+	});
+
+	function role(id: string, filePaths: unknown[]) {
+		return { id, label: id, description: '', filePaths, keySymbols: [] };
+	}
+
+	function respond(...roles: ReturnType<typeof role>[]) {
+		return JSON.stringify({ roles, edges: [] });
+	}
+
+	function ownersByFile(level: SemanticLevel): Map<string, string[]> {
+		const owners = new Map<string, string[]>();
+		for (const node of level.nodes) {
+			for (const file of node.filePaths) owners.set(file, [...(owners.get(file) ?? []), node.id]);
+		}
+		return owners;
+	}
+
+	function expectEachInputOwnedOnce(level: SemanticLevel, inputs: string[]) {
+		const owners = ownersByFile(level);
+		expect([...owners.keys()].sort()).toEqual([...inputs].sort());
+		for (const [file, ids] of owners) expect({ file, ids: ids.length }).toEqual({ file, ids: 1 });
+	}
+
+	it('leaves an all-good response unchanged and reports zero counts', () => {
+		// Arrange
+		const inputs = ['src/a.ts', 'src/b.ts', 'src/c.ts'];
+		const response = respond(role('one', ['src/a.ts', 'src/b.ts']), role('two', ['src/c.ts']));
+
+		// Act
+		const level = parseSemanticLevel(response, null, 0, inputs);
+
+		// Assert
+		expect(level.nodes.map((n) => [n.id, n.filePaths, n.fileCount])).toEqual([
+			['sem:one', ['src/a.ts', 'src/b.ts'], 2],
+			['sem:two', ['src/c.ts'], 1]
+		]);
+		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 0 });
+	});
+
+	it('collects files the model left out in an Unclassified node', () => {
+		// Arrange
+		const inputs = ['src/a.ts', 'src/b.ts', 'src/c.ts'];
+		const response = respond(role('one', ['src/a.ts']));
+
+		// Act
+		const level = parseSemanticLevel(response, null, 0, inputs);
+
+		// Assert
+		const unclassified = level.nodes[level.nodes.length - 1];
+		expect(unclassified).toMatchObject({
+			label: 'Unclassified',
+			filePaths: ['src/b.ts', 'src/c.ts'],
+			fileCount: 2,
+			parentId: null,
+			depth: 0
+		});
+		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 0, invented: 0 });
+		expectEachInputOwnedOnce(level, inputs);
+	});
+
+	it('labels the Unclassified node in the current language', () => {
+		// Arrange
+		settingsStore.language = 'ko';
+
+		// Act
+		const level = parseSemanticLevel(respond(), null, 0, ['src/a.ts']);
+
+		// Assert
+		expect(level.nodes).toHaveLength(1);
+		expect(level.nodes[0].label).toBe('미분류');
+	});
+
+	it('keeps the first assignment when two roles list the same file', () => {
+		// Arrange
+		const inputs = ['src/a.ts', 'src/b.ts'];
+		const response = respond(
+			role('one', ['src/a.ts', 'src/a.ts']),
+			role('two', ['src/a.ts', 'src/b.ts'])
+		);
+
+		// Act
+		const level = parseSemanticLevel(response, null, 0, inputs);
+
+		// Assert
+		expect(level.nodes.map((n) => n.filePaths)).toEqual([['src/a.ts'], ['src/b.ts']]);
+		expect(level.nodes[1].fileCount).toBe(1);
+		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 2, invented: 0 });
+		expectEachInputOwnedOnce(level, inputs);
+	});
+
+	it('drops paths that match no input file', () => {
+		// Arrange
+		const inputs = ['src/a.ts'];
+		const response = respond(role('one', ['src/a.ts', 'src/made-up.ts', 42]));
+
+		// Act
+		const level = parseSemanticLevel(response, null, 0, inputs);
+
+		// Assert
+		expect(level.nodes.map((n) => n.filePaths)).toEqual([['src/a.ts']]);
+		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 2 });
+	});
+
+	it('maps paths written without the project folder back to the input path', () => {
+		// Arrange
+		const inputs = ['proj/src/a.ts', 'proj/src/b.ts', 'proj/README.md'];
+		const response = respond(role('one', ['src/a.ts', './src/b.ts', 'proj/README.md']));
+
+		// Act
+		const level = parseSemanticLevel(response, null, 0, inputs);
+
+		// Assert
+		expect(level.nodes[0].filePaths).toEqual(inputs);
+		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 0 });
+	});
+
+	it('does not strip a folder that only some input paths share', () => {
+		// Arrange
+		const inputs = ['src/a.ts', 'lib/b.ts'];
+		const response = respond(role('one', ['a.ts', 'lib/b.ts']));
+
+		// Act
+		const level = parseSemanticLevel(response, null, 0, inputs);
+
+		// Assert
+		expect(level.nodes[0].filePaths).toEqual(['lib/b.ts']);
+		expect(level.assignment).toEqual({ leftOut: 1, duplicated: 0, invented: 1 });
+	});
+
+	it('puts every file in the Unclassified node when the model returns no roles', () => {
+		// Arrange
+		const inputs = ['src/a.ts', 'src/b.ts'];
+
+		// Act
+		const level = parseSemanticLevel(respond(), null, 0, inputs);
+
+		// Assert
+		expect(level.nodes).toHaveLength(1);
+		expect(level.nodes[0].filePaths).toEqual(inputs);
+		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 0, invented: 0 });
+	});
+
+	it('assigns a drill-down only over the parent subset', () => {
+		// Arrange
+		const parentFiles = ['proj/src/core/a.ts', 'proj/src/core/b.ts', 'proj/src/core/c.ts'];
+		const response = respond(
+			role('inner', ['proj/src/core/a.ts', 'proj/src/ui/button.ts']),
+			role('outer', ['proj/src/core/a.ts'])
+		);
+
+		// Act
+		const level = parseSemanticLevel(response, 'sem:core', 1, parentFiles);
+
+		// Assert
+		expect(level.nodes.map((n) => n.filePaths)).toEqual([
+			['proj/src/core/a.ts'],
+			[],
+			['proj/src/core/b.ts', 'proj/src/core/c.ts']
+		]);
+		expect(level.nodes.every((n) => n.parentId === 'sem:core' && n.depth === 1)).toBe(true);
+		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 1, invented: 1 });
+		expectEachInputOwnedOnce(level, parentFiles);
+	});
+
+	it('gives each level its own Unclassified node id so drill-down caches do not collide', () => {
+		// Arrange
+		const top = parseSemanticLevel(respond(), null, 0, ['src/a.ts']);
+		const unclassified = top.nodes[0];
+
+		// Act
+		const inside = parseSemanticLevel(respond(), unclassified.id, 1, unclassified.filePaths);
+
+		// Assert
+		expect(inside.nodes[0].id).not.toBe(unclassified.id);
+		expect(inside.nodes[0].filePaths).toEqual(['src/a.ts']);
+	});
+
+	// Regression: the model silently dropped files, so they vanished from every level of the diagram
+	it('accounts for every file in a realistic fenced response that drops, repeats and invents', () => {
+		// Arrange
+		const inputs = [
+			'paseo/packages/server/src/index.ts',
+			'paseo/packages/server/src/routes.ts',
+			'paseo/packages/app/src/App.tsx',
+			'paseo/packages/app/src/hooks/useAgent.ts',
+			'paseo/packages/cli/src/main.ts',
+			'paseo/packages/relay/src/relay.ts',
+			'paseo/docs/ARCHITECTURE.md'
+		];
+		const body = JSON.stringify(
+			{
+				roles: [
+					{
+						id: 'server',
+						label: '서버 런타임',
+						description: '에이전트 프로세스를 관리하고 API를 노출한다.',
+						filePaths: ['packages/server/src/index.ts', 'packages/server/src/routes.ts'],
+						keySymbols: ['startServer', 'registerRoutes']
+					},
+					{
+						id: 'client',
+						label: '클라이언트 앱',
+						description: '에이전트 상태를 보여주는 UI.',
+						filePaths: [
+							'paseo/packages/app/src/App.tsx',
+							'paseo/packages/app/src/hooks/useAgent.ts',
+							'paseo/packages/server/src/routes.ts',
+							'paseo/packages/app/src/store.ts'
+						],
+						keySymbols: ['App', 'useAgent']
+					}
+				],
+				edges: [{ source: 'client', target: 'server', label: 'calls API', type: 'calls' }]
+			},
+			null,
+			2
+		);
+		const response = `Here is the architecture analysis:\n\n\`\`\`json\n${body}\n\`\`\``;
+
+		// Act
+		const level = parseSemanticLevel(response, null, 0, inputs);
+
+		// Assert
+		expectEachInputOwnedOnce(level, inputs);
+		expect(level.nodes.map((n) => n.fileCount)).toEqual([2, 2, 3]);
+		expect(level.nodes[2].filePaths).toEqual([
+			'paseo/packages/cli/src/main.ts',
+			'paseo/packages/relay/src/relay.ts',
+			'paseo/docs/ARCHITECTURE.md'
+		]);
+		expect(level.assignment).toEqual({ leftOut: 3, duplicated: 1, invented: 1 });
+		expect(level.edges).toHaveLength(1);
 	});
 });
