@@ -6,12 +6,10 @@
 	"scripts": {
 		"deploy:demo": "wrangler deploy -c wrangler.demo.toml",
 		"deploy:proxy": "wrangler deploy -c wrangler.proxy.toml",
-		"deploy:github": "wrangler deploy -c wrangler.github.toml",
 		"dev:demo": "wrangler dev -c wrangler.demo.toml",
 		"dev:proxy": "wrangler dev -c wrangler.proxy.toml",
 		"deploy:share": "wrangler deploy -c wrangler.share.toml",
 		"deploy:explore": "wrangler deploy -c wrangler.explore.toml",
-		"dev:github": "wrangler dev -c wrangler.github.toml",
 		"dev:share": "wrangler dev -c wrangler.share.toml",
 		"dev:explore": "wrangler dev -c wrangler.explore.toml",
 		"test": "vitest"
