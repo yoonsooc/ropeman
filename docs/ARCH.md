@@ -273,8 +273,8 @@ export const xxxStore = createXxxStore();
 Pages 프로젝트 `ropeman`은 직접 업로드 방식이라 GitHub과 연결되어 있지 않다. 운영 배포는 `ci.yml`의 `deploy` job이 맡는다.
 
 ```
-PR        → ci job (lint, svelte-check, build, unit, e2e)
-main push → ci job (lint, svelte-check, build, unit)
+PR        → ci job (lint, svelte-check, build, unit, worker tests, e2e)
+main push → ci job (lint, svelte-check, build, unit, worker tests)
           → deploy job
               1. npm run deploy                     앱 (Pages, --branch=main)
               2. scripts/changed-workers.mjs        바뀐 워커만 고름

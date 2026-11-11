@@ -41,6 +41,9 @@ jobs:
           npm ci --prefix edge-proxy
           edge-proxy/node_modules/.bin/tsc --noEmit -p edge-proxy/tsconfig.json
 
+      - name: Worker tests
+        run: npm test --prefix edge-proxy
+
       - name: Build
         run: npm run build
 

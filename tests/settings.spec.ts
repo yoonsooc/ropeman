@@ -10,21 +10,25 @@ test.describe('Settings Modal', () => {
 		});
 	});
 
-	test('should open settings modal when settings button is clicked', async ({ page }) => {
-		await page.goto('/');
+	test(
+		'should open settings modal when settings button is clicked',
+		{ tag: '@responsive' },
+		async ({ page }) => {
+			await page.goto('/');
 
-		// Click the settings gear button (last button in header-right)
-		const settingsBtn = page.locator('header .header-right .header-btn').last();
-		await settingsBtn.click();
+			// Click the settings gear button (last button in header-right)
+			const settingsBtn = page.locator('header .header-right .header-btn').last();
+			await settingsBtn.click();
 
-		// Settings modal should appear
-		const modal = page.locator('.settings-backdrop');
-		await expect(modal).toBeVisible();
-		const dialog = page.locator('.settings-card[role="dialog"]');
-		await expect(dialog).toBeVisible();
-	});
+			// Settings modal should appear
+			const modal = page.locator('.settings-backdrop');
+			await expect(modal).toBeVisible();
+			const dialog = page.locator('.settings-card[role="dialog"]');
+			await expect(dialog).toBeVisible();
+		}
+	);
 
-	test('should close settings modal on Escape', async ({ page }) => {
+	test('should close settings modal on Escape', { tag: '@responsive' }, async ({ page }) => {
 		await page.goto('/');
 
 		const settingsBtn = page.locator('header .header-right .header-btn').last();
