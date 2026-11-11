@@ -61,13 +61,11 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
+      # No --with-deps: the runner image already has Chromium's libraries, and the extra fonts it
+      # adds came through apt, whose mirror lookups stalled this step for minutes
       - name: Install Playwright Chromium
         if: github.event_name == 'pull_request' && steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright system dependencies
-        if: github.event_name == 'pull_request' && steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: npx playwright install --only-shell chromium
 
       - name: E2E tests
         if: github.event_name == 'pull_request'
