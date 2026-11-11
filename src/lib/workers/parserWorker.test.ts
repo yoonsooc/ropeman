@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { detectLanguage } from '$lib/utils/languageDetector';
 import type { ASTSymbol } from '$lib/types/ast';
 
