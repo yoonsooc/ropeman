@@ -34,6 +34,8 @@
      - 위 파일이 없으면 사용자에게 확인 후 진행
   3. `/sync` → 소스 스캔 (현재 코드가 실제로 어떤 상태인가)
 
+- 개발은 pstack(poteto-mode) 플레이북을 따른다. 에이전트는 제품 방향 결정, 새 프레임워크·저장소·주요 의존성 도입(같은 PR에 ADR)에서만 멈추고 사용자에게 묻는다.
+
 - 스프린트 수행 규칙 (사용자가 스프린트 실행을 요청했을 때만 적용)
   1. `.spec/PRD.md`의 '7. 우선순위 및 로드맵'과 `.spec/tasks/` 의 Task md 파일로 대상을 파악한다.
   2. 가능하면 Agent Team을 구성하여 Task를 병렬 수행한다. 각 Task는 개발 → 테스트 → 코드 리뷰 순서.
@@ -50,7 +52,7 @@
   3. **커밋 A (feat/fix)**: 기능 구현만 커밋
      - 메시지: `feat({scope}): ...`, `fix(...)`, 복수 태스크면 `feat: SH1, SH2 구현`
      - 이 커밋은 **리뷰 전 상태**
-  4. `/code-reviewer` 실행 (Explore 에이전트로 위임)
+  4. pstack `thermo-nuclear-review` 실행 (작성자와 다른 모델의 검증 서브에이전트에 위임)
   5. **리뷰 보고서 작성** → `.spec/reviews/{sprint_id}-review.md`
      - 리뷰 대상, Critical/Warning/Suggestion 개수, 이슈별 증상·원인·수정·결정
      - 오탐(false positive)과 스킵한 Suggestion의 이유 포함
@@ -89,13 +91,14 @@
   4. **Changelog** → `.spec/history/{sprint_id}.md` 작성
      - 작업 주기 커밋 요약 (A 커밋들과 B 커밋들 구분)
      - 리뷰 보고서 링크 포함 (`.spec/reviews/{sprint_id}-review.md`)
-  5. 사용자에게 결과 보고 → **승인**
-  6. **커밋 (docs)**: `docs: finalize sprint {sprint_id}`
+  5. **커밋 (docs)**: `docs: finalize sprint {sprint_id}`
      - 메시지: PRD 버전 증가 + Task 상태 + Changelog 요약
-  7. **Push → PR 생성**
+  6. **Push → PR 생성**
      - PR 제목: 완료 태스크 요약
      - PR 본문: 완료/미완료 태스크 + 주요 변경사항 + 리뷰 보고서 링크
      - 커밋 이력: feat → review → (반복) → docs(finalize)
+  7. **Merge**: 검증 서브에이전트 통과와 PR CI 통과 후 `gh pr merge --merge`로 merge 커밋을 남긴다 (squash 금지, feat/review 커밋이 main에 보이도록)
+  8. 사용자 승인 단계는 없다. 사용자는 merge된 결과를 검토한다.
 
 - **기본 원칙**: 커밋 경계 = 의사결정 경계
   - **feat / fix 커밋** = "이게 내가 만든 것"
@@ -156,4 +159,4 @@
 - `/catchup` — .spec/history 읽고 이전 작업 맥락 파악
 - `/changelog` — 작업 완료 후 변경사항 자동 문서화
 - `/generate-tests [파일경로]` — 지정 파일의 테스트 자동 생성
-- `/code-reviewer` — 코드 리뷰 수행 (프로젝트 맞춤 체크리스트)
+- `/code-reviewer` — 코드 리뷰 수행 (프로젝트 맞춤 체크리스트). 스프린트 작업 주기에서는 쓰지 않고 수시 점검용으로만 남긴다
