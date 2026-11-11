@@ -1,15 +1,24 @@
 import { semanticStore } from '$lib/stores/semanticStore.svelte';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { i18nStore } from '$lib/stores/i18nStore.svelte';
+import { authStore } from '$lib/stores/authStore.svelte';
+import { settingsStore } from '$lib/stores/settingsStore.svelte';
+import { webgpuStore } from '$lib/stores/webgpuStore.svelte';
 import { extractSkeleton, formatPayloadPreview } from './skeletonExtractor';
 import { extractSubSkeleton } from './skeletonExtractor';
 import { callAI } from './aiAdapter';
+import {
+	loadCachedResponse,
+	saveCachedResponse,
+	type SemanticRequest
+} from './semanticCacheService';
 import type {
 	AssignmentCounts,
 	SemanticLevel,
 	SemanticNode,
 	SemanticEdge
 } from '$lib/types/semantic';
+import type { SkeletonPayload } from '$lib/types/skeleton';
 
 const SEMANTIC_COLORS = [
 	'#89b4fa',
@@ -97,6 +106,120 @@ function getLocaleInstruction(): string {
 	return `\n\nIMPORTANT: All labels and descriptions in your response MUST be written in ${langName}.`;
 }
 
+function activeModelId(): string {
+	const track = authStore.activeTrack;
+	switch (track) {
+		case 'byok':
+			return `byok:${settingsStore.aiProvider}:${settingsStore.aiModel}`;
+		case 'webgpu':
+			return `webgpu:${webgpuStore.selectedModelId}`;
+		case 'bridge':
+			return `bridge:${settingsStore.bridgeCli}`;
+		case 'edge':
+		case 'none':
+			return track;
+	}
+}
+
+// generatedAt is a wall-clock stamp. Sent as is, it makes every request unique and the cache never hits.
+function payloadAsSent(skeleton: SkeletonPayload): string {
+	return formatPayloadPreview({ ...skeleton, generatedAt: '' });
+}
+
+/** A request plus the files its answer must assign, which the cache key leaves out. */
+interface LevelRequest extends SemanticRequest {
+	inputPaths: readonly string[];
+}
+
+function topLevelRequest(): LevelRequest | null {
+	const skeleton = extractSkeleton(
+		projectStore.projectName,
+		projectStore.fileTree,
+		projectStore.astMap
+	);
+	if (skeleton.files.length === 0) return null;
+	return {
+		model: activeModelId(),
+		system: TOP_LEVEL_SYSTEM_PROMPT + getLocaleInstruction(),
+		user: `Analyze the semantic architecture of this project:\n\n${payloadAsSent(skeleton)}`,
+		inputPaths: skeleton.files.map((f) => f.path)
+	};
+}
+
+function drilldownRequest(parentNode: SemanticNode): LevelRequest | null {
+	const subSkeleton = extractSubSkeleton(
+		parentNode.filePaths,
+		projectStore.fileTree,
+		projectStore.astMap
+	);
+	if (subSkeleton.files.length === 0) return null;
+	return {
+		model: activeModelId(),
+		system: DRILLDOWN_SYSTEM_PROMPT + getLocaleInstruction(),
+		user: `Analyze the internal structure of the "${parentNode.label}" domain:\n\n${payloadAsSent(subSkeleton)}`,
+		inputPaths: parentNode.filePaths
+	};
+}
+
+function isSameRequest(a: SemanticRequest, b: SemanticRequest | null): boolean {
+	return b !== null && a.model === b.model && a.system === b.system && a.user === b.user;
+}
+
+async function loadCachedLevel(
+	request: LevelRequest,
+	parentId: string | null,
+	depth: number
+): Promise<SemanticLevel | null> {
+	const text = await loadCachedResponse(request);
+	if (text === null) return null;
+	try {
+		return parseSemanticLevel(text, parentId, depth, request.inputPaths);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Loads the cached root level for `request` and every cached drill-down below it, keyed
+ * like the store's level cache. Each drill-down is looked up by the request it would
+ * send now, so only answers to the same input come back.
+ */
+async function loadCachedTree(request: LevelRequest): Promise<Map<string, SemanticLevel> | null> {
+	const root = await loadCachedLevel(request, null, 0);
+	if (!root) return null;
+
+	const restored = new Map<string, SemanticLevel>([['__root__', root]]);
+	const pending = [...root.nodes];
+	for (let node = pending.shift(); node; node = pending.shift()) {
+		if (restored.has(node.id)) continue;
+		const childRequest = drilldownRequest(node);
+		const child = childRequest && (await loadCachedLevel(childRequest, node.id, node.depth + 1));
+		if (!child) continue;
+		restored.set(node.id, child);
+		pending.push(...child.nodes);
+	}
+
+	return restored;
+}
+
+/**
+ * Restores the persisted analysis of the loaded project. The model is read before the
+ * first await, so a calling effect reruns once an AI track becomes active.
+ */
+export async function restoreCachedAnalysis(): Promise<void> {
+	if (!settingsStore.cacheEnabled) return;
+	const request = topLevelRequest();
+	if (!request) return;
+	const tree = await loadCachedTree(request);
+	// Another project, track or locale may have taken over while the cache was read
+	if (!tree || !isSameRequest(request, topLevelRequest())) return;
+	// Keep what the user already has open or analyzed in this session
+	for (const [key, level] of tree) {
+		if (!semanticStore.hasCachedLevel(key)) semanticStore.setCachedLevel(key, level);
+	}
+	semanticStore.currentLevel ??= tree.get('__root__')!;
+}
+
 function waitForParsing(timeoutMs = 60000): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const start = Date.now();
@@ -116,7 +239,8 @@ function waitForParsing(timeoutMs = 60000): Promise<void> {
 	});
 }
 
-export async function analyzeTopLevel(): Promise<void> {
+/** `force` skips the cached answer, for when the user explicitly asks to analyze again. */
+export async function analyzeTopLevel({ force = false }: { force?: boolean } = {}): Promise<void> {
 	if (semanticStore.isAnalyzing) return;
 
 	const nodeId = '__top_level__';
@@ -138,38 +262,38 @@ export async function analyzeTopLevel(): Promise<void> {
 			nodeId,
 			i18nStore.getProgressMessage('extractingSkeleton')
 		);
-		const skeleton = extractSkeleton(
-			projectStore.projectName,
-			projectStore.fileTree,
-			projectStore.astMap
-		);
-		if (skeleton.files.length === 0) {
+		const request = topLevelRequest();
+		if (!request) {
 			throw new Error(
 				'No files to analyze — AST parsing may have failed. Check browser console for details.'
 			);
 		}
 
-		const prompt = `Analyze the semantic architecture of this project:\n\n${formatPayloadPreview(skeleton)}`;
-
+		// The track is often chosen only now (Edge is not remembered across reloads), so the
+		// load-time restore could not match yet. Reuse the answer to this exact request.
+		const tree = settingsStore.cacheEnabled && !force ? await loadCachedTree(request) : null;
 		throwIfAborted(abortController);
-		semanticStore.updateAnalysisProgress(nodeId, i18nStore.getProgressMessage('requestingAI'));
-		const responseText = await callAI({
-			system: TOP_LEVEL_SYSTEM_PROMPT + getLocaleInstruction(),
-			user: prompt,
-			signal: abortController.signal
-		});
+		for (const [key, cached] of tree ?? []) semanticStore.setCachedLevel(key, cached);
+		let level = tree?.get('__root__');
+		if (!level) {
+			semanticStore.updateAnalysisProgress(nodeId, i18nStore.getProgressMessage('requestingAI'));
+			const responseText = await callAI({
+				system: request.system,
+				user: request.user,
+				signal: abortController.signal
+			});
 
-		throwIfAborted(abortController);
-		semanticStore.updateAnalysisProgress(nodeId, i18nStore.getProgressMessage('generatingDiagram'));
-		const level = parseSemanticLevel(
-			responseText,
-			null,
-			0,
-			skeleton.files.map((f) => f.path)
-		);
+			throwIfAborted(abortController);
+			semanticStore.updateAnalysisProgress(
+				nodeId,
+				i18nStore.getProgressMessage('generatingDiagram')
+			);
+			level = parseSemanticLevel(responseText, null, 0, request.inputPaths);
+			semanticStore.setCachedLevel('__root__', level);
+			if (settingsStore.cacheEnabled) void saveCachedResponse(request, responseText);
+		}
 
 		semanticStore.currentLevel = level;
-		semanticStore.cacheLevel('__root__', level);
 		semanticStore.drilldownPath = [];
 		semanticStore.viewMode = 'semantic';
 		semanticStore.lastCompletion = { type: 'success', nodeLabel, at: Date.now() };
@@ -200,16 +324,10 @@ export async function analyzeDrilldown(parentNode: SemanticNode): Promise<void> 
 			parentNode.id,
 			i18nStore.getProgressMessage('extractingSkeleton')
 		);
-		const subSkeleton = extractSubSkeleton(
-			parentNode.filePaths,
-			projectStore.fileTree,
-			projectStore.astMap
-		);
-		if (subSkeleton.files.length === 0) {
+		const request = drilldownRequest(parentNode);
+		if (!request) {
 			throw new Error('No files in this domain');
 		}
-
-		const prompt = `Analyze the internal structure of the "${parentNode.label}" domain:\n\n${formatPayloadPreview(subSkeleton)}`;
 
 		throwIfAborted(abortController);
 		semanticStore.updateAnalysisProgress(
@@ -217,8 +335,8 @@ export async function analyzeDrilldown(parentNode: SemanticNode): Promise<void> 
 			i18nStore.getProgressMessage('requestingAI')
 		);
 		const responseText = await callAI({
-			system: DRILLDOWN_SYSTEM_PROMPT + getLocaleInstruction(),
-			user: prompt,
+			system: request.system,
+			user: request.user,
 			signal: abortController.signal
 		});
 
@@ -235,7 +353,8 @@ export async function analyzeDrilldown(parentNode: SemanticNode): Promise<void> 
 		);
 
 		// Always cache the result
-		semanticStore.cacheLevel(parentNode.id, level);
+		semanticStore.setCachedLevel(parentNode.id, level);
+		if (settingsStore.cacheEnabled) void saveCachedResponse(request, responseText);
 
 		// Stale check: only apply to diagram if user hasn't navigated away
 		const currentPath = semanticStore.drilldownPath;
