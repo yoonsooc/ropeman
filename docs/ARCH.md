@@ -138,6 +138,7 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택
 → semanticAnalysisService.parseSemanticLevel()
   → repairJSON() → closeBrackets() (스택 기반) → progressive truncation
   → assignFiles()                        # 입력 파일마다 노드 하나. 중복은 첫 배정 유지, 없는 경로는 버림, 빠진 파일은 "미분류" 노드
+  → 파일이 0개로 남은 역할은 노드와 엣지째 뺌 (드릴다운할 파일이 없으므로)
 → SemanticLevel (nodes + edges + assignment 개수) → semanticStore
 → semanticGraphBuilder → SvelteFlow 노드/엣지 → ZUICanvas 렌더링
 ```
@@ -224,7 +225,8 @@ AI 응답 텍스트
   → 7. 대체 키 탐색 (roles/nodes/groups/components/modules)
   → 8. 엣지 source/target 검증
   → 9. 파일 배정: 경로를 입력 경로로 되돌림 (공통 루트 폴더 생략, "./" 허용), 단계마다 파일 하나에 노드 하나
-→ SemanticLevel (assignment: leftOut, duplicated, invented)
+  → 10. 파일이 0개인 역할 제거, 그 역할에 닿는 엣지도 제거
+→ SemanticLevel (assignment: leftOut, duplicated, invented, emptied)
 ```
 
 ---

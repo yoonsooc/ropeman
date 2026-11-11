@@ -185,18 +185,19 @@ describe('parseSemanticLevel', () => {
 
 	it('filters edges with invalid source/target', () => {
 		const response = JSON.stringify({
-			roles: [{ id: 'a', label: 'A', description: 'd', filePaths: [], keySymbols: [] }],
+			roles: [{ id: 'a', label: 'A', description: 'd', filePaths: ['a.ts'], keySymbols: [] }],
 			edges: [{ source: 'a', target: 'nonexistent', label: 'x', type: 'dependency' }]
 		});
-		const level = parseSemanticLevel(response, null, 0, []);
+		const level = parseSemanticLevel(response, null, 0, ['a.ts']);
+		expect(level.nodes).toHaveLength(1);
 		expect(level.edges).toHaveLength(0); // filtered out
 	});
 
 	it('handles alternative key names (nodes instead of roles)', () => {
 		const response = JSON.stringify({
-			nodes: [{ id: 'a', label: 'A', description: 'd', filePaths: [], keySymbols: [] }]
+			nodes: [{ id: 'a', label: 'A', description: 'd', filePaths: ['a.ts'], keySymbols: [] }]
 		});
-		const level = parseSemanticLevel(response, null, 0, []);
+		const level = parseSemanticLevel(response, null, 0, ['a.ts']);
 		expect(level.nodes).toHaveLength(1);
 	});
 
@@ -271,7 +272,7 @@ describe('parseSemanticLevel file assignment', () => {
 			['sem:one', ['src/a.ts', 'src/b.ts'], 2],
 			['sem:two', ['src/c.ts'], 1]
 		]);
-		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 0 });
+		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 0, emptied: 0 });
 	});
 
 	it('collects files the model left out in an Unclassified node', () => {
@@ -291,7 +292,7 @@ describe('parseSemanticLevel file assignment', () => {
 			parentId: null,
 			depth: 0
 		});
-		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 0, invented: 0 });
+		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 0, invented: 0, emptied: 0 });
 		expectEachInputOwnedOnce(level, inputs);
 	});
 
@@ -321,7 +322,7 @@ describe('parseSemanticLevel file assignment', () => {
 		// Assert
 		expect(level.nodes.map((n) => n.filePaths)).toEqual([['src/a.ts'], ['src/b.ts']]);
 		expect(level.nodes[1].fileCount).toBe(1);
-		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 2, invented: 0 });
+		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 2, invented: 0, emptied: 0 });
 		expectEachInputOwnedOnce(level, inputs);
 	});
 
@@ -335,7 +336,7 @@ describe('parseSemanticLevel file assignment', () => {
 
 		// Assert
 		expect(level.nodes.map((n) => n.filePaths)).toEqual([['src/a.ts']]);
-		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 2 });
+		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 2, emptied: 0 });
 	});
 
 	it('maps paths written without the project folder back to the input path', () => {
@@ -348,7 +349,7 @@ describe('parseSemanticLevel file assignment', () => {
 
 		// Assert
 		expect(level.nodes[0].filePaths).toEqual(inputs);
-		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 0 });
+		expect(level.assignment).toEqual({ leftOut: 0, duplicated: 0, invented: 0, emptied: 0 });
 	});
 
 	it('does not strip a folder that only some input paths share', () => {
@@ -361,7 +362,7 @@ describe('parseSemanticLevel file assignment', () => {
 
 		// Assert
 		expect(level.nodes[0].filePaths).toEqual(['lib/b.ts']);
-		expect(level.assignment).toEqual({ leftOut: 1, duplicated: 0, invented: 1 });
+		expect(level.assignment).toEqual({ leftOut: 1, duplicated: 0, invented: 1, emptied: 0 });
 	});
 
 	it('puts every file in the Unclassified node when the model returns no roles', () => {
@@ -374,7 +375,7 @@ describe('parseSemanticLevel file assignment', () => {
 		// Assert
 		expect(level.nodes).toHaveLength(1);
 		expect(level.nodes[0].filePaths).toEqual(inputs);
-		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 0, invented: 0 });
+		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 0, invented: 0, emptied: 0 });
 	});
 
 	it('assigns a drill-down only over the parent subset', () => {
@@ -391,11 +392,10 @@ describe('parseSemanticLevel file assignment', () => {
 		// Assert
 		expect(level.nodes.map((n) => n.filePaths)).toEqual([
 			['proj/src/core/a.ts'],
-			[],
 			['proj/src/core/b.ts', 'proj/src/core/c.ts']
 		]);
 		expect(level.nodes.every((n) => n.parentId === 'sem:core' && n.depth === 1)).toBe(true);
-		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 1, invented: 1 });
+		expect(level.assignment).toEqual({ leftOut: 2, duplicated: 1, invented: 1, emptied: 1 });
 		expectEachInputOwnedOnce(level, parentFiles);
 	});
 
@@ -410,6 +410,44 @@ describe('parseSemanticLevel file assignment', () => {
 		// Assert
 		expect(inside.nodes[0].id).not.toBe(unclassified.id);
 		expect(inside.nodes[0].filePaths).toEqual(['src/a.ts']);
+	});
+
+	// Regression: a role left with no files stayed on the canvas as "0 files" and threw
+	// "No files in this domain" when double-clicked
+	it('removes a role whose files all went elsewhere, with its edges', () => {
+		// Arrange
+		const inputs = ['src/a.ts', 'src/b.ts', 'src/c.ts', 'src/d.ts'];
+		const response = JSON.stringify({
+			roles: [
+				role('api', ['src/a.ts']),
+				role('ghost', ['src/a.ts', 'src/made-up.ts']),
+				role('db', ['src/b.ts']),
+				role('ui', ['src/c.ts'])
+			],
+			edges: [
+				{ source: 'api', target: 'db', label: 'reads', type: 'calls' },
+				{ source: 'ghost', target: 'db', label: 'x', type: 'uses' },
+				{ source: 'ui', target: 'ghost', label: 'y', type: 'uses' },
+				{ source: 'ui', target: 'api', label: 'calls', type: 'calls' }
+			]
+		});
+
+		// Act
+		const level = parseSemanticLevel(response, null, 0, inputs);
+
+		// Assert
+		expect(level.nodes.map((n) => [n.id, n.fileCount])).toEqual([
+			['sem:api', 1],
+			['sem:db', 1],
+			['sem:ui', 1],
+			['sem:unclassified:root', 1]
+		]);
+		expect(level.edges.map((e) => [e.source, e.target])).toEqual([
+			['sem:api', 'sem:db'],
+			['sem:ui', 'sem:api']
+		]);
+		expect(level.assignment).toEqual({ leftOut: 1, duplicated: 1, invented: 1, emptied: 1 });
+		expectEachInputOwnedOnce(level, inputs);
 	});
 
 	// Regression: the model silently dropped files, so they vanished from every level of the diagram
@@ -465,7 +503,7 @@ describe('parseSemanticLevel file assignment', () => {
 			'paseo/packages/relay/src/relay.ts',
 			'paseo/docs/ARCHITECTURE.md'
 		]);
-		expect(level.assignment).toEqual({ leftOut: 3, duplicated: 1, invented: 1 });
+		expect(level.assignment).toEqual({ leftOut: 3, duplicated: 1, invented: 1, emptied: 0 });
 		expect(level.edges).toHaveLength(1);
 	});
 });

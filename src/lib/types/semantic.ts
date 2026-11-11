@@ -22,6 +22,7 @@ export interface AssignmentCounts {
 	leftOut: number; // 어떤 역할에도 없어서 미분류 노드로 간 입력 파일 수
 	duplicated: number; // 이미 배정된 파일을 다시 적어 버린 항목 수
 	invented: number; // 입력에 없는 경로라 버린 항목 수
+	emptied: number; // 파일이 하나도 남지 않아 다이어그램에서 뺀 역할 수
 }
 
 export interface SemanticLevel {

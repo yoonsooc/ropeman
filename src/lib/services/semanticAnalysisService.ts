@@ -528,23 +528,27 @@ export function parseSemanticLevel(
 
 	raw.roles = roles;
 
-	const roleIds = new Set(raw.roles.map((r) => r.id));
-
 	const { assigned, leftOut, counts } = assignFiles(
 		raw.roles.map((role) => role.filePaths),
 		inputPaths
 	);
 
-	const nodes: SemanticNode[] = raw.roles.map((role, i) => ({
+	// A role with no files left has nothing to show or drill into, so it leaves the diagram
+	const kept = raw.roles.flatMap((role, i) =>
+		assigned[i].length > 0 ? [{ role, files: assigned[i] }] : []
+	);
+	const roleIds = new Set(kept.map(({ role }) => role.id));
+
+	const nodes: SemanticNode[] = kept.map(({ role, files }, i) => ({
 		id: `sem:${role.id}`,
 		label: role.label,
 		description: role.description || '',
 		color: SEMANTIC_COLORS[i % SEMANTIC_COLORS.length],
-		filePaths: assigned[i],
+		filePaths: files,
 		keySymbols: role.keySymbols || [],
 		parentId,
 		depth,
-		fileCount: assigned[i].length
+		fileCount: files.length
 	}));
 
 	if (leftOut.length > 0) {
@@ -578,7 +582,7 @@ export function parseSemanticLevel(
 		nodes,
 		edges,
 		breadcrumbLabel: parentLabel,
-		assignment: counts
+		assignment: { ...counts, emptied: raw.roles.length - kept.length }
 	};
 }
 
@@ -589,7 +593,11 @@ export function parseSemanticLevel(
 function assignFiles(
 	listedPerRole: readonly unknown[],
 	inputPaths: readonly string[]
-): { assigned: string[][]; leftOut: string[]; counts: AssignmentCounts } {
+): {
+	assigned: string[][];
+	leftOut: string[];
+	counts: Omit<AssignmentCounts, 'emptied'>;
+} {
 	const resolve = createPathResolver(inputPaths);
 	const owned = new Set<string>();
 	let duplicated = 0;
