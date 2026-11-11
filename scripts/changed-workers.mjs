@@ -7,12 +7,15 @@
  * - src/<name>.ts 또는 wrangler.<name>.toml 변경 → 그 워커
  * - src/shared.ts, package.json, package-lock.json 변경 → 모든 워커
  * - 이전 커밋이 없거나(첫 push, 0000…) diff가 실패하면 → 모든 워커
+ * - 설정에 자리표시자(REPLACE_WITH_…)가 남은 워커는 배포할 수 없으므로 빼고 경고한다.
+ *   ropeman-github는 KV 네임스페이스가 없어 2026-04부터 배포가 실패했고, 그 때문에
+ *   production 태그가 멈춰 모든 push가 전체 워커를 다시 배포했다.
  *
  * Usage: node scripts/changed-workers.mjs <before-sha> <after-sha>
  * Output: list=demo proxy   ($GITHUB_OUTPUT 형식)
  */
 
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const SHARED = new Set([
@@ -21,10 +24,17 @@ const SHARED = new Set([
 	'edge-proxy/package-lock.json'
 ]);
 
+const PLACEHOLDER = /REPLACE_WITH_/;
+
 const workers = readdirSync('edge-proxy')
 	.map((name) => name.match(/^wrangler\.(\w+)\.toml$/)?.[1])
 	.filter(Boolean)
-	.sort();
+	.sort()
+	.filter((w) => {
+		if (!PLACEHOLDER.test(readFileSync(`edge-proxy/wrangler.${w}.toml`, 'utf8'))) return true;
+		console.error(`::warning::skipping worker '${w}': wrangler.${w}.toml still has a placeholder`);
+		return false;
+	});
 
 function changedFiles(before, after) {
 	if (!before || /^0+$/.test(before)) return null;
