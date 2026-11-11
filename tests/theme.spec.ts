@@ -61,7 +61,7 @@ test.describe('Language Toggle', () => {
 	test('should toggle header subtitle language', async ({ page }) => {
 		await page.goto('/');
 
-		// Default locale is ko, subtitle should be in Korean
+		// Default locale is en for the en-US test browser
 		const subtitle = page.locator('.header-subtitle');
 		const initialText = await subtitle.textContent();
 
@@ -69,7 +69,7 @@ test.describe('Language Toggle', () => {
 		if (width <= 430) {
 			// Phones switch language from Settings, not the header
 			await page.locator('header [data-tour-step="3"]').click();
-			await page.locator('#lang-select').selectOption('en');
+			await page.locator('#lang-select').selectOption('ko');
 		} else {
 			await page.locator('header .lang-toggle').click();
 		}

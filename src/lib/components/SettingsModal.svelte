@@ -116,7 +116,6 @@
 	function handleLangChange(e: Event) {
 		lang = (e.target as HTMLSelectElement).value as 'ko' | 'en';
 		settingsStore.language = lang;
-		i18nStore.locale = lang;
 	}
 
 	function handleThemeChange(e: Event) {
@@ -132,12 +131,11 @@
 		showSymbols = false;
 		maxSkeletonKB = 150;
 		skeletonUnlimited = false;
-		lang = 'ko';
+		lang = settingsStore.language;
 		syntaxTheme = 'tomorrow';
 		customSkipPatternsText = '';
 		customIncludePatternsText = '';
 		cacheSize = 0;
-		i18nStore.locale = 'ko';
 	}
 
 	// Tooltip positioning for fixed tooltips

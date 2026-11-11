@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
+	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { docsModules, buildSidebar, type DocLocale } from '$lib/services/docsService';
 	import DocsHeader from '$lib/components/docs/DocsHeader.svelte';
 	import DocsSidebar from '$lib/components/docs/DocsSidebar.svelte';
@@ -24,11 +25,11 @@
 
 	const categories = $derived(buildSidebar(docsModules, lang, categoryLabels));
 
-	// Sync docs URL locale → i18nStore so the rest of the app (if user
+	// Sync docs URL locale → settingsStore so the rest of the app (if user
 	// navigates back) stays in the same language.
 	$effect(() => {
-		if (lang === 'ko' || lang === 'en') {
-			i18nStore.locale = lang;
+		if ((lang === 'ko' || lang === 'en') && settingsStore.language !== lang) {
+			settingsStore.language = lang;
 		}
 	});
 </script>

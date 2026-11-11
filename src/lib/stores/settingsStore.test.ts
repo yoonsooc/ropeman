@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { settingsStore } from './settingsStore.svelte';
 
 describe('settingsStore', () => {
@@ -27,8 +27,8 @@ describe('settingsStore', () => {
 			expect(settingsStore.cacheEnabled).toBe(true);
 		});
 
-		it('language defaults to ko', () => {
-			expect(settingsStore.language).toBe('ko');
+		it('language defaults to en outside a browser', () => {
+			expect(settingsStore.language).toBe('en');
 		});
 
 		it('syntaxTheme defaults to tomorrow', () => {
@@ -285,7 +285,7 @@ describe('settingsStore', () => {
 			expect(settingsStore.aiProvider).toBe('google');
 			expect(settingsStore.aiModel).toBe('gemini-flash-lite-latest');
 			expect(settingsStore.cacheEnabled).toBe(true);
-			expect(settingsStore.language).toBe('ko');
+			expect(settingsStore.language).toBe('en');
 			expect(settingsStore.syntaxTheme).toBe('tomorrow');
 			expect(settingsStore.showSymbols).toBe(false);
 		});
@@ -310,6 +310,168 @@ describe('settingsStore', () => {
 
 			// Assert
 			expect(settingsStore.bridgeCli).toBe('auto');
+		});
+	});
+
+	describe('language in a browser', () => {
+		const STORAGE_KEY = 'ropeman-settings';
+		let storage: Map<string, string>;
+
+		function stubBrowser(nav: { languages?: string[]; language?: string } | undefined) {
+			vi.stubGlobal('window', {});
+			vi.stubGlobal('navigator', nav);
+			vi.stubGlobal('localStorage', {
+				getItem: (key: string) => storage.get(key) ?? null,
+				setItem: (key: string, value: string) => storage.set(key, value),
+				removeItem: (key: string) => storage.delete(key)
+			});
+		}
+
+		async function loadStore() {
+			vi.resetModules();
+			return (await import('./settingsStore.svelte')).settingsStore;
+		}
+
+		beforeEach(() => {
+			storage = new Map();
+		});
+
+		afterEach(() => {
+			vi.unstubAllGlobals();
+			vi.resetModules();
+		});
+
+		it('starts in Korean when the browser prefers ko-KR', async () => {
+			// Arrange
+			stubBrowser({ languages: ['ko-KR', 'en-US'], language: 'ko-KR' });
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('ko');
+		});
+
+		it('starts in English when the browser prefers en-US', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US', 'ko'], language: 'en-US' });
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('en');
+		});
+
+		it('skips unsupported languages and picks the first supported one', async () => {
+			// Arrange
+			stubBrowser({ languages: ['ja-JP', 'ko'], language: 'ja-JP' });
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('ko');
+		});
+
+		it('uses navigator.language when navigator.languages is empty', async () => {
+			// Arrange
+			stubBrowser({ languages: [], language: 'ko' });
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('ko');
+		});
+
+		it('falls back to English when navigator is missing', async () => {
+			// Arrange
+			stubBrowser(undefined);
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('en');
+		});
+
+		it('falls back to English when no browser language is supported', async () => {
+			// Arrange
+			stubBrowser({ languages: ['ja-JP', 'fr'], language: 'ja-JP' });
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('en');
+		});
+
+		it('prefers the saved choice over the browser language', async () => {
+			// Arrange
+			storage.set(STORAGE_KEY, JSON.stringify({ language: 'en' }));
+			stubBrowser({ languages: ['ko-KR'], language: 'ko-KR' });
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('en');
+		});
+
+		it('ignores a saved language it does not support', async () => {
+			// Arrange
+			storage.set(STORAGE_KEY, JSON.stringify({ language: 'ja' }));
+			stubBrowser({ languages: ['ko-KR'], language: 'ko-KR' });
+
+			// Act
+			const store = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('ko');
+		});
+
+		it('keeps the chosen language after a reload', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			const store = await loadStore();
+
+			// Act
+			store.language = 'ko';
+			const reloaded = await loadStore();
+
+			// Assert
+			expect(reloaded.language).toBe('ko');
+		});
+
+		it('does not save the detected language when another setting changes', async () => {
+			// Arrange
+			stubBrowser({ languages: ['ko-KR'], language: 'ko-KR' });
+			const store = await loadStore();
+
+			// Act
+			store.syntaxTheme = 'monokai';
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			const reloaded = await loadStore();
+
+			// Assert
+			expect(reloaded.syntaxTheme).toBe('monokai');
+			expect(reloaded.language).toBe('en');
+		});
+
+		it('clearAll drops the saved choice and follows the browser again', async () => {
+			// Arrange
+			stubBrowser({ languages: ['ko-KR'], language: 'ko-KR' });
+			const store = await loadStore();
+			store.language = 'en';
+
+			// Act
+			store.clearAll();
+			const reloaded = await loadStore();
+
+			// Assert
+			expect(store.language).toBe('ko');
+			expect(reloaded.language).toBe('ko');
 		});
 	});
 });

@@ -1,4 +1,5 @@
-export type Locale = 'ko' | 'en';
+import type { Locale } from '$lib/utils/locale';
+import { settingsStore } from './settingsStore.svelte';
 
 interface LandingTranslations {
 	headline: string;
@@ -920,18 +921,13 @@ const translations: Record<Locale, TranslationSet> = {
 };
 
 function createI18nStore() {
-	let locale = $state<Locale>('ko');
-
 	return {
-		get locale() {
-			return locale;
-		},
-		set locale(v: Locale) {
-			locale = v;
+		get locale(): Locale {
+			return settingsStore.language;
 		},
 		t(key: string): string {
 			const keys = key.split('.');
-			let value: unknown = translations[locale];
+			let value: unknown = translations[settingsStore.language];
 			for (const k of keys) {
 				if (value && typeof value === 'object' && k in value) {
 					value = (value as Record<string, unknown>)[k];
@@ -941,11 +937,8 @@ function createI18nStore() {
 			}
 			return value as string;
 		},
-		toggleLocale() {
-			locale = locale === 'ko' ? 'en' : 'ko';
-		},
 		getProgressMessage(key: keyof AnalysisProgressTranslations): string {
-			return translations[locale].analysisProgress[key];
+			return translations[settingsStore.language].analysisProgress[key];
 		}
 	};
 }
