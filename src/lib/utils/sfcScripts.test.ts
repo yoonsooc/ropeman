@@ -140,6 +140,36 @@ const pick = (items: T[]) => items[0];
 		expect(content.split('\r\n')[4]).toBe('let a = 1;');
 	});
 
+	// 180KB of `<script "` took 3.2 s when every open tag rescanned the rest of the file
+	it.each([
+		['an open tag whose quotes never close', '<script "'],
+		['open tags without a closing tag', '<script>'],
+		['comments without an end', '<!--']
+	])('reads a 500KB file of %s in linear time', (_, unit) => {
+		// Arrange
+		const source = unit.repeat(Math.ceil(500_000 / unit.length));
+
+		// Act
+		const started = performance.now();
+		const { content } = componentScriptSource('src/A.svelte', source);
+		const elapsed = performance.now() - started;
+
+		// Assert
+		expect(content).toHaveLength(source.length);
+		expect(elapsed).toBeLessThan(250);
+	});
+
+	it('still finds a script after an open tag whose quote never closes', () => {
+		// Arrange
+		const source = `<script title="x>\n<script>\nconst kept = 1;\n</script>\n`;
+
+		// Act
+		const { content } = componentScriptSource('src/A.svelte', source);
+
+		// Assert
+		expect(content.trim()).toBe('const kept = 1;');
+	});
+
 	it('returns blank JavaScript for a component without a script', () => {
 		// Act
 		const result = componentScriptSource('src/Icon.svelte', '<svg viewBox="0 0 1 1"></svg>\n');
