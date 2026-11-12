@@ -10,7 +10,7 @@ export default ts.config(
 		ignores: [
 			'build/',
 			'.svelte-kit/',
-			'dist/',
+			'**/dist/',
 			'node_modules/',
 			'static/',
 			'*.config.js',

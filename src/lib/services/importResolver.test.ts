@@ -6,7 +6,8 @@ import {
 	readResolverConfig,
 	resolveImports
 } from './importResolver';
-import { buildCodeMap, fileFromAst, toWireFile } from './skeletonExtractor';
+import { buildCodeMap, fileFromAst } from './codeMapBuilder';
+import { toWireFile } from './skeletonExtractor';
 import type { ASTSymbol } from '$lib/types/ast';
 import type { CodeMap, FilePath, FileRecord, ModuleSite } from '$lib/types/codeMap';
 
