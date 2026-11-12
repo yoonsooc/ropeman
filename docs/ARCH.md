@@ -83,10 +83,11 @@ src/
 │   │
 │   ├── workers/
 │   │   ├── parserWorker.ts           # tree-sitter WASM 파싱
+│   │   ├── refQueries.ts             # 문법별 tree-sitter 쿼리: 호출, 동적 import, 클래스 상속 위치
 │   │   └── webllmWorker.ts           # WebLLM 모델 초기화 + 추론
 │   │
 │   ├── types/
-│   │   ├── ast.ts                    # ASTSymbol
+│   │   ├── ast.ts                    # ASTSymbol, ASTRef (파서가 읽은 참조 위치)
 │   │   ├── semantic.ts               # SemanticNode, SemanticEdge, SemanticLevel
 │   │   ├── skeleton.ts               # SkeletonPayload (AI에 보내는 형식, v1에 고정)
 │   │   ├── codeMap.ts                # 스켈레톤 v2: 줄 범위, import·참조 위치와 후보 대상, 관계 출처, 역할 관계의 근거. 브라우저에만 둔다 (ADR-21)
@@ -163,9 +164,19 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
   - 출처(`Provenance`)는 `{ source, confidence }`다. 허용 조합은 `PROVENANCE_RULES` 표 하나가 정하고, 표에 없는 조합은 컴파일되지 않는다. 파서(`ast`)는 EXTRACTED만, LLM(`llm`)은 INFERRED만 쓸 수 있다. 해석기와 graphify는 둘 다 쓸 수 있다. 코드 지도에는 LLM 출처가 들어갈 수 없다(`CodeProvenance`).
   - 역할 사이 관계(`SemanticEdge.evidence`, 선택 필드)는 근거가 된 코드 관계를 `RelationRef`(경로, 줄, 관계 이름, 대상 파일, 신뢰도)로 가리킨다. EXTRACTED는 근거가 하나 이상 있어야 한다.
 - **전송 형식** (`types/skeleton.ts`의 `SkeletonPayload`): v1 그대로 고정한다. `toWireFile()`은 심볼과 import 원문만 읽는다(`WireSource` 타입). 그래서 줄, 호출, 대상, 출처는 요청 바이트와 캐시 키를 바꾸지 못한다.
-- 변환: `fileFromAst()`가 파일 하나를, `buildCodeMap(astMap, root)`이 astMap 전체를 코드 지도로 바꾼다. 지금은 참조·재수출 위치가 비어 있고 import 대상은 모두 `pending`이다. `selectSkeleton`·`selectSubSkeleton`은 `fileFromAst()` → `toWireFile()`을 거친다.
+- 변환: `fileFromAst(key, symbols, refs)`가 파일 하나를, `buildCodeMap(astMap, root, refMap)`이 astMap 전체를 코드 지도로 바꾼다. 재수출 위치는 아직 비어 있고, import와 참조의 대상은 모두 `pending`이다. `selectSkeleton`·`selectSubSkeleton`은 `fileFromAst()` → `toWireFile()`을 거친다.
+- 참조 위치 추출 (`workers/refQueries.ts`): 파서 워커가 심볼을 읽은 같은 트리에 문법별 쿼리를 한 번 돌리고, `parse-result` 메시지에 `refs`(`ASTRef[]`)를 함께 보낸다. 이름으로 대상을 찾지 않으므로 결과는 트리만으로 정해진다.
+  - 호출(`calls`)은 열세 문법 모두 읽는다: TS·TSX·JS, Python, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala. `new Foo()`(JS·TS, Java, C++, PHP, C#)도 `Foo` 호출로 센다. TSX·JS에서는 컴포넌트 태그(대문자로 시작하거나 점이 있는 이름, `<Layout.Frame>`)도 호출이다. `<div>` 같은 기본 태그는 세지 않는다. Rust 매크로(`println!`)는 함수가 아니어서 뺀다.
+  - 동적 import(`import('./x')`)는 JS·TS에서, 클래스 상속(`inherits`, `implements`)은 JS·TS와 Python에서 읽는다. Python은 위치 인자만 부모로 보고 `metaclass=`는 뺀다.
+  - 적힌 이름(`written`)은 호출 대상 부분의 원문이다. 괄호·대괄호·중괄호 안은 비우고 공백은 지운다. 그래서 `z.object({ … }).strict()`는 `z.object().strict`가 된다. 단어 사이 공백 하나만 남긴다(`new Store().save`). 200자에서 자른다.
+  - 줄은 호출식이 시작하는 줄이다. graphify와 정답 픽스처(`tests/fixtures/graphs/`)가 같은 규칙을 쓴다. 여러 줄로 이어진 체인 호출은 모두 첫 줄에 놓이고 적힌 이름으로 구별된다.
+  - 감싼 심볼(`from`)은 그 줄을 줄 범위에 담은 가장 깊은 심볼이다. 같은 줄에 심볼이 둘이면 먼저 나온 것이다. 심볼 트리에 없는 범위(함수 안 함수, `describe` 콜백, 화살표 함수가 아닌 최상위 `const`)는 바깥 심볼이나 `null`로 간다. 상속은 클래스가 시작하는 줄의 클래스 심볼에만 붙고, 심볼 트리에 없는 클래스(함수 안 클래스, 추상 클래스)의 상속은 버린다.
+  - 같은 파일 안 이름 맞추기는 하지 않았다. 지역 변수가 같은 이름을 가리면 틀리므로 EXTRACTED라 할 수 없고, 다른 파일로 가는 호출과 함께 해석기가 맡는다.
+  - 아직 `parserService`는 `refs`를 버린다. 코드 지도를 화면에 잇는 작업이 파일별 `refs`를 모아 `buildCodeMap`에 넘긴다.
+  - 비용(PASEO, Node, 워커 코드 그대로, 5회 교차 실행 중앙값): `.ts` 4,415개 3.96초 → 5.34초(+35%), `.tsx` 870개 0.59초 → 0.78초(+33%). 늘어난 시간의 대부분은 쿼리가 트리를 도는 WASM 시간이다(호출 패턴 하나만 돌려도 약 1.0초). 읽은 위치는 `.ts`에서 404,435개, `.tsx`에서 39,711개다.
+- 워커는 파일마다 트리를 다 쓰면 `tree.delete()`로 WASM 메모리를 돌려준다. 돌려주지 않으면 한 워커가 PASEO `.ts`를 두 번 반 읽는 동안(약 10,000개) 힙이 차서 그 뒤 모든 파일이 실패했다.
 - 고정 장치: `skeletonWire.test.ts`가 v2 이전 코드로 찍어 둔 전송 문자열 7종(최상위·드릴다운, 예산 무제한·50KB, 예산을 넘는 파일 하나)과 지금 출력을 비교한다.
-- 채울 작업: T1-5 참조 위치와 같은 파일 안 대상, T1-6 import 대상(상대 경로, tsconfig paths, 워크스페이스), T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
+- 채울 작업: 참조 위치의 대상(같은 파일 안 포함), T1-6 import 대상(상대 경로, tsconfig paths, 워크스페이스), T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
 
 ### 분석 범위 (커버리지)
 

@@ -2,6 +2,7 @@
 
 import type { ASTSymbol, SymbolKind } from '$lib/types/ast';
 import { getGrammarFile } from '$lib/utils/languageDetector';
+import { extractRefs } from './refQueries';
 import { componentScriptSource, isComponentLanguage } from '$lib/utils/sfcScripts';
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -21,6 +22,7 @@ type WorkerMessage = InitMessage | ParseMessage;
 
 let Parser: any;
 let Language: any;
+let Query: any;
 let parserInstance: any;
 const loadedGrammars = new Map<string, any>();
 
@@ -32,6 +34,7 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 			const TreeSitter = await import('web-tree-sitter');
 			Parser = TreeSitter.Parser ?? TreeSitter.default;
 			Language = TreeSitter.Language ?? Parser.Language;
+			Query = TreeSitter.Query;
 			await Parser.init({
 				locateFile: () => '/tree-sitter.wasm'
 			});
@@ -57,22 +60,36 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 			const source = isComponentLanguage(msg.language)
 				? componentScriptSource(msg.filePath, msg.content)
 				: msg;
-			const grammar = await getGrammar(source.language, source.filePath);
+			const grammarFile = getGrammarFile(source.language, source.filePath);
+			if (!grammarFile) throw new Error(`Unsupported language: ${source.language}`);
+			const grammar = await getGrammar(grammarFile);
 			parserInstance.setLanguage(grammar);
 
 			const tree = parserInstance.parse(source.content);
-			const symbols = extractSymbols(tree.rootNode, source.language);
-			// tree-sitter recovers from any syntax error, so a broken file would otherwise read as
-			// a valid file without definitions
-			if (symbols.length === 0 && tree.rootNode.hasError) {
-				throw new Error('syntax errors and no symbols');
-			}
+			try {
+				const symbols = extractSymbols(tree.rootNode, source.language);
+				// tree-sitter recovers from any syntax error, so a broken file would otherwise read as
+				// a valid file without definitions
+				if (symbols.length === 0 && tree.rootNode.hasError) {
+					throw new Error('syntax errors and no symbols');
+				}
+				const refs = extractRefs(
+					tree.rootNode,
+					source.content,
+					grammarFile,
+					(query) => new Query(grammar, query)
+				);
 
-			self.postMessage({
-				type: 'parse-result',
-				filePath: msg.filePath,
-				symbols
-			});
+				self.postMessage({
+					type: 'parse-result',
+					filePath: msg.filePath,
+					symbols,
+					refs
+				});
+			} finally {
+				// Trees live in the WASM heap; kept, they exhaust it after about 10,000 files
+				tree.delete();
+			}
 		} catch (err) {
 			self.postMessage({
 				type: 'error',
@@ -83,10 +100,7 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 	}
 };
 
-async function getGrammar(language: string, filePath: string) {
-	const grammarFile = getGrammarFile(language, filePath);
-	if (!grammarFile) throw new Error(`Unsupported language: ${language}`);
-
+async function getGrammar(grammarFile: string) {
 	const cached = loadedGrammars.get(grammarFile);
 	if (cached) return cached;
 
