@@ -22,6 +22,7 @@
 	import { isModelCached } from '$lib/services/webllmService';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import { onMount } from 'svelte';
+	import { focusTrap } from '$lib/utils/focusTrap';
 
 	const breakpoint = useBreakpoint();
 	// M4: Bridge needs a local CLI server; WebGPU needs gigabytes of RAM and
@@ -210,7 +211,13 @@
 		onclick={handleBackdropClick}
 		onkeydown={handleKeydown}
 	>
-		<div class="modal-card analyze-card" role="dialog" aria-modal="true">
+		<div
+			class="modal-card analyze-card"
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+			use:focusTrap
+		>
 			<div class="modal-header">
 				<div>
 					<h2>

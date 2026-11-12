@@ -102,6 +102,7 @@ src/
 │       ├── languageDetector.ts       # 확장자 → 언어 매핑
 │       ├── locale.ts                 # UI 언어 결정 (저장된 선택 > 브라우저 언어 ko* > en)
 │       ├── fileIcons.ts              # 파일 유형별 Material Symbols + 색상 매핑
+│       ├── focusTrap.ts              # div 모달 카드용 액션: 열 때 포커스를 넣고 Tab을 안에 가두고 닫으면 연 버튼으로 돌려줌
 │       └── contextBuilder.ts         # 채팅용 코드 컨텍스트 구성
 
 edge-proxy/                       # Cloudflare Workers

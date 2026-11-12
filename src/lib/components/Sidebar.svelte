@@ -67,6 +67,8 @@
 
 	function handleWindowKeydown(e: KeyboardEvent) {
 		if (e.key !== 'Escape' || !mobile || !contentOpen) return;
+		// A modal over the drawer owns this Escape
+		if (e.target instanceof Element && e.target.closest('[aria-modal="true"], dialog')) return;
 		handleMobileClose();
 		railButtons[activePanel]?.focus();
 	}
