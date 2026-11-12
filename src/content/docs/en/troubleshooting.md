@@ -32,7 +32,7 @@ If something isn't working, find the matching symptom below. Each entry follows 
 
 - **Cause 1**: The AI provider is temporarily unavailable.
 - **Cause 2**: The code structure summary exceeds what the model accepts.
-- **Fix**: Retry after a minute. If it persists, reduce the summary cap in **Settings → Code structure summary size** (try 150 KB), or switch to a larger-context model in BYOK mode.
+- **Fix**: Retry after a minute. If it persists, reduce the summary cap in **Settings → Code Summary Size Limit** (try 150 KB), or switch to a larger-context model in BYOK mode.
 
 ### Symptom — AI returns malformed JSON and the diagram is empty
 
