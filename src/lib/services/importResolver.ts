@@ -197,20 +197,25 @@ export function namedConfigs(texts: ReadonlyMap<string, string>): string[] {
  * The config texts `readResolverConfig` needs, from every file a loader listed before its file
  * cap, so a tsconfig the cap dropped still shapes resolution. Reads each `isResolverConfig` file,
  * then whatever those name, until nothing new turns up. `read` returns null for a file it skips.
+ * At most `batchSize` reads run at once.
  */
 export async function collectResolverConfigs(
 	listed: Iterable<string>,
-	read: (path: string) => Promise<string | null>
+	read: (path: string) => Promise<string | null>,
+	batchSize = Infinity
 ): Promise<Map<string, string>> {
 	const paths = new Set(listed);
 	const texts = new Map<string, string>();
 	const tried = new Set<string>();
 	for (let wanted = [...paths].filter(isResolverConfig); wanted.length > 0; ) {
 		for (const path of wanted) tried.add(path);
-		const results = await Promise.all(
-			wanted.map(async (path) => [path, await read(path)] as const)
-		);
-		for (const [path, text] of results) if (text !== null) texts.set(path, text);
+		for (let i = 0; i < wanted.length; i += batchSize) {
+			const batch = wanted.slice(i, i + batchSize);
+			const results = await Promise.all(
+				batch.map(async (path) => [path, await read(path)] as const)
+			);
+			for (const [path, text] of results) if (text !== null) texts.set(path, text);
+		}
 		wanted = namedConfigs(texts).filter((path) => paths.has(path) && !tried.has(path));
 	}
 	return texts;

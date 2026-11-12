@@ -102,4 +102,41 @@ describe('loadTestProject', () => {
 			expect.objectContaining({ kind: 'calls', line: 1, written: 'print' })
 		]);
 	});
+
+	it("leaves the next project's map alone when its config reads finish after it opened", async () => {
+		const tree = {
+			...scanTree,
+			children: [
+				scanTree.children[0],
+				{
+					name: 'package.json',
+					path: 'demo/package.json',
+					kind: 'file',
+					_absolutePath: '/d/package.json'
+				}
+			]
+		};
+		let releaseConfig!: () => void;
+		const configHeld = new Promise<void>((resolve) => (releaseConfig = resolve));
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: string) => {
+				if (url.startsWith('/__dev/scan')) return new Response(JSON.stringify(tree));
+				if (url.includes('package.json')) await configHeld;
+				return new Response(url.includes('package.json') ? '{}' : 'def main(): pass');
+			})
+		);
+		const load = loadTestProject('/d');
+		await vi.waitFor(() => expect(projectStore.parsingProgress).toEqual({ done: 1, total: 1 }));
+
+		const next = new Map([
+			['next/lib.ts', [{ name: 'f', kind: 'function' as const, lineStart: 1, lineEnd: 1 }]]
+		]);
+		projectStore.astMap = next;
+		codeMapStore.build({ astMap: next, root: 'next', refs: new Map(), configs: new Map() });
+		releaseConfig();
+		await load;
+
+		expect(codeMapStore.map!.root).toBe('next');
+	});
 });

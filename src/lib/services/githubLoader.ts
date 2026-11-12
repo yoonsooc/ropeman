@@ -205,7 +205,8 @@ export async function loadGitHubRepo(
 	const fileTree = buildFileTree(info.repo, treeData.tree, filter);
 	projectStore.fileTree = fileTree;
 
-	// 4. Download the resolver configs from the whole tree, cut files included, while parsing
+	// 4. Download the resolver configs from the whole tree, cut files included, while parsing.
+	// A failed read costs the map its resolution rules, never the load.
 	const configsRead = collectResolverConfigs(
 		treeData.tree
 			.filter(
@@ -222,8 +223,9 @@ export async function loadGitHubRepo(
 			} catch {
 				return null;
 			}
-		}
-	);
+		},
+		BATCH_SIZE
+	).catch(() => new Map<string, string>());
 
 	// 5. Download + parse in batches
 	let done = 0;
@@ -270,8 +272,9 @@ export async function loadGitHubRepo(
 	}
 
 	projectStore.parseSkips = skipped;
+	const parsed = projectStore.astMap;
 	codeMapStore.build({
-		astMap: projectStore.astMap,
+		astMap: parsed,
 		root: info.repo,
 		refs,
 		configs: await configsRead

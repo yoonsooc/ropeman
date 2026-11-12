@@ -82,4 +82,17 @@ describe('codeMapStore', () => {
 		expect(codeMapStore.map).not.toBe(first);
 		expect(codeMapStore.map!.files.has(main)).toBe(true);
 	});
+
+	it('ignores a build that finishes after another project replaced its parse', () => {
+		const stale = parsed();
+		projectStore.astMap = stale.astMap;
+		const opened = parsed();
+		opened.astMap = new Map([['other/lib.ts', [fn('other')]]]);
+		opened.root = 'other';
+		finishParse(opened);
+
+		codeMapStore.build(stale);
+
+		expect([...codeMapStore.map!.files.keys()]).toEqual(['other/lib.ts']);
+	});
 });

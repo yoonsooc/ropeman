@@ -114,12 +114,13 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 		}
 		projectStore.parseSkips = skipped;
 
+		const parsed = projectStore.astMap;
 		const absolute = new Map(listed.map((file) => [file.path, file._absolutePath]));
 		const configs = await collectResolverConfigs(absolute.keys(), async (path) => {
 			const res = await fetch(`/__dev/read?file=${encodeURIComponent(absolute.get(path) ?? '')}`);
 			return res.ok ? await res.text() : null;
 		});
-		codeMapStore.build({ astMap: projectStore.astMap, root: fileTree.name, refs, configs });
+		codeMapStore.build({ astMap: parsed, root: fileTree.name, refs, configs });
 	} catch (err) {
 		console.error('[testLoader] Failed to load test project:', err);
 	} finally {

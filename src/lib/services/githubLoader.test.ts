@@ -34,7 +34,13 @@ vi.mock('$lib/stores/projectStore.svelte', () => {
 	return { projectStore: store };
 });
 
+vi.mock('$lib/services/importResolver', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('$lib/services/importResolver')>();
+	return { ...actual, collectResolverConfigs: vi.fn(actual.collectResolverConfigs) };
+});
+
 import { loadGitHubRepo, GitHubLoadError } from './githubLoader';
+import { collectResolverConfigs } from '$lib/services/importResolver';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { parseFile } from '$lib/services/parserService';
 import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
@@ -122,6 +128,7 @@ describe('loadGitHubRepo', () => {
 				blob('src/main.ts'),
 				blob('src/store.ts'),
 				blob('tsconfig.json'),
+				blob('pnpm-workspace.yaml'),
 				blob('package.json', MAX_FILE_SIZE + 1),
 				blob('node_modules/x/package.json')
 			]
@@ -148,11 +155,100 @@ describe('loadGitHubRepo', () => {
 		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
 
 		const fetched = fetchMock.mock.calls.map(([url]) => url.split('/abc123/')[1]).filter(Boolean);
-		expect(fetched.sort()).toEqual(['src/main.ts', 'src/store.ts', 'tsconfig.json']);
+		expect(fetched.sort()).toEqual([
+			'pnpm-workspace.yaml',
+			'src/main.ts',
+			'src/store.ts',
+			'tsconfig.json'
+		]);
 		const main = codeMapStore.map!.files.get('repo/src/main.ts' as never)!;
 		expect(main.imports[0].module).toMatchObject({
 			state: 'bound',
 			candidates: [{ to: { kind: 'file', path: 'repo/src/store.ts' } }]
+		});
+	});
+
+	describe('resolver configs', () => {
+		const blob = (path: string) => ({
+			path,
+			mode: '100644',
+			type: 'blob' as const,
+			sha: path,
+			url: '',
+			size: 100
+		});
+		const RAW = 'https://raw.githubusercontent.com/owner/repo/abc123/';
+
+		function serve(paths: string[], raw: (path: string) => Promise<unknown>) {
+			const tree = { ...mockTreeResponse, tree: paths.map(blob) };
+			const fetchMock = vi.fn(async (url: string) =>
+				url.startsWith('https://api.github.com/')
+					? { ok: true, json: async () => tree }
+					: raw(url.replace(RAW, ''))
+			);
+			vi.stubGlobal('fetch', fetchMock);
+			return fetchMock;
+		}
+
+		it('keeps at most one batch of config downloads in flight in a large monorepo', async () => {
+			const packages = Array.from({ length: 70 }, (_, i) => `packages/p${i}/package.json`);
+			let inFlight = 0;
+			let peak = 0;
+			serve(['src/index.ts', ...packages], async (path) => {
+				if (!path.endsWith('package.json')) return { ok: true, text: async () => 'x' };
+				peak = Math.max(peak, ++inFlight);
+				await new Promise((resolve) => setTimeout(resolve, 0));
+				inFlight--;
+				return { ok: true, text: async () => '{}' };
+			});
+
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+			expect(peak).toBe(20);
+		});
+
+		it('still builds the map when one config download fails', async () => {
+			serve(['src/index.ts', 'tsconfig.json', 'package.json'], async (path) => {
+				if (path === 'tsconfig.json') throw new TypeError('network');
+				return { ok: true, text: async () => (path === 'package.json' ? '{"name":"a"}' : 'x') };
+			});
+
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+			expect(projectStore.isLoading).toBe(false);
+			expect(codeMapStore.map?.files.has('repo/src/index.ts' as never)).toBe(true);
+		});
+
+		it('builds the map without configs when reading them fails outright', async () => {
+			vi.mocked(collectResolverConfigs).mockRejectedValueOnce(new Error('bad config'));
+			serve(['src/index.ts', 'tsconfig.json'], async () => ({ ok: true, text: async () => 'x' }));
+
+			await expect(loadGitHubRepo({ owner: 'owner', repo: 'repo' })).resolves.toEqual({
+				cut: []
+			});
+			expect(codeMapStore.map?.files.has('repo/src/index.ts' as never)).toBe(true);
+		});
+
+		it("leaves the next project's map alone when this load finishes after it opened", async () => {
+			let releaseConfig!: () => void;
+			const configHeld = new Promise<void>((resolve) => (releaseConfig = resolve));
+			serve(['src/index.ts', 'tsconfig.json'], async (path) => {
+				if (path === 'tsconfig.json') await configHeld;
+				return { ok: true, text: async () => (path === 'tsconfig.json' ? '{}' : 'x') };
+			});
+			const load = loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+			await vi.waitFor(() => expect(projectStore.parsingProgress).toEqual({ done: 1, total: 1 }));
+
+			const next = new Map([
+				['next/lib.ts', [{ name: 'f', kind: 'function' as const, lineStart: 1, lineEnd: 1 }]]
+			]);
+			projectStore.astMap = next;
+			codeMapStore.build({ astMap: next, root: 'next', refs: new Map(), configs: new Map() });
+			releaseConfig();
+			await load;
+
+			expect(codeMapStore.map!.root).toBe('next');
+			expect([...codeMapStore.map!.files.keys()]).toEqual(['next/lib.ts']);
 		});
 	});
 

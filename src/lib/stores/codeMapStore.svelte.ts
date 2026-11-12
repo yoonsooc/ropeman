@@ -26,8 +26,13 @@ function createCodeMapStore() {
 			return built && built.astMap === projectStore.astMap ? built.map : null;
 		},
 
-		/** Build once per finished parse, after `projectStore.astMap` is set to `input.astMap`. */
+		/**
+		 * Build once per finished parse, after `projectStore.astMap` is set to `input.astMap`.
+		 * A no-op once something else replaced it, so a load that finishes after the user opened
+		 * another project cannot overwrite that project's map.
+		 */
 		build({ astMap, root, refs, configs }: CodeMapInput) {
+			if (projectStore.astMap !== astMap) return;
 			built = { astMap, map: buildCodeMap(astMap, root, { refs, configs }) };
 		}
 	};

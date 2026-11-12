@@ -1234,6 +1234,23 @@ describe('collectResolverConfigs', () => {
 		expect(asked).not.toContain('app/src/index.ts');
 	});
 
+	it('keeps at most batchSize reads in flight', async () => {
+		const listed = Array.from({ length: 45 }, (_, i) => `app/packages/p${i}/package.json`);
+		let inFlight = 0;
+		let peak = 0;
+		const read = async () => {
+			peak = Math.max(peak, ++inFlight);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			inFlight--;
+			return '{}';
+		};
+
+		const texts = await collectResolverConfigs(listed, read, 20);
+
+		expect(texts.size).toBe(45);
+		expect(peak).toBe(20);
+	});
+
 	it('never asks for a named config the listing does not have', async () => {
 		const { read, asked } = reader({ 'app/tsconfig.json': '{ "extends": "./missing.json" }' });
 
