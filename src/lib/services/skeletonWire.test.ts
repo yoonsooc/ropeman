@@ -29,7 +29,7 @@ describe('config files on the wire', () => {
 		['fixture/infra/main.tf', CONFIG_PARSERS.terraform('resource "aws_s3_bucket" "logs" {\n}')],
 		['fixture/.env.example', CONFIG_PARSERS.dotenv('DATABASE_URL=postgres://x')],
 		['fixture/Makefile', CONFIG_PARSERS.makefile('build: deps\n\tnpm run build')],
-		['fixture/.env', CONFIG_PARSERS.dotenv('# nothing but a comment')]
+		['fixture/.env.sample', CONFIG_PARSERS.dotenv('# nothing but a comment')]
 	];
 
 	function treeOf(paths: string[]): FileNode {
@@ -51,7 +51,7 @@ describe('config files on the wire', () => {
 		const after = new Map(selection.payload.files.map((file) => [file.path, JSON.stringify(file)]));
 		for (const file of before) expect(after.get(file.path)).toBe(JSON.stringify(file));
 		expect(selection.payload.files.length).toBe(before.length + 4);
-		expect(selection.omitted).toContainEqual({ path: 'fixture/.env', reason: 'no-symbols' });
+		expect(selection.omitted).toContainEqual({ path: 'fixture/.env.sample', reason: 'no-symbols' });
 		expect(formatPayloadPreview(selection.payload)).toContain(
 			'{"path":"fixture/Dockerfile","language":"dockerfile","symbols":[{"name":"app","kind":"stage","children":[{"name":"3000","kind":"port"}]}],"imports":[{"source":"node:20","specifiers":[]}]}'
 		);

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('$lib/utils/languageDetector', () => ({
+vi.mock('$lib/utils/languageDetector', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/utils/languageDetector')>()),
 	detectLanguage: vi.fn((name: string) => {
 		if (name.endsWith('.ts')) return 'typescript';
 		if (name.endsWith('.py')) return 'python';

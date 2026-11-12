@@ -15,12 +15,13 @@ test.beforeAll(() => {
 		path.join(DIR, 'infra', 'main.tf'),
 		'module "vpc" {\n  source = "./modules/vpc"\n}\n\nresource "aws_s3_bucket" "logs" {\n}\n'
 	);
-	fs.writeFileSync(path.join(DIR, '.env'), `export API_TOKEN="${SECRET}"\n`);
+	fs.writeFileSync(path.join(DIR, '.env'), `export API_TOKEN="${SECRET}"\nLEAKED_KEY=1\n`);
+	fs.writeFileSync(path.join(DIR, '.env.example'), 'export API_TOKEN=\n');
 	fs.writeFileSync(path.join(DIR, 'Makefile'), 'build: deps\n\tdocker build .\n');
 	fs.writeFileSync(path.join(DIR, 'notes.txt'), 'todo\n');
 });
 
-test('sends config file structure to the AI and never an .env value', async ({ page }) => {
+test('sends config file structure to the AI and never opens a real .env', async ({ page }) => {
 	await page.addInitScript(() => {
 		localStorage.setItem(
 			'ropeman-onboarding',
@@ -36,8 +37,15 @@ test('sends config file structure to the AI and never an .env value', async ({ p
 	await expect(page.locator('.loading-overlay')).toBeHidden({ timeout: 120_000 });
 
 	await expect(page.getByTestId('coverage-summary')).toHaveText(
-		/Sent 4 of 4 read files · 1 skipped/
+		/Sent 4 of 4 read files · 2 skipped/
 	);
+	await page.getByTestId('coverage-summary').click();
+	await page.getByTestId('coverage-group-skipped').click();
+	const rows = page.getByTestId('coverage-rows');
+	await expect(rows.locator('li', { hasText: '.env' })).toContainText(
+		'Env file with real values, never opened'
+	);
+	await page.keyboard.press('Escape');
 
 	await page.locator('.analyze-btn').click();
 	await page.locator('.preview-toggle').click();
@@ -47,5 +55,10 @@ test('sends config file structure to the AI and never an .env value', async ({ p
 	await expect(preview).toContainText('{"name":"module.vpc","kind":"resource"}');
 	await expect(preview).toContainText('{"name":"API_TOKEN","kind":"env"}');
 	await expect(preview).toContainText('{"name":"build","kind":"target"');
+	await expect(preview).toContainText(
+		'"path":"ropeman-config-files/.env.example","language":"dotenv"'
+	);
 	await expect(preview).not.toContainText(SECRET);
+	await expect(preview).not.toContainText('LEAKED_KEY');
+	await expect(preview).not.toContainText('"path":"ropeman-config-files/.env",');
 });

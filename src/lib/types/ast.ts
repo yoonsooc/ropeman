@@ -36,7 +36,7 @@ export const CONFIG_SYMBOL_KINDS = [
 	'output',
 	// Makefile rule
 	'target',
-	// A .env key; the value is never read into a symbol
+	// A key of an env template (.env.example); the value is never read into a symbol
 	'env'
 ] as const;
 

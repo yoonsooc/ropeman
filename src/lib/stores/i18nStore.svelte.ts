@@ -872,6 +872,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'file-size': '{size}보다 큼',
 				'total-size': '전체 {size}를 넘음',
 				unsupported: '이 파일 형식을 읽는 파서가 없음',
+				'env-values': '실제 값이 든 env 파일이라 열지 않음 (.env.example 같은 템플릿만 읽음)',
 				'parse-failed': '파서 오류',
 				unreadable: '파일을 열지 못함'
 			},
@@ -1487,6 +1488,8 @@ const translations: Record<Locale, TranslationSet> = {
 				'file-size': 'Larger than {size}',
 				'total-size': 'Past the {size} total',
 				unsupported: 'No parser for this file type',
+				'env-values':
+					'Env file with real values, never opened (only templates like .env.example are read)',
 				'parse-failed': 'Parser error',
 				unreadable: 'Could not open the file'
 			},

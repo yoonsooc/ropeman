@@ -7,7 +7,7 @@
  * Lower score = higher priority (parsed first).
  */
 
-import { detectLanguage, isSupported } from '$lib/utils/languageDetector';
+import { detectLanguage, isEnvFile, isSupported } from '$lib/utils/languageDetector';
 
 const CORE_DIR_PATTERN = /(^|\/)(src|lib|app|pkg|internal|cmd)\//;
 const LOW_PRIORITY_PATTERN =
@@ -288,13 +288,9 @@ export function createPathFilter(
 
 export const DEFAULT_PATH_FILTER: PathFilter = createPathFilter();
 
-// `.env` and its variants (`.env.example`) are hidden but declare the keys a service reads; the
-// same names `languageDetector` reads as dotenv, which a test pins
-const DOTENV_NAME = /^\.env(?:\..+)?$/;
-
 function isExcludedSegment(seg: string, prefix: string, filter: PathFilter): boolean {
 	if (filter.skip.has(seg) || filter.skipPaths.includes(prefix)) return true;
-	if (seg.startsWith('.') && !DOTENV_NAME.test(seg)) return true;
+	if (seg.startsWith('.') && !isEnvFile(seg)) return true;
 	return seg.endsWith('.egg-info');
 }
 

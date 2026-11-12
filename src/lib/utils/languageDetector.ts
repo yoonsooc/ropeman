@@ -36,18 +36,36 @@ export const CONFIG_LANGUAGES = ['dockerfile', 'terraform', 'dotenv', 'makefile'
 
 export type ConfigLanguage = (typeof CONFIG_LANGUAGES)[number];
 
+// `.env` files hold real values, which are secrets; only templates of them, named by their last
+// suffix (`.env.example`, `.env.local.sample`), are read, for the keys a service expects
+const ENV_FILE = /^\.env(?:\..+)?$/;
+const ENV_TEMPLATE = /^\.env(?:\.[^.]+)*\.(?:example|sample|template|dist|defaults)$/;
+
+const fileName = (filePath: string) => filePath.substring(filePath.lastIndexOf('/') + 1);
+
+/** `.env` or a variant of it (`.env.local`, `.env.example`): hidden, but kept on the map. */
+export function isEnvFile(filePath: string): boolean {
+	return ENV_FILE.test(fileName(filePath));
+}
+
+/** An env file with real values, which nothing reads: `.env` but not `.env.example`. */
+export function isEnvValueFile(filePath: string): boolean {
+	const name = fileName(filePath);
+	return ENV_FILE.test(name) && !ENV_TEMPLATE.test(name);
+}
+
 // Matched against the file name, after EXTENSION_MAP, so `Dockerfile.ts` stays TypeScript.
 // `.tfvars` is left out: it holds values, which may be secrets, and declares no structure.
 const CONFIG_FILE_NAMES: readonly [RegExp, ConfigLanguage][] = [
 	[/^(?:dockerfile|containerfile)(?:\..+)?$|\.dockerfile$/i, 'dockerfile'],
 	[/\.tf$/, 'terraform'],
-	[/^\.env(?:\..+)?$/, 'dotenv'],
+	[ENV_TEMPLATE, 'dotenv'],
 	[/^(?:gnu)?makefile$|\.mk$/i, 'makefile']
 ];
 
 /** The configuration format a file name declares, or null. */
 export function detectConfigLanguage(filePath: string): ConfigLanguage | null {
-	const name = filePath.substring(filePath.lastIndexOf('/') + 1);
+	const name = fileName(filePath);
 	return CONFIG_FILE_NAMES.find(([pattern]) => pattern.test(name))?.[1] ?? null;
 }
 

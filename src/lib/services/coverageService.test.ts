@@ -102,19 +102,22 @@ describe('buildCoverage', () => {
 		expect(report.byStatus.failed).toHaveLength(2);
 	});
 
-	it('reads config files like code: sent with symbols, not sent without', () => {
+	it('reads config files like code, and reports real env files as never opened', () => {
 		// Regression: Dockerfile, .tf, .env and Makefile were all reported as unsupported
 		const sources: Record<string, string> = {
 			'repo/Dockerfile': 'FROM node:20\nEXPOSE 3000',
 			'repo/infra/main.tf': 'resource "aws_s3_bucket" "logs" {\n}',
 			'repo/.env.example': 'DATABASE_URL=',
-			'repo/.env': '# no keys yet',
+			'repo/.env.sample': '# no keys yet',
 			'repo/Makefile': 'build:\n\tnpm run build'
 		};
-		const fileTree = tree('repo', [
-			...Object.keys(sources).map((path) => file(path, detectLanguage(path) ?? undefined)),
-			file('repo/logo.png', detectLanguage('repo/logo.png') ?? undefined)
-		]);
+		const unread = ['repo/logo.png', 'repo/.env', 'repo/.env.production'];
+		const fileTree = tree(
+			'repo',
+			[...Object.keys(sources), ...unread].map((path) =>
+				file(path, detectLanguage(path) ?? undefined)
+			)
+		);
 		const astMap = new Map(
 			Object.entries(sources).map(([path, content]) => [
 				path,
@@ -128,7 +131,9 @@ describe('buildCoverage', () => {
 			Dockerfile: 'sent',
 			'infra/main.tf': 'sent',
 			'.env.example': 'sent',
-			'.env': 'no-symbols',
+			'.env.sample': 'no-symbols',
+			'.env': 'env-values',
+			'.env.production': 'env-values',
 			Makefile: 'sent',
 			'logo.png': 'unsupported'
 		});

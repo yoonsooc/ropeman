@@ -3,12 +3,12 @@ import type { ConfigLanguage } from '$lib/utils/languageDetector';
 
 /**
  * Line parsers for the configuration files that say how a system runs: Dockerfile, Terraform,
- * `.env` and Makefile. None has a grammar in `tree-sitter-wasms`, so each is a short scan in the
- * style of Understand-Anything's non-code parsers. They return structure only: block names with
- * line ranges, and what a file points at (images, copied paths, module sources, includes,
- * prerequisites) as `import` symbols. A value is never copied into a symbol, so a `.env` secret
- * cannot reach the code map, the skeleton or the AI. Every pattern is linear per line, because
- * these run on the main thread.
+ * env templates (`.env.example`) and Makefile. None has a grammar in `tree-sitter-wasms`, so each
+ * is a short scan in the style of Understand-Anything's non-code parsers. They return structure
+ * only: block names with line ranges, and what a file points at (images, copied paths, module
+ * sources, includes, prerequisites) as `import` symbols. A value is never copied into a symbol,
+ * and a real `.env` is never read, so its secrets cannot reach the code map, the skeleton or the
+ * AI. Every pattern is linear per line, because these run on the main thread.
  */
 export const CONFIG_PARSERS: Record<ConfigLanguage, (content: string) => ASTSymbol[]> = {
 	dockerfile: parseDockerfile,
@@ -275,18 +275,21 @@ function scanHclLine(line: string, scan: HclScan): void {
 	}
 }
 
-const DOTENV_ASSIGNMENT = /^(\s*)(?:export\s+)?([A-Za-z_][\w.-]*)\s*=(?!=)/;
+// Upper-case names only: a pasted value spills onto lines that look like `name=`, and base64 or
+// PEM text is mixed case. Lower-case and dotted keys are lost with it.
+const DOTENV_ASSIGNMENT = /^(\s*)(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*=(?!=)/;
 const DOTENV_SEPARATOR = /^\s*(?:#|$)/;
 
 /**
- * One `env` symbol per key, out of the keys dotenv reads. The value is scanned only for an
+ * One `env` symbol per key of an env template (`.env.example`); `languageDetector` routes no
+ * other env file here, because a real `.env` holds secrets. The value is scanned only for an
  * unclosed quote, so a quoted multi-line value (a PEM key) is skipped whole.
  *
  * An unquoted value ends at its newline, so a pasted multi-line value spills onto lines dotenv
  * reads as keys (`Xk3jQ9Zz==` becomes key `Xk3jQ9Zz`). Once a key is followed by a line that is
- * no assignment, or by one indented deeper than the key, every line up to the next blank line or
- * comment is taken as that key's value. This can drop a real key, never make one from value text.
- * A value starting with `=` is base64 padding, not a key.
+ * no upper-case assignment, one indented deeper than the key, or one after a line ending in `\`,
+ * every line up to the next blank line or comment is taken as that key's value. This can drop a
+ * real key, never make one from value text. A value starting with `=` is base64 padding.
  */
 export function parseDotenv(content: string): ASTSymbol[] {
 	const lines = content.split(/\r?\n/);
@@ -300,7 +303,8 @@ export function parseDotenv(content: string): ASTSymbol[] {
 			continue;
 		}
 		const match = lines[i].match(DOTENV_ASSIGNMENT);
-		if (!match || spilled || (open && match[1].length > open.indent)) {
+		const continued = i > 0 && lines[i - 1].endsWith('\\');
+		if (!match || spilled || (open && (continued || match[1].length > open.indent))) {
 			if (open) {
 				spilled = true;
 				open.symbol.lineEnd = i + 1;

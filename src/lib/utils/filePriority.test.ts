@@ -11,7 +11,7 @@ import {
 	capFiles,
 	DEFAULT_PATH_FILTER
 } from './filePriority';
-import { detectLanguage } from './languageDetector';
+import { isEnvFile } from './languageDetector';
 
 describe('pathPriority', () => {
 	describe('GitHub tree paths (no repo prefix)', () => {
@@ -145,8 +145,9 @@ describe('shouldSkipPath', () => {
 		expect(shouldSkipPath('.env/something')).toBe(false);
 	});
 
-	it('keeps exactly the hidden files the parser reads as dotenv', () => {
-		// Regression: `.env.example` was dropped as a hidden file, so its keys never reached the map
+	it('keeps every env file on the map and no other hidden file', () => {
+		// Regression: `.env.example` was dropped as a hidden file, so its keys never reached the map.
+		// Real env files stay listed so coverage can say they are never opened
 		const hidden = [
 			'.env',
 			'packages/server/.env.example',
@@ -159,7 +160,7 @@ describe('shouldSkipPath', () => {
 		const kept = hidden.filter((path) => !shouldSkipPath(path, DEFAULT_PATH_FILTER, true));
 
 		expect(kept).toEqual(['.env', 'packages/server/.env.example', '.env.production']);
-		expect(kept).toEqual(hidden.filter((path) => detectLanguage(path) === 'dotenv'));
+		expect(kept).toEqual(hidden.filter(isEnvFile));
 	});
 
 	it('skips root-level skip directories with trailing slash', () => {
