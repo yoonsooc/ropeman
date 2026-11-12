@@ -55,14 +55,14 @@
 		max-width: 760px;
 		margin: 0 auto;
 		padding: 48px 32px 96px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		font-family: var(--font-body);
 	}
 
 	.article-header {
 		margin-bottom: 40px;
 		padding-bottom: 24px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.article-header h1 {
@@ -71,13 +71,13 @@
 		font-weight: 600;
 		line-height: 1.2;
 		margin: 0 0 12px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.article-lede {
 		font-size: 17px;
 		line-height: 1.6;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 0;
 	}
 
@@ -86,7 +86,7 @@
 		font-size: 26px;
 		font-weight: 600;
 		margin: 48px 0 16px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		scroll-margin-top: 72px;
 	}
 
@@ -95,7 +95,7 @@
 		font-size: 20px;
 		font-weight: 600;
 		margin: 32px 0 12px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		scroll-margin-top: 72px;
 	}
 
@@ -106,14 +106,14 @@
 	}
 
 	.docs-content :global(a) {
-		color: var(--accent);
+		color: var(--color-accent);
 		text-decoration: none;
 		border-bottom: 1px solid transparent;
 		transition: border-color 0.15s ease;
 	}
 
 	.docs-content :global(a:hover) {
-		border-bottom-color: var(--accent);
+		border-bottom-color: var(--color-accent);
 	}
 
 	.docs-content :global(ul),
@@ -132,15 +132,15 @@
 		font-family: var(--font-code);
 		font-size: 0.9em;
 		padding: 2px 6px;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.docs-content :global(pre) {
-		background: var(--code-bg);
-		border: 1px solid var(--border);
+		background: var(--color-syntax-background);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		padding: 16px 20px;
 		overflow-x: auto;
@@ -151,17 +151,17 @@
 		background: transparent;
 		border: none;
 		padding: 0;
-		color: var(--code-text);
+		color: var(--color-syntax-text);
 		font-size: 14px;
 		line-height: 1.6;
 	}
 
 	.docs-content :global(blockquote) {
-		border-left: 3px solid var(--accent);
+		border-left: 3px solid var(--color-accent);
 		padding: 8px 16px;
 		margin: 16px 0;
-		background: var(--bg-secondary);
-		color: var(--text-secondary);
+		background: var(--color-background-surface);
+		color: var(--color-text-secondary);
 		border-radius: 0 6px 6px 0;
 	}
 
@@ -176,12 +176,12 @@
 	.docs-content :global(td) {
 		text-align: left;
 		padding: 10px 12px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.docs-content :global(th) {
 		font-weight: 600;
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 	}
 
 	.docs-content :global(img) {
@@ -191,7 +191,7 @@
 
 	.docs-content :global(hr) {
 		border: none;
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--color-border);
 		margin: 32px 0;
 	}
 </style>

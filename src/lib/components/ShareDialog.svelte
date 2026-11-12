@@ -209,7 +209,7 @@
 
 	.share-message {
 		font-size: 13px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		line-height: 1.6;
 		margin: 0;
 	}
@@ -236,18 +236,18 @@
 	}
 
 	.share-btn-cancel {
-		background: var(--bg-tertiary);
-		color: var(--text-secondary);
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
+		border: 1px solid var(--color-border);
 	}
 
 	.share-btn-cancel:hover {
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 	}
 
 	.share-btn-confirm {
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 	}
 
 	.share-btn-confirm:hover {
@@ -255,8 +255,8 @@
 	}
 
 	.share-btn-copy {
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 	}
 
 	.share-btn-copy:hover {
@@ -264,13 +264,13 @@
 	}
 
 	.share-btn-open {
-		background: var(--bg-tertiary);
-		color: var(--text-secondary);
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
+		border: 1px solid var(--color-border);
 	}
 
 	.share-btn-open:hover {
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 	}
 
 	.share-loading {
@@ -283,13 +283,13 @@
 
 	.share-loading p {
 		font-size: 13px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 0;
 	}
 
 	.share-spinner {
 		font-size: 24px;
-		color: var(--accent);
+		color: var(--color-accent);
 		animation: spin 0.8s linear infinite;
 	}
 
@@ -302,7 +302,7 @@
 	.share-success-title {
 		font-size: 13px;
 		font-weight: 600;
-		color: var(--color-success, #22c55e);
+		color: var(--color-text-success);
 		margin: 0;
 	}
 
@@ -315,16 +315,15 @@
 		flex: 1;
 		padding: 8px 10px;
 		border-radius: 6px;
-		border: 1px solid var(--ghost-border);
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		border: 1px solid var(--color-border);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 		font-family: var(--font-code);
 		font-size: 12px;
-		outline: none;
 	}
 
 	.share-url-input:focus {
-		border-color: var(--accent);
+		border-color: var(--color-accent);
 	}
 
 	.share-error {
@@ -337,26 +336,26 @@
 
 	.share-error-icon {
 		font-size: 28px;
-		color: var(--error, #ff6e84);
+		color: var(--color-text-error);
 	}
 
 	.share-error-title {
 		font-size: 13px;
 		font-weight: 600;
-		color: var(--error, #ff6e84);
+		color: var(--color-text-error);
 		margin: 0;
 	}
 
 	.share-error-message {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 0;
 		text-align: center;
 	}
 
 	.share-error-detail {
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-family: var(--font-code);
 		margin: 0;
 	}

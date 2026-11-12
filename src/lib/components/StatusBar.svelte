@@ -7,44 +7,44 @@
 		if (!track)
 			return {
 				status: i18nStore.t('track.disconnected'),
-				color: 'var(--text-muted)',
+				color: 'var(--color-text-tertiary)',
 				dotClass: ''
 			};
 		switch (track) {
 			case 'edge':
 				return {
 					status: i18nStore.t('track.edge'),
-					color: 'var(--color-success)',
+					color: 'var(--color-text-success)',
 					dotClass: 'dot-success'
 				};
 			case 'byok':
 				return {
 					status: i18nStore.t('track.byok'),
-					color: 'var(--color-success)',
+					color: 'var(--color-text-success)',
 					dotClass: 'dot-success'
 				};
 			case 'bridge':
 				return authStore.bridgeStatus === 'connected'
 					? {
 							status: i18nStore.t('track.bridgeConnected'),
-							color: 'var(--color-success)',
+							color: 'var(--color-text-success)',
 							dotClass: 'dot-success'
 						}
 					: {
 							status: i18nStore.t('track.bridgeDisconnected'),
-							color: 'var(--text-muted)',
+							color: 'var(--color-text-tertiary)',
 							dotClass: ''
 						};
 			case 'webgpu':
 				return {
 					status: i18nStore.t('track.webgpu'),
-					color: 'var(--color-success)',
+					color: 'var(--color-text-success)',
 					dotClass: 'dot-success'
 				};
 			default:
 				return {
 					status: i18nStore.t('track.disconnected'),
-					color: 'var(--text-muted)',
+					color: 'var(--color-text-tertiary)',
 					dotClass: ''
 				};
 		}
@@ -81,14 +81,14 @@
 	.status-bar {
 		height: 32px;
 		width: 100%;
-		background: var(--bg-secondary, #151a21);
+		background: var(--color-background-surface);
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		padding: 0 16px;
 		flex-shrink: 0;
 		z-index: 50;
-		border-top: 1px solid var(--ghost-border);
+		border-top: 1px solid var(--color-border);
 	}
 
 	.status-left,
@@ -107,18 +107,18 @@
 	}
 
 	.status-item:hover {
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.status-icon {
 		font-size: 14px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.status-text {
 		font-family: var(--font-body);
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.status-connection {
@@ -131,11 +131,11 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: var(--text-muted);
+		background: var(--color-text-tertiary);
 	}
 
 	.connection-dot.dot-success {
-		background: var(--color-success, #7ad4a0);
+		background: var(--color-icon-success);
 	}
 
 	.connection-text {
@@ -146,12 +146,12 @@
 	.status-divider {
 		width: 1px;
 		height: 12px;
-		background: var(--bg-tertiary, #1b2028);
+		background: var(--color-background-muted);
 	}
 
 	.status-version {
 		font-family: var(--font-body);
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 </style>

@@ -182,7 +182,7 @@
 		font-family: var(--font-display);
 		font-size: 15px;
 		font-weight: 600;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 	.newproject-folder {
 		display: inline-flex;
@@ -200,7 +200,7 @@
 		margin: 0;
 		font-size: 12px;
 		line-height: 1.5;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.newproject-hint .material-symbols-outlined {
 		font-size: 16px;
@@ -209,7 +209,7 @@
 		margin-top: 4px;
 		font-size: 12px;
 		font-weight: 500;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.newproject-row {
 		display: flex;
@@ -234,12 +234,12 @@
 	.newproject-error {
 		margin: 0;
 		font-size: 12px;
-		color: var(--color-error);
+		color: var(--color-text-error);
 	}
 	.newproject-note {
 		margin: 0;
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.newproject-spinner {

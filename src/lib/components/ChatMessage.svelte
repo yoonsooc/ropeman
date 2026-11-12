@@ -59,7 +59,7 @@
 	.chat-related-link {
 		background: none;
 		border: none;
-		color: var(--accent);
+		color: var(--color-accent);
 		cursor: pointer;
 		font-size: 11px;
 		padding: 2px 4px;
@@ -70,14 +70,14 @@
 		opacity: 0.8;
 	}
 	.chat-message-content :global(pre) {
-		background: var(--bg-tertiary);
+		background: var(--color-background-muted);
 		padding: 8px 12px;
 		border-radius: 6px;
 		overflow-x: auto;
 		font-size: 12px;
 	}
 	.chat-message-content :global(code) {
-		background: var(--bg-tertiary);
+		background: var(--color-background-muted);
 		padding: 1px 4px;
 		border-radius: 3px;
 		font-size: 12px;

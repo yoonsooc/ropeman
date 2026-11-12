@@ -251,9 +251,9 @@
 		justify-content: space-between;
 		padding: 0 16px;
 		width: 100%;
-		background: var(--sidebar-icon-bg);
+		background: var(--color-background-sidebar-icon);
 		flex-shrink: 0;
-		border-bottom: 1px solid var(--ghost-border);
+		border-bottom: 1px solid var(--color-border);
 		position: sticky;
 		top: 0;
 		z-index: 50;
@@ -277,8 +277,8 @@
 	.header-title {
 		font-size: 18px;
 		font-weight: 700;
-		color: var(--accent);
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+		color: var(--color-accent);
+		font-family: var(--font-display);
 	}
 
 	.home-btn {
@@ -296,12 +296,12 @@
 
 	.header-subtitle {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.header-project {
 		font-size: 13px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-weight: 500;
 	}
 
@@ -319,7 +319,7 @@
 		border-radius: 4px;
 		font-size: 11px;
 		font-weight: 700;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		transition:
 			background-color var(--transition),
 			color var(--transition);
@@ -332,8 +332,8 @@
 
 	@media (hover: hover) {
 		.header-btn:hover {
-			background: var(--bg-tertiary);
-			color: var(--text-primary);
+			background: var(--color-background-muted);
+			color: var(--color-text-primary);
 		}
 	}
 
@@ -345,10 +345,10 @@
 		width: auto;
 		padding: 4px 12px;
 		gap: 6px;
-		background: var(--bg-tertiary);
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-muted);
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
-		color: var(--accent-secondary);
+		color: var(--color-accent);
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 700;
@@ -356,7 +356,7 @@
 
 	@media (hover: hover) {
 		.header-btn.text-btn:hover {
-			background: var(--bg-tertiary);
+			background: var(--color-background-muted);
 		}
 	}
 
@@ -369,8 +369,8 @@
 		align-items: center;
 		gap: 6px;
 		padding: 4px 12px;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 		border: none;
 		border-radius: 4px;
 		font-family: var(--font-display);
@@ -396,9 +396,9 @@
 		align-items: center;
 		gap: 6px;
 		padding: 4px 12px;
-		background: var(--bg-tertiary);
-		color: var(--accent-secondary, var(--text-secondary));
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-muted);
+		color: var(--color-accent);
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		font-family: var(--font-display);
 		font-size: 12px;
@@ -411,7 +411,7 @@
 
 	@media (hover: hover) {
 		.share-btn:hover:not(:disabled) {
-			background: var(--bg-secondary);
+			background: var(--color-background-surface);
 		}
 	}
 
@@ -438,15 +438,15 @@
 		padding: 2px 8px;
 		margin-left: 4px;
 		border-radius: 9999px;
-		background: var(--accent-bg);
-		border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+		background: var(--color-accent-muted);
+		border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
 		cursor: pointer;
 		transition: background 0.2s;
 	}
 
 	@media (hover: hover) {
 		.track-badge:hover {
-			background: color-mix(in srgb, var(--accent) 15%, transparent);
+			background: color-mix(in srgb, var(--color-accent) 15%, transparent);
 		}
 	}
 
@@ -454,7 +454,7 @@
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: var(--accent, #a3a6ff);
+		background: var(--color-accent);
 		flex-shrink: 0;
 		animation: trackPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 	}
@@ -472,13 +472,13 @@
 	.track-label {
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--accent);
+		color: var(--color-accent);
 	}
 
 	.header-divider {
 		width: 0;
 		height: 100%;
-		border-left: 1px solid var(--ghost-border);
+		border-left: 1px solid var(--color-border);
 		margin-left: 8px;
 		padding-left: 16px;
 	}

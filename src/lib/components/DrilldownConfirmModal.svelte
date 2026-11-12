@@ -28,7 +28,7 @@
 			case 'byok':
 				return { label: i18nStore.t('track.byok'), color: 'var(--track-byok)' };
 			default:
-				return { label: i18nStore.t('track.none'), color: 'var(--text-muted)' };
+				return { label: i18nStore.t('track.none'), color: 'var(--color-text-tertiary)' };
 		}
 	});
 
@@ -122,9 +122,9 @@
 		gap: 8px;
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		margin-bottom: 0;
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+		font-family: var(--font-display);
 	}
 	.title-dot {
 		width: 8px;
@@ -135,11 +135,11 @@
 	.drilldown-label {
 		font-size: 12px;
 		font-family: var(--font-code);
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 	.drilldown-desc {
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 0 0 20px;
 		line-height: 1.625;
 	}
@@ -148,7 +148,7 @@
 		align-items: center;
 		gap: 6px;
 		padding: 8px 12px;
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 		border-radius: 8px;
 		margin-bottom: 14px;
 	}
@@ -164,21 +164,21 @@
 	}
 	.track-suffix {
 		font-size: 13px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.dont-ask {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		cursor: pointer;
 		margin-bottom: 20px;
 	}
 	.dont-ask input {
 		width: 12px;
 		height: 12px;
-		accent-color: var(--accent);
+		accent-color: var(--color-accent);
 		border-radius: 4px;
 	}
 	.drilldown-actions {

@@ -64,7 +64,7 @@
 	.code-panel {
 		display: flex;
 		flex-direction: column;
-		background: var(--code-bg);
+		background: var(--color-syntax-background);
 		border-radius: 8px;
 		overflow: hidden;
 		font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
@@ -77,23 +77,23 @@
 		align-items: center;
 		gap: 8px;
 		padding: 8px 12px;
-		background: var(--bg-tertiary);
-		border-bottom: 1px solid var(--ghost-border);
+		background: var(--color-background-muted);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.lang-badge {
 		font-size: 11px;
 		font-weight: 600;
 		text-transform: uppercase;
-		color: var(--accent);
-		background: rgba(96, 165, 250, 0.12);
+		color: var(--color-accent);
+		background: var(--color-accent-muted);
 		padding: 2px 8px;
 		border-radius: 4px;
 	}
 
 	.line-range {
 		font-size: 11px;
-		color: var(--code-text);
+		color: var(--color-syntax-text);
 		opacity: 0.5;
 	}
 
@@ -105,7 +105,7 @@
 
 	pre {
 		margin: 0;
-		color: var(--code-text);
+		color: var(--color-syntax-text);
 	}
 
 	code {
@@ -119,12 +119,12 @@
 	}
 
 	.code-line:hover {
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 	}
 
 	.code-line.highlighted {
-		background: rgba(96, 165, 250, 0.12);
-		border-left: 3px solid var(--accent);
+		background: var(--color-accent-muted);
+		border-left: 3px solid var(--color-accent);
 		padding-left: 9px;
 	}
 
@@ -134,7 +134,7 @@
 		min-width: 40px;
 		text-align: right;
 		padding-right: 16px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		user-select: none;
 		flex-shrink: 0;
 	}

@@ -218,7 +218,7 @@
 
 	.help-tabs {
 		display: flex;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		padding: 0 20px;
 		gap: 0;
 		flex-shrink: 0;
@@ -228,7 +228,7 @@
 		padding: 10px 16px;
 		font-size: 12px;
 		font-weight: 500;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		background: none;
 		border: none;
 		border-bottom: 2px solid transparent;
@@ -240,12 +240,12 @@
 	}
 
 	.help-tab:hover {
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.help-tab.active {
-		color: var(--accent);
-		border-bottom-color: var(--accent);
+		color: var(--color-accent);
+		border-bottom-color: var(--color-accent);
 	}
 
 	.help-body {
@@ -269,7 +269,7 @@
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 0;
 	}
 
@@ -296,8 +296,8 @@
 		width: 22px;
 		height: 22px;
 		border-radius: 50%;
-		background: var(--accent-muted);
-		color: var(--accent);
+		background: var(--color-accent-muted);
+		color: var(--color-accent);
 		font-size: 11px;
 		font-weight: 700;
 		flex-shrink: 0;
@@ -306,7 +306,7 @@
 
 	.step-text {
 		font-size: 12px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		line-height: 1.6;
 	}
 
@@ -321,7 +321,7 @@
 
 	.help-list li {
 		font-size: 12px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		line-height: 1.5;
 		padding-left: 12px;
 		position: relative;
@@ -335,7 +335,7 @@
 		width: 4px;
 		height: 4px;
 		border-radius: 50%;
-		background: var(--text-muted);
+		background: var(--color-text-tertiary);
 	}
 
 	/* AI Modes */
@@ -346,7 +346,7 @@
 	}
 
 	.ai-mode-card {
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 		border-radius: 8px;
 		padding: 12px;
 	}
@@ -369,12 +369,12 @@
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.ai-mode-desc {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		line-height: 1.6;
 		margin: 0;
 	}
@@ -395,7 +395,7 @@
 
 	.shortcut-desc {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.shortcut-keys {
@@ -403,13 +403,13 @@
 		align-items: center;
 		gap: 2px;
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.shortcut-keys :global(kbd) {
 		font-family: var(--font-code);
-		color: var(--text-muted);
-		background: var(--bg-lowest, #000000);
+		color: var(--color-text-tertiary);
+		background: var(--color-background-canvas);
 		padding: 2px 6px;
 		border-radius: 4px;
 		font-size: 11px;
@@ -423,7 +423,7 @@
 	}
 
 	.faq-item {
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 		border-radius: 8px;
 		overflow: hidden;
 	}
@@ -431,7 +431,7 @@
 	.faq-question {
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		padding: 12px;
 		cursor: pointer;
 		list-style: none;
@@ -448,7 +448,7 @@
 		content: '';
 		width: 0;
 		height: 0;
-		border-left: 5px solid var(--text-muted);
+		border-left: 5px solid var(--color-text-tertiary);
 		border-top: 4px solid transparent;
 		border-bottom: 4px solid transparent;
 		flex-shrink: 0;
@@ -461,7 +461,7 @@
 
 	.faq-answer {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		line-height: 1.6;
 		padding: 0 12px 8px;
 		margin: 0;
@@ -473,7 +473,7 @@
 		margin: 0 12px 12px;
 		padding: 0;
 		font-size: 12px;
-		color: var(--accent);
+		color: var(--color-accent);
 		text-decoration: none;
 		font-weight: 500;
 	}
@@ -485,7 +485,7 @@
 	/* Footer */
 	.help-footer {
 		padding: 12px 20px;
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
 
@@ -497,9 +497,9 @@
 		border-radius: 6px;
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		background: transparent;
-		border: 1px solid var(--border);
+		border: 1px solid var(--color-border);
 		cursor: pointer;
 		transition:
 			background 0.15s,
@@ -507,8 +507,8 @@
 	}
 
 	.help-tour-btn:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.help-footer-info {
@@ -517,16 +517,16 @@
 		gap: 12px;
 		margin-top: 8px;
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.help-footer-info a {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		text-decoration: none;
 	}
 
 	.help-footer-info a:hover {
-		color: var(--accent);
+		color: var(--color-accent);
 	}
 
 	@media (max-width: 600px) {

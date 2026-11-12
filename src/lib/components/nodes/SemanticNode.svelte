@@ -112,7 +112,7 @@
 	.semantic-node {
 		width: 256px;
 		min-height: 176px;
-		background: color-mix(in srgb, var(--node-color) 7%, var(--bg-secondary));
+		background: color-mix(in srgb, var(--node-color) 7%, var(--color-background-surface));
 		border: 1px solid color-mix(in srgb, var(--node-color) 30%, transparent);
 		border-radius: 10px;
 		padding: 14px 16px 10px;
@@ -128,12 +128,12 @@
 
 	@media (hover: hover) {
 		.semantic-node:hover {
-			background: color-mix(in srgb, var(--node-color) 12%, var(--bg-secondary));
+			background: color-mix(in srgb, var(--node-color) 12%, var(--color-background-surface));
 		}
 	}
 
 	.semantic-node.highlighted {
-		background: color-mix(in srgb, var(--node-color) 14%, var(--bg-secondary));
+		background: color-mix(in srgb, var(--node-color) 14%, var(--color-background-surface));
 		box-shadow: 0 0 0 2px color-mix(in srgb, var(--node-color) 55%, transparent);
 	}
 
@@ -141,7 +141,7 @@
 		border-color: var(--node-color);
 		box-shadow:
 			0 0 0 2px color-mix(in srgb, var(--node-color) 55%, transparent),
-			0 8px 24px rgba(0, 0, 0, 0.2);
+			0 8px 24px var(--color-shadow);
 	}
 
 	/* Unrelated nodes step back but stay readable; neighbors of the selection stay lit */
@@ -183,7 +183,7 @@
 		font-size: 15px;
 		font-weight: 600;
 		line-height: 1.3;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		flex: 1;
 		min-width: 0;
 		overflow: hidden;
@@ -195,7 +195,7 @@
 	.node-badge {
 		font-size: 11px;
 		font-weight: 500;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 		flex-shrink: 0;
@@ -203,7 +203,7 @@
 
 	.node-description {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		line-height: 1.5;
 		margin: 0;
 		display: -webkit-box;
@@ -222,7 +222,7 @@
 	.symbol-tag {
 		font-size: 11px;
 		font-family: var(--font-code);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		background: color-mix(in srgb, var(--node-color) 10%, transparent);
 		padding: 1px 6px;
 		border-radius: 4px;
@@ -234,7 +234,7 @@
 
 	.symbol-more {
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		align-self: center;
 	}
 
@@ -252,7 +252,7 @@
 		gap: 4px;
 		font-size: 12px;
 		font-weight: 500;
-		color: color-mix(in srgb, var(--node-color) 70%, var(--text-primary));
+		color: color-mix(in srgb, var(--node-color) 70%, var(--color-text-primary));
 		padding: 2px 6px;
 		border-radius: 4px;
 		transition: background-color 0.15s ease-out;
@@ -260,11 +260,11 @@
 
 	/* Light surfaces: AI-picked node colors can be pale, so the label stays near text color */
 	:global([data-theme='light']) .open-btn {
-		color: color-mix(in srgb, var(--node-color) 35%, var(--text-primary));
+		color: color-mix(in srgb, var(--node-color) 35%, var(--color-text-primary));
 	}
 
 	.snapshot-unavailable .open-btn {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.reanalyze-btn {
@@ -274,7 +274,7 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 4px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-size: 14px;
 		line-height: 1;
 		opacity: 0;

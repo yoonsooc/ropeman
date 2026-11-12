@@ -388,7 +388,7 @@
 						<span
 							aria-hidden="true"
 							class="material-symbols-outlined feature-mat-icon"
-							style="color: var(--accent)">psychology</span
+							style="color: var(--color-accent)">psychology</span
 						>
 						<h2>{i18nStore.t('landing.featureAiTitle')}</h2>
 						<p>{i18nStore.t('landing.featureAiDesc')}</p>
@@ -397,7 +397,7 @@
 						<span
 							aria-hidden="true"
 							class="material-symbols-outlined feature-mat-icon"
-							style="color: var(--accent)">account_tree</span
+							style="color: var(--color-accent)">account_tree</span
 						>
 						<h2>{i18nStore.t('landing.featureDrillTitle')}</h2>
 						<p>{i18nStore.t('landing.featureDrillDesc')}</p>
@@ -406,7 +406,7 @@
 						<span
 							aria-hidden="true"
 							class="material-symbols-outlined feature-mat-icon"
-							style="color: var(--accent)">hub</span
+							style="color: var(--color-accent)">hub</span
 						>
 						<h2>{i18nStore.t('landing.featureBrowserTitle')}</h2>
 						<p>{i18nStore.t('landing.featureBrowserDesc')}</p>
@@ -454,7 +454,7 @@
 		transition: background-color 0.2s ease;
 		overflow-y: auto;
 		overflow-x: hidden;
-		background-color: var(--bg-primary);
+		background-color: var(--color-background-body);
 	}
 
 	.dropzone-close {
@@ -467,22 +467,22 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 8px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 		z-index: 1;
 	}
 
 	@media (hover: hover) {
 		.dropzone-close:hover {
-			background: var(--bg-tertiary);
-			color: var(--text-primary);
+			background: var(--color-background-muted);
+			color: var(--color-text-primary);
 		}
 	}
 
 	/* Show the standard "copy" cursor ONLY while an actual drag is in progress,
 	   so idle hover over body text behaves normally. */
 	.dropzone.dragover {
-		background-color: color-mix(in srgb, var(--accent) 5%, transparent);
+		background-color: color-mix(in srgb, var(--color-accent) 5%, transparent);
 		cursor: copy;
 	}
 
@@ -492,7 +492,7 @@
 		margin-top: 48px;
 		margin-bottom: 64px;
 		padding: 0 24px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	/* Landing layout */
@@ -519,14 +519,14 @@
 		font-family: var(--font-display);
 		font-size: 44px;
 		font-weight: 700;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		line-height: 1.2;
 		letter-spacing: -0.01em;
 		margin-bottom: 0;
 	}
 
 	.hero-text h1 :global(.headline-accent) {
-		color: var(--accent);
+		color: var(--color-accent);
 	}
 
 	.example-link.compact {
@@ -540,7 +540,7 @@
 		font-family: var(--font-body);
 		font-size: 16px;
 		line-height: 1.6;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		max-width: 520px;
 		margin-top: 16px;
 		margin-bottom: 32px;
@@ -562,8 +562,8 @@
 		align-items: center;
 		gap: 10px;
 		padding: 14px 28px;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 		border-radius: 8px;
 		font-family: var(--font-display);
 		font-size: 16px;
@@ -576,7 +576,7 @@
 
 	@media (hover: hover) {
 		.cta-btn:hover {
-			background: var(--accent-hover);
+			background: var(--color-accent-hover);
 		}
 	}
 
@@ -592,7 +592,7 @@
 		margin-top: 16px;
 		margin-left: 8px;
 		font-size: 14px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.mobile-folder-hint {
@@ -603,15 +603,15 @@
 		padding: 10px 12px;
 		font-size: 13px;
 		line-height: 1.5;
-		color: var(--text-secondary);
-		background: color-mix(in srgb, var(--accent) 8%, transparent);
-		border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+		color: var(--color-text-secondary);
+		background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+		border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
 		border-radius: 8px;
 	}
 
 	.mobile-folder-hint .material-symbols-outlined {
 		font-size: 18px;
-		color: var(--accent);
+		color: var(--color-accent);
 	}
 
 	/* GitHub URL input */
@@ -622,7 +622,7 @@
 	.github-or {
 		display: block;
 		font-size: 14px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		margin-bottom: 8px;
 	}
 
@@ -637,18 +637,17 @@
 		flex: 1;
 		min-width: 0;
 		padding: 10px 14px;
-		background: var(--bg-secondary);
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		font-family: var(--font-code);
 		font-size: 14px;
-		outline: none;
 		transition: border-color 0.15s ease;
 	}
 
 	.github-input:focus {
-		border-color: var(--accent);
+		border-color: var(--color-accent);
 	}
 
 	.github-input:disabled {
@@ -656,7 +655,7 @@
 	}
 
 	.github-input::placeholder {
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.github-load-btn {
@@ -664,10 +663,10 @@
 		align-items: center;
 		gap: 4px;
 		padding: 10px 16px;
-		background: var(--bg-secondary);
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		font-family: var(--font-display);
 		font-size: 14px;
 		font-weight: 600;
@@ -680,8 +679,8 @@
 
 	@media (hover: hover) {
 		.github-load-btn:hover:not(:disabled) {
-			border-color: var(--accent);
-			color: var(--accent);
+			border-color: var(--color-accent);
+			color: var(--color-accent);
 		}
 	}
 
@@ -724,10 +723,10 @@
 		display: block;
 		border-radius: 12px;
 		overflow: hidden;
-		border: 1px solid var(--border);
+		border: 1px solid var(--color-border);
 		box-shadow:
-			0 1px 2px rgba(0, 0, 0, 0.08),
-			0 16px 40px rgba(0, 0, 0, 0.22);
+			0 1px 2px var(--color-shadow),
+			0 16px 40px var(--color-shadow);
 		transition: border-color 0.15s ease-out;
 	}
 
@@ -735,20 +734,20 @@
 		display: block;
 		width: 100%;
 		height: auto;
-		outline: 1px solid oklch(1 0 0 / 0.06);
+		outline: 1px solid color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 		outline-offset: -1px;
 	}
 
 	@media (hover: hover) {
 		.hero-shot:hover {
-			border-color: var(--accent-muted);
+			border-color: var(--color-accent-muted);
 		}
 	}
 
 	.hero-visual figcaption {
 		margin-top: 12px;
 		font-size: 13px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.example-link {
@@ -759,7 +758,7 @@
 		padding: 14px 8px;
 		font-size: 15px;
 		font-weight: 500;
-		color: var(--accent);
+		color: var(--color-accent);
 	}
 
 	/* Technical Specs Strip — Stitch v2 */
@@ -771,8 +770,8 @@
 		gap: 32px;
 		margin-top: 32px;
 		padding: 24px 48px;
-		border-top: 1px solid color-mix(in srgb, var(--text-muted, #64748b) 20%, transparent);
-		background: color-mix(in srgb, var(--bg-secondary, #151a21) 40%, transparent);
+		border-top: 1px solid color-mix(in srgb, var(--color-text-tertiary) 20%, transparent);
+		background: color-mix(in srgb, var(--color-background-surface) 40%, transparent);
 		border-radius: 8px;
 		opacity: 0.7;
 	}
@@ -784,12 +783,12 @@
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.specs-item .material-symbols-outlined {
 		font-size: 18px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		opacity: 0.8;
 	}
 
@@ -806,8 +805,8 @@
 	   hover affordances (pointer cursor, border highlight) that would
 	   suggest otherwise. */
 	.feature-card {
-		background: var(--bg-secondary);
-		border: 1px solid rgba(255, 255, 255, 0.05);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		padding: 32px;
 		text-align: left;
@@ -823,7 +822,7 @@
 		font-family: var(--font-display);
 		font-size: 18px;
 		font-weight: 700;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		margin-bottom: 8px;
 	}
 
@@ -831,12 +830,12 @@
 		font-family: var(--font-body);
 		font-size: 14px;
 		line-height: 1.625;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.error-msg {
 		margin-top: 12px;
-		color: var(--color-error, #e53e3e);
+		color: var(--color-text-error);
 		font-size: 13px;
 	}
 
@@ -850,13 +849,13 @@
 	}
 
 	.loading-card {
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 		padding: 32px 40px;
 		border-radius: 12px;
-		border: 1px solid var(--border);
+		border: 1px solid var(--color-border);
 		box-shadow:
-			0 1px 2px rgba(0, 0, 0, 0.08),
-			0 8px 24px rgba(0, 0, 0, 0.16);
+			0 1px 2px var(--color-shadow),
+			0 8px 24px var(--color-shadow);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -874,14 +873,14 @@
 		width: 64px;
 		height: 64px;
 		border-radius: 50%;
-		border: 2px solid var(--accent-muted);
-		border-top-color: var(--accent, #a3a6ff);
+		border: 2px solid var(--color-accent-muted);
+		border-top-color: var(--color-accent);
 		animation: spin 0.8s linear infinite;
 	}
 
 	.loading-icon {
 		position: absolute;
-		color: var(--accent, #a3a6ff);
+		color: var(--color-accent);
 		font-size: 30px;
 		animation: pulse 2s ease-in-out infinite;
 	}
@@ -904,18 +903,18 @@
 		font-family: var(--font-display);
 		font-size: 14px;
 		font-weight: 700;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		margin-bottom: 8px;
 	}
 
 	.progress {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-variant-numeric: tabular-nums;
 	}
 
 	.progress-count {
-		color: var(--accent, #a3a6ff);
+		color: var(--color-accent);
 		font-weight: 700;
 	}
 
@@ -963,7 +962,7 @@
 		gap: 16px;
 		padding: 32px 0 24px;
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.footer-copy {
@@ -971,14 +970,14 @@
 	}
 
 	.footer-link {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		text-decoration: none;
 		transition: color 0.15s;
 	}
 
 	@media (hover: hover) {
 		.footer-link:hover {
-			color: var(--accent);
+			color: var(--color-accent);
 		}
 	}
 </style>

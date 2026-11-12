@@ -53,7 +53,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--modal-backdrop);
+		background: var(--color-overlay);
 	}
 
 	.loading-card {
@@ -62,17 +62,17 @@
 		align-items: center;
 		gap: 16px;
 		padding: 40px 48px;
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 		border-radius: 16px;
-		border: 1px solid var(--border);
-		box-shadow: 0 20px 60px var(--shadow);
+		border: 1px solid var(--color-border);
+		box-shadow: 0 20px 60px var(--color-shadow);
 		min-width: 320px;
 	}
 
 	.spinner {
 		width: 48px;
 		height: 48px;
-		color: var(--accent);
+		color: var(--color-accent);
 	}
 
 	.spin-svg {
@@ -90,12 +90,12 @@
 	.loading-title {
 		font-size: 18px;
 		font-weight: 600;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.loading-name {
 		font-size: 14px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		max-width: 280px;
 		text-align: center;
 		overflow: hidden;
@@ -113,14 +113,14 @@
 	.progress-bar {
 		width: 100%;
 		height: 6px;
-		background: var(--bg-tertiary);
+		background: var(--color-background-muted);
 		border-radius: 3px;
 		overflow: hidden;
 	}
 
 	.progress-fill {
 		height: 100%;
-		background: var(--accent);
+		background: var(--color-accent);
 		border-radius: 3px;
 		transition: width 0.3s ease;
 	}
@@ -129,15 +129,15 @@
 		display: flex;
 		justify-content: space-between;
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.progress-pct {
 		font-weight: 600;
-		color: var(--accent);
+		color: var(--color-accent);
 	}
 
 	.progress-count {
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 </style>

@@ -43,7 +43,7 @@
 <style>
 	.resize-handle {
 		flex-shrink: 0;
-		background: var(--border);
+		background: var(--color-border);
 		transition: background-color 0.15s ease;
 		touch-action: none;
 		z-index: 10;
@@ -51,7 +51,7 @@
 
 	.resize-handle:hover,
 	.resize-handle:active {
-		background: var(--accent, #3b82f6);
+		background: var(--color-accent);
 	}
 
 	.resize-handle.vertical {

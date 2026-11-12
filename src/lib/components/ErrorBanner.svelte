@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let { message, type = 'error', ondismiss }: {
+	let {
+		message,
+		type = 'error',
+		ondismiss
+	}: {
 		message: string;
 		type?: 'warning' | 'error' | 'info';
 		ondismiss: () => void;
@@ -17,7 +21,7 @@
 	const icons: Record<string, string> = {
 		error: '\u2716',
 		warning: '\u26A0',
-		info: '\u2139',
+		info: '\u2139'
 	};
 </script>
 
@@ -39,26 +43,32 @@
 	}
 
 	@keyframes slideDown {
-		from { opacity: 0; transform: translateY(-8px); }
-		to { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(-8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	.error-banner.error {
-		background: rgba(239, 68, 68, 0.12);
-		border: 1px solid rgba(239, 68, 68, 0.3);
-		color: #ef4444;
+		background: var(--color-error-muted);
+		border: 1px solid color-mix(in srgb, var(--color-border-error) 30%, transparent);
+		color: var(--color-on-error-muted);
 	}
 
 	.error-banner.warning {
-		background: rgba(245, 158, 11, 0.12);
-		border: 1px solid rgba(245, 158, 11, 0.3);
-		color: #f59e0b;
+		background: var(--color-warning-muted);
+		border: 1px solid color-mix(in srgb, var(--color-border-warning) 30%, transparent);
+		color: var(--color-on-warning-muted);
 	}
 
 	.error-banner.info {
-		background: rgba(59, 130, 246, 0.12);
-		border: 1px solid rgba(59, 130, 246, 0.3);
-		color: #3b82f6;
+		background: var(--color-info-muted);
+		border: 1px solid color-mix(in srgb, var(--color-border-info) 30%, transparent);
+		color: var(--color-on-info-muted);
 	}
 
 	.banner-icon {

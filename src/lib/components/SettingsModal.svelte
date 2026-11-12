@@ -40,7 +40,7 @@
 			default:
 				return {
 					label: i18nStore.t('settingsAiNotConnected'),
-					color: 'var(--text-muted)',
+					color: 'var(--color-text-tertiary)',
 					connected: false
 				};
 		}
@@ -211,8 +211,8 @@
 									<span
 										class="ai-conn-dot"
 										style="background: {aiConnectionInfo.connected
-											? 'var(--color-success)'
-											: 'var(--text-muted)'}"
+											? 'var(--color-text-success)'
+											: 'var(--color-text-tertiary)'}"
 									></span>
 									<span class="ai-conn-label">{aiConnectionInfo.label}</span>
 								</span>
@@ -464,7 +464,7 @@
 	}
 	.header-icon {
 		font-size: 18px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.header-actions {
 		display: flex;
@@ -477,14 +477,15 @@
 		font-size: 12px;
 		font-weight: 700;
 		font-family: var(--font-display);
-		color: var(--error, #ff6e84);
-		background: rgba(255, 110, 132, 0.1);
+		color: var(--color-on-error-muted);
+		background: var(--color-error-muted);
 		border: none;
 		cursor: pointer;
 		transition: background 0.15s;
 	}
 	.btn-reset:hover {
-		background: rgba(255, 110, 132, 0.2);
+		background: var(--color-error);
+		color: var(--color-on-error);
 	}
 	.settings-card :global(.modal-body) {
 		padding: 20px;
@@ -521,14 +522,14 @@
 
 	.font-size-row input[type='range'] {
 		flex: 1;
-		accent-color: var(--accent);
+		accent-color: var(--color-accent);
 	}
 
 	.font-size-value {
 		font-size: 12px;
 		font-weight: 700;
 		font-family: var(--font-code);
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		min-width: 36px;
 		text-align: right;
 	}
@@ -543,7 +544,7 @@
 
 	.info-icon {
 		font-size: 14px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		cursor: help;
 		vertical-align: middle;
 	}
@@ -552,14 +553,14 @@
 		position: fixed;
 		width: 260px;
 		padding: 10px 12px;
-		background: var(--bg-secondary, #1a1f27);
-		border: 1px solid var(--border, #2a2f38);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		font-size: 11px;
 		font-weight: 400;
 		line-height: 1.6;
-		color: var(--text-secondary);
-		box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+		color: var(--color-text-secondary);
+		box-shadow: 0 8px 16px var(--color-shadow);
 		z-index: 2000;
 		white-space: normal;
 		pointer-events: none;
@@ -572,14 +573,14 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 8px 12px;
-		background: var(--bg-bright, var(--bg-tertiary));
-		border: 1px solid var(--ghost-border, rgba(255, 255, 255, 0.08));
+		background: var(--color-neutral);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		cursor: pointer;
 		transition: background 0.15s;
 	}
 	.ai-connection-btn:hover {
-		background: var(--bg-highest, #20262f);
+		background: var(--color-background-muted);
 	}
 	.ai-conn-left {
 		display: flex;
@@ -594,11 +595,11 @@
 	}
 	.ai-conn-label {
 		font-size: 12px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 	.ai-conn-icon {
 		font-size: 16px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	/* Cache row */
@@ -607,7 +608,7 @@
 	}
 	.cache-size {
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.btn-cache-clear {
 		margin-left: auto;
@@ -618,14 +619,15 @@
 		border-radius: 4px;
 		font-size: 10px;
 		font-weight: 600;
-		color: var(--error, #ff6e84);
+		color: var(--color-text-error);
 		background: transparent;
-		border: 1px solid rgba(255, 110, 132, 0.3);
+		border: 1px solid color-mix(in srgb, var(--color-border-error) 30%, transparent);
 		cursor: pointer;
 		transition: background 0.15s;
 	}
 	.btn-cache-clear:hover {
-		background: rgba(255, 110, 132, 0.1);
+		background: var(--color-error-muted);
+		color: var(--color-on-error-muted);
 	}
 
 	.checkbox-label {
@@ -633,17 +635,17 @@
 		align-items: center;
 		gap: 6px;
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 	}
 	.checkbox-label input[type='checkbox'] {
-		accent-color: var(--accent);
+		accent-color: var(--color-accent);
 	}
 	.settings-range {
 		-webkit-appearance: none;
 		appearance: none;
 		height: 4px;
-		background: var(--bg-tertiary, #1b2028);
+		background: var(--color-background-muted);
 		border-radius: 2px;
 		flex: 1;
 	}
@@ -652,49 +654,48 @@
 		height: 12px;
 		width: 12px;
 		border-radius: 50%;
-		background: var(--accent, #a3a6ff);
+		background: var(--color-accent);
 		cursor: pointer;
 	}
 	.range-value {
 		font-size: 11px;
 		font-family: var(--font-code);
-		color: var(--accent);
+		color: var(--color-accent);
 		min-width: 60px;
 		text-align: right;
 	}
 	.skip-patterns-input {
 		width: 100%;
-		background: var(--bg-bright, var(--bg-tertiary));
-		border: 1px solid var(--border);
+		background: var(--color-neutral);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		padding: 8px 10px;
 		font-family: var(--font-code);
 		font-size: 12px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		resize: vertical;
 		min-height: 72px;
 	}
 	.skip-patterns-input:focus {
-		outline: none;
-		border-color: var(--accent);
+		border-color: var(--color-accent);
 	}
 	/* Settings-specific label override: Stitch 10px uppercase */
 	.settings-section :global(.form-label) {
 		font-size: 12px;
 		font-family: var(--font-display);
 		font-weight: 700;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		margin-bottom: 4px;
 	}
 	.settings-section :global(.select) {
-		background: var(--bg-bright, var(--bg-tertiary));
+		background: var(--color-neutral);
 		font-size: 11px;
 		border: none;
 		border-radius: 4px;
 		padding: 6px;
 	}
 	.settings-section :global(.select:focus) {
-		box-shadow: 0 0 0 1px var(--accent);
+		box-shadow: 0 0 0 1px var(--color-accent);
 		border: none;
 	}
 	.settings-section :global(.toggle) {
@@ -727,19 +728,19 @@
 	}
 	.shortcut-desc {
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.shortcut-keys {
 		display: flex;
 		align-items: center;
 		gap: 2px;
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.shortcut-keys :global(kbd) {
 		font-family: var(--font-code);
-		color: var(--text-muted);
-		background: var(--bg-lowest, #000000);
+		color: var(--color-text-tertiary);
+		background: var(--color-background-canvas);
 		padding: 1px 4px;
 		border-radius: 4px;
 	}

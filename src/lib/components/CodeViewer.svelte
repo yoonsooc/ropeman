@@ -281,7 +281,7 @@
 		height: 100%;
 		display: flex;
 		flex-direction: column;
-		background: var(--bg-primary);
+		background: var(--color-background-body);
 		overflow: hidden;
 	}
 
@@ -292,7 +292,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.empty-icon {
@@ -313,15 +313,15 @@
 		align-items: center;
 		justify-content: center;
 		gap: 8px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: 13px;
 	}
 
 	.loading-spinner {
 		width: 16px;
 		height: 16px;
-		border: 2px solid var(--text-muted);
-		border-top-color: var(--accent, #3b82f6);
+		border: 2px solid var(--color-text-tertiary);
+		border-top-color: var(--color-accent);
 		border-radius: 50%;
 		animation: spin 0.8s linear infinite;
 	}
@@ -337,7 +337,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--color-error);
+		color: var(--color-text-error);
 		font-size: 13px;
 	}
 
@@ -347,8 +347,8 @@
 		justify-content: space-between;
 		padding: 0 16px;
 		height: 40px;
-		background: var(--sidebar-content-bg, #151a21);
-		border-bottom: 1px solid var(--ghost-border);
+		background: var(--color-background-sidebar-content);
+		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 		gap: 8px;
 	}
@@ -356,7 +356,7 @@
 	.code-filepath {
 		font-size: 11px;
 		font-family: var(--font-code);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -368,9 +368,9 @@
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.02em;
-		color: var(--text-secondary);
-		background: var(--bg-tertiary);
-		border: 1px solid var(--ghost-border);
+		color: var(--color-text-secondary);
+		background: var(--color-background-muted);
+		border: 1px solid var(--color-border);
 		padding: 2px 8px;
 		border-radius: 4px;
 		flex-shrink: 0;
@@ -378,7 +378,7 @@
 
 	.code-line-count {
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
 
@@ -392,16 +392,16 @@
 		width: 240px;
 		flex-shrink: 0;
 		overflow-y: auto;
-		background: var(--sidebar-content-bg, #151a21);
-		border-left: 1px solid var(--ghost-border);
+		background: var(--color-background-sidebar-content);
+		border-left: 1px solid var(--color-border);
 	}
 
 	.symbol-header {
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		padding: 16px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.symbol-item {
@@ -412,7 +412,7 @@
 		padding: 4px 12px;
 		font-size: 11px;
 		font-family: var(--font-code);
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 		border: none;
 		background: none;
@@ -421,8 +421,8 @@
 	}
 
 	.symbol-item:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.symbol-kind-icon {
@@ -437,20 +437,20 @@
 		font-family: var(--font-code);
 		flex-shrink: 0;
 		background: none;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.symbol-kind-icon.fn {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.symbol-kind-icon.cls {
-		color: var(--color-warning);
+		color: var(--color-text-warning);
 	}
 	.symbol-kind-icon.var {
-		color: var(--color-success);
+		color: var(--color-text-success);
 	}
 	.symbol-kind-icon.type {
-		color: var(--accent);
+		color: var(--color-accent);
 	}
 
 	.symbol-name {
@@ -464,7 +464,7 @@
 
 	.symbol-line {
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
 
@@ -484,7 +484,7 @@
 	}
 
 	.code-line:hover {
-		background: var(--bg-tertiary);
+		background: var(--color-background-muted);
 	}
 
 	.line-number {
@@ -492,7 +492,7 @@
 		flex-shrink: 0;
 		text-align: right;
 		padding-right: 12px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		user-select: none;
 		font-family: var(--font-code);
 		font-size: 11px;
@@ -520,7 +520,7 @@
 	}
 
 	.code-content::-webkit-scrollbar-thumb {
-		background: var(--bg-bright, #262c36);
+		background: var(--color-neutral);
 		border-radius: 4px;
 	}
 
@@ -533,7 +533,7 @@
 	}
 
 	.symbol-sidebar::-webkit-scrollbar-thumb {
-		background: var(--bg-highest, #20262f);
+		background: var(--color-border);
 		border-radius: 3px;
 	}
 </style>

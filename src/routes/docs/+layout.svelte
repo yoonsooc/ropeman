@@ -63,8 +63,8 @@
 		 */
 		height: 100vh;
 		overflow-y: auto;
-		background: var(--bg-primary);
-		color: var(--text-primary);
+		background: var(--color-background-body);
+		color: var(--color-text-primary);
 	}
 
 	.docs-grid {
@@ -106,7 +106,7 @@
 			bottom: 0;
 			width: auto;
 			padding: 0;
-			background: rgba(0, 0, 0, 0.4);
+			background: var(--color-overlay);
 			border: none;
 			cursor: pointer;
 			z-index: 14;

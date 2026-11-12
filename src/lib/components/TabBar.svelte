@@ -178,8 +178,8 @@
 	.tab-bar {
 		display: flex;
 		align-items: stretch;
-		background: var(--sidebar-icon-bg, #0f141a);
-		border-bottom: 1px solid var(--ghost-border);
+		background: var(--color-background-sidebar-icon);
+		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 		min-height: 36px;
 		overflow-x: auto;
@@ -187,8 +187,8 @@
 	}
 
 	.tab-bar.drop-target {
-		background: var(--accent-bg, rgba(59, 130, 246, 0.12));
-		outline: 2px dashed var(--accent, #3b82f6);
+		background: var(--color-accent-muted);
+		outline: 2px dashed var(--color-accent);
 		outline-offset: -2px;
 	}
 
@@ -212,7 +212,7 @@
 		font-family: var(--font-display);
 		font-weight: 700;
 		letter-spacing: 0.02em;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		background: transparent;
 		border: none;
 		cursor: pointer;
@@ -225,14 +225,14 @@
 	}
 
 	.tab:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.tab.active {
-		background: var(--bg-secondary, #151a21);
-		color: var(--text-primary);
-		border-top: 2px solid var(--accent);
+		background: var(--color-background-surface);
+		color: var(--color-text-primary);
+		border-top: 2px solid var(--color-accent);
 		border-bottom: none;
 	}
 
@@ -244,11 +244,11 @@
 		display: flex;
 		align-items: center;
 		flex-shrink: 0;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.tab.active .tab-icon {
-		color: var(--accent, #3b82f6);
+		color: var(--color-accent);
 	}
 
 	.tab-label {
@@ -264,7 +264,7 @@
 		width: 18px;
 		height: 18px;
 		border-radius: 3px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -281,8 +281,8 @@
 	}
 
 	.tab-close:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	/* M3: mobile/tablet — keep tabs scannable on narrow viewports and

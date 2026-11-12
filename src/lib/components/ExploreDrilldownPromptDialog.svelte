@@ -72,7 +72,7 @@
 	.prompt-backdrop {
 		position: fixed;
 		inset: 0;
-		background: var(--modal-backdrop);
+		background: var(--color-overlay);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -85,10 +85,10 @@
 		max-width: 480px;
 		width: 100%;
 		padding: 32px 28px 24px;
-		background: var(--bg-tertiary, #1b2028);
+		background: var(--color-background-muted);
 		border-radius: 12px;
-		box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
-		color: var(--text-primary);
+		box-shadow: 0 24px 48px var(--color-shadow);
+		color: var(--color-text-primary);
 		text-align: center;
 	}
 
@@ -102,7 +102,7 @@
 		align-items: center;
 		justify-content: center;
 		background: transparent;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		border: none;
 		border-radius: 6px;
 		cursor: pointer;
@@ -111,8 +111,8 @@
 			color 0.15s;
 	}
 	.prompt-close:hover {
-		background: var(--bg-highest, #20262f);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 	.prompt-close .material-symbols-outlined {
 		font-size: 18px;
@@ -148,8 +148,8 @@
 		width: 56px;
 		height: 56px;
 		border-radius: 12px;
-		background: var(--accent-bg);
-		color: var(--accent);
+		background: var(--color-accent-muted);
+		color: var(--color-accent);
 		margin: 0 auto 16px;
 	}
 	.prompt-icon .material-symbols-outlined {
@@ -161,16 +161,16 @@
 		font-family: var(--font-display);
 		font-size: 18px;
 		font-weight: 600;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		line-height: 1.3;
 	}
 
 	.prompt-body {
 		margin: 0 0 24px;
-		font-family: var(--font-body, 'Inter', sans-serif);
+		font-family: var(--font-body);
 		font-size: 14px;
 		line-height: 1.6;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.prompt-actions {
@@ -205,8 +205,8 @@
 	}
 
 	.btn-primary {
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 	}
 	.btn-primary:hover {
 		opacity: 0.85;
@@ -215,10 +215,10 @@
 
 	.btn-secondary {
 		background: transparent;
-		color: var(--text-primary);
-		border: 1px solid var(--ghost-border, rgba(148, 163, 184, 0.2));
+		color: var(--color-text-primary);
+		border: 1px solid var(--color-border);
 	}
 	.btn-secondary:hover {
-		background: var(--bg-highest, #20262f);
+		background: var(--color-background-muted);
 	}
 </style>

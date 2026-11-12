@@ -489,7 +489,7 @@
 	>
 		<Controls />
 		{#if showMinimap && !isCompact}
-			<MiniMap nodeColor={(n) => (n.data?.color as string) ?? 'var(--bg-bright)'} />
+			<MiniMap nodeColor={(n) => (n.data?.color as string) ?? 'var(--color-neutral)'} />
 		{/if}
 		<Background gap={24} size={1} />
 		<ExportController
@@ -742,17 +742,21 @@
 	}
 
 	.zui-canvas :global(.svelte-flow) {
-		background: var(--sidebar-icon-bg, #0f141a);
+		background: var(--color-background-sidebar-icon);
 	}
 
 	.zui-canvas :global(.svelte-flow__minimap) {
 		/* xyflow paints its own white minimap; follow the app theme instead */
-		--xy-minimap-background-color: var(--bg-secondary);
-		--xy-minimap-mask-background-color: color-mix(in srgb, var(--bg-lowest) 60%, transparent);
-		--xy-minimap-node-background-color: var(--bg-bright);
+		--xy-minimap-background-color: var(--color-background-surface);
+		--xy-minimap-mask-background-color: color-mix(
+			in srgb,
+			var(--color-background-canvas) 60%,
+			transparent
+		);
+		--xy-minimap-node-background-color: var(--color-neutral);
 		--xy-minimap-node-stroke-color: transparent;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 	}
 
@@ -760,17 +764,17 @@
 		border: none;
 		border-radius: 4px;
 		overflow: hidden;
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 	}
 
 	.zui-canvas :global(.svelte-flow__controls button) {
-		background: var(--bg-secondary);
-		color: var(--text-primary);
+		background: var(--color-background-surface);
+		color: var(--color-text-primary);
 		border-bottom: none;
 	}
 
 	.zui-canvas :global(.svelte-flow__controls button:hover) {
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 	}
 
 	/* M3: 44px touch targets for SvelteFlow Controls on mobile (WCAG 2.5.5) */
@@ -799,9 +803,9 @@
 
 	/* Style edge labels for dark theme */
 	.zui-canvas :global(.svelte-flow__edge-label) {
-		background: var(--bg-secondary);
-		color: var(--text-secondary);
-		border: 1px solid var(--border);
+		background: var(--color-background-surface);
+		color: var(--color-text-secondary);
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		padding: 2px 6px;
 		font-size: 11px;
@@ -817,10 +821,10 @@
 		position: absolute;
 		z-index: 20;
 		max-width: 260px;
-		background: var(--surface-elevated, var(--bg-secondary));
-		border: 1px solid var(--border);
+		background: var(--color-background-popover);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+		box-shadow: 0 4px 16px var(--color-shadow);
 		padding: 10px 12px;
 		pointer-events: none;
 		animation: relationFadeIn 0.15s ease;
@@ -840,25 +844,25 @@
 	.hover-relation-header {
 		font-size: 13px;
 		font-weight: 600;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		margin-bottom: 2px;
 	}
 
 	.hover-relation-desc {
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		line-height: 1.4;
 		margin-bottom: 4px;
 	}
 
 	.hover-relation-meta {
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.hover-relation-divider {
 		height: 1px;
-		background: var(--border);
+		background: var(--color-border);
 		margin: 8px 0;
 	}
 
@@ -867,7 +871,7 @@
 		align-items: center;
 		gap: 6px;
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin-bottom: 4px;
 	}
 
@@ -879,18 +883,18 @@
 	}
 
 	.hover-edge-label strong {
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		font-weight: 600;
 	}
 
 	.hover-edge-label em {
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-style: italic;
 	}
 
 	.hover-relation-none {
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-style: italic;
 	}
 
@@ -901,12 +905,12 @@
 	.hover-shared-label {
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.hover-shared-file {
 		font-size: 10px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-family: 'SF Mono', 'Fira Code', monospace;
 		padding-left: 8px;
 		white-space: nowrap;
@@ -924,11 +928,11 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		background: var(--surface-elevated, var(--bg-secondary));
-		border: 1px solid var(--border);
+		background: var(--color-background-popover);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		padding: 4px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 4px 12px var(--color-shadow);
 	}
 
 	.toolbar-item {
@@ -944,7 +948,7 @@
 		border-radius: 6px;
 		background: transparent;
 		border: none;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 		transition:
 			background-color 0.15s ease,
@@ -952,23 +956,23 @@
 	}
 
 	.toolbar-btn:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.toolbar-btn.active {
-		background: var(--accent-bg, rgba(59, 130, 246, 0.12));
-		color: var(--accent, #3b82f6);
+		background: var(--color-accent-muted);
+		color: var(--color-accent);
 	}
 
 	.toolbar-dropdown {
 		position: absolute;
 		top: 40px;
 		right: 0;
-		background: var(--surface-elevated, var(--bg-secondary));
-		border: 1px solid rgba(68, 72, 79, 0.15);
+		background: var(--color-background-popover);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+		box-shadow: 0 4px 16px var(--color-shadow);
 		animation: toolbarDropdown 0.15s ease;
 	}
 
@@ -994,7 +998,7 @@
 		padding: 8px 16px;
 		background: none;
 		border: none;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: 13px;
 		font-weight: 500;
 		cursor: pointer;
@@ -1003,8 +1007,8 @@
 	}
 
 	.export-menu-item:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	/* Legend panel (dropdown from toolbar) */
@@ -1016,9 +1020,9 @@
 	.legend-header {
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		padding: 4px 12px 8px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		margin-bottom: 4px;
 	}
 
@@ -1029,19 +1033,19 @@
 		padding: 6px 12px;
 		cursor: pointer;
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		transition: background-color 0.1s ease;
 	}
 
 	.legend-item:hover {
-		background: var(--bg-tertiary);
+		background: var(--color-background-muted);
 	}
 
 	.legend-item input[type='checkbox'] {
 		width: 14px;
 		height: 14px;
 		cursor: pointer;
-		accent-color: var(--accent, #3b82f6);
+		accent-color: var(--color-accent);
 	}
 
 	.legend-color {
@@ -1060,7 +1064,7 @@
 	.toolbar-separator {
 		width: 1px;
 		height: 20px;
-		background: var(--border);
+		background: var(--color-border);
 		margin: 0 2px;
 	}
 
@@ -1071,8 +1075,8 @@
 		min-width: 14px;
 		height: 14px;
 		border-radius: 7px;
-		background: var(--accent, #3b82f6);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 		font-size: 9px;
 		font-weight: 700;
 		display: flex;
@@ -1095,7 +1099,7 @@
 	}
 
 	.analysis-request-item:hover {
-		background: var(--bg-tertiary);
+		background: var(--color-background-muted);
 	}
 
 	:global(.analysis-request-item.pulse) {
@@ -1107,7 +1111,7 @@
 			background: transparent;
 		}
 		50% {
-			background: rgba(59, 130, 246, 0.15);
+			background: var(--color-accent-muted);
 		}
 		100% {
 			background: transparent;
@@ -1125,7 +1129,7 @@
 	.analysis-request-name {
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -1133,7 +1137,7 @@
 
 	.analysis-request-progress {
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -1148,7 +1152,7 @@
 		border-radius: 4px;
 		border: none;
 		background: transparent;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		cursor: pointer;
 		flex-shrink: 0;
 		transition:
@@ -1157,7 +1161,7 @@
 	}
 
 	.analysis-request-cancel:hover {
-		background: rgba(239, 68, 68, 0.15);
-		color: #ef4444;
+		background: var(--color-error-muted);
+		color: var(--color-on-error-muted);
 	}
 </style>

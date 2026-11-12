@@ -110,7 +110,7 @@
 		height: 100%;
 		display: flex;
 		flex-direction: column;
-		background: var(--sidebar-content-bg, #151a21);
+		background: var(--color-background-sidebar-content);
 		overflow-y: auto;
 	}
 
@@ -119,7 +119,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 20px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
 
@@ -136,7 +136,7 @@
 		font-weight: 600;
 		font-family: var(--font-display);
 		line-height: 1.3;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		flex: 1;
 		min-width: 0;
 		word-break: break-word;
@@ -149,27 +149,27 @@
 		width: 28px;
 		height: 28px;
 		border-radius: 4px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		cursor: pointer;
 		flex-shrink: 0;
 		transition: background-color 0.15s ease;
 	}
 
 	.panel-close:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.panel-section {
 		padding: 20px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.section-title {
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		margin-bottom: 16px;
 		display: flex;
 		align-items: center;
@@ -180,15 +180,15 @@
 		font-size: 11px;
 		font-variant-numeric: tabular-nums;
 		font-weight: 600;
-		background: var(--bg-tertiary);
-		color: var(--text-secondary);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
 		padding: 1px 6px;
 		border-radius: 8px;
 	}
 
 	.panel-description {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		line-height: 1.625;
 		margin: 0;
 	}
@@ -205,7 +205,7 @@
 		gap: 8px;
 		padding: 6px 8px;
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 		border: none;
 		background: none;
@@ -216,8 +216,8 @@
 	}
 
 	.file-item:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.file-icon {
@@ -228,7 +228,7 @@
 	.file-name {
 		font-family: var(--font-code);
 		font-size: 12px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -239,7 +239,7 @@
 	/* The folder trails the file name and gives way first when space runs out */
 	.file-dir {
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -255,9 +255,9 @@
 
 	.symbol-tag {
 		font-size: 11px;
-		font-family: var(--font-code, 'JetBrains Mono', monospace);
-		color: var(--text-secondary);
-		background: var(--bg-tertiary, #1b2028);
+		font-family: var(--font-code);
+		color: var(--color-text-secondary);
+		background: var(--color-background-muted);
 		padding: 4px 8px;
 		border-radius: 4px;
 	}

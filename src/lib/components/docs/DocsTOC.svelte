@@ -119,7 +119,7 @@
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 0 0 12px;
 	}
 
@@ -141,7 +141,7 @@
 		padding: 4px 8px;
 		font-size: 12px;
 		line-height: 1.4;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		text-decoration: none;
 		border-left: 2px solid transparent;
 		transition:
@@ -150,12 +150,12 @@
 	}
 
 	li a:hover {
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	li a.active {
-		color: var(--accent);
-		border-left-color: var(--accent);
+		color: var(--color-accent);
+		border-left-color: var(--color-accent);
 	}
 
 	@media (max-width: 1200px) {

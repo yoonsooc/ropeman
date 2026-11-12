@@ -33,7 +33,7 @@
 		justify-content: center;
 		min-height: 60vh;
 		gap: 16px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-family: var(--font-body);
 	}
 
@@ -42,7 +42,7 @@
 	}
 
 	.hint a {
-		color: var(--accent);
+		color: var(--color-accent);
 		text-decoration: none;
 	}
 

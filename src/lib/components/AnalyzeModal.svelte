@@ -214,8 +214,9 @@
 			<div class="modal-header">
 				<div>
 					<h2>
-						<span class="material-symbols-outlined" style="font-size:18px; color: var(--accent);"
-							>auto_awesome</span
+						<span
+							class="material-symbols-outlined"
+							style="font-size:18px; color: var(--color-accent);">auto_awesome</span
 						>
 						{i18nStore.t('analyze.title')}
 					</h2>
@@ -655,25 +656,25 @@
 	}
 	.ct-label {
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	/* Track cards */
 	.track-card {
 		border-radius: 8px;
 		overflow: hidden;
-		background: var(--bg-secondary);
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		transition:
 			background-color 0.2s,
 			border-color 0.2s;
 	}
 	.track-card:hover:not(.disabled) {
-		background: var(--bg-tertiary);
+		background: var(--color-background-muted);
 	}
 	.track-card.active {
-		background: var(--accent-bg);
-		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		background: var(--color-accent-muted);
+		border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
 	}
 	.track-card.disabled {
 		opacity: 0.5;
@@ -698,13 +699,13 @@
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		background: var(--bg-tertiary);
-		color: var(--text-secondary);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
 		font-size: 20px;
 	}
 	.track-card.active .track-icon {
-		background: color-mix(in srgb, var(--accent) 20%, transparent);
-		color: var(--accent);
+		background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+		color: var(--color-accent);
 	}
 	.track-info {
 		flex: 1;
@@ -715,16 +716,16 @@
 	.track-name {
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 	.track-sub {
 		font-size: 10px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin-top: 1px;
 	}
 	.expand-arrow {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		transition: transform 0.2s;
 		flex-shrink: 0;
 	}
@@ -750,7 +751,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-		background: var(--bg-tertiary);
+		background: var(--color-background-muted);
 	}
 	.cfg-status {
 		font-size: 11px;
@@ -760,7 +761,7 @@
 		margin: 0;
 		font-size: 11px;
 		line-height: 1.5;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		word-break: keep-all;
 	}
 	.track-note {
@@ -768,20 +769,20 @@
 		padding: 0 12px 12px 68px;
 	}
 	.cfg-status.success {
-		color: var(--color-success);
+		color: var(--color-text-success);
 	}
 	.cfg-status.error {
-		color: var(--color-error);
+		color: var(--color-text-error);
 	}
 	.cfg-command {
 		padding: 6px 10px;
-		background: var(--bg-primary);
+		background: var(--color-background-body);
 		border: none;
 		border-radius: 6px;
 	}
 	.cfg-command code {
 		font-size: 11px;
-		color: var(--color-success);
+		color: var(--color-text-success);
 		font-family: 'SF Mono', 'Fira Code', monospace;
 	}
 
@@ -800,14 +801,14 @@
 		align-items: center;
 		gap: 6px;
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 		background: none;
 		border: none;
 		padding: 0;
 	}
 	.preview-toggle:hover {
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 	.copy-json-btn {
 		display: flex;
@@ -816,12 +817,12 @@
 		border: none;
 		padding: 2px;
 		cursor: pointer;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		border-radius: 4px;
 	}
 	.copy-json-btn:hover {
-		color: var(--text-primary);
-		background: var(--bg-secondary);
+		color: var(--color-text-primary);
+		background: var(--color-background-surface);
 	}
 	.copy-json-btn .material-symbols-outlined {
 		font-size: 14px;
@@ -842,26 +843,26 @@
 	}
 	.meta-item {
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 	.meta-sep {
 		font-size: 11px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		opacity: 0.4;
 	}
 	.payload-warn {
 		display: flex;
 		gap: 6px;
 		align-items: flex-start;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 	.payload-warn .material-symbols-outlined {
 		font-size: 14px;
 		line-height: 1.2;
-		color: var(--color-warning);
+		color: var(--color-text-warning);
 	}
 	.preview-json {
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 		font-family: 'SF Mono', 'Fira Code', monospace;
 		font-size: 10px;
 		line-height: 1.5;
@@ -872,19 +873,19 @@
 		white-space: pre-wrap;
 		word-break: break-all;
 		margin-top: 8px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	/* Footer */
 	.analyze-footer {
 		padding: 16px;
-		background: var(--bg-secondary);
-		border-top: 1px solid var(--ghost-border);
+		background: var(--color-background-surface);
+		border-top: 1px solid var(--color-border);
 		border-radius: 0 0 12px 12px;
 	}
 	.analyze-footer-hint {
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-style: italic;
 		margin: 0;
 	}
