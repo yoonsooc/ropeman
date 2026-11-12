@@ -140,6 +140,8 @@ describe('i18nStore', () => {
 			expect(i18nStore.t('common.symbolCount', { n: 0 })).toBe('0 symbols');
 			expect(i18nStore.t('codeViewer.lines', { n: 1 })).toBe('1 line');
 			expect(i18nStore.t('codeViewer.lines', { n: 12 })).toBe('12 lines');
+			expect(i18nStore.t('snippet.lines', { n: 1 })).toBe('1 line');
+			expect(i18nStore.t('snippet.lines', { n: 3 })).toBe('3 lines');
 			expect(i18nStore.t('node.fileMany', { n: 1 })).toBe('1 file');
 			expect(i18nStore.t('settingsUi.cacheEntries', { n: 1 })).toBe('1 entry');
 			expect(i18nStore.t('analysisGroupRunning', { count: 1 })).toBe('1 analysis running');
@@ -152,6 +154,14 @@ describe('i18nStore', () => {
 
 			// Assert
 			expect(text).toBe('심볼 1개');
+		});
+
+		it('counts snippet lines in Korean without a space', () => {
+			// Act
+			const text = i18nStore.t('snippet.lines', { n: 3 });
+
+			// Assert
+			expect(text).toBe('3줄');
 		});
 
 		it('leaves a plural placeholder without a value untouched', () => {
