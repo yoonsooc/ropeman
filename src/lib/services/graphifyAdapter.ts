@@ -72,10 +72,12 @@ export class GraphifyFormatError extends Error {}
 /**
  * A Graphify graph.json as a code map, so Graphify's extraction is scored like Ropeman's
  * (T1-12). Only the ast layer becomes code facts; `community` and `community_name` are not
- * read. Everything left out or weakened is reported with its reason. `root` is what FilePaths
- * start with, as `CodeMap.root`. Throws GraphifyFormatError on an unknown `schema_version`.
+ * read. Everything left out or weakened is reported with its reason. `rootDir`, less a trailing
+ * `/`, is what FilePaths start with, as `CodeMap.root`. Throws GraphifyFormatError on an
+ * unknown `schema_version`.
  */
-export function readGraphifyGraph(json: unknown, root: string | null): GraphifyImport {
+export function readGraphifyGraph(json: unknown, rootDir: string | null): GraphifyImport {
+	const root = rootDir === null ? null : rootDir.replace(/\/+$/, '');
 	const { nodes, links } = parseGraph(json);
 	const issues: GraphifyIssue[] = [];
 	const report: Report = (reason, subject, file, line) =>
@@ -152,7 +154,19 @@ function parseGraph(json: unknown): { nodes: unknown[]; links: unknown[] } {
 	if (!Array.isArray(json.nodes) || !Array.isArray(links)) {
 		throw new GraphifyFormatError('graph.json has no nodes or links array');
 	}
-	return { nodes: json.nodes, links };
+	return { nodes: json.nodes.map(withPosixPath), links: links.map(withPosixPath) };
+}
+
+/** FilePaths use `/`, so a `src\a.ts` written on Windows names the same file as `src/a.ts`. */
+function withPosixPath(item: unknown): unknown {
+	if (!isRecord(item)) return item;
+	const posix =
+		typeof item.source_file === 'string'
+			? { ...item, source_file: item.source_file.replaceAll('\\', '/') }
+			: item;
+	return Array.isArray(posix.also_seen)
+		? { ...posix, also_seen: posix.also_seen.map(withPosixPath) }
+		: posix;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -204,6 +218,8 @@ type NodeRole =
 interface Graph {
 	roles: Map<string, NodeRole>;
 	files: Map<string, FileNode>;
+	/** source_file -> the symbols it declares */
+	symbols: Map<string, SymbolNode[]>;
 	/** child -> parent node id, from contains and method */
 	parents: Map<string, string>;
 	/** graph.json node id -> SymbolId, filled by buildSymbolTree */
@@ -243,11 +259,18 @@ function classifyNodes(
 			symbols.push(raw);
 		}
 	}
+	const byFile = new Map<string, SymbolNode[]>();
 	for (const raw of symbols) {
 		const line = parseLine(raw.source_location);
 		if (!files.has(raw.source_file)) drop(raw, 'no-file-node');
 		else if (line === null) drop(raw, 'no-location');
-		else roles.set(raw.id, { role: 'symbol', symbol: toSymbolNode(raw, line) });
+		else {
+			const symbol = toSymbolNode(raw, line);
+			roles.set(raw.id, { role: 'symbol', symbol });
+			const own = byFile.get(raw.source_file);
+			if (own) own.push(symbol);
+			else byFile.set(raw.source_file, [symbol]);
+		}
 	}
 
 	const parents = new Map<string, string>();
@@ -256,7 +279,7 @@ function classifyNodes(
 			parents.set(link.target, link.source);
 		}
 	}
-	return { roles, files, parents, symbolIds: new Map() };
+	return { roles, files, symbols: byFile, parents, symbolIds: new Map() };
 }
 
 const isTreeRelation = (relation: string) => relation === 'contains' || relation === 'method';
@@ -289,12 +312,9 @@ function toSymbolNode(raw: RawNode, line: number): SymbolNode {
  * in another file, or never reached from the file node starts at the top level.
  */
 function buildSymbolTree(file: FileNode, graph: Graph, report: Report): SymbolRecord[] {
-	const own: SymbolNode[] = [];
-	for (const role of graph.roles.values()) {
-		if (role.role === 'symbol' && role.symbol.sourceFile === file.sourceFile) own.push(role.symbol);
-	}
+	const own = inLineOrder(graph.symbols.get(file.sourceFile) ?? []);
 	const children = new Map<string, SymbolNode[]>();
-	for (const symbol of inLineOrder(own)) {
+	for (const symbol of own) {
 		const parent = graph.parents.get(symbol.id);
 		const role = parent === undefined ? undefined : graph.roles.get(parent);
 		const inFile =
@@ -302,7 +322,9 @@ function buildSymbolTree(file: FileNode, graph: Graph, report: Report): SymbolRe
 			(role?.role === 'symbol' && role.symbol.sourceFile === file.sourceFile);
 		if (!inFile) report('no-parent', symbol.id, file.sourceFile, symbol.line);
 		const key = inFile && parent !== undefined ? parent : file.id;
-		children.set(key, [...(children.get(key) ?? []), symbol]);
+		const siblings = children.get(key);
+		if (siblings) siblings.push(symbol);
+		else children.set(key, [symbol]);
 	}
 
 	const ids = new Map<string, number>();
@@ -326,7 +348,7 @@ function buildSymbolTree(file: FileNode, graph: Graph, report: Report): SymbolRe
 	};
 	const records = (children.get(file.id) ?? []).map((symbol) => toRecord(symbol, null));
 	// Parents that contain each other in a cycle are never reached from the file node.
-	for (const symbol of inLineOrder(own)) {
+	for (const symbol of own) {
 		if (visited.has(symbol.id)) continue;
 		report('no-parent', symbol.id, file.sourceFile, symbol.line);
 		records.push(toRecord(symbol, null));
@@ -637,8 +659,10 @@ function toRefSites(group: RefGroup, report: Report): RefSite[] {
 
 /**
  * Hits split by target name, same targets merged. Two names on one line are two calls or
- * two imports: every one of the 232 PASEO lines where a function calls two EXTRACTED targets
- * names both callees. Targets that share a name are candidates for one site.
+ * two imports: Graphify emits one edge per raw call and drops a repeated (caller, target)
+ * pair, and every one of the 232 PASEO lines where a function calls two EXTRACTED targets
+ * names both callees (tests/fixtures/graphify/README.md). Targets that share a name are
+ * candidates for one site.
  */
 function byName(hits: readonly Hit[], report: Report): Hit[][] {
 	const groups = new Map<string, Hit[]>();
@@ -656,8 +680,15 @@ function byName(hits: readonly Hit[], report: Report): Hit[][] {
 
 const sameTarget = (a: Resolved, b: Resolved) =>
 	a.kind === 'end' && b.kind === 'end'
-		? JSON.stringify(a.end) === JSON.stringify(b.end)
+		? sameEnd(a.end, b.end)
 		: a.kind === 'unresolved' && b.kind === 'unresolved' && a.label === b.label;
+
+const sameEnd = (a: Endpoint, b: Endpoint) =>
+	a.kind === 'file'
+		? b.kind === 'file' && a.path === b.path
+		: a.kind === 'symbol'
+			? b.kind === 'symbol' && a.id === b.id
+			: b.kind === 'external' && a.module === b.module && a.name === b.name;
 
 const isSymbol = (end: Endpoint): end is SymbolEnd => end.kind === 'symbol';
 const isModule = (end: Endpoint): end is FileEnd | ExternalEnd => end.kind !== 'symbol';

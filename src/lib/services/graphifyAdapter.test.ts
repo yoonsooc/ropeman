@@ -96,6 +96,22 @@ describe('readGraphifyGraph', () => {
 		]);
 	});
 
+	it('splits a line of real Graphify output by callee name, as Graphify emits one edge per call', () => {
+		// Arrange: ids/src/calls.ts L10 `wrap(plan())`, L14 `wrap(1) + wrap(2)`
+		const json = readJson('graphify/ids.graph.json');
+
+		// Act
+		const { map } = readGraphifyGraph(json, 'ids');
+
+		// Assert
+		const calls = map.files.get('ids/src/calls.ts' as FilePath)!;
+		expect(sites(calls)).toEqual([
+			'calls 10 ids/src/calls.ts#apply -> ids/src/calls.ts#plan (EXTRACTED)',
+			'calls 10 ids/src/calls.ts#apply -> ids/src/calls.ts#wrap (EXTRACTED)',
+			'calls 14 ids/src/calls.ts#again -> ids/src/calls.ts#wrap (EXTRACTED)'
+		]);
+	});
+
 	it('keeps targets that share a name on one line as INFERRED candidates of one site', () => {
 		// Act
 		const { map, issues } = hand();
@@ -249,6 +265,26 @@ describe('readGraphifyGraph', () => {
 		// Assert
 		expect(record(map, 'src/a.ts').symbols.map((s) => s.name)).toEqual(['run', 'Store', 'lost']);
 		expect(reasons(issues, 'no-parent')).toEqual(['src_a_lost']);
+	});
+
+	it('reads Windows source_file paths and a root ending in / as the same map', () => {
+		// Arrange
+		const toWindows = (item: Record<string, unknown>): Record<string, unknown> => ({
+			...item,
+			...(typeof item.source_file === 'string' && {
+				source_file: item.source_file.replaceAll('/', '\\')
+			}),
+			...(Array.isArray(item.also_seen) && { also_seen: item.also_seen.map(toWindows) })
+		});
+		const json = readJson('graphify/hand.graph.json') as Record<string, Record<string, unknown>[]>;
+		const windows = { ...json, nodes: json.nodes.map(toWindows), links: json.links.map(toWindows) };
+
+		// Act
+		const { map, issues } = readGraphifyGraph(windows, 'app/');
+
+		// Assert
+		expect(map).toEqual(hand().map);
+		expect(issues).toEqual(hand().issues);
 	});
 
 	it('rejects a schema_version it does not know', () => {
