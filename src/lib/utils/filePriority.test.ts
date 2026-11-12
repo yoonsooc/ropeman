@@ -117,7 +117,7 @@ describe('shouldSkipPath', () => {
 	});
 
 	it('skips hidden directories', () => {
-		expect(shouldSkipPath('.github/workflows/ci.yml')).toBe(true);
+		expect(shouldSkipPath('.github/ISSUE_TEMPLATE/bug.yml')).toBe(true);
 		expect(shouldSkipPath('.vscode/settings.json')).toBe(true);
 	});
 
@@ -216,8 +216,15 @@ describe('include entries', () => {
 		expect(shouldSkipPath('.github/instructions/ts.instructions.md')).toBe(false);
 	});
 
+	it('keeps CI pipelines by default, which wire the services together', () => {
+		expect(shouldSkipPath('.github/workflows/ci.yml')).toBe(false);
+		expect(shouldSkipPath('.github/actions/setup/action.yml')).toBe(false);
+		expect(shouldSkipPath('.gitlab-ci.yml', undefined, true)).toBe(false);
+		expect(shouldSkipPath('.circleci/config.yml')).toBe(false);
+	});
+
 	it('keeps the rest of those hidden folders out', () => {
-		expect(shouldSkipPath('.github/workflows/ci.yml')).toBe(true);
+		expect(shouldSkipPath('.github/ISSUE_TEMPLATE/bug.yml')).toBe(true);
 		expect(shouldSkipPath('.claude/worktrees/feature/src/app.ts')).toBe(true);
 		expect(shouldSkipPath('.claude/settings.local.json', undefined, true)).toBe(true);
 	});
@@ -389,6 +396,19 @@ describe('rankFiles and capFiles', () => {
 		expect(kept).toEqual(
 			expect.arrayContaining(['AGENTS.md', 'skills/review/SKILL.md', 'scripts/release.ts'])
 		);
+	});
+
+	it('ranks YAML, TOML and JSON manifests with the tests, so a folder of them cannot crowd out code', () => {
+		const paths = [
+			...files('k8s', 8).map((p) => p.replace(/\.ts$/, '.yaml')),
+			'src/a.ts',
+			'deploy.sh'
+		];
+
+		const { kept } = capFiles([...paths, 'pyproject.toml', 'logo.png'], (p) => p, 4);
+
+		expect(kept.slice(0, 2).sort()).toEqual(['deploy.sh', 'src/a.ts']);
+		expect(kept).not.toContain('logo.png');
 	});
 
 	it('gives files directly in a folder one shared turn beside each subfolder', () => {

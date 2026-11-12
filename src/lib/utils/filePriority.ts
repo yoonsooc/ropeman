@@ -67,14 +67,18 @@ export interface CutFile {
 	reason: CutReason;
 }
 
+const DATA_LANGUAGES = new Set(['yaml', 'toml', 'json']);
+
 /**
- * Coarse rank for the file limit: code and instruction files, then tests and ordinary docs,
- * then files no parser reads. The finer `pathPriority` scores are not used here, so a
+ * Coarse rank for the file limit: code and instruction files, then tests, ordinary docs and
+ * YAML, TOML and JSON, then files no parser reads. The finer `pathPriority` scores are not used here, so a
  * folder of scripts or skills still gets its turn beside core source.
  */
 function rankBand(path: string): number {
 	const language = detectLanguage(path);
 	if (!language || !isSupported(language)) return 2;
+	// A folder of manifests or data YAML can outnumber the code, so it waits with the tests
+	if (DATA_LANGUAGES.has(language)) return 1;
 	return pathPriority(path) === 3 ? 1 : 0;
 }
 
@@ -209,8 +213,8 @@ export function sortFileTree(root: import('$lib/types/fileTree').FileNode): void
 }
 
 /**
- * Agent instruction locations kept by default even though their folder is hidden
- * (`.claude`, `.github`, ...). An entry without a slash matches a folder or file name
+ * Agent instruction and CI pipeline locations kept by default even though their folder is
+ * hidden (`.claude`, `.github`, ...). An entry without a slash matches a folder or file name
  * at any depth; an entry with a slash matches that path from the project root.
  * `.claude` is listed by subfolder so local worktrees and caches under it stay out.
  */
@@ -239,7 +243,11 @@ export const DEFAULT_INCLUDE_PATHS: readonly string[] = [
 	'.github/prompts',
 	'.github/skills',
 	'.github/agents',
-	'.github/chatmodes'
+	'.github/chatmodes',
+	'.github/workflows',
+	'.github/actions',
+	'.gitlab-ci.yml',
+	'.circleci'
 ];
 
 /** Folder names to skip plus include entries that override the skip rules. */

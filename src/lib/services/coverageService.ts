@@ -12,7 +12,7 @@ import {
 	type LevelCoverage
 } from '$lib/types/coverage';
 import type { CutFile } from '$lib/utils/filePriority';
-import { isEnvValueFile, isSupported } from '$lib/utils/languageDetector';
+import { isEnvValueFile, isJsonData, isLockfile, isSupported } from '$lib/utils/languageDetector';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { semanticStore } from '$lib/stores/semanticStore.svelte';
 import { selectSkeleton, selectSubSkeleton } from './skeletonExtractor';
@@ -79,14 +79,19 @@ function fileReason(
 		sent: Set<string>;
 	}
 ): CoverageReason {
-	if (!file.language || !isSupported(file.language)) {
-		return isEnvValueFile(file.path) ? 'env-values' : 'unsupported';
-	}
+	if (!file.language || !isSupported(file.language)) return unreadReason(file.path);
 	const skip = known.parseSkips.get(file.path);
 	if (skip) return skip;
 	if (!known.astMap.has(file.path)) return 'unreadable';
 	if (known.sent.has(file.path)) return 'sent';
 	return known.omitted.get(file.path) ?? 'no-symbols';
+}
+
+function unreadReason(path: string): CoverageReason {
+	if (isEnvValueFile(path)) return 'env-values';
+	if (isLockfile(path)) return 'lockfile';
+	if (isJsonData(path)) return 'data-file';
+	return 'unsupported';
 }
 
 function levelCoverage(input: CoverageInput): LevelCoverage[] {

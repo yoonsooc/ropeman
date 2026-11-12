@@ -254,6 +254,10 @@ describe('wire symbol kinds', () => {
 			| 'output'
 			| 'target'
 			| 'env'
+			| 'key'
+			| 'table'
+			| 'job'
+			| 'service'
 		>();
 	});
 });

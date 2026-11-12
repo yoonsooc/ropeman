@@ -4,7 +4,9 @@ import {
 	isSupported,
 	getGrammarFile,
 	isEnvFile,
-	isEnvValueFile
+	isEnvValueFile,
+	isJsonData,
+	isLockfile
 } from './languageDetector';
 
 describe('detectLanguage', () => {
@@ -70,6 +72,47 @@ describe('detectLanguage', () => {
 			expect(isSupported(language)).toBe(true);
 			expect(getGrammarFile(language, path)).toBeNull();
 		}
+	});
+
+	it('detects YAML, TOML, JSON manifests and shell scripts, read with their grammars', () => {
+		const names: [string, string, string][] = [
+			['.github/workflows/ci.yml', 'yaml', 'tree-sitter-yaml.wasm'],
+			['k8s/deployment.yaml', 'yaml', 'tree-sitter-yaml.wasm'],
+			['pyproject.toml', 'toml', 'tree-sitter-toml.wasm'],
+			['crates/core/Cargo.toml', 'toml', 'tree-sitter-toml.wasm'],
+			['package.json', 'json', 'tree-sitter-json.wasm'],
+			['composer.json', 'json', 'tree-sitter-json.wasm'],
+			['tsconfig.json', 'json', 'tree-sitter-json.wasm'],
+			['packages/app/tsconfig.server.json', 'json', 'tree-sitter-json.wasm'],
+			['jsconfig.json', 'json', 'tree-sitter-json.wasm'],
+			['scripts/deploy.sh', 'bash', 'tree-sitter-bash.wasm'],
+			['install.bash', 'bash', 'tree-sitter-bash.wasm']
+		];
+		for (const [path, language, grammar] of names) {
+			expect(detectLanguage(path)).toBe(language);
+			expect(isSupported(language)).toBe(true);
+			expect(getGrammarFile(language, path)).toBe(grammar);
+		}
+	});
+
+	it('reads no lockfile and no JSON data file', () => {
+		const lockfiles = [
+			'package-lock.json',
+			'pnpm-lock.yaml',
+			'poetry.lock',
+			'Cargo.lock',
+			'uv.lock'
+		];
+		const data = ['src/i18n/en.json', 'fixtures/users.json', 'paseo-plugin.json'];
+
+		expect([...lockfiles, ...data].map(detectLanguage)).toEqual(
+			[...lockfiles, ...data].map(() => null)
+		);
+		expect(lockfiles.every(isLockfile)).toBe(true);
+		expect(data.every(isJsonData)).toBe(true);
+		expect(['package.json', 'tsconfig.base.json', 'package-lock.json'].some(isJsonData)).toBe(
+			false
+		);
 	});
 
 	it('keeps code extensions ahead of config names and leaves value files out', () => {
