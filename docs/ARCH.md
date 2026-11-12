@@ -36,6 +36,7 @@ src/
 │   │   ├── aiService.ts              # 채팅용 AI 호출 (캐시 + 재시도)
 │   │   ├── semanticAnalysisService.ts # 시맨틱 AI 분석 + JSON 파싱/복구
 │   │   ├── skeletonExtractor.ts      # AST → 스켈레톤 v2 → LLM 전송용 코드 구조 요약 (suffix 매칭). select*는 뺀 파일과 이유도 돌려준다
+│   │   ├── codeMapScore.ts           # 코드 지도를 정답 그래프(`tests/fixtures/graphs/`)와 비교해 관계 종류별 precision·recall과 놓친 관계를 낸다
 │   │   ├── coverageService.ts        # 파일마다 분석에서의 행방(보냄, 안 보냄, 잘림, 건너뜀, 못 읽음)과 단계별 배정 수
 │   │   ├── requestBudget.ts          # 보내기 전 크기 검사: 데모 요청 본문 바이트, BYOK 모델별 토큰 한도
 │   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
@@ -165,6 +166,7 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 - **전송 형식** (`types/skeleton.ts`의 `SkeletonPayload`): v1 그대로 고정한다. `toWireFile()`은 심볼과 import 원문만 읽는다(`WireSource` 타입). 그래서 줄, 호출, 대상, 출처는 요청 바이트와 캐시 키를 바꾸지 못한다.
 - 변환: `fileFromAst()`가 파일 하나를, `buildCodeMap(astMap, root)`이 astMap 전체를 코드 지도로 바꾼다. 지금은 참조·재수출 위치가 비어 있고 import 대상은 모두 `pending`이다. `selectSkeleton`·`selectSubSkeleton`은 `fileFromAst()` → `toWireFile()`을 거친다.
 - 고정 장치: `skeletonWire.test.ts`가 v2 이전 코드로 찍어 둔 전송 문자열 7종(최상위·드릴다운, 예산 무제한·50KB, 예산을 넘는 파일 하나)과 지금 출력을 비교한다.
+- 추출 점수: `tests/fixtures/graphs/`의 정답 그래프로 잰다 (9절).
 - 채울 작업: T1-5 참조 위치와 같은 파일 안 대상, T1-6 import 대상(상대 경로, tsconfig paths, 워크스페이스), T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
 
 ### 분석 범위 (커버리지)
@@ -378,3 +380,19 @@ main push → ci job (lint, svelte-check, build, unit, worker tests)
 - 필요한 GitHub secret: `CLOUDFLARE_API_TOKEN` (Workers Scripts Edit, Cloudflare Pages Edit), `CLOUDFLARE_ACCOUNT_ID`
 - 워커 시크릿(`GEMINI_API_KEY`, `AI_GATEWAY_TOKEN`)은 wrangler로 따로 등록하며 배포가 덮어쓰지 않는다
 - 수동 배포(`npm run deploy`, `npm run deploy:edge:<worker>`)는 장애 대응용이다
+
+---
+
+## 9. 테스트
+
+- 단위 테스트는 vitest로 `src/**/*.test.ts`를 돈다. 파서 워커 테스트는 `web-tree-sitter`의 wasm 경로를 `static/`으로 바꿔 Node에서 실제 문법으로 파싱한다.
+- E2E는 Playwright로 `tests/*.spec.ts`를 돈다. 로컬 폴더는 `?testDir=<절대 경로>`로 연다. dev 서버 미들웨어(`scripts/vite-dev-fs-plugin.js`)가 폴더를 훑고 파일을 읽어 주고, `testLoader.ts`가 파싱한다.
+
+### 추출 정답 그래프
+
+`tests/fixtures/graphs/`에 import·호출 관계를 손으로 적은 작은 저장소 세 개가 있다. TS 모노레포(워크스페이스, tsconfig paths, `$lib`, 배럴, 동적 import, 순환 import), SvelteKit 앱 조각, Python 패키지다. 형식, 정답 규칙, 기준선 갱신 방법은 그 폴더의 `README.md`에 있다.
+
+- 정답: `<저장소>.truth.json`. 관계 하나가 종류, 파일, 줄, 대상이다. 대상은 SymbolId에서 root를 뗀 문자열이다.
+- 채점: `services/codeMapScore.ts`의 `scoreCodeMap(map, truth)`가 종류마다 precision, recall, siteRecall(대상과 상관없이 그 줄에 위치가 있는 비율)과 놓친 관계를 낸다. 순수 함수이고 입력은 `CodeMap`이라 파서, 해석기, graph.json 어댑터 결과를 같은 방식으로 잰다.
+- 기준선: `codeMapScore.fixtures.test.ts`가 `?testDir=` 로더와 같은 스캐너(`scanDirectory`)로 파일을 읽어 지금 추출기로 코드 지도를 만들고 `baseline.json`보다 낮아진 값이 있으면 실패한다. 점수가 오르면 `UPDATE_GRAPH_BASELINE=1`로 다시 기록해 같은 PR에 넣는다.
+- 저장소 코드는 eslint, prettier, svelte-check에서 뺐다. 포매터가 줄을 옮기면 정답이 틀어진다.
