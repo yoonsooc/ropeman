@@ -59,11 +59,17 @@
 
 `src/lib/services/codeMapScore.fixtures.test.ts`가 `?testDir=` 로더와 같은 스캐너로 파일을 읽고 지금 파서와 `buildCodeMap()`으로 코드 지도를 만든 뒤 `baseline.json`과 비교한다. 기록보다 낮아진 값이 있을 때만 실패한다.
 
-2026-11-12 기록: 세 저장소 모두 `imports_from`·`imports`의 `siteRecall`은 1, 나머지는 0이다. `precision`은 연결한 것이 없어 `null`이다. 이유는 셋이다.
+2026-11-12 기록 (import 해석기 T1-6 이후). `extract()`는 `isResolverConfig()`가 고른 설정 파일 원문을 `buildCodeMap()`에 넘긴다.
 
-- `buildCodeMap()`은 import 대상을 모두 `pending`으로 두고 `refs`를 비워 둔다. 그래서 recall이 0이다.
-- 파서는 최상위 import 문을 시작 줄과 함께 모두 내보낸다. `.svelte` 안의 import도 파일 기준 줄이다. 그래서 import `siteRecall`이 1이다.
-- 파서는 `export … from` 문을 내보내지 않는다. 그래서 `re_exports`의 `siteRecall`이 0이다.
+| 저장소 | `imports_from` precision / recall | `imports` precision / recall |
+| --- | --- | --- |
+| ts-monorepo | 1 / 1 | 1 / 0.6 |
+| svelte-app | 1 / 1 | 1 / 0.35 |
+| py-shop | 1 / 1 | 1 / 0.92 |
+
+- 세 저장소 모두 import `siteRecall`은 1이다. 파서는 최상위 import 문을 시작 줄과 함께 모두 내보낸다. `.svelte` 안의 import도 파일 기준 줄이다.
+- 놓친 `imports` 20개 중 6개는 TS 배럴을 거친 이름이다. 파서가 `export … from` 문을 내보내지 않아서 해석기가 따라갈 재수출 위치가 없다. 같은 이유로 `re_exports`의 `siteRecall`은 0이다. `__init__.py`의 import를 거친 Python 이름은 연결된다.
+- 나머지 14개는 아래 파서 한계 때문이다. `refs`는 아직 비어 있어 `calls`·`dynamic_import`는 0이다.
 
 T1-5와 T1-6이 넘어야 할 파서 한계도 있다. 파서는 interface, type 별칭, 함수가 아닌 `const`(`cart`), Python 모듈 변수(`ROUND`)를 심볼로 내보내지 않는다. 이런 이름을 가리키는 정답(`types.ts#Entity`, `shared/config.ts#AppConfig`, `cart.svelte.ts#cart`, `pricing.py#ROUND` 등)은 파서가 그 심볼을 만들기 전에는 연결할 수 없다.
 

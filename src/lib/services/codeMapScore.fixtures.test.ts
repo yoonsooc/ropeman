@@ -7,6 +7,7 @@ import { isSupported } from '$lib/utils/languageDetector';
 import type { ASTSymbol } from '$lib/types/ast';
 import type { CodeMap } from '$lib/types/codeMap';
 import { buildCodeMap } from './skeletonExtractor';
+import { isResolverConfig } from './importResolver';
 import {
 	findRegressions,
 	scoreCodeMap,
@@ -87,6 +88,7 @@ async function extract(
 	const tree = scanDirectory(path.join(GRAPHS, repo)) as ScannedNode;
 	const astMap = new Map<string, ASTSymbol[]>();
 	const sources = new Map<string, string[]>();
+	const configs = new Map<string, string>();
 	const stack = [tree];
 	while (stack.length > 0) {
 		const node = stack.pop()!;
@@ -96,12 +98,13 @@ async function extract(
 		}
 		const content = fs.readFileSync(node._absolutePath!, 'utf-8');
 		sources.set(node.path.slice(tree.name.length + 1), content.split('\n'));
+		if (isResolverConfig(node.path)) configs.set(node.path, content);
 		if (node.language && isSupported(node.language) && content) {
 			astMap.set(node.path, await parse(node.path, content, node.language));
 		}
 	}
 	if (astMap.size === 0) throw new Error(`no parseable files read from ${repo}`);
-	return { map: buildCodeMap(astMap, tree.name), sources };
+	return { map: buildCodeMap(astMap, tree.name, configs), sources };
 }
 
 /** `text` standing alone, so `main` does not match inside `__main__` or `fetchUser` inside `refetchUser` */
