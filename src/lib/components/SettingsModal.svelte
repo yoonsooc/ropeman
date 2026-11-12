@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusTrap } from '$lib/utils/focusTrap';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
@@ -183,7 +184,13 @@
 		onclick={handleBackdropClick}
 		onkeydown={handleKeydown}
 	>
-		<div class="modal-card settings-card" role="dialog" aria-modal="true">
+		<div
+			class="modal-card settings-card"
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+			use:focusTrap
+		>
 			<div class="modal-header">
 				<h2>
 					<span class="material-symbols-outlined header-icon">settings</span>
