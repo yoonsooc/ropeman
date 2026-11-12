@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { authStore } from './authStore.svelte';
 import { settingsStore } from './settingsStore.svelte';
 
 describe('authStore', () => {
 	beforeEach(() => {
 		authStore.bridgeStatus = 'disconnected';
-		authStore.bridgePort = 9876;
+		authStore.bridgePort = 9800;
 		authStore.bridgeError = '';
 		settingsStore.clearAll();
 	});
@@ -15,8 +17,20 @@ describe('authStore', () => {
 			expect(authStore.bridgeStatus).toBe('disconnected');
 		});
 
-		it('bridgePort is 9876', () => {
-			expect(authStore.bridgePort).toBe(9876);
+		it('bridgePort starts on the port a bare `npx @ropeman/bridge` listens on', async () => {
+			// Regression: the app defaulted to 9876 while the bridge listens on 9800,
+			// so the README command never connected without editing the port field.
+			const serverSource = readFileSync(
+				resolve(__dirname, '../../../bridge/src/server.ts'),
+				'utf8'
+			);
+			const bridgeDefault = Number(serverSource.match(/const DEFAULT_PORT = (\d+);/)?.[1]);
+			vi.resetModules();
+
+			const { authStore: fresh } = await import('./authStore.svelte');
+
+			expect(bridgeDefault).toBe(9800);
+			expect(fresh.bridgePort).toBe(bridgeDefault);
 		});
 
 		it('bridgeError is empty string', () => {

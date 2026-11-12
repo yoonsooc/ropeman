@@ -6,7 +6,7 @@ export type BridgeStatus = 'disconnected' | 'connecting' | 'connected' | 'reconn
 
 function createAuthStore() {
 	let bridgeStatus = $state<BridgeStatus>('disconnected');
-	let bridgePort = $state(9876);
+	let bridgePort = $state(9800);
 	let bridgeError = $state('');
 	let edgeEnabled = $state(false);
 	let preferredTrack = $state<AuthTrack | null>(null);

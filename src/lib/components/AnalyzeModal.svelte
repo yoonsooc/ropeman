@@ -444,7 +444,7 @@
 									class="input"
 									value={bridgePort}
 									oninput={(e) =>
-										(bridgePort = parseInt((e.target as HTMLInputElement).value) || 9876)}
+										(bridgePort = parseInt((e.target as HTMLInputElement).value) || 9800)}
 								/>
 								{#if authStore.bridgeStatus === 'connected'}
 									<button class="btn btn-danger" onclick={disconnectBridge}
