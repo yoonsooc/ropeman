@@ -11,7 +11,8 @@ permissions:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: Playwright ^1.58.2 ships no chromium-headless-shell for ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
@@ -62,7 +63,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-${{ runner.os }}-${{ env.ImageOS }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
 
       # No --with-deps: the runner image already has Chromium's libraries, and the extra fonts it
       # adds came through apt, whose mirror lookups stalled this step for minutes
@@ -91,7 +92,7 @@ jobs:
   deploy:
     needs: ci
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: write # move the production tag
