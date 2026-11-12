@@ -47,10 +47,22 @@ export interface LevelCoverage {
 	exceedsBudget: boolean;
 }
 
+/** What the resolver bound the import and re-export statements of the code map to. */
+export interface ImportCoverage {
+	/** A file in the project */
+	project: number;
+	/** A package outside it */
+	external: number;
+	/** The resolver looked and found nothing */
+	unresolved: number;
+}
+
 export interface CoverageReport {
 	files: FileCoverage[];
 	byStatus: Record<CoverageStatus, FileCoverage[]>;
 	/** Files the parser read: sent, not sent, or excluded by path */
 	read: number;
 	levels: LevelCoverage[];
+	/** Null before the code map is built, or when no statement is in a language the resolver reads */
+	imports: ImportCoverage | null;
 }

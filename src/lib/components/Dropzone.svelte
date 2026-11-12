@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { projectStore } from '$lib/stores/projectStore.svelte';
+	import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
 	import { graphStore } from '$lib/stores/graphStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
@@ -154,16 +155,17 @@
 		error = '';
 		try {
 			resetStores();
-			const { tree, cut } = handleFallbackInput(input.files, currentPathFilter());
+			const { tree, cut, configs } = await handleFallbackInput(input.files, currentPathFilter());
 			projectStore.projectName = tree.name;
 			projectStore.fileTree = tree;
 			projectStore.cutFiles = cut;
 			projectStore.isLoading = true;
-			const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+			const { astMap, refs, skipped } = await parseAllFiles(tree, (progress) => {
 				projectStore.parsingProgress = progress;
 			});
 			projectStore.astMap = astMap;
 			projectStore.parseSkips = skipped;
+			codeMapStore.build({ astMap, root: null, refs, configs });
 			projectStore.isLoading = false;
 		} catch (err) {
 			error = i18nStore.t('dropzone.processFailed', { error: String(err) });
@@ -209,15 +211,16 @@
 		projectStore.projectName = dirHandle.name;
 		onload?.();
 
-		const { tree, cut } = await readDirectoryRecursive(dirHandle, '', currentPathFilter());
+		const { tree, cut, configs } = await readDirectoryRecursive(dirHandle, '', currentPathFilter());
 		projectStore.fileTree = tree;
 		projectStore.cutFiles = cut;
 
-		const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+		const { astMap, refs, skipped } = await parseAllFiles(tree, (progress) => {
 			projectStore.parsingProgress = progress;
 		});
 		projectStore.astMap = astMap;
 		projectStore.parseSkips = skipped;
+		codeMapStore.build({ astMap, root: null, refs, configs });
 		projectStore.isLoading = false;
 	}
 </script>

@@ -1,4 +1,4 @@
-import type { ASTSymbol, ParseSkip, ParseSkipReason } from '$lib/types/ast';
+import type { ASTRef, ASTSymbol, ParseSkip, ParseSkipReason } from '$lib/types/ast';
 import type { FileNode } from '$lib/types/fileTree';
 import { isSupported } from '$lib/utils/languageDetector';
 import { extractMarkdownSymbols } from '$lib/services/markdownOutline';
@@ -10,8 +10,14 @@ interface ParseRequest {
 	content: string;
 	language: string;
 	priority: number;
-	resolve: (symbols: ASTSymbol[]) => void;
+	resolve: (parsed: ParsedFile) => void;
 	reject: (err: Error) => void;
+}
+
+/** What the parser read from one file. Line parsers record no reference sites. */
+export interface ParsedFile {
+	symbols: ASTSymbol[];
+	refs: ASTRef[];
 }
 
 // Formats with no tree-sitter grammar here; their line parsers are cheap enough for the main thread
@@ -47,7 +53,7 @@ function handleWorkerMessage(e: MessageEvent) {
 		const req = pendingRequests.get(msg.filePath);
 		if (req) {
 			pendingRequests.delete(msg.filePath);
-			req.resolve(msg.symbols);
+			req.resolve({ symbols: msg.symbols, refs: msg.refs });
 		}
 		return;
 	}
@@ -91,13 +97,13 @@ export async function parseFile(
 	content: string,
 	language: string,
 	priority = 0
-): Promise<ASTSymbol[]> {
+): Promise<ParsedFile> {
 	const lineParser = LINE_PARSERS[language];
-	if (lineParser) return lineParser(content);
+	if (lineParser) return { symbols: lineParser(content), refs: [] };
 
 	await ensureInitialized();
 
-	return new Promise<ASTSymbol[]>((resolve, reject) => {
+	return new Promise<ParsedFile>((resolve, reject) => {
 		pendingRequests.set(filePath, {
 			filePath,
 			content,
@@ -121,15 +127,15 @@ export interface ParseProgress {
 	total: number;
 }
 
-/** The symbols read per file, and the files given to the parser that it read nothing from. */
+/** The symbols and reference sites read per file, and the files the parser read nothing from. */
 export interface ParseResult {
 	astMap: Map<string, ASTSymbol[]>;
+	refs: Map<string, ASTRef[]>;
 	skipped: ParseSkip[];
 }
 
 export async function parseAllFiles(
 	fileTree: FileNode,
-	existingAstMap: Map<string, ASTSymbol[]>,
 	onProgress?: (progress: ParseProgress) => void
 ): Promise<ParseResult> {
 	const files = collectSupportedFiles(fileTree);
@@ -139,23 +145,25 @@ export async function parseAllFiles(
 
 	let done = 0;
 	let totalParsedSize = 0;
-	const astMap = new Map(existingAstMap);
+	const astMap = new Map<string, ASTSymbol[]>();
+	const refs = new Map<string, ASTRef[]>();
 	const skipped: ParseSkip[] = [];
 
 	for (const file of files) {
-		const outcome = await parseInto(astMap, file, totalParsedSize);
+		const outcome = await parseInto(astMap, refs, file, totalParsedSize);
 		if (typeof outcome === 'number') totalParsedSize += outcome;
 		else skipped.push({ path: file.path, reason: outcome });
 		done++;
 		onProgress?.({ done, total });
 	}
 
-	return { astMap, skipped };
+	return { astMap, refs, skipped };
 }
 
-/** Parse one file into `astMap`. Returns the bytes read, or why nothing was read. */
+/** Parse one file into `astMap` and `refs`. Returns the bytes read, or why nothing was read. */
 async function parseInto(
 	astMap: Map<string, ASTSymbol[]>,
+	refs: Map<string, ASTRef[]>,
 	file: FileNode,
 	parsedSoFar: number
 ): Promise<number | ParseSkipReason> {
@@ -171,7 +179,9 @@ async function parseInto(
 		return 'unreadable';
 	}
 	try {
-		astMap.set(file.path, await parseFile(file.path, content, file.language!));
+		const parsed = await parseFile(file.path, content, file.language!);
+		astMap.set(file.path, parsed.symbols);
+		refs.set(file.path, parsed.refs);
 	} catch (err) {
 		console.warn(`[parserService] Failed to parse ${file.path}:`, err);
 		return 'parse-failed';

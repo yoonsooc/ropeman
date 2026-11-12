@@ -16,7 +16,9 @@ vi.mock('$lib/utils/languageDetector', async (importOriginal) => {
 });
 
 vi.mock('$lib/services/parserService', () => ({
-	parseFile: vi.fn().mockResolvedValue([{ name: 'mockSymbol', kind: 'function' }])
+	parseFile: vi
+		.fn()
+		.mockResolvedValue({ symbols: [{ name: 'mockSymbol', kind: 'function' }], refs: [] })
 }));
 
 vi.mock('$lib/stores/projectStore.svelte', () => {
@@ -35,7 +37,8 @@ vi.mock('$lib/stores/projectStore.svelte', () => {
 import { loadGitHubRepo, GitHubLoadError } from './githubLoader';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { parseFile } from '$lib/services/parserService';
-import { MAX_FILES } from '$lib/utils/filePriority';
+import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
+import { MAX_FILE_SIZE, MAX_FILES } from '$lib/utils/filePriority';
 
 const mockTreeResponse = {
 	sha: 'abc123',
@@ -102,6 +105,55 @@ describe('loadGitHubRepo', () => {
 			'https://raw.githubusercontent.com/owner/repo/abc123/src/index.ts',
 			'https://raw.githubusercontent.com/owner/repo/abc123/src/utils.ts'
 		]);
+	});
+
+	it('reads the resolver configs from the whole tree and builds the code map with them', async () => {
+		const blob = (path: string, size = 100) => ({
+			path,
+			mode: '100644',
+			type: 'blob' as const,
+			sha: path,
+			url: '',
+			size
+		});
+		const tree = {
+			...mockTreeResponse,
+			tree: [
+				blob('src/main.ts'),
+				blob('src/store.ts'),
+				blob('tsconfig.json'),
+				blob('package.json', MAX_FILE_SIZE + 1),
+				blob('node_modules/x/package.json')
+			]
+		};
+		const raw: Record<string, string> = {
+			'src/main.ts': "import { save } from '@/store'",
+			'src/store.ts': 'export function save() {}',
+			'tsconfig.json': '{ "compilerOptions": { "paths": { "@/*": ["./src/*"] } } }'
+		};
+		const fetchMock = vi.fn(async (url: string) => {
+			if (url.startsWith('https://api.github.com/')) return { ok: true, json: async () => tree };
+			const path = url.replace('https://raw.githubusercontent.com/owner/repo/abc123/', '');
+			return path in raw ? { ok: true, text: async () => raw[path] } : { ok: false, status: 404 };
+		});
+		vi.stubGlobal('fetch', fetchMock);
+		const parse = async (_path: string, content: string) => ({
+			symbols: content.startsWith('import')
+				? [{ name: content, kind: 'import' as const, lineStart: 1, lineEnd: 1 }]
+				: [{ name: 'save', kind: 'function' as const, lineStart: 1, lineEnd: 1 }],
+			refs: []
+		});
+		vi.mocked(parseFile).mockImplementationOnce(parse).mockImplementationOnce(parse);
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+		const fetched = fetchMock.mock.calls.map(([url]) => url.split('/abc123/')[1]).filter(Boolean);
+		expect(fetched.sort()).toEqual(['src/main.ts', 'src/store.ts', 'tsconfig.json']);
+		const main = codeMapStore.map!.files.get('repo/src/main.ts' as never)!;
+		expect(main.imports[0].module).toMatchObject({
+			state: 'bound',
+			candidates: [{ to: { kind: 'file', path: 'repo/src/store.ts' } }]
+		});
 	});
 
 	it('throws GitHubLoadError on 404', async () => {

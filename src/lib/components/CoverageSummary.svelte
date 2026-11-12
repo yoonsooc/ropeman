@@ -118,6 +118,17 @@
 					</button>
 				</header>
 				<p class="intro">{i18nStore.t('coverage.intro')}</p>
+				{#if report.imports}
+					{@const { project, external, unresolved } = report.imports}
+					<p class="intro" data-testid="coverage-imports">
+						{i18nStore.t('coverage.imports', {
+							total: n(project + external + unresolved),
+							project: n(project),
+							external: n(external),
+							unresolved: n(unresolved)
+						})}
+					</p>
+				{/if}
 
 				<div class="groups" role="group" aria-label={i18nStore.t('coverage.title')}>
 					{#each COVERAGE_STATUSES as status (status)}

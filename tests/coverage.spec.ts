@@ -87,3 +87,15 @@ test('lists a file whose syntax the parser could not read as a parser error', as
 	await expect(rows).toContainText('src/broken.py');
 	await expect(rows).toContainText('Parser error');
 });
+
+test('reports how the code map resolved the imports, configs included', async ({ page }) => {
+	// The two workspace packages and the tsconfig paths in this fixture only resolve when the
+	// loader passes the package.json and tsconfig files on to the code map
+	await openProject(page, { language: 'en' }, path.resolve('tests/fixtures/graphs/ts-monorepo'));
+
+	await page.getByTestId('coverage-summary').click();
+
+	await expect(page.getByTestId('coverage-imports')).toHaveText(
+		'Of 18 import statements, 17 lead to project files, 1 to packages, and 0 to nothing found.'
+	);
+});

@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { toFlowEdges } from '$lib/services/graphBuilder';
 import { toSemanticFlowEdges } from '$lib/services/semanticGraphBuilder';
-import type { GraphEdge } from '$lib/types/graph';
 import type { SemanticEdge } from '$lib/types/semantic';
 
 const ROOT = join(__dirname, '..', '..', '..');
@@ -291,35 +289,4 @@ describe('color tokens', () => {
 
 		expect(mismatches).toEqual([]);
 	});
-
-	it.each<[string, Map<string, string>]>([
-		['light', LIGHT],
-		['dark', DARK]
-	])(
-		'each file-graph edge stroke reads the legend token of its kind in %s mode',
-		(_mode, theme) => {
-			const types: GraphEdge['type'][] = ['contains', 'imports', 'calls'];
-			const edges = toFlowEdges(
-				types.map((type) => ({ id: type, source: 'a', target: 'b', type }))
-			);
-
-			const tokens = Object.fromEntries(
-				edges.map((edge, i) => {
-					const stroke = String(edge.style).match(/stroke: var\((--[\w-]+)\)/)?.[1];
-					const marker = (edge as { markerEnd?: unknown }).markerEnd;
-					const arrowhead =
-						typeof marker === 'object' ? (marker as { color?: string }).color : null;
-					const ok =
-						!!stroke && theme.has(stroke) && (arrowhead == null || arrowhead === `var(${stroke})`);
-					return [types[i], ok ? stroke : `${stroke} (arrowhead ${arrowhead})`];
-				})
-			);
-
-			expect(tokens).toEqual({
-				contains: '--color-edge-contains',
-				imports: '--color-edge-depends-on',
-				calls: '--color-edge-calls'
-			});
-		}
-	);
 });

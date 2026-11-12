@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { buildCoverage, currentCoverage, type CoverageInput } from './coverageService';
-import { selectSkeleton } from './skeletonExtractor';
+import { buildCodeMap, selectSkeleton } from './skeletonExtractor';
 import { CONFIG_PARSERS } from './configParsers';
 import { detectLanguage, type ConfigLanguage } from '$lib/utils/languageDetector';
 import type { ASTSymbol } from '$lib/types/ast';
@@ -9,6 +9,7 @@ import type { SemanticLevel, SemanticNode } from '$lib/types/semantic';
 import type { SkeletonSelection } from '$lib/types/skeleton';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { semanticStore } from '$lib/stores/semanticStore.svelte';
+import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
 
 const fn = (name: string): ASTSymbol => ({ name, kind: 'function', lineStart: 1, lineEnd: 1 });
@@ -51,6 +52,7 @@ function input(overrides: Partial<CoverageInput>): CoverageInput {
 			omitted: [],
 			exceedsBudget: false
 		}),
+		codeMap: null,
 		...overrides
 	};
 }
@@ -237,11 +239,65 @@ describe('buildCoverage', () => {
 	});
 });
 
+describe('import coverage', () => {
+	const imp = (text: string, line: number): ASTSymbol => ({
+		name: text,
+		kind: 'import',
+		lineStart: line,
+		lineEnd: line
+	});
+	const astMap = new Map<string, ASTSymbol[]>([
+		[
+			'src/app.ts',
+			[
+				imp("import { util } from './util'", 1),
+				imp("import z from 'zod'", 2),
+				imp("import x from './gone'", 3)
+			]
+		],
+		['src/util.ts', [imp("export { a } from './app'", 1), fn('util')]],
+		['main.go', [imp('import "fmt"', 1)]]
+	]);
+
+	it('counts the statements the resolver bound to project files, to packages and to nothing', () => {
+		const codeMap = buildCodeMap(astMap, null);
+
+		const report = buildCoverage(input({ astMap, codeMap }));
+
+		expect(report.imports).toEqual({ project: 2, external: 1, unresolved: 1 });
+	});
+
+	it('has no import counts before the code map is built', () => {
+		expect(buildCoverage(input({ astMap })).imports).toBeNull();
+	});
+
+	it('has no import counts when no statement is in a language the resolver reads', () => {
+		const goOnly = new Map([...astMap].filter(([path]) => path.endsWith('.go')));
+
+		expect(buildCoverage(input({ codeMap: buildCodeMap(goOnly, null) })).imports).toBeNull();
+	});
+});
+
 describe('currentCoverage', () => {
 	afterEach(() => {
 		projectStore.reset();
 		semanticStore.clear();
 		settingsStore.maxSkeletonKB = 250;
+	});
+
+	it('reads the import counts from the code map of the open project', () => {
+		const astMap = new Map<string, ASTSymbol[]>([
+			['src/a.ts', [{ name: "import b from './b'", kind: 'import', lineStart: 1, lineEnd: 1 }]],
+			['src/b.ts', [fn('b')]]
+		]);
+		projectStore.fileTree = tree('repo', [
+			file('src/a.ts', 'typescript'),
+			file('src/b.ts', 'typescript')
+		]);
+		projectStore.astMap = astMap;
+		codeMapStore.build({ astMap, root: null, refs: new Map(), configs: new Map() });
+
+		expect(currentCoverage().imports).toEqual({ project: 1, external: 0, unresolved: 0 });
 	});
 
 	it('counts the files a drill-down request leaves out for the budget', () => {

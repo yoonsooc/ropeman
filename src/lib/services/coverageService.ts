@@ -2,6 +2,7 @@ import type { ASTSymbol, ParseSkip } from '$lib/types/ast';
 import type { FileNode } from '$lib/types/fileTree';
 import type { SemanticLevel, SemanticNode } from '$lib/types/semantic';
 import type { SkeletonSelection } from '$lib/types/skeleton';
+import type { CodeMap } from '$lib/types/codeMap';
 import {
 	COVERAGE_REASONS,
 	COVERAGE_STATUSES,
@@ -9,12 +10,14 @@ import {
 	type CoverageReport,
 	type CoverageStatus,
 	type FileCoverage,
+	type ImportCoverage,
 	type LevelCoverage
 } from '$lib/types/coverage';
 import type { CutFile } from '$lib/utils/filePriority';
 import { isEnvValueFile, isSupported } from '$lib/utils/languageDetector';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { semanticStore } from '$lib/stores/semanticStore.svelte';
+import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
 import { selectSkeleton, selectSubSkeleton } from './skeletonExtractor';
 
 export interface CoverageInput {
@@ -28,6 +31,7 @@ export interface CoverageInput {
 	levels: ReadonlyMap<string, SemanticLevel>;
 	/** The skeleton a drill-down into `parent` sends */
 	drilldownSkeleton: (parent: SemanticNode) => SkeletonSelection;
+	codeMap: CodeMap | null;
 }
 
 const READ_REASONS = new Set<CoverageReason>([
@@ -66,8 +70,23 @@ export function buildCoverage(input: CoverageInput): CoverageReport {
 		files,
 		byStatus,
 		read: files.filter((file) => READ_REASONS.has(file.reason)).length,
-		levels: levelCoverage(input)
+		levels: levelCoverage(input),
+		imports: importCoverage(input.codeMap)
 	};
+}
+
+function importCoverage(map: CodeMap | null): ImportCoverage | null {
+	if (!map) return null;
+	const counts: ImportCoverage = { project: 0, external: 0, unresolved: 0 };
+	for (const record of map.files.values()) {
+		for (const { module } of [...record.imports, ...record.reexports]) {
+			if (module.state === 'unresolved') counts.unresolved++;
+			else if (module.state === 'bound') {
+				counts[module.candidates[0].to.kind === 'file' ? 'project' : 'external']++;
+			}
+		}
+	}
+	return counts.project + counts.external + counts.unresolved > 0 ? counts : null;
 }
 
 function fileReason(
@@ -133,6 +152,7 @@ export function currentCoverage(): CoverageReport {
 		parseSkips: projectStore.parseSkips,
 		skeleton: selectSkeleton(projectName, fileTree, astMap),
 		levels,
-		drilldownSkeleton: (parent) => selectSubSkeleton(parent.filePaths, fileTree, astMap)
+		drilldownSkeleton: (parent) => selectSubSkeleton(parent.filePaths, fileTree, astMap),
+		codeMap: codeMapStore.map
 	});
 }

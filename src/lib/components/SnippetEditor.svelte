@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { projectStore } from '$lib/stores/projectStore.svelte';
+	import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
 	import { graphStore } from '$lib/stores/graphStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
@@ -75,11 +76,12 @@
 			projectStore.fileTree = tree;
 			projectStore.isLoading = true;
 			projectStore.isSnippetMode = true;
-			const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+			const { astMap, refs, skipped } = await parseAllFiles(tree, (progress) => {
 				projectStore.parsingProgress = progress;
 			});
 			projectStore.astMap = astMap;
 			projectStore.parseSkips = skipped;
+			codeMapStore.build({ astMap, root: null, refs, configs: new Map() });
 			projectStore.isLoading = false;
 			// Auto-trigger semantic analysis if AI is connected
 			if (authStore.isReady) {
