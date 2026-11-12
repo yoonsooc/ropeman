@@ -169,7 +169,8 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
   - TS/JS·Svelte·Vue: 상대 경로(확장자 추가, `/index`, 적힌 `.js`→`.ts`, `.d.ts`), SvelteKit `$lib`·`kit.alias`(svelte.config가 없으면 `src/lib`), 가장 가까운 tsconfig의 `paths`·`baseUrl`(`extends` 포함, `tsconfig.json`이 없는 폴더는 `tsconfig.*.json`을 합친다), 워크스페이스 패키지(`exports`·`main`·`types`, `dist/` 경로는 tsconfig `outDir`→`rootDir`로 소스에 되돌린다) 순서로 찾는다. 나머지 이름은 외부 패키지다.
   - Python: 상대 import, 패키지 루트(`__init__.py`가 시작되는 폴더) 기준 절대 import, `from pkg import mod`의 하위 모듈. 루트 여러 곳에서 찾으면 후보 여럿(INFERRED)이다.
   - 다른 언어의 import는 `pending`으로 남는다. 못 찾은 import는 `unresolved`이고, `resolveImports()`의 `outcomes`가 규칙과 이유(`no-file`, `no-entry`, `outside-root`, `unparsed`)를 함께 준다.
-  - 이름별 대상은 대상 파일의 최상위 심볼(기본 export는 `export_default` 배지)에서 찾는다. 파서가 기록하지 않는 interface·type·재수출 이름은 `unresolved`다.
+  - 이름별 대상은 대상 파일의 최상위 심볼(기본 export는 `export_default` 배지)에서 찾는다. 없으면 그 파일의 import와 재수출(`export … from`, `export *`)을 따라가 선언한 파일까지 간다(배럴 `index.ts`, `__init__.py`). 파서가 기록하지 않는 interface·type·함수가 아닌 `const`는 `unresolved`다.
+  - `fileFromAst()`는 파서가 import로 보고한 `export … from` 문을 `reexports`에 둔다. 전송 형식은 `imports`만 읽으므로 요청 바이트는 그대로다. 지금 파서는 이 문을 내보내지 않는다.
 - 고정 장치: `skeletonWire.test.ts`가 v2 이전 코드로 찍어 둔 전송 문자열 7종(최상위·드릴다운, 예산 무제한·50KB, 예산을 넘는 파일 하나)과 지금 출력을 비교한다.
 - 채울 작업: T1-5 참조 위치와 같은 파일 안 대상, T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
 

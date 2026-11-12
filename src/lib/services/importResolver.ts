@@ -173,32 +173,55 @@ export function readResolverConfig(texts: ReadonlyMap<string, string>): Resolver
 	};
 }
 
-/** Bind every import site the resolver understands; other languages keep `pending`. */
+/**
+ * Bind every import and re-export site the resolver understands; other languages keep
+ * `pending`. Modules are resolved first, so a name can follow re-exports through barrels.
+ */
 export function resolveImports(
 	map: CodeMap,
 	config: ResolverConfig
 ): { map: CodeMap; outcomes: ImportOutcome[] } {
 	const ctx = createContext(map, config);
 	const outcomes: ImportOutcome[] = [];
-	const files = new Map<FilePath, FileRecord>();
 	for (const [path, record] of map.files) {
 		const family = familyOf(path);
-		if (!family || record.imports.length === 0) {
-			files.set(path, record);
-			continue;
-		}
-		const imports = record.imports.map((site) => {
+		if (!family) continue;
+		const read = (site: ModuleSite): ReadSite => {
 			const statement =
 				family === 'python' ? readPythonImport(site.text) : readScriptImport(site.text);
 			const resolution = statement
 				? resolveModule(statement.module, path, family, ctx)
 				: ({ status: 'unresolved', rule: null, reason: 'unparsed' } as const);
 			outcomes.push({ path, line: site.line, written: statement?.module ?? null, resolution });
-			return bindSite(site, statement, resolution, ctx);
+			return { site, statement, resolution };
+		};
+		ctx.sites.set(path, {
+			imports: record.imports.map(read),
+			reexports: record.reexports.map(read)
 		});
-		files.set(path, { ...record, imports });
+	}
+
+	const files = new Map<FilePath, FileRecord>();
+	for (const [path, record] of map.files) {
+		const sites = ctx.sites.get(path);
+		files.set(
+			path,
+			sites
+				? {
+						...record,
+						imports: sites.imports.map((read) => bindSite(read, ctx)),
+						reexports: sites.reexports.map((read) => bindSite(read, ctx))
+					}
+				: record
+		);
 	}
 	return { map: { ...map, files }, outcomes };
+}
+
+interface ReadSite {
+	site: ModuleSite;
+	statement: Statement | null;
+	resolution: ModuleResolution;
 }
 
 interface Context {
@@ -210,6 +233,8 @@ interface Context {
 	pythonRoots: string[];
 	/** `$lib` as SvelteKit defaults it, for a project with no svelte.config */
 	defaultKit: PathAlias[] | null;
+	/** Each file's sites with their modules resolved, filled before any name is bound */
+	sites: Map<FilePath, { imports: ReadSite[]; reexports: ReadSite[] }>;
 }
 
 function createContext(map: CodeMap, config: ResolverConfig): Context {
@@ -225,7 +250,8 @@ function createContext(map: CodeMap, config: ResolverConfig): Context {
 		records: map.files,
 		prefix,
 		pythonRoots: pythonRoots(files, prefix),
-		defaultKit
+		defaultKit,
+		sites: new Map()
 	};
 }
 
@@ -241,6 +267,8 @@ interface Statement {
 	named: WrittenName[];
 	/** false for Python `import x` and `from x import *`, which bind no listed names */
 	split: boolean;
+	/** `export * from 'm'`: every name `m` exports */
+	star?: boolean;
 }
 
 function readScriptImport(text: string): Statement | null {
@@ -258,8 +286,11 @@ function readScriptImport(text: string): Statement | null {
 			split: true
 		};
 	}
-	const from = source.match(/^import\s+([\s\S]*?)\s*\bfrom\s*(['"])([^'"]+)\2/);
+	const from = source.match(/^(?:import|export)\s+([\s\S]*?)\s*\bfrom\s*(['"])([^'"]+)\2/);
 	if (!from) return null;
+	if (/^\*$/.test(from[1].replace(/^type\s+/, '').trim())) {
+		return { module: from[3], named: [], split: true, star: true };
+	}
 
 	let clause = from[1].trim();
 	const allTypes = /^type\s+(?=[\w${*])/.test(clause);
@@ -579,12 +610,7 @@ function pythonRoots(files: ReadonlySet<string>, prefix: string): string[] {
 	return [...roots];
 }
 
-function bindSite(
-	site: ModuleSite,
-	statement: Statement | null,
-	resolution: ModuleResolution,
-	ctx: Context
-): ModuleSite {
+function bindSite({ site, statement, resolution }: ReadSite, ctx: Context): ModuleSite {
 	const module = moduleBinding(resolution);
 	if (!statement) return { ...site, module };
 	if (!statement.split) return { ...site, module, specifiers: [] };
@@ -640,25 +666,52 @@ function bound<E extends FileEnd | SymbolEnd | ExternalEnd>(to: E): Binding<E> {
 }
 
 /**
- * A name in the module it is imported from: the top-level symbol it declares, the default
- * export badge, or the package member. A name the file does not declare (a re-export, an
- * interface the parser does not record) stays unresolved.
+ * A name in the module it is imported from: the package member, or the declaration it ends at
+ * after following the file's own imports and re-exports (a barrel `index.ts`, an `__init__.py`).
+ * A name no file declares (an interface the parser does not record) stays unresolved.
  */
 function symbolBinding(
 	resolution: ModuleResolution,
 	name: string,
-	ctx: Context
+	ctx: Context,
+	seen = new Set<FilePath>()
 ): Binding<SymbolEnd | ExternalEnd> {
 	if (resolution.status === 'unresolved') return { state: 'unresolved' };
 	if (resolution.status === 'external') {
 		return bound({ kind: 'external', module: resolution.module, name });
 	}
 	if (resolution.paths.length > 1) return { state: 'unresolved' };
-	const record = ctx.records.get(resolution.paths[0]);
-	const symbol = record?.symbols.find((sym) =>
-		name === 'default' ? sym.badges.includes('export_default') : sym.name === name
-	);
-	return symbol ? bound({ kind: 'symbol', id: symbol.id }) : { state: 'unresolved' };
+	return exportedName(resolution.paths[0], name, ctx, seen);
+}
+
+function exportedName(
+	path: FilePath,
+	name: string,
+	ctx: Context,
+	seen: Set<FilePath>
+): Binding<SymbolEnd | ExternalEnd> {
+	if (seen.has(path)) return { state: 'unresolved' };
+	seen.add(path);
+	const symbol = ctx.records
+		.get(path)
+		?.symbols.find((sym) =>
+			name === 'default' ? sym.badges.includes('export_default') : sym.name === name
+		);
+	if (symbol) return bound({ kind: 'symbol', id: symbol.id });
+
+	const sites = ctx.sites.get(path);
+	if (!sites) return { state: 'unresolved' };
+	const all = [...sites.reexports, ...sites.imports];
+	for (const { statement, resolution } of all) {
+		const item = statement?.named.find((n) => n.local === name);
+		if (item) return symbolBinding(resolution, item.name, ctx, seen);
+	}
+	for (const { statement, resolution } of sites.reexports) {
+		if (!statement?.star) continue;
+		const target = symbolBinding(resolution, name, ctx, seen);
+		if (target.state === 'bound') return target;
+	}
+	return { state: 'unresolved' };
 }
 
 /** `from pkg import mod` binds a module when `pkg/mod.py` exists, which outranks a symbol. */

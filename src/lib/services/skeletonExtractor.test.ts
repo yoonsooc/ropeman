@@ -522,6 +522,31 @@ describe('skeleton v2 code map', () => {
 		expect(record.lines).toEqual({ start: 1, end: null });
 	});
 
+	it('keeps an export-from statement out of the imports the wire sends', () => {
+		const imported: ASTSymbol = {
+			name: "import { a } from './a'",
+			kind: 'import',
+			lineStart: 1,
+			lineEnd: 1
+		};
+		const reexported: ASTSymbol = {
+			name: "export * from './b'",
+			kind: 'import',
+			lineStart: 2,
+			lineEnd: 2
+		};
+
+		const record = fileFromAst('index.ts', [imported, reexported]);
+
+		expect(record.imports.map((site) => site.text)).toEqual([imported.name]);
+		expect(record.reexports).toEqual([
+			{ line: 2, text: reexported.name, module: { state: 'pending' }, specifiers: null }
+		]);
+		expect(toWireFile('index.ts', record)).toEqual(
+			toWireFile('index.ts', fileFromAst('index.ts', [imported]))
+		);
+	});
+
 	it('names symbols by file and nesting, numbering duplicates', () => {
 		const record = fileFromAst('svc.ts', [
 			{

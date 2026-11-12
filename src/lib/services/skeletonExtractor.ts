@@ -119,17 +119,19 @@ export function buildCodeMap(
 }
 
 /**
- * One parsed file as a code map record. Top-level imports become import sites; an import
- * nested in a symbol stays a child symbol, as the v1 wire has always sent it.
+ * One parsed file as a code map record. Top-level imports become import sites, and an
+ * `export … from` the parser reports as an import becomes a re-export site, which the wire
+ * never reads. An import nested in a symbol stays a child symbol, as the v1 wire sends it.
  */
 export function fileFromAst(key: string, astSymbols: readonly ASTSymbol[]): FileRecord {
 	const path = key as FilePath;
 	const ids = new Map<string, number>();
 	const symbols: SymbolRecord[] = [];
 	const imports: ModuleSite[] = [];
+	const reexports: ModuleSite[] = [];
 	for (const sym of astSymbols) {
 		if (sym.kind === 'import') {
-			imports.push({
+			(/^export\b/.test(sym.name) ? reexports : imports).push({
 				line: sym.lineStart,
 				text: sym.name,
 				module: { state: 'pending' },
@@ -145,7 +147,7 @@ export function fileFromAst(key: string, astSymbols: readonly ASTSymbol[]): File
 		lines: { start: 1, end: null },
 		symbols,
 		imports,
-		reexports: [],
+		reexports,
 		refs: []
 	};
 }

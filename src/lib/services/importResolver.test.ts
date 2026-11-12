@@ -256,6 +256,65 @@ describe('specifiers', () => {
 	});
 });
 
+describe('re-exports', () => {
+	it('follows names through a barrel to the file that declares them', () => {
+		// Arrange: re-export sites as the parser would report them
+		const files = {
+			'main.ts': {
+				imports: ["import { formatDate, Logger, createId, Missing } from './core'"]
+			},
+			'core/index.ts': {
+				imports: [
+					"export * from './format'",
+					"export { Logger } from './logger'",
+					"export { default as createId } from './id'"
+				]
+			},
+			'core/format.ts': { symbols: [fn('formatDate')] },
+			'core/logger.ts': { symbols: [fn('Logger', { kind: 'class' })] },
+			'core/id.ts': { symbols: [fn('makeId', { badges: ['export_default'] })] }
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		const ids = site(result, 'main.ts').specifiers!.map((s) =>
+			s.target.state === 'bound' ? s.target.candidates[0].to : s.target.state
+		);
+		expect(ids).toEqual([
+			{ kind: 'symbol', id: 'app/core/format.ts#formatDate' },
+			{ kind: 'symbol', id: 'app/core/logger.ts#Logger' },
+			{ kind: 'symbol', id: 'app/core/id.ts#makeId' },
+			'unresolved'
+		]);
+		const barrel = result.map.files.get('app/core/index.ts' as FilePath)!;
+		expect(barrel.imports).toEqual([]);
+		expect(barrel.reexports.map((r) => r.module.state)).toEqual(['bound', 'bound', 'bound']);
+	});
+
+	it('follows a name an __init__.py imports, and stops on a re-export cycle', () => {
+		// Arrange
+		const files = {
+			'cli.py': { imports: ['from shop import OrderService', 'from loop import thing'] },
+			'shop/__init__.py': { imports: ['from .service import OrderService'] },
+			'shop/service.py': { symbols: [fn('OrderService', { kind: 'class' })] },
+			'loop/__init__.py': { imports: ['from .a import thing'] },
+			'loop/a.py': { imports: ['from . import thing'] }
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(site(result, 'cli.py', 0).specifiers![0].target).toMatchObject({
+			state: 'bound',
+			candidates: [{ to: { kind: 'symbol', id: 'app/shop/service.py#OrderService' } }]
+		});
+		expect(site(result, 'cli.py', 1).specifiers![0].target).toEqual({ state: 'unresolved' });
+	});
+});
+
 describe('tsconfig paths', () => {
 	it('reads paths and baseUrl through extends, with comments and trailing commas', () => {
 		// Arrange
