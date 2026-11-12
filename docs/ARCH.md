@@ -46,6 +46,7 @@ src/
 │   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다 (T1-12 비교용)
 │   │   ├── ropemanMapSchema.ts       # `ropeman.json`과 Bridge RPC 메시지를 믿지 않는 입력으로 파싱 (크기, JSON, 형식, 버전, 구조, 단계 트리)
 │   │   ├── mapViewer.ts              # 파싱한 ropeman.json을 시맨틱 스토어가 캐시하는 단계 모양으로 펼친다
+│   │   ├── mapVerifier.ts            # 지도 검증기 (A-12): 배정 불변식, 경로 실재, 관계 근거를 코드 지도와 대조해 위반을 모두 돌려준다
 │   │   ├── coverageService.ts        # 파일마다 분석에서의 행방(보냄, 안 보냄, 잘림, 건너뜀, 못 읽음)과 단계별 배정 수
 │   │   ├── requestBudget.ts          # 보내기 전 크기 검사: 데모 요청 본문 바이트, BYOK 모델별 토큰 한도
 │   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
@@ -103,6 +104,7 @@ src/
 │   │   ├── semantic.ts               # SemanticNode, SemanticEdge, SemanticLevel
 │   │   ├── skeleton.ts               # SkeletonPayload (AI에 보내는 형식, v1에 고정)
 │   │   ├── ropemanMap.ts             # `ropeman.json` 형식과 버전, Bridge RPC 메시지 타입. 타입만 import해서 bridge와 Node CLI도 그대로 컴파일한다 (ADR-24)
+│   │   ├── mapVerification.ts        # 검증 결과: 파서 거부 또는 위반 코드와 규칙(`VIOLATION_RULES`), 위치, 확인 안 된 관계, 검사한 수
 │   │   ├── codeMap.ts                # 스켈레톤 v2: 줄 범위, import·참조 위치와 후보 대상, 관계 출처, 역할 관계의 근거. 브라우저에만 둔다 (ADR-21)
 │   │   ├── graph.ts                  # GraphNode, GraphEdge
 │   │   ├── tab.ts                    # Tab 타입
@@ -145,7 +147,7 @@ packages/core/                    # Node 추출 코어 (npm 워크스페이스 �
 │   ├── walk.ts                       # 폴더 순회: 브라우저와 같은 건너뛰기 규칙, 상한 없음. 파일 링크는 대상도 같은 규칙으로 확인, 폴더 링크는 따라가지 않음
 │   ├── extract.ts                    # 순회 → 해석 설정 → 파싱 → 코드 지도 → 계층 요약 (`extractDirectory`)
 │   └── cli.ts                        # `ropeman-extract <폴더> [--out 파일]`
-├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙
+├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙, 폴더로 묶은 지도의 검증(`mapVerifier.test.ts`)
 └── vite.config.ts                    # `npm run build:core` → `dist/cli.mjs` 하나와 `dist/wasm/`
 
 scripts/paseo-comparison/         # 실험: 같은 모델·프롬프트에 Ropeman 추출과 graph.json을 넣어 비교 (T1-12)
@@ -287,11 +289,25 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 - 단계(`MapLevel`)는 펼친 노드(`parentId`, 최상위는 null), `naming`(`grouped`는 폴더로 묶은 결정론 결과, `named`는 검증을 통과한 LLM 이름), 노드, 관계, 배정 수를 담는다. 색, 깊이, 파일 수는 파일에 없고 뷰어가 정한다. 경로는 모두 저장소 기준이다.
 - 버전: 읽는 쪽은 자기 major만 읽고, 그 major의 minor는 모두 읽는다. minor는 선택 필드만 더하고, 모르는 필드는 버린다. 닫힌 값 목록(행방 이유, 관계 종류, 단계 이름 상태)에 값을 더하면 major가 바뀐다. 오류 코드만은 열린 목록이라, 모르는 코드는 `unknown`으로 읽고 함께 온 문장을 보여 준다.
 - 거부 코드: `too-large`(16MiB 초과, 파일은 읽기 전에 크기로), `not-json`, `not-a-map`(`format`이 다름), `newer-version`·`unsupported-version`(major가 다름, 구조보다 먼저 본다), `invalid`(틀린 필드 위치를 `at`에 `levels[1].nodes[0].label`처럼 준다).
-- 구조 검사: 노드 id는 지도 전체에서 하나, `__root__`은 못 쓴다(스토어가 최상위 키로 쓴다). 최상위 단계는 하나이고, 나머지 단계는 최상위에서 닿는 노드를 하나씩 펼친다. 그래서 고아 단계와 순환이 없다. 관계는 같은 단계의 두 노드를 잇는다. 배정 불변식, 경로 실재, 관계 근거는 T2-3 검증기가 본다.
-- 모듈 경계: `ropemanMapSchema.ts`는 `$lib/types/`만 불러온다(타입과 `COVERAGE_REASONS` 같은 상수). T2-4가 이 파서를 Bridge와 `packages/core`에서 돌리는데, 둘 다 앱 런타임(스토어, 서비스, Svelte)을 번들하지 않기 때문이다. 파서가 닿는 `types/` 파일(`ropemanMap`, `codeMap`, `coverage`, `semantic`, `ast`)도 앱 모듈을 불러오면 안 된다. 직접·간접 import 그래프를 따라가는 테스트(`ropemanMapSchema.test.ts`의 module boundary)가 이를 막는다. `$lib` 별칭은 T2-4가 Bridge·core 빌드에서 풀어야 한다.
+- 구조 검사: 노드 id는 지도 전체에서 하나, `__root__`은 못 쓴다(스토어가 최상위 키로 쓴다). 최상위 단계는 하나이고, 나머지 단계는 최상위에서 닿는 노드를 하나씩 펼친다. 그래서 고아 단계와 순환이 없다. 관계는 같은 단계의 두 노드를 잇는다. 배정 불변식, 경로 실재, 관계 근거는 아래 지도 검증기가 본다.
+- 모듈 경계: `ropemanMapSchema.ts`와 `mapVerifier.ts`는 `$lib/types/`만 불러온다(타입과 `COVERAGE_REASONS` 같은 상수). 검증기는 여기에 더해 파서만 불러온다. T2-4가 이 파서를 Bridge와 `packages/core`에서 돌리는데, 둘 다 앱 런타임(스토어, 서비스, Svelte)을 번들하지 않기 때문이다. 파서가 닿는 `types/` 파일(`ropemanMap`, `codeMap`, `coverage`, `semantic`, `ast`)도 앱 모듈을 불러오면 안 된다. 직접·간접 import 그래프를 따라가는 테스트(`ropemanMapSchema.test.ts`의 module boundary, 두 모듈 모두)가 이를 막는다. `$lib` 별칭은 T2-4가 Bridge·core 빌드에서 풀어야 한다.
 - 값은 필드마다 새 객체로 복사한다. 상속된 키는 읽지 않고, 색처럼 화면 스타일이 되는 값은 파일에서 받지 않는다. 라벨과 설명은 Svelte 텍스트로만 그린다.
 - RPC(T2-4가 구현): 요청은 `{ id, type }`이고 응답은 같은 id와 type에 `result`나 `code`·`error`를 담는다. `map.get`은 지도 전체, `node.expand`는 노드 id를 받아 묶음 단계를 바로 돌려주고, 이름이 검증을 통과하면 `node.named` 푸시가 따른다(이미 이름이 있으면 바로 `named` 단계를 돌려주고 푸시는 없다). `file.read`는 #72 모양 그대로다. 서버는 연결마다 `hello`로 스키마 버전을 먼저 알린다. `map.changed`는 바뀐 경로만 알리고, 뷰어가 `map.get`을 다시 부른다.
 - JSON 열기(`/open`)는 파싱한 지도를 `mapViewer.toViewerLevels()`로 펼쳐 스냅샷 모드(`readOnlyMode = 'snapshot'`)로 보여 준다. 파일에 없는 단계는 "스냅샷에 없음"으로 보이고 AI를 부르지 않는다. 스냅샷 모드에서는 노드의 다시 분석 버튼도 숨긴다.
+
+### 지도 검증기 (`mapVerifier.ts`, T2-3)
+
+LLM은 지도의 이름과 관계를 쓰기만 하고, 믿을지는 결정론 코드가 정한다(A-12). `verifyMap(input, codeMap)`은 아무 값이나 받아 먼저 `ropeman.json`과 같은 파서(`parseRopemanMapValue`)로 읽고, 읽은 지도를 그 지도가 설명한다는 `CodeMap`과 대조해 위반을 전부 돌려준다. 첫 위반에서 멈추지 않는다. 순수 동기 함수이고 입출력과 LLM이 없다. 브라우저, Bridge, `packages/core`가 같은 코드를 돈다. T2-4는 LLM 이름을 붙인 단계를 `node.named`로 보내기 전에, T2-5는 화면에 위반과 커버리지를 그릴 때 쓴다.
+
+- 파서를 건너뛸 수 없다. serve가 메모리에서 만든 지도도 같은 파서를 거친다. 파서가 거부한 값(필드가 빠진 노드, `files: null`, 근거 없는 EXTRACTED, EXTRACTED ref를 든 INFERRED 근거, 단계 트리 오류)은 예외 없이 `{ parsed: false, failure }`로 돌아오고, `failure`는 파서의 `MapFailure`(코드와 `at`) 그대로다. 단계 트리, 노드 id 중복, 단계 밖 노드를 잇는 관계는 파서만 본다. 통과하면 `{ parsed: true, map, violations, unverified, checked }`이고, `map`은 검사한 사본이라 호출한 쪽은 넘긴 객체 대신 이것을 보여 준다.
+- 결과(`types/mapVerification.ts`): 위반마다 코드, 필드 위치(`at`, 파서 거부와 같은 `levels[1].nodes[0].filePaths[2]` 표기), 단계 번호, 노드 id, 파일 경로, 영어 문장. 코드는 17개이고 `VIOLATION_RULES` 표가 코드마다 규칙 하나(assignment, path, evidence)를 정한다. 검사한 파일·단계·노드·관계·근거 수도 함께 돌려줘서, 빈 지도의 통과와 실제 통과를 구분할 수 있다.
+- 확인 안 된 관계(`unverified`): refs가 빈 INFERRED 관계는 ADR-21대로 허용하고 위반으로 세지 않는다. 코드 지도로 맞다 틀리다를 가릴 수 없는 LLM의 주장이라서, 결과에 단계 번호, `at`, 양 끝 노드와 함께 따로 적는다. T2-4·T2-5는 이 관계를 점선으로, 사실이 아닌 주장으로 보여야 한다. 이름으로만 맞춘 ref를 든 INFERRED 관계는 그 ref를 검사하므로 이 목록에 없다(점선인 것은 같다).
+- 배정(assignment): 단계가 나누는 범위는 최상위가 `files`에서 `sent`로 적힌 파일(코드 지도에 있는 것만), 나머지 단계가 펼친 노드의 파일이다. 범위의 파일은 그 단계의 노드 하나에만 들어간다. 빠지면 `file-unassigned`, 두 번이면 `file-duplicated`, 범위 밖이면 `file-outside-scope`, 파일 없는 노드는 `node-empty`다. `grouped` 단계에 배정 수가 있거나 `named` 단계에 없으면 `assignment-counts`다. 배정 수 가운데 `leftOut`만 지도에서 다시 셀 수 있다. T0-7 복구는 LLM이 빠뜨린 파일을 미분류 노드 하나에 모으므로, `leftOut`이 0보다 크면 그만큼의 파일을 가진 노드가 있어야 한다(없으면 `assignment-left-out`). `duplicated`, `invented`, `emptied`는 LLM 원답에만 있는 수라 다시 셀 수 없다. T2-4가 다른 복구 방식을 쓰면 이 검사를 함께 바꾼다.
+- 경로(path): 지도의 모든 경로(`files`, 노드 파일, 근거의 양 끝)는 정규화한 저장소 기준 경로여야 한다. 빈 문자열, `/`로 시작, 드라이브 문자(`C:`), `\`, `.`·`..`·빈 마디, 제어 문자는 `path-invalid`다. 노드 파일과 근거 끝이 코드 지도에 없으면 `path-unknown`이다. 브라우저 코드 지도는 키 앞에 프로젝트 폴더를 붙이므로(`sample-shop/src/a.ts`) 떼고 비교하고, LLM이 그 폴더를 붙여 쓴 경로는 없는 파일로 본다. 경로는 양쪽 모두 NFC로 바꿔 비교한다. macOS는 한글 파일 이름을 NFD로 돌려주고 LLM은 NFC로 쓰기 때문이다. NFC로 바꾸면 같아지는 코드 지도 파일이 둘이면(Linux는 둘을 따로 둔다) 지도의 경로가 어느 쪽인지 정할 수 없어서 `path-collision`으로 지도를 거부한다. `files`는 코드 지도의 파일을 한 번씩 모두 적어야 하고(`coverage-missing`, `coverage-duplicate`), 읽은 이유(`sent`, `over-budget`, `no-symbols`, `excluded-path`)는 코드 지도에 있는 파일에만 붙는다(`coverage-mismatch`). 노드의 `keySymbols`는 그 노드 파일 가운데 하나가 선언한 심볼 이름이나 점 이름(`Store.load`)이어야 한다(`key-symbol-unknown`). 다른 노드 파일의 심볼은 통과하지 않는다.
+- 근거(evidence): 관계마다 근거가 있어야 한다(`evidence-missing`). 근거의 ref 하나하나는 코드 지도의 관계여야 한다. 파일, 줄, 관계 종류, 대상 파일이 같은 위치가 있어야 하고(`evidence-unknown`), 관계의 출발 노드 파일에서 도착 노드 파일로 가야 하며(`evidence-ends`, 양 끝을 모두 본다), 확신도가 코드 지도 후보의 것과 같아야 한다(`evidence-confidence`, 이름으로만 맞춘 INFERRED 호출을 EXTRACTED로 적은 경우). import 문은 `imports_from`(모듈)과 `imports`(가져온 이름, 심볼이면 그 심볼의 파일), re-export는 `re_exports`, 참조 위치는 그 종류(`calls` 등)로 찾는다. 심볼의 파일은 `SymbolId`에서 `#` 앞부분 가운데 코드 지도에 있는 가장 긴 것이다. 파일 이름(`a#b.ts`)이나 심볼 이름(Markdown 제목 `C#`)에도 `#`이 들어갈 수 있어서다. `#`이 없는 id는 어느 파일도 가리키지 않는다. `contains`·`method`는 한 파일 안의 심볼 트리라 두 노드 사이 관계의 근거가 될 수 없어서 `evidence-unknown`이다. 코드 지도의 위치 색인은 근거가 가리키는 파일에서만 처음 쓸 때 만든다.
+- 보지 않는 것: `assignment`의 `duplicated`·`invented`·`emptied`(위), 근거가 더 있는데 INFERRED로 적은 관계(낮춰 적은 것은 거짓이 아니라 고치는 쪽, T2-4의 몫).
+- 검증: 단위 테스트(`mapVerifier.test.ts`)가 코드마다 실제로 나오는 실수 하나를 고장으로 넣고 정확한 코드와 위치를 본다. 표가 `Record<ViolationCode, …>`라 새 코드에 사례가 없으면 컴파일되지 않는다. #76 검증에서 파서를 건너뛰어 통과하거나 예외를 던졌던 값 네 가지, 한글 NFD 파일 이름, `#`이 든 심볼 id는 회귀 테스트로 남겼다. `node scripts/verifier-mutations.mjs`는 `report(...)` 호출 위치마다 하나씩 끄고(18곳), 조건 13개를 약하게 바꾸고(근거의 출발 끝만 보기, NFC 비교 빼기, 옛 `endFile` 자르기 등), 앱 스토어 import를 하나 넣어 본 뒤 테스트가 실패하는지 본다(32개 변이 모두 잡힘). `packages/core/test/mapVerifier.test.ts`는 정답 픽스처 세 저장소를 Node 코어로 추출해 계층 요약대로 폴더마다 펼친 `grouped` 지도를 만들고(관계 근거는 폴더 사이 import), JSON으로 썼다 파서로 읽은 지도가 위반 0인지, 규칙마다 고장 하나를 넣으면 그 코드가 나오는지 본다.
+- PASEO 실측(`e0f545fed`, Apple M4, Node 26, `ROPEMAN_VERIFY_DIR=<폴더> npx vitest run packages/core/test/mapVerifier.test.ts`): 지도 파일 6,171개(건너뜀 2개), 폴더 단계 735개, 노드 1,398개, 관계 1,438개, 근거 ref 12,244개, JSON 5.1MB. 위반 0개. `verifyMap` 한 번이 중앙값 67~73ms(7회씩 3번, 최소 65.5ms, 최대 93.1ms). 파서를 안에서 돌리기 전(#76 첫 커밋)에는 45~54ms였다. 늘어난 약 20ms는 파서의 사본 만들기와 경로 NFC 변환으로 본다(나눠 재지 않은 추정). LLM 호출 하나(수 초)에 비하면 작아서 더 줄이지 않았다. 규칙마다 넣은 고장(파일 중복, `../` 경로, 줄을 바꾼 ref)은 각각 `file-duplicated`, `path-invalid`, `evidence-unknown` 하나로만 잡혔다.
 
 ### Phase 3: 재귀적 드릴다운
 
