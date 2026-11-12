@@ -36,6 +36,7 @@
 		handleFallbackInput
 	} from '$lib/services/fileSystemService';
 	import { parseAllFiles } from '$lib/services/parserService';
+	import CoverageSummary from '$lib/components/CoverageSummary.svelte';
 	import { setBridgeCallbacks } from '$lib/services/bridgeService';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { createPathFilter } from '$lib/utils/filePriority';
@@ -110,10 +111,11 @@
 				);
 				projectStore.fileTree = tree;
 				projectStore.cutFiles = cut;
-				const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+				const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 					projectStore.parsingProgress = progress;
 				});
 				projectStore.astMap = astMap;
+				projectStore.parseSkips = skipped;
 				projectStore.isLoading = false;
 			} catch (err: unknown) {
 				if (err instanceof Error && err.name === 'AbortError') return;
@@ -162,10 +164,11 @@
 			projectStore.fileTree = tree;
 			projectStore.cutFiles = cut;
 			projectStore.isLoading = true;
-			const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+			const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 				projectStore.parsingProgress = progress;
 			});
 			projectStore.astMap = astMap;
+			projectStore.parseSkips = skipped;
 			projectStore.isLoading = false;
 		} catch (err) {
 			console.error('Failed to process files:', err);
@@ -538,6 +541,7 @@
 						{/if}
 					</div>
 				{/if}
+				<CoverageSummary />
 			</div>
 			{#if hasSemanticSelection}
 				<div class="detail-panel">

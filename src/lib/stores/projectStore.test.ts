@@ -31,6 +31,20 @@ describe('projectStore', () => {
 		it('isSnippetMode is false', () => {
 			expect(projectStore.isSnippetMode).toBe(false);
 		});
+
+		it('parseSkips is empty', () => {
+			expect(projectStore.parseSkips).toEqual([]);
+		});
+	});
+
+	describe('parseSkips', () => {
+		it('clears the parse skips of the previous project on reset', () => {
+			projectStore.parseSkips = [{ path: 'src/broken.ts', reason: 'parse-failed' }];
+
+			projectStore.reset();
+
+			expect(projectStore.parseSkips).toEqual([]);
+		});
 	});
 
 	describe('setters', () => {

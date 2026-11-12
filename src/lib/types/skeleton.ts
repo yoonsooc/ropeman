@@ -23,3 +23,12 @@ export interface SkeletonPayload {
 	totalSymbols: number;
 	files: SkeletonFile[];
 }
+
+/** Why a parsed file is not in the skeleton that is sent. */
+export type SkeletonOmission = 'over-budget' | 'excluded-path' | 'no-symbols';
+
+/** The skeleton to send, and every parsed file it leaves out. */
+export interface SkeletonSelection {
+	payload: SkeletonPayload;
+	omitted: { path: string; reason: SkeletonOmission }[];
+}
