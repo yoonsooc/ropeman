@@ -262,6 +262,7 @@ func main() {
 }
 `,
 			[
+				// A macro's arguments are an unparsed token tree, so `v.len()` inside `println!` is not read
 				['calls', 2, 'main', 'Vec::<u8>::new'],
 				['calls', 3, 'main', 'v.push'],
 				['calls', 3, 'main', 'helper']
@@ -269,7 +270,13 @@ func main() {
 		],
 		[
 			'repo/src/App.java',
-			`class App {
+			`class App extends Base {
+    App() {
+        super();
+    }
+    App(int n) {
+        this();
+    }
     void run() {
         log("start");
         this.repo.save(new User());
@@ -277,9 +284,12 @@ func main() {
 }
 `,
 			[
-				['calls', 3, 'App.run', 'log'],
-				['calls', 4, 'App.run', 'this.repo.save'],
-				['calls', 4, 'App.run', 'User']
+				// The Java outline records no constructors, so their calls come from the class
+				['calls', 3, 'App', 'super'],
+				['calls', 6, 'App', 'this'],
+				['calls', 9, 'App.run', 'log'],
+				['calls', 10, 'App.run', 'this.repo.save'],
+				['calls', 10, 'App.run', 'User']
 			]
 		],
 		[

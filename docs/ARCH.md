@@ -167,11 +167,13 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 - **전송 형식** (`types/skeleton.ts`의 `SkeletonPayload`): v1 그대로 고정한다. `toWireFile()`은 심볼과 import 원문만 읽는다(`WireSource` 타입). 그래서 줄, 호출, 대상, 출처는 요청 바이트와 캐시 키를 바꾸지 못한다.
 - 변환: `fileFromAst(key, symbols, refs)`가 파일 하나를, `buildCodeMap(astMap, root, refMap)`이 astMap 전체를 코드 지도로 바꾼다. 재수출 위치는 아직 비어 있고, import와 참조의 대상은 모두 `pending`이다. `selectSkeleton`·`selectSubSkeleton`은 `fileFromAst()` → `toWireFile()`을 거친다.
 - 참조 위치 추출 (`workers/refQueries.ts`): 파서 워커가 심볼을 읽은 같은 트리에 문법별 쿼리를 한 번 돌리고, `parse-result` 메시지에 `refs`(`ASTRef[]`)를 함께 보낸다. 이름으로 대상을 찾지 않으므로 결과는 트리만으로 정해진다.
-  - 호출(`calls`)은 열네 언어의 문법 열다섯 개를 모두 읽는다: TS·TSX·JS, Python, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala. `new Foo()`(JS·TS, Java, C++, PHP, C#)도 `Foo` 호출로 센다. TSX·JS에서는 컴포넌트 태그(대문자로 시작하거나 점이 있는 이름, `<Layout.Frame>`)도 호출이다. `<div>` 같은 기본 태그는 세지 않는다. Rust 매크로(`println!`)는 함수가 아니어서 뺀다.
+  - 호출(`calls`)은 열네 언어의 문법 열다섯 개를 모두 읽는다: TS·TSX·JS, Python, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala. `new Foo()`(JS·TS, Java, C++, PHP, C#)도 `Foo` 호출로 센다. TSX·JS에서는 컴포넌트 태그(대문자로 시작하거나 점이 있는 이름, `<Layout.Frame>`)도 호출이다. `<div>` 같은 기본 태그는 세지 않는다. Java의 `super()`·`this()`도 호출이다. Rust 매크로(`println!`)는 함수가 아니어서 뺀다.
   - 동적 import(`import('./x')`)는 JS·TS에서, 클래스 상속(`inherits`, `implements`)은 JS·TS와 Python에서 읽는다. Python은 위치 인자만 부모로 보고 `metaclass=`는 뺀다.
   - 적힌 이름(`written`)은 호출 대상 부분의 원문이다. 괄호·대괄호·중괄호 안은 비우고 공백은 지운다. 그래서 `z.object({ … }).strict()`는 `z.object().strict`가 된다. 단어 사이 공백 하나만 남긴다(`new Store().save`). 200자에서 자른다.
   - 줄은 호출식이 시작하는 줄이다. graphify와 정답 픽스처(`tests/fixtures/graphs/`)가 같은 규칙을 쓴다. 여러 줄로 이어진 체인 호출은 모두 첫 줄에 놓이고 적힌 이름으로 구별된다.
   - 감싼 심볼(`from`)은 그 줄을 줄 범위에 담은 가장 깊은 심볼이다. 같은 줄에 심볼이 둘이면 먼저 나온 것이다. 심볼 트리에 없는 범위(함수 안 함수, `describe` 콜백, 화살표 함수가 아닌 최상위 `const`)는 바깥 심볼이나 `null`로 간다. 상속은 클래스가 시작하는 줄의 클래스 심볼에만 붙고, 심볼 트리에 없는 클래스(함수 안 클래스, 추상 클래스)의 상속은 버린다.
+  - 알려진 빈틈: Rust 매크로의 인자는 파싱되지 않은 토큰 묶음(token tree)이라 그 안의 호출(`println!("{}", v.len())`의 `v.len`)을 읽지 못한다. 감싼 심볼은 줄로만 고르므로, 한 줄에 함수 둘이 있으면 둘째 함수의 호출도 첫째에 붙는다. 심볼에 열(column)이 없고 v1 전송 형식이 고정이라 열로 고르지 않았다. Python 데코레이터 호출(`@app.route("/x")`)은 함수 심볼이 `def` 줄에서 시작하므로 바깥(모듈)으로 간다. Java 생성자는 개요에 없어서 생성자 안 호출은 클래스에서 나온다.
+  - 쿼리가 컴파일되지 않거나 돌다가 실패하면 그 문법의 파일은 참조 없이(`refs: []`) 심볼만 보낸다. 컴파일은 문법마다 한 번만 시도하고, 경고(`console.warn`)도 문법마다 한 번만 남긴다.
   - 같은 파일 안 이름 맞추기는 하지 않았다. 지역 변수가 같은 이름을 가리면 틀리므로 EXTRACTED라 할 수 없고, 다른 파일로 가는 호출과 함께 해석기가 맡는다.
   - 아직 `parserService`는 `refs`를 버린다. 코드 지도를 화면에 잇는 작업이 파일별 `refs`를 모아 `buildCodeMap`에 넘긴다.
   - 비용(PASEO, Node, 워커 코드 그대로, 5회 교차 실행 중앙값): `.ts` 4,415개 3.96초 → 5.34초(+35%), `.tsx` 870개 0.59초 → 0.78초(+33%). 늘어난 시간의 대부분은 쿼리가 트리를 도는 WASM 시간이다(호출 패턴 하나만 돌려도 약 1.0초). 읽은 위치는 `.ts`에서 404,435개, `.tsx`에서 39,711개다.

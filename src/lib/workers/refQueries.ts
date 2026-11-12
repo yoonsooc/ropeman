@@ -40,7 +40,8 @@ const QUERIES: Record<string, string> = {
 	'tree-sitter-cpp.wasm': `${CALL}
 (new_expression type: (_) @callee)`,
 	'tree-sitter-java.wasm': `((method_invocation name: (_) @name) @call)
-(object_creation_expression type: (_) @callee)`,
+(object_creation_expression type: (_) @callee)
+(explicit_constructor_invocation constructor: (_) @callee)`,
 	'tree-sitter-ruby.wasm': '((call method: (_) @name) @call)',
 	'tree-sitter-php.wasm': `(function_call_expression function: (_) @callee)
 ((member_call_expression name: (_) @name) @call)
@@ -72,12 +73,15 @@ interface SyntaxNode {
 
 type QueryFactory = (source: string) => QueryLike;
 
-const compiled = new Map<string, QueryLike>();
+/** A grammar's compiled query, or `null` when it has none or its query failed to compile. */
+const compiled = new Map<string, QueryLike | null>();
+const warned = new Set<string>();
 
 /**
  * Calls, dynamic imports and class bases written in a parsed file, in source order. Deterministic:
  * only what the syntax tree says, no name lookup. `compile` builds a query for this grammar and
- * is called once per grammar.
+ * is called once per grammar. A query that fails to compile or run yields no refs, never an
+ * error: refs are an addition to the symbols, and losing them must not lose the file.
  */
 export function extractRefs(
 	root: unknown,
@@ -85,19 +89,36 @@ export function extractRefs(
 	grammarFile: string,
 	compile: QueryFactory
 ): ASTRef[] {
+	try {
+		const query = queryFor(grammarFile, compile);
+		if (!query) return [];
+		const refs: ASTRef[] = [];
+		for (const match of query.matches(root)) {
+			const ref = toRef(match.captures, source);
+			if (ref) refs.push(ref);
+		}
+		return refs.sort((a, b) => a.line - b.line);
+	} catch (err) {
+		warnOnce(grammarFile, err);
+		return [];
+	}
+}
+
+function queryFor(grammarFile: string, compile: QueryFactory): QueryLike | null {
+	const cached = compiled.get(grammarFile);
+	if (cached !== undefined) return cached;
+	// Set first, so a query that throws stays `null` and is not compiled again for every file
+	compiled.set(grammarFile, null);
 	const querySource = QUERIES[grammarFile];
-	if (!querySource) return [];
-	let query = compiled.get(grammarFile);
-	if (!query) {
-		query = compile(querySource);
-		compiled.set(grammarFile, query);
-	}
-	const refs: ASTRef[] = [];
-	for (const match of query.matches(root)) {
-		const ref = toRef(match.captures, source);
-		if (ref) refs.push(ref);
-	}
-	return refs.sort((a, b) => a.line - b.line);
+	const query = querySource ? compile(querySource) : null;
+	compiled.set(grammarFile, query);
+	return query;
+}
+
+function warnOnce(grammarFile: string, err: unknown): void {
+	if (warned.has(grammarFile)) return;
+	warned.add(grammarFile);
+	console.warn(`[refQueries] reading refs failed for ${grammarFile}; its files get none`, err);
 }
 
 function toRef(captures: { name: string; node: SyntaxNode }[], source: string): ASTRef | null {
