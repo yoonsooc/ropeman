@@ -2,6 +2,7 @@
 
 import type { ASTSymbol, SymbolKind } from '$lib/types/ast';
 import { getGrammarFile } from '$lib/utils/languageDetector';
+import { componentScriptSource, isComponentLanguage } from '$lib/utils/sfcScripts';
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -53,11 +54,14 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 				return;
 			}
 
-			const grammar = await getGrammar(msg.language, msg.filePath);
+			const source = isComponentLanguage(msg.language)
+				? componentScriptSource(msg.filePath, msg.content)
+				: msg;
+			const grammar = await getGrammar(source.language, source.filePath);
 			parserInstance.setLanguage(grammar);
 
-			const tree = parserInstance.parse(msg.content);
-			const symbols = extractSymbols(tree.rootNode, msg.language);
+			const tree = parserInstance.parse(source.content);
+			const symbols = extractSymbols(tree.rootNode, source.language);
 			// tree-sitter recovers from any syntax error, so a broken file would otherwise read as
 			// a valid file without definitions
 			if (symbols.length === 0 && tree.rootNode.hasError) {

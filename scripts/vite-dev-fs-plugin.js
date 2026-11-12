@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+// Vite bundles the config with its relative imports, so the app's own table applies here too
+import { detectLanguage } from '../src/lib/utils/languageDetector';
 
 const SKIP_PATTERNS = new Set([
 	'node_modules',
@@ -35,36 +37,9 @@ const SKIP_PATTERNS = new Set([
 	'vendor'
 ]);
 
-const EXTENSION_MAP = {
-	'.py': 'python',
-	'.js': 'javascript',
-	'.jsx': 'javascript',
-	'.ts': 'typescript',
-	'.tsx': 'typescript',
-	'.go': 'go',
-	'.rs': 'rust',
-	'.java': 'java',
-	'.c': 'c',
-	'.cpp': 'cpp',
-	'.h': 'c',
-	'.hpp': 'cpp',
-	'.rb': 'ruby',
-	'.php': 'php',
-	'.swift': 'swift',
-	'.kt': 'kotlin',
-	'.scala': 'scala',
-	'.cs': 'csharp'
-};
-
 const MAX_FILES = 2000;
 const MAX_DEPTH = 30;
 const MAX_FILE_SIZE = 500_000;
-
-/** @param {string} filename */
-function detectLanguage(filename) {
-	const ext = filename.substring(filename.lastIndexOf('.'));
-	return EXTENSION_MAP[/** @type {keyof typeof EXTENSION_MAP} */ (ext)] ?? null;
-}
 
 /** @param {string} dirPath @param {string} [basePath] @param {number} [depth] @param {{ fileCount: number }} [ctx] @returns {{ name: string, path: string, kind: string, children: any[] }} */
 function scanDirectory(dirPath, basePath = '', depth = 0, ctx = { fileCount: 0 }) {

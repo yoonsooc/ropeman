@@ -326,6 +326,16 @@ describe('rankFiles and capFiles', () => {
 		]);
 	});
 
+	it('keeps Svelte and Vue components with code ahead of files no parser reads', () => {
+		const { kept } = capFiles(
+			['src/styles/app.css', 'src/App.vue', 'assets/logo.png', 'src/lib/Header.svelte'],
+			(p) => p,
+			2
+		);
+
+		expect(kept.sort()).toEqual(['src/App.vue', 'src/lib/Header.svelte']);
+	});
+
 	it('keeps instruction files and small code folders when core source alone exceeds the limit', () => {
 		// Regression: ranking every src/ file ahead of everything else dropped AGENTS.md,
 		// skills/ and scripts/ from PASEO even though they are a handful of files

@@ -33,6 +33,15 @@ describe('detectLanguage', () => {
 		expect(getGrammarFile('markdown', 'SKILL.md')).toBeNull();
 	});
 
+	it('detects Svelte and Vue components as supported languages read through their scripts', () => {
+		// Regression: .svelte had no language, so Ropeman could not read its own components
+		expect(detectLanguage('src/lib/components/Header.svelte')).toBe('svelte');
+		expect(detectLanguage('src/components/App.vue')).toBe('vue');
+		expect(isSupported('svelte')).toBe(true);
+		expect(isSupported('vue')).toBe(true);
+		expect(getGrammarFile('svelte', 'Header.svelte')).toBeNull();
+	});
+
 	it('detects TypeScript from .tsx extension', () => {
 		expect(detectLanguage('Component.tsx')).toBe('typescript');
 	});

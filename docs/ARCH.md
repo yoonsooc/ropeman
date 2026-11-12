@@ -100,7 +100,8 @@ src/
 │   ├── config.ts                     # DEMO_URL, PROXY_URL 상수
 │   │
 │   └── utils/
-│       ├── languageDetector.ts       # 확장자 → 언어 매핑
+│       ├── languageDetector.ts       # 확장자 → 언어 매핑 (dev 전용 `?testDir=` 스캐너 `scripts/vite-dev-fs-plugin.js`도 이 표를 쓴다)
+│       ├── sfcScripts.ts             # `.svelte`·`.vue` → `<script>` 본문만 남긴 TS/JS 소스 (파서 워커가 쓴다)
 │       ├── locale.ts                 # UI 언어 결정 (저장된 선택 > 브라우저 언어 ko* > en)
 │       ├── fileIcons.ts              # 파일 유형별 Material Symbols + 색상 매핑
 │       ├── focusTrap.ts              # div 모달 카드용 액션: 열 때 포커스를 넣고 Tab을 안에 가두고 닫으면 연 버튼으로 돌려줌
@@ -341,6 +342,7 @@ export const xxxStore = createXxxStore();
   - `githubLoader.loadGitHubRepo()`도 `cutFiles`에 쓰지 않고 `{ cut }`을 돌려준다. 같은 두 컴포넌트가 받아서 쓴다. 트리와 파싱 진행률은 받는 대로 보여야 해서 로더가 직접 쓴다.
 - **AST 파싱**: 14개 언어 tree-sitter WASM (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala)
   - 문법 WASM은 `static/`에 커밋한다. 언어별 파일은 `languageDetector.getGrammarFile()`이 고른다. `.tsx`는 언어는 TypeScript 그대로 두고 JSX를 읽는 `tree-sitter-tsx.wasm`(`tree-sitter-wasms` 0.1.13)으로 파싱한다. `.ts`는 `<T>value` 캐스트를 JSX로 오인하지 않도록 `tree-sitter-typescript.wasm`을 유지한다
+  - `.svelte`·`.vue`는 전용 문법 없이 `<script>` 블록(`context="module"`, `module`, `setup` 포함)을 TS/JS로 읽는다. `sfcScripts.componentScriptSource()`가 블록 밖의 글자를 공백으로 바꾸고 줄바꿈은 남겨서, 심볼 줄 번호가 원본 파일 줄과 같다. 문법은 블록의 `lang`(`ts`, `tsx`, 없음 = JS) 중 가장 넓은 것을 `getGrammarFile()`로 고른다. 템플릿과 스타일은 읽지 않는다. JSON-LD처럼 코드가 아닌 `type`과 모르는 `lang`(예: `coffee`)의 블록은 건너뛴다
 - **코드 구조 요약 크기**: 기본 250KB (50-1000KB 범위, 1KB = 1000바이트). 보내는 압축 JSON 전체(바깥 필드 포함)로 잰다
   - 경고는 `requestBudget.ts`가 실제로 보낼 프롬프트(시스템 + 사용자, `topLevelPrompt()`)로 잰다. 데모는 POST 본문(JSON 이스케이프 포함)이 300KB를 넘으면 경고한다(측정 안 함, 모델당 40초 제한. 기본 250KB 스켈레톤이 본문으로 약 15% 커지는 만큼 여유를 둠). BYOK는 고른 프로바이더·모델의 컨텍스트 창(`aiProviders.ts` 표, 출처는 주석)에서 출력 예약(Gemini·OpenAI 16,384, Anthropic 4,096)을 뺀 값과 비교한다. 표에 없는 모델은 128K로 가정하고 그렇다고 알린다. 토큰 수는 1토큰 = 4바이트로 어림한다 (PASEO 측정 4.2)
   - 하위 분석(`extractSubSkeleton`)도 같은 예산을 쓴다. 최상위는 첫 초과 파일에서 멈추고, 하위 분석은 초과 파일을 건너뛰며 하나도 안 들어가면 가장 작은 파일 하나를 보낸다. 예산 안에 들면 보내는 문자열은 예산 도입 전과 같다(캐시 키 유지). 예산으로 빠진 파일은 배정 대상(부모 노드의 filePaths)에는 남으므로 그 단계의 미분류 노드로 간다
