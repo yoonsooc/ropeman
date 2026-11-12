@@ -10,7 +10,7 @@
 	},
 	"scripts": {
 		"build": "npm --prefix .. run build:bridge",
-		"prepack": "npm run build",
+		"prepack": "npm --prefix .. run build && npm run build && npm --prefix .. run bundle:viewer",
 		"start": "node dist/server.mjs"
 	},
 	"dependencies": {

@@ -11,6 +11,7 @@
 		"check:core": "tsc -p packages/core/tsconfig.json",
 		"build:bridge": "vite build -c bridge/vite.config.ts",
 		"check:bridge": "tsc -p bridge/tsconfig.json",
+		"bundle:viewer": "node scripts/bundle-viewer.mjs",
 		"preview": "npm run build && wrangler dev",
 		"lint": "eslint .",
 		"format": "prettier --write .",

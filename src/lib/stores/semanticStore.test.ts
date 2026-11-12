@@ -125,6 +125,21 @@ describe('semanticStore', () => {
 		});
 	});
 
+	describe('replaceLevels', () => {
+		it('drops levels the new set does not hold, so a stale level cannot be drilled into', () => {
+			// Arrange
+			semanticStore.setCachedLevel('gone', makeSemanticLevel([], 'gone'));
+			const fresh = makeSemanticLevel([makeSemanticNode('a', 'A')], 'kept');
+
+			// Act
+			semanticStore.replaceLevels(new Map([['kept', fresh]]));
+
+			// Assert
+			expect(semanticStore.hasCachedLevel('gone')).toBe(false);
+			expect(semanticStore.getCachedLevel('kept')).toEqual(fresh);
+		});
+	});
+
 	describe('setCachedLevel / getCachedLevel', () => {
 		it('caches and retrieves a level', () => {
 			const level = makeSemanticLevel([makeSemanticNode('n1', 'UI')]);

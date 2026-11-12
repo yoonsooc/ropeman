@@ -51,6 +51,18 @@ function parseDirFlag(args: string[], flag: string): string | null {
 	}
 }
 
+/** The viewer this package ships (`npm run bundle:viewer`), for `--local`. */
+function bundledViewer(): string {
+	const dir = fileURLToPath(new URL('./viewer', import.meta.url));
+	if (!fs.existsSync(path.join(dir, 'bridge.html'))) {
+		console.error(
+			`Cannot start: --local needs the viewer bundle in ${dir}. Build it with npm run bundle:viewer.`
+		);
+		process.exit(1);
+	}
+	return resolveRoot(dir);
+}
+
 function log(msg: string): void {
 	const ts = new Date().toISOString().slice(11, 19);
 	console.log(`[${ts}] ${msg}`);
@@ -69,7 +81,8 @@ async function main() {
 	if (argv[0] === 'serve') argv.shift();
 	const port = parsePort(argv);
 	const root = parseDirFlag(argv, '--root');
-	const viewerDir = parseDirFlag(argv, '--viewer');
+	const viewerDir =
+		parseDirFlag(argv, '--viewer') ?? (argv.includes('--local') ? bundledViewer() : null);
 	let defaultCli: CLIType | null = parseCLIFlag(argv);
 
 	if (!defaultCli) {
@@ -165,12 +178,13 @@ async function main() {
 
 	server.listen(port, HOST, () => {
 		log(`Bridge server ready on ws://${HOST}:${port}`);
-		log(
-			`Token: ${tokenSource}. Paste it into the Token field on the Local Bridge card in Ropeman.`
-		);
+		log(`Open https://ropeman.dev/bridge and paste the token (${tokenSource}).`);
 		log(`Map and file.read root: ${root ?? 'off (pass --root <dir>)'}`);
 		session?.start();
-		if (viewerDir) log(`Local mode: open http://${HOST}:${port}/#token=${token}`);
+		// The Ropeman viewer opens at /bridge; another --viewer directory (the probe) at its index
+		const entry = viewerDir && fs.existsSync(path.join(viewerDir, 'bridge.html')) ? '/bridge' : '/';
+		if (viewerDir) log(`Local mode: open http://${HOST}:${port}${entry}#token=${token}`);
+		else log('Safari, or the browser blocked the connection? Start again with --local.');
 	});
 }
 

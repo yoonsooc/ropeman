@@ -123,6 +123,7 @@ describe('bridge server', () => {
 		fs.mkdirSync(projectDir);
 		fs.writeFileSync(path.join(viewerDir, 'index.html'), '<!doctype html><title>viewer</title>');
 		fs.writeFileSync(path.join(viewerDir, 'app.js'), 'export {};');
+		fs.writeFileSync(path.join(viewerDir, 'bridge.html'), '<!doctype html><title>bridge</title>');
 		fs.writeFileSync(path.join(viewerDir, '.env'), 'SECRET=1\n');
 		fs.mkdirSync(path.join(viewerDir, 'sub'));
 		fs.mkdirSync(path.join(viewerDir, '.git'));
@@ -184,6 +185,17 @@ describe('bridge server', () => {
 	});
 
 	describe('local mode', () => {
+		it('serves a prerendered route at its path without the .html, as Cloudflare Pages does', async () => {
+			const port = await start({ viewerDir: resolveRoot(viewerDir) });
+
+			const route = await get(port, '/bridge');
+			const dir = await get(port, '/sub');
+
+			expect(route.status).toBe(200);
+			expect(route.body).toContain('<title>bridge</title>');
+			expect(dir.status).toBe(404);
+		});
+
 		it('serves the viewer with headers that stop framing and sniffing', async () => {
 			// Arrange
 			const port = await start({ viewerDir: resolveRoot(viewerDir) });

@@ -13,7 +13,9 @@ npx @ropeman/bridge serve --root ~/code/project --port 9900 --cli claude
 
 The bridge listens on `ws://127.0.0.1:9800` unless you pass `--port`. Without `--cli` it checks for `claude`, then `gemini`, and uses the first one it finds.
 
-On startup the bridge prints where its token is: `~/.ropeman/bridge-token` unless you set one with `--token` or `ROPEMAN_BRIDGE_TOKEN`. It does not print the token itself, so the value stays out of terminal logs. Copy it from that file (`cat ~/.ropeman/bridge-token`) into the Token field on the Local Bridge card in Ropeman (open the AI Architecture Analysis dialog with the Analyze button). If you changed the port, enter the same number in the card's Port field.
+On startup the bridge prints where its token is: `~/.ropeman/bridge-token` unless you set one with `--token` or `ROPEMAN_BRIDGE_TOKEN`. It does not print the token itself, so the value stays out of terminal logs. Open https://ropeman.dev/bridge and paste the token from that file (`cat ~/.ropeman/bridge-token`) into the Token field. If you changed the port, enter the same number in the Port field. The page shows the map, opens a folder when you click it (its children right away, the CLI's names when they pass the checks), and opens a file's source when you click the file.
+
+Safari blocks a secure page from reaching `ws://127.0.0.1`, and Chrome and Edge ask first. If that does not work, start the bridge with `--local` and open the `http://127.0.0.1:<port>/bridge#token=…` address it prints instead (see Local mode).
 
 Bridge 0.2 requires this token, so upgrade the bridge and the Ropeman app together. An app from before 0.2 connects without a token and is refused.
 
@@ -41,11 +43,12 @@ The file is created on first run and reused afterwards. Delete it to issue a new
 | `--token <value>`        | Use this token instead of the stored one                                               |
 | `--allow-origin <url>`   | Also accept connections from this origin                                               |
 | `--root <dir>`           | Map this directory, watch it, and let `file.read` read files under it (off by default) |
-| `--viewer <dir>`         | Serve this directory at `http://127.0.0.1:<port>/` (local mode)                        |
+| `--local`                | Serve the viewer this package ships at `http://127.0.0.1:<port>/bridge` (local mode)   |
+| `--viewer <dir>`         | Serve this directory at `http://127.0.0.1:<port>/` instead (local mode)                |
 
 ## Local mode
 
-With `--viewer <dir>` the bridge serves that directory's files, except dotfiles and dot directories (`.env`, `.git/`) and links to them, from the same port as the socket, and accepts `http://127.0.0.1:<port>` and `http://localhost:<port>` as origins. A page served this way talks to the bridge from its own origin, so browsers raise no mixed-content block and no local-network permission prompt. On startup the bridge prints `http://127.0.0.1:<port>/#token=…`, the only place it prints the token; the page reads the token from the hash, which the browser never sends to a server. Served files carry `frame-ancestors 'none'` so no other site can frame the page.
+With `--viewer <dir>` the bridge serves that directory's files, except dotfiles and dot directories (`.env`, `.git/`) and links to them, from the same port as the socket, and accepts `http://127.0.0.1:<port>` and `http://localhost:<port>` as origins. A page served this way talks to the bridge from its own origin, so browsers raise no mixed-content block and no local-network permission prompt. On startup the bridge prints `http://127.0.0.1:<port>/bridge#token=…` (`/#token=…` for a `--viewer` directory without the Ropeman viewer), the only place it prints the token; the page reads the token from the hash, which the browser never sends to a server. Served files carry `frame-ancestors 'none'` so no other site can frame the page.
 
 `probe/index.html` is a test page for this: `npm start -- --root .. --viewer probe`, then open the printed address. It reports `isSecureContext`, `crypto.subtle`, the local-network permission names the browser knows, and a few `file.read` calls.
 
@@ -87,6 +90,7 @@ The bridge bundles the extraction core and the map schema from the Ropeman repos
 npm ci && npm ci --prefix bridge
 npm run check:bridge
 npm run build:bridge          # bridge/dist/server.mjs and bridge/dist/wasm/
+npm run build && npm run bundle:viewer   # bridge/dist/viewer/ for --local
 node bridge/dist/server.mjs serve --root .
 node bridge/scripts/smoke.mjs bridge/dist/server.mjs tests/fixtures/graphs/ts-monorepo
 ```

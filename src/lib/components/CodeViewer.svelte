@@ -18,7 +18,22 @@
 	import 'prismjs/components/prism-c';
 	import 'prismjs/components/prism-cpp';
 
-	let { filePath: propFilePath }: { filePath?: string } = $props();
+	let {
+		filePath: propFilePath,
+		read,
+		revision = 0
+	}: {
+		filePath?: string;
+		/**
+		 * Reads the file from somewhere other than the loaded project (Bridge `file.read`).
+		 * A refusal's `message` is shown as it is, already in the user's language.
+		 */
+		read?: (
+			path: string
+		) => Promise<{ ok: true; content: string } | { ok: false; message: string }>;
+		/** A new value reads the same file again in place, keeping the scroll position */
+		revision?: number;
+	} = $props();
 
 	// Prism language name mapping (our detector names → Prism grammar keys)
 	const PRISM_LANG_MAP: Record<string, string> = {
@@ -115,13 +130,42 @@
 			.map((line) => line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
 	});
 
+	// Not reactive: the effect compares against it without depending on it
+	let loadedRevision = 0;
+	let loadSeq = 0;
+
 	// Load file content when target changes
 	$effect(() => {
 		const path = targetFilePath;
-		if (!path || path === currentFilePath) return;
+		const rev = revision;
+		if (!path || (path === currentFilePath && rev === loadedRevision)) return;
 
-		loadFileContent(path);
+		if (read) loadFromSource(read, path, rev);
+		else loadFileContent(path);
 	});
+
+	async function loadFromSource(source: NonNullable<typeof read>, path: string, rev: number) {
+		const seq = ++loadSeq;
+		const again = path === currentFilePath;
+		// A reload keeps the old text on screen until the new one arrives
+		if (!again) {
+			isLoadingFile = true;
+			fileContent = '';
+		}
+		loadError = '';
+		const got = await source(path);
+		if (seq !== loadSeq) return;
+		loadedRevision = rev;
+		isLoadingFile = false;
+		if (got.ok) {
+			fileContent = got.content;
+			currentFilePath = path;
+		} else {
+			loadError = got.message;
+			currentFilePath = path;
+			fileContent = '';
+		}
+	}
 
 	function findFileNode(tree: FileNode, path: string): FileNode | null {
 		if (tree.kind === 'file' && tree.path === path) return tree;

@@ -56,6 +56,7 @@ interface LegendTranslations {
 	calls: string;
 	extends: string;
 	uses: string;
+	inferred: string;
 }
 
 export interface AnalysisProgressTranslations {
@@ -198,6 +199,7 @@ interface HeaderTranslations {
 }
 
 interface NodeTranslations {
+	naming: string;
 	fileOne: string;
 	fileMany: string;
 	openInside: string;
@@ -479,6 +481,54 @@ interface TranslationSet {
 		| 'invalid'
 		| 'readFailed'
 	>;
+	bridge: Strings<
+		| 'pageTitle'
+		| 'title'
+		| 'desc'
+		| 'startServe'
+		| 'portLabel'
+		| 'tokenLabel'
+		| 'tokenHint'
+		| 'copyToken'
+		| 'connect'
+		| 'connecting'
+		| 'cancel'
+		| 'failedTitle'
+		| 'failedClosed'
+		| 'failedNewer'
+		| 'failedOlder'
+		| 'failedBadHello'
+		| 'connected'
+		| 'lostBadge'
+		| 'serverInfo'
+		| 'disconnect'
+		| 'lost'
+		| 'reconnect'
+		| 'loadingMap'
+		| 'localMode'
+		| 'namingPending'
+		| 'namingNoCli'
+		| 'namingFailed'
+		| 'namingRejected'
+		| 'namingStopped'
+		| 'serverSaid'
+		| 'expandFailed'
+		| 'mapFailed'
+		| 'busyExpand'
+		| 'noRoot'
+		| 'disconnected'
+		| 'otherError'
+		| 'dismiss'
+		| 'backToMap'
+		| 'fileEnv'
+		| 'fileTooLarge'
+		| 'fileBinary'
+		| 'fileNotFound'
+		| 'fileChanged'
+		| 'fileOutside'
+		| 'fileNotAFile'
+		| 'fileBusy'
+	>;
 }
 
 const translations: Record<Locale, TranslationSet> = {
@@ -607,7 +657,8 @@ const translations: Record<Locale, TranslationSet> = {
 			depends_on: '의존',
 			calls: '호출',
 			extends: '상속',
-			uses: '사용'
+			uses: '사용',
+			inferred: '점선은 코드에서 찾지 못하고 AI가 추론한 관계입니다'
 		},
 		shortcuts: {
 			title: '키보드 단축키',
@@ -716,6 +767,7 @@ const translations: Record<Locale, TranslationSet> = {
 			keySymbols: '주요 심볼'
 		},
 		node: {
+			naming: '이름 붙이는 중...',
 			fileOne: '파일 {n}개',
 			fileMany: '파일 {n}개',
 			openInside: '안으로 들어가기',
@@ -1123,6 +1175,61 @@ const translations: Record<Locale, TranslationSet> = {
 				'이 Ropeman이 더 이상 읽지 않는 스키마 {version}로 만든 지도입니다. CLI로 지도를 다시 만드세요.',
 			invalid: '지도 내용이 형식에 맞지 않습니다. 문제가 있는 곳: {field}',
 			readFailed: '파일을 읽지 못했습니다.'
+		},
+		bridge: {
+			pageTitle: '브리지',
+			title: 'ropeman serve에 연결',
+			desc: 'ropeman serve는 내 컴퓨터에서 돌면서 폴더 하나의 지도를 내줍니다. 폴더를 누르면 로컬 CLI가 그 안의 부분에 이름을 붙이고, 파일을 누르면 serve가 디스크에서 그 파일만 읽어 옵니다. Ropeman 서버는 거치지 않습니다.',
+			startServe: '지도를 만들 폴더에서 serve를 실행하세요.',
+			portLabel: '포트',
+			tokenLabel: '토큰',
+			tokenHint:
+				'serve는 토큰을 화면에 찍지 않고 어디 있는지만 알려 줍니다. 기본 위치는 {file} 파일입니다. --token이나 ROPEMAN_BRIDGE_TOKEN으로 정했다면 그 값을 넣으세요.',
+			copyToken: '토큰 파일 내용 보기:',
+			connect: '연결',
+			connecting: '{host}의 serve에 연결하는 중...',
+			cancel: '취소',
+			failedTitle: '연결하지 못했습니다',
+			failedClosed:
+				'{host}에서 serve가 응답하지 않았습니다. serve가 실행 중인지, 포트가 맞는지, 토큰이 토큰 파일 값과 같은지 확인하세요.',
+			failedNewer:
+				'serve가 더 새로운 지도 형식({version})을 씁니다. 이 페이지를 새로 고쳐 새 뷰어를 받으세요.',
+			failedOlder:
+				'serve가 오래된 지도 형식({version})을 씁니다. serve를 최신 버전으로 다시 실행하세요.',
+			failedBadHello: '{host}에서 응답이 왔지만 ropeman serve가 아닙니다. 포트를 확인하세요.',
+			connected: '연결됨',
+			lostBadge: '끊김',
+			serverInfo: 'serve {version} · {host}',
+			disconnect: '연결 끊기',
+			lost: 'serve와의 연결이 끊겼습니다. 지도는 끊기기 직전 그대로입니다.',
+			reconnect: '다시 연결',
+			loadingMap: 'serve에서 지도를 받는 중...',
+			localMode: '로컬 모드',
+			namingPending: 'CLI가 이 부분들에 이름을 붙이는 중입니다. 그동안은 폴더 이름이 보입니다.',
+			namingNoCli:
+				'serve가 claude도 gemini도 찾지 못해 이름을 붙이지 못했습니다. 폴더 이름을 그대로 씁니다.',
+			namingFailed: 'CLI가 이름 붙이기를 끝내지 못했습니다. 폴더 이름을 그대로 씁니다.',
+			namingRejected:
+				'CLI가 붙인 이름이 두 번 다 검사를 통과하지 못했습니다. 폴더 이름을 그대로 씁니다.',
+			namingStopped: '이름 붙이기가 멈췄습니다. 폴더 이름을 그대로 씁니다.',
+			serverSaid: 'serve 메시지: {error}',
+			expandFailed: '{label} 폴더를 열지 못했습니다. {reason}',
+			mapFailed: '지도를 받지 못했습니다. {reason}',
+			busyExpand:
+				'이 페이지에서 이미 폴더 4개에 이름을 붙이는 중입니다. 하나가 끝난 뒤 다시 누르세요.',
+			noRoot: 'serve가 --root 없이 실행되어 지도도 파일도 없습니다.',
+			disconnected: 'serve에 연결되어 있지 않습니다.',
+			otherError: 'serve가 처리하지 못했습니다: {error}',
+			dismiss: '닫기',
+			backToMap: '지도로 돌아가기',
+			fileEnv: '실제 값이 든 .env 파일입니다. serve는 이런 파일을 보내지 않습니다.',
+			fileTooLarge: '파일이 500KB를 넘어서 serve가 보내지 않습니다.',
+			fileBinary: '바이너리 파일이라 보여 줄 텍스트가 없습니다.',
+			fileNotFound: '파일이 없습니다. 옮겨졌거나 지워졌을 수 있습니다.',
+			fileChanged: 'serve가 읽는 사이에 파일이 바뀌었습니다. 다시 여세요.',
+			fileOutside: 'serve는 지도를 만든 폴더 안의 파일만 읽습니다.',
+			fileNotAFile: '일반 파일이 아닙니다.',
+			fileBusy: '이 페이지에서 이미 파일 8개를 읽는 중입니다. 잠시 뒤 다시 여세요.'
 		}
 	},
 	en: {
@@ -1249,7 +1356,8 @@ const translations: Record<Locale, TranslationSet> = {
 			depends_on: 'Depends on',
 			calls: 'Calls',
 			extends: 'Extends',
-			uses: 'Uses'
+			uses: 'Uses',
+			inferred: 'Dashed lines are inferred by the AI, not found in the code'
 		},
 		shortcuts: {
 			title: 'Keyboard Shortcuts',
@@ -1358,6 +1466,7 @@ const translations: Record<Locale, TranslationSet> = {
 			keySymbols: 'Key symbols'
 		},
 		node: {
+			naming: 'Naming...',
 			fileOne: '{n} file',
 			fileMany: '{n} {n|file|files}',
 			openInside: 'Open',
@@ -1767,6 +1876,58 @@ const translations: Record<Locale, TranslationSet> = {
 				'This map uses schema {version}, which this Ropeman no longer reads. Make the map again with the CLI.',
 			invalid: "The map doesn't match the format. The problem is at {field}.",
 			readFailed: "Couldn't read the file."
+		},
+		bridge: {
+			pageTitle: 'Bridge',
+			title: 'Connect to ropeman serve',
+			desc: "ropeman serve runs on your machine and serves the map of one folder. Click a folder and your local CLI names its parts. Click a file and serve reads just that file from disk. Nothing goes through Ropeman's servers.",
+			startServe: 'Start serve in the folder you want to map:',
+			portLabel: 'Port',
+			tokenLabel: 'Token',
+			tokenHint:
+				"serve doesn't print the token. It tells you where the token is: by default the file {file}. If you set it with --token or ROPEMAN_BRIDGE_TOKEN, paste that value.",
+			copyToken: 'Show the token file:',
+			connect: 'Connect',
+			connecting: 'Connecting to serve on {host}...',
+			cancel: 'Cancel',
+			failedTitle: "Couldn't connect",
+			failedClosed:
+				"serve didn't answer on {host}. Check that it is running, that the port matches, and that the token is the one in the token file.",
+			failedNewer:
+				'serve uses a newer map format ({version}). Reload this page to get the newer viewer.',
+			failedOlder: 'serve uses an older map format ({version}). Start the latest serve again.',
+			failedBadHello: "Something answered on {host}, but it isn't ropeman serve. Check the port.",
+			connected: 'Connected',
+			lostBadge: 'Disconnected',
+			serverInfo: 'serve {version} · {host}',
+			disconnect: 'Disconnect',
+			lost: 'The connection to serve closed. The map stays as it was.',
+			reconnect: 'Reconnect',
+			loadingMap: 'Loading the map from serve...',
+			localMode: 'Local mode',
+			namingPending: 'Your CLI is naming these parts. Folder names show until then.',
+			namingNoCli:
+				'serve found neither claude nor gemini, so nothing names these parts. Folder names stay.',
+			namingFailed: "The CLI didn't finish naming. Folder names stay.",
+			namingRejected: "The CLI's names failed the checks twice. Folder names stay.",
+			namingStopped: 'Naming stopped. Folder names stay.',
+			serverSaid: 'serve said: {error}',
+			expandFailed: "Couldn't open {label}. {reason}",
+			mapFailed: "Couldn't load the map. {reason}",
+			busyExpand: 'This page already has 4 folders being named. Click again when one finishes.',
+			noRoot: 'serve was started without --root, so it has no map and reads no files.',
+			disconnected: 'Not connected to serve.',
+			otherError: "serve couldn't do it: {error}",
+			dismiss: 'Dismiss',
+			backToMap: 'Back to map',
+			fileEnv: 'This .env file holds real values. serve never sends those.',
+			fileTooLarge: 'The file is over 500 KB, more than serve sends.',
+			fileBinary: 'This is a binary file, so there is no text to show.',
+			fileNotFound: "The file isn't there. It may have been moved or deleted.",
+			fileChanged: 'The file changed while serve read it. Open it again.',
+			fileOutside: 'serve reads only files inside the folder it maps.',
+			fileNotAFile: "This isn't a regular file.",
+			fileBusy: 'This page is already reading 8 files. Open it again in a moment.'
 		}
 	}
 };

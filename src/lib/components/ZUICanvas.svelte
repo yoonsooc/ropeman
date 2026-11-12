@@ -21,6 +21,16 @@
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import type { SemanticNode } from '$lib/types/semantic';
 
+	let {
+		onexpand,
+		namesPending = false
+	}: {
+		/** Bridge mode: serve opens a level that is not cached, instead of the app's AI analysis */
+		onexpand?: (node: SemanticNode) => void;
+		/** Bridge mode: the shown level still has folder names while the CLI names it */
+		namesPending?: boolean;
+	} = $props();
+
 	const breakpoint = useBreakpoint();
 	const isCompact = $derived(breakpoint.isMobile || breakpoint.isTablet);
 
@@ -40,6 +50,11 @@
 		// do NOT trigger AI analysis for nodes missing from the curated snapshot.
 		// Instead, guide the visitor to the main app where they can load the
 		// original project themselves.
+		if (onexpand) {
+			onexpand(semNode);
+			return;
+		}
+
 		if (semanticStore.readOnlyMode === 'snapshot') {
 			exploreDrilldownPromptLabel = semNode.label;
 			exploreDrilldownPromptOpen = true;
@@ -314,7 +329,8 @@
 			const readOnly = semanticStore.readOnlyMode === 'snapshot';
 			const snapshotUnavailable = readOnly && !isCached;
 			// A snapshot visitor must not re-run the AI on their own credentials over a frozen level
-			const onReanalyze = readOnly ? undefined : handleReanalyze;
+			// Bridge levels come from serve, so the app's AI must not re-analyze them either
+			const onReanalyze = readOnly || onexpand ? undefined : handleReanalyze;
 
 			// Always render as the standard SemanticNode — selection state is
 			// communicated via `highlighted` / `dimmed` / `selected` flags so
@@ -329,6 +345,7 @@
 					selected: isSelected,
 					isCached,
 					snapshotUnavailable,
+					namePending: namesPending,
 					nodeId: n.id,
 					onReanalyze,
 					onOpen: handleOpenNode
@@ -341,6 +358,7 @@
 					selected: false,
 					isCached,
 					snapshotUnavailable,
+					namePending: namesPending,
 					nodeId: n.id,
 					onReanalyze,
 					onOpen: handleOpenNode
@@ -604,6 +622,10 @@
 								<span class="legend-label">{i18nStore.t(info.i18nKey)}</span>
 							</label>
 						{/each}
+						<div class="legend-item legend-note">
+							<span class="legend-color legend-dashed" aria-hidden="true"></span>
+							<span class="legend-label">{i18nStore.t('legend.inferred')}</span>
+						</div>
 					</div>
 				{/if}
 			</div>
@@ -1061,6 +1083,24 @@
 	.legend-label {
 		flex: 1;
 		min-width: 0;
+	}
+
+	.legend-note {
+		cursor: default;
+		border-top: 1px solid var(--color-border);
+		margin-top: var(--spacing-1);
+		padding-top: var(--spacing-2);
+	}
+
+	.legend-note:hover {
+		background: none;
+	}
+
+	.legend-dashed {
+		margin-left: 22px;
+		height: 0;
+		border-top: 2px dashed var(--color-text-tertiary);
+		background: none;
 	}
 
 	/* U1-10: Toolbar separator & analysis requests */

@@ -26,35 +26,37 @@ export async function readMapFile(file: Blob): Promise<ParseResult<RopemanMap>> 
 	return parseRopemanMap(await file.text());
 }
 
-/**
- * The top level under `__root__` and every other level under the node it expands, as the
- * semantic store caches them. Colors come from the app's palette, never from the file.
- */
+/** One map level as the semantic store caches it. Colors come from the app's palette, never from the file. */
+export function toViewerLevel(l: MapLevel, depth: number, label: string): SemanticLevel {
+	return {
+		parentId: l.parentId,
+		breadcrumbLabel: label,
+		assignment: l.assignment ?? undefined,
+		nodes: l.nodes.map((n, i) => ({
+			...n,
+			color: SEMANTIC_COLORS[i % SEMANTIC_COLORS.length],
+			parentId: l.parentId,
+			depth,
+			fileCount: n.filePaths.length
+		})),
+		edges: l.edges.map((e, i) => ({
+			id: `map-edge:${i}:${e.source}->${e.target}`,
+			source: e.source,
+			target: e.target,
+			type: e.type,
+			label: e.label ?? undefined,
+			evidence: e.evidence ?? undefined
+		}))
+	};
+}
+
+/** The top level under `__root__` and every other level under the node it expands. */
 export function toViewerLevels(map: RopemanMap): Map<string, SemanticLevel> {
 	const byParent = new Map(map.levels.map((l) => [l.parentId, l]));
 	const levels = new Map<string, SemanticLevel>();
 	// The parser proved the levels are a tree under the top level, so this walk visits each once
 	const walk = (l: MapLevel, depth: number, label: string) => {
-		levels.set(l.parentId ?? RESERVED_NODE_ID, {
-			parentId: l.parentId,
-			breadcrumbLabel: label,
-			assignment: l.assignment ?? undefined,
-			nodes: l.nodes.map((n, i) => ({
-				...n,
-				color: SEMANTIC_COLORS[i % SEMANTIC_COLORS.length],
-				parentId: l.parentId,
-				depth,
-				fileCount: n.filePaths.length
-			})),
-			edges: l.edges.map((e, i) => ({
-				id: `map-edge:${i}:${e.source}->${e.target}`,
-				source: e.source,
-				target: e.target,
-				type: e.type,
-				label: e.label ?? undefined,
-				evidence: e.evidence ?? undefined
-			}))
-		});
+		levels.set(l.parentId ?? RESERVED_NODE_ID, toViewerLevel(l, depth, label));
 		for (const n of l.nodes) {
 			const child = byParent.get(n.id);
 			if (child) walk(child, depth + 1, n.label);
