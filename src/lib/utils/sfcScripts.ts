@@ -49,7 +49,7 @@ const SCRIPT_SOURCE: Record<ScriptLang, { language: ScriptSource['language']; ex
 		tsx: { language: 'typescript', extension: '.tsx' }
 	};
 
-const OPEN_TAG = /<!--[\s\S]*?-->|<script(?=[\s/>])((?:[^>"']|"[^"]*"|'[^']*')*)>/gi;
+const TAG_START = /<!--|<script(?=[\s/>])/gi;
 const CLOSE_TAG = /<\/script[\s/>]/gi;
 const ATTRIBUTE = /([^\s=/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
 
@@ -65,23 +65,58 @@ export function componentScriptSource(filePath: string, content: string): Script
 }
 
 // A plain scan like Svelte's own preprocessor: it also finds a `<script>` nested in markup, but it
-// cannot lose a top-level block to a misread template, and nested scripts are rare
+// cannot lose a top-level block to a misread template, and nested scripts are rare. It reads each
+// character once, because a backtracking regex rescanned the rest of the file at every `<script`.
 function findScriptBlocks(content: string): ScriptBlock[] {
 	const blocks: ScriptBlock[] = [];
-	OPEN_TAG.lastIndex = 0;
-	for (let open = OPEN_TAG.exec(content); open; open = OPEN_TAG.exec(content)) {
-		const attributes = open[1];
-		if (attributes === undefined || attributes.trimEnd().endsWith('/')) continue;
+	let commentEndAhead = true;
+	TAG_START.lastIndex = 0;
+	for (let tag = TAG_START.exec(content); tag; tag = TAG_START.exec(content)) {
+		if (tag[0] === '<!--') {
+			const commentEnd = commentEndAhead ? content.indexOf('-->', TAG_START.lastIndex) : -1;
+			if (commentEnd === -1) commentEndAhead = false;
+			else TAG_START.lastIndex = commentEnd + 3;
+			continue;
+		}
 
-		CLOSE_TAG.lastIndex = OPEN_TAG.lastIndex;
+		const attributesStart = TAG_START.lastIndex;
+		const tagEnd = scanOpenTag(content, attributesStart);
+		if (tagEnd === -1) break;
+		if (content[tagEnd] !== '>') {
+			TAG_START.lastIndex = tagEnd + 1;
+			continue;
+		}
+
+		const attributes = content.slice(attributesStart, tagEnd);
+		const bodyStart = tagEnd + 1;
+		TAG_START.lastIndex = bodyStart;
+		if (attributes.trimEnd().endsWith('/')) continue;
+
+		CLOSE_TAG.lastIndex = bodyStart;
 		const close = CLOSE_TAG.exec(content);
-		if (!close) continue;
+		// No later open tag can find a closing tag either
+		if (!close) break;
 
 		const lang = scriptLang(attributes);
-		if (lang) blocks.push({ lang, start: OPEN_TAG.lastIndex, end: close.index });
-		OPEN_TAG.lastIndex = close.index;
+		if (lang) blocks.push({ lang, start: bodyStart, end: close.index });
+		TAG_START.lastIndex = close.index;
 	}
 	return blocks;
+}
+
+// The index of the `>` that ends the open tag, skipping quoted values, or of a quote that never
+// closes, or -1 when the file ends first
+function scanOpenTag(content: string, from: number): number {
+	for (let i = from; i < content.length; i++) {
+		const char = content[i];
+		if (char === '>') return i;
+		if (char === '"' || char === "'") {
+			const quoteEnd = content.indexOf(char, i + 1);
+			if (quoteEnd === -1) return i;
+			i = quoteEnd;
+		}
+	}
+	return -1;
 }
 
 function scriptLang(attributes: string): ScriptLang | null {

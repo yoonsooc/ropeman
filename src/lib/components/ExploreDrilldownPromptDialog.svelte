@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusTrap } from '$lib/utils/focusTrap';
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
@@ -30,7 +31,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="prompt-backdrop" onclick={handleBackdropClick}>
-		<div class="prompt-dialog" role="dialog" aria-modal="true">
+		<div class="prompt-dialog" role="dialog" aria-modal="true" tabindex="-1" use:focusTrap>
 			<button class="prompt-close" onclick={onclose} aria-label={i18nStore.t('common.close')}>
 				<span class="material-symbols-outlined">close</span>
 			</button>
