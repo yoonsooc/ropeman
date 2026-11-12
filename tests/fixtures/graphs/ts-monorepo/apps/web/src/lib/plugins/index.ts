@@ -1,0 +1,1 @@
+export { register } from './charts';

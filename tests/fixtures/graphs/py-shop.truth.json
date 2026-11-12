@@ -1,0 +1,50 @@
+{
+  "kinds": ["imports_from", "imports", "calls"],
+  "edges": [
+    { "kind": "imports_from", "from": "shop/__init__.py", "line": 1, "written": ".service", "to": "shop/service.py" },
+    { "kind": "imports", "from": "shop/__init__.py", "line": 1, "written": "OrderService", "to": "shop/service.py#OrderService" },
+
+    { "kind": "imports_from", "from": "shop/util/__init__.py", "line": 1, "written": ".ids", "to": "shop/util/ids.py" },
+    { "kind": "imports", "from": "shop/util/__init__.py", "line": 1, "written": "new_id", "to": "shop/util/ids.py#new_id" },
+    { "kind": "imports_from", "from": "shop/util/__init__.py", "line": 2, "written": ".text", "to": "shop/util/text.py" },
+    { "kind": "imports", "from": "shop/util/__init__.py", "line": 2, "written": "slug", "to": "shop/util/text.py#slug" },
+
+    { "kind": "imports_from", "from": "shop/util/ids.py", "line": 1, "written": "..pricing", "to": "shop/pricing.py" },
+    { "kind": "imports", "from": "shop/util/ids.py", "line": 1, "written": "ROUND", "to": "shop/pricing.py#ROUND" },
+
+    { "kind": "imports_from", "from": "shop/models.py", "line": 1, "written": ".pricing", "to": "shop/pricing.py" },
+    { "kind": "imports", "from": "shop/models.py", "line": 1, "written": "sum_prices", "to": "shop/pricing.py#sum_prices" },
+    { "kind": "imports_from", "from": "shop/models.py", "line": 2, "written": ".util", "to": "shop/util/__init__.py" },
+    { "kind": "imports", "from": "shop/models.py", "line": 2, "written": "new_id", "to": "shop/util/ids.py#new_id" },
+    { "kind": "calls", "from": "shop/models.py", "line": 7, "written": "new_id", "to": "shop/util/ids.py#new_id" },
+    { "kind": "calls", "from": "shop/models.py", "line": 11, "written": "sum_prices", "to": "shop/pricing.py#sum_prices" },
+
+    { "kind": "imports_from", "from": "shop/repo.py", "line": 1, "written": "json", "to": "ext:json" },
+    { "kind": "imports_from", "from": "shop/repo.py", "line": 3, "written": ".models", "to": "shop/models.py" },
+    { "kind": "imports", "from": "shop/repo.py", "line": 3, "written": "Order", "to": "shop/models.py#Order" },
+    { "kind": "calls", "from": "shop/repo.py", "line": 11, "written": "order.total", "to": "shop/models.py#Order.total" },
+    { "kind": "calls", "from": "shop/repo.py", "line": 12, "written": "self._write", "to": "shop/repo.py#OrderRepo._write" },
+    { "kind": "calls", "from": "shop/repo.py", "line": 12, "written": "json.dumps", "to": "ext:json#dumps" },
+
+    { "kind": "imports_from", "from": "shop/service.py", "line": 1, "written": ".models", "to": "shop/models.py" },
+    { "kind": "imports", "from": "shop/service.py", "line": 1, "written": "Order", "to": "shop/models.py#Order" },
+    { "kind": "imports_from", "from": "shop/service.py", "line": 2, "written": ".pricing", "to": "shop/pricing.py" },
+    { "kind": "imports", "from": "shop/service.py", "line": 2, "written": "apply_discount", "to": "shop/pricing.py#apply_discount" },
+    { "kind": "imports_from", "from": "shop/service.py", "line": 3, "written": ".repo", "to": "shop/repo.py" },
+    { "kind": "imports", "from": "shop/service.py", "line": 3, "written": "OrderRepo", "to": "shop/repo.py#OrderRepo" },
+    { "kind": "calls", "from": "shop/service.py", "line": 8, "written": "OrderRepo", "to": "shop/repo.py#OrderRepo" },
+    { "kind": "calls", "from": "shop/service.py", "line": 11, "written": "Order", "to": "shop/models.py#Order" },
+    { "kind": "calls", "from": "shop/service.py", "line": 12, "written": "self.repo.save", "to": "shop/repo.py#OrderRepo.save" },
+    { "kind": "calls", "from": "shop/service.py", "line": 13, "written": "apply_discount", "to": "shop/pricing.py#apply_discount" },
+    { "kind": "calls", "from": "shop/service.py", "line": 13, "written": "order.total", "to": "shop/models.py#Order.total" },
+
+    { "kind": "imports_from", "from": "shop/cli.py", "line": 1, "written": "shop", "to": "shop/__init__.py" },
+    { "kind": "imports", "from": "shop/cli.py", "line": 1, "written": "OrderService", "to": "shop/service.py#OrderService" },
+    { "kind": "imports_from", "from": "shop/cli.py", "line": 2, "written": "shop.util", "to": "shop/util/__init__.py" },
+    { "kind": "imports", "from": "shop/cli.py", "line": 2, "written": "slug", "to": "shop/util/text.py#slug" },
+    { "kind": "calls", "from": "shop/cli.py", "line": 6, "written": "OrderService", "to": "shop/service.py#OrderService" },
+    { "kind": "calls", "from": "shop/cli.py", "line": 7, "written": "service.place", "to": "shop/service.py#OrderService.place" },
+    { "kind": "calls", "from": "shop/cli.py", "line": 8, "written": "slug", "to": "shop/util/text.py#slug" },
+    { "kind": "calls", "from": "shop/cli.py", "line": 12, "written": "main", "to": "shop/cli.py#main" }
+  ]
+}
