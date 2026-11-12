@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 // Vite bundles the config with its relative imports, so the app's own table applies here too
-import { detectLanguage } from '../src/lib/utils/languageDetector';
+import { detectLanguage, isEnvFile } from '../src/lib/utils/languageDetector';
 
 const SKIP_PATTERNS = new Set([
 	'node_modules',
@@ -62,7 +62,7 @@ export function scanDirectory(dirPath, basePath = '', depth = 0, ctx = { fileCou
 		if (ctx.fileCount >= MAX_FILES) break;
 		if (SKIP_PATTERNS.has(entry.name)) continue;
 		if (entry.name.endsWith('.egg-info')) continue;
-		if (entry.name.startsWith('.') && entry.name !== '.env') continue;
+		if (entry.name.startsWith('.') && !isEnvFile(entry.name)) continue;
 
 		const entryPath = `${currentPath}/${entry.name}`;
 		const absolutePath = path.join(dirPath, entry.name);

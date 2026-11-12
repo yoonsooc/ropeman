@@ -1,9 +1,11 @@
 import type { FileNode } from '$lib/types/fileTree';
-import type { ASTSymbol } from '$lib/types/ast';
+import { CONFIG_SYMBOL_KINDS, type ASTSymbol, type SymbolKind } from '$lib/types/ast';
 import type { GraphNode, GraphEdge, NodeKind } from '$lib/types/graph';
 import type { ArchitectureGroup } from '$lib/stores/architectureStore.svelte';
 import type { Node, Edge } from '@xyflow/svelte';
 import dagre from '@dagrejs/dagre';
+
+const CONFIG_KINDS = new Set<SymbolKind>(CONFIG_SYMBOL_KINDS);
 
 // --- Blacklist constants ---
 
@@ -231,13 +233,14 @@ export function buildGraph(
 			}
 
 			for (const sym of symbols) {
-				// The file graph shows code symbols; Markdown outlines only feed the AI skeleton
+				// The file graph shows code symbols; Markdown and config outlines only feed the AI skeleton
 				if (
 					sym.kind === 'variable' ||
 					sym.kind === 'interface' ||
 					sym.kind === 'type' ||
 					sym.kind === 'heading' ||
-					sym.kind === 'frontmatter'
+					sym.kind === 'frontmatter' ||
+					CONFIG_KINDS.has(sym.kind)
 				) {
 					continue;
 				}
