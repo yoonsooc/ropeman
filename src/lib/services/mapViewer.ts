@@ -11,7 +11,7 @@ import {
 	type RopemanMap
 } from '$lib/types/ropemanMap';
 import { parseRopemanMap } from './ropemanMapSchema';
-import { SEMANTIC_COLORS } from './semanticAnalysisService';
+import { SEMANTIC_COLORS } from '$lib/data/semanticPalette';
 
 /** Checks the size before reading, so a huge file is refused without loading it. */
 export async function readMapFile(file: Blob): Promise<ParseResult<RopemanMap>> {

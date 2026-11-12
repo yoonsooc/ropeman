@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MAP_SCHEMA_VERSION, MAX_MAP_BYTES, type ParseResult } from '$lib/types/ropemanMap';
 import { parseRopemanMap, parseRpcRequest, parseServerMessage } from './ropemanMapSchema';
@@ -377,5 +378,46 @@ describe('parseServerMessage', () => {
 			ok: true,
 			value: { type: 'map.changed', paths: ['src/a.ts'] }
 		});
+	});
+});
+
+describe('module boundary', () => {
+	const LIB = fileURLToPath(new URL('../', import.meta.url));
+	const TYPES = path.join(LIB, 'types') + path.sep;
+	const SELF = fileURLToPath(new URL('./ropemanMapSchema.ts', import.meta.url));
+
+	function resolveImport(from: string, specifier: string): string {
+		const base = specifier.startsWith('$lib/')
+			? path.join(LIB, specifier.slice('$lib/'.length))
+			: specifier.startsWith('.')
+				? path.resolve(path.dirname(from), specifier)
+				: specifier;
+		return [base, `${base}.ts`, path.join(base, 'index.ts')].find((f) => fs.existsSync(f)) ?? base;
+	}
+
+	function importGraph(entry: string): Set<string> {
+		const seen = new Set<string>();
+		const pending = [entry];
+		while (pending.length > 0) {
+			const file = pending.pop()!;
+			if (seen.has(file)) continue;
+			seen.add(file);
+			if (!fs.existsSync(file)) continue;
+			const source = fs.readFileSync(file, 'utf8');
+			const statements = source.matchAll(
+				/^(?:import|export)\b[^;]*?\bfrom\s*'([^']+)'|^import\s*'([^']+)'|\bimport\(\s*'([^']+)'\s*\)/gms
+			);
+			for (const match of statements) {
+				pending.push(resolveImport(file, match[1] ?? match[2] ?? match[3]));
+			}
+		}
+		return seen;
+	}
+
+	// T2-4 runs this parser in the bridge and packages/core, which bundle no app runtime.
+	it('imports nothing outside $lib/types, directly or transitively', () => {
+		const outside = [...importGraph(SELF)].filter((f) => f !== SELF && !f.startsWith(TYPES));
+
+		expect(outside).toEqual([]);
 	});
 });

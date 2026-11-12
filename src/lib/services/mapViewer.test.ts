@@ -5,7 +5,7 @@ import { MAX_MAP_BYTES } from '$lib/types/ropemanMap';
 import { readMapFile, toViewerLevels } from './mapViewer';
 import { parseRopemanMap } from './ropemanMapSchema';
 
-vi.mock('./semanticAnalysisService', () => ({
+vi.mock('$lib/data/semanticPalette', () => ({
 	SEMANTIC_COLORS: ['#111111', '#222222']
 }));
 
