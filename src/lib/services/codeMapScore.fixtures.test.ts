@@ -7,6 +7,7 @@ import { isSupported } from '$lib/utils/languageDetector';
 import type { ASTRef, ASTSymbol } from '$lib/types/ast';
 import type { CodeMap } from '$lib/types/codeMap';
 import { buildCodeMap } from './skeletonExtractor';
+import { isResolverConfig, namedConfigs } from './importResolver';
 import {
 	findRegressions,
 	scoreCodeMap,
@@ -93,6 +94,8 @@ async function extract(
 	const astMap = new Map<string, ASTSymbol[]>();
 	const refMap = new Map<string, ASTRef[]>();
 	const sources = new Map<string, string[]>();
+	const configs = new Map<string, string>();
+	const contents = new Map<string, string>();
 	const stack = [tree];
 	while (stack.length > 0) {
 		const node = stack.pop()!;
@@ -102,6 +105,8 @@ async function extract(
 		}
 		const content = fs.readFileSync(node._absolutePath!, 'utf-8');
 		sources.set(node.path.slice(tree.name.length + 1), content.split('\n'));
+		contents.set(node.path, content);
+		if (isResolverConfig(node.path)) configs.set(node.path, content);
 		if (node.language && isSupported(node.language) && content) {
 			const { symbols, refs } = await parse(node.path, content, node.language);
 			astMap.set(node.path, symbols);
@@ -109,7 +114,12 @@ async function extract(
 		}
 	}
 	if (astMap.size === 0) throw new Error(`no parseable files read from ${repo}`);
-	return { map: buildCodeMap(astMap, tree.name, refMap), sources };
+	for (let named = namedConfigs(configs); ; named = namedConfigs(configs)) {
+		const found = named.filter((p) => contents.has(p));
+		if (found.length === 0) break;
+		for (const p of found) configs.set(p, contents.get(p)!);
+	}
+	return { map: buildCodeMap(astMap, tree.name, { refs: refMap, configs }), sources };
 }
 
 /** `text` standing alone, so `main` does not match inside `__main__` or `fetchUser` inside `refetchUser` */

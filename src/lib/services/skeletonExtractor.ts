@@ -28,6 +28,7 @@ import {
 } from '$lib/utils/filePriority';
 import { detectConfigLanguage } from '$lib/utils/languageDetector';
 import { byteLength } from './requestBudget';
+import { readResolverConfig, resolveImports } from './importResolver';
 
 const LOCAL_ONLY = new Set<SymbolKind>(LOCAL_ONLY_KINDS);
 
@@ -101,24 +102,36 @@ function toEntry(wirePath: string, record: FileRecord, priority: number): Skelet
 	return file && { file, priority, symbolCount: countSymbols(file.symbols) };
 }
 
-/** Skeleton v2 for every parsed file, with every binding pending. `refMap` has the parser's sites per astMap key. */
+/**
+ * Skeleton v2 for every parsed file. `refs` has the parser's reference sites per astMap key,
+ * and `configs` the text of each file `isResolverConfig` and then `namedConfigs` name, keyed like astMap. Imports in
+ * TS/JS, Svelte, Vue and Python are bound to files, symbols and packages; reference sites and
+ * other languages' imports stay pending.
+ */
 export function buildCodeMap(
 	astMap: ReadonlyMap<string, readonly ASTSymbol[]>,
 	root: string | null,
-	refMap: ReadonlyMap<string, readonly ASTRef[]> = new Map()
+	{
+		refs = new Map(),
+		configs = new Map()
+	}: {
+		refs?: ReadonlyMap<string, readonly ASTRef[]>;
+		configs?: ReadonlyMap<string, string>;
+	} = {}
 ): CodeMap {
 	const files = new Map<FilePath, FileRecord>();
 	for (const [key, symbols] of astMap) {
-		const record = fileFromAst(key, symbols, refMap.get(key));
+		const record = fileFromAst(key, symbols, refs.get(key));
 		files.set(record.path, record);
 	}
-	return { version: 2, root, files };
+	return resolveImports({ version: 2, root, files }, readResolverConfig(configs)).map;
 }
 
 /**
- * One parsed file as a code map record. Top-level imports become import sites; an import
- * nested in a symbol stays a child symbol, as the v1 wire has always sent it. Each parser ref
- * becomes a site from the innermost symbol whose lines hold it.
+ * One parsed file as a code map record. Top-level imports become import sites, and an
+ * `export … from` the parser reports as an import becomes a re-export site, which the wire
+ * never reads. An import nested in a symbol stays a child symbol, as the v1 wire sends it.
+ * Each parser ref becomes a site from the innermost symbol whose lines hold it.
  */
 export function fileFromAst(
 	key: string,
@@ -129,9 +142,10 @@ export function fileFromAst(
 	const ids = new Map<string, number>();
 	const symbols: SymbolRecord[] = [];
 	const imports: ModuleSite[] = [];
+	const reexports: ModuleSite[] = [];
 	for (const sym of astSymbols) {
 		if (sym.kind === 'import') {
-			imports.push({
+			(/^export\b/.test(sym.name) ? reexports : imports).push({
 				line: sym.lineStart,
 				text: sym.name,
 				module: { state: 'pending' },
@@ -147,7 +161,7 @@ export function fileFromAst(
 		lines: { start: 1, end: null },
 		symbols,
 		imports,
-		reexports: [],
+		reexports,
 		refs: refs.flatMap((ref) => toRefSite(ref, symbols))
 	};
 }
