@@ -75,10 +75,11 @@
 			projectStore.fileTree = tree;
 			projectStore.isLoading = true;
 			projectStore.isSnippetMode = true;
-			const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+			const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 				projectStore.parsingProgress = progress;
 			});
 			projectStore.astMap = astMap;
+			projectStore.parseSkips = skipped;
 			projectStore.isLoading = false;
 			// Auto-trigger semantic analysis if AI is connected
 			if (authStore.isReady) {

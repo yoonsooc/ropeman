@@ -159,10 +159,11 @@
 			projectStore.fileTree = tree;
 			projectStore.cutFiles = cut;
 			projectStore.isLoading = true;
-			const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+			const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 				projectStore.parsingProgress = progress;
 			});
 			projectStore.astMap = astMap;
+			projectStore.parseSkips = skipped;
 			projectStore.isLoading = false;
 		} catch (err) {
 			error = i18nStore.t('dropzone.processFailed', { error: String(err) });
@@ -212,10 +213,11 @@
 		projectStore.fileTree = tree;
 		projectStore.cutFiles = cut;
 
-		const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+		const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 			projectStore.parsingProgress = progress;
 		});
 		projectStore.astMap = astMap;
+		projectStore.parseSkips = skipped;
 		projectStore.isLoading = false;
 	}
 </script>

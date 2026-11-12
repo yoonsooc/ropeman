@@ -18,7 +18,13 @@ class MockWorker {
 				workerMessageHandler?.({ data: { type: 'init-done' } } as MessageEvent);
 			}, 0);
 		}
-		if (data.type === 'parse') {
+		if (data.type === 'parse' && data.filePath.includes('broken')) {
+			setTimeout(() => {
+				this.onmessage?.({
+					data: { type: 'error', filePath: data.filePath, error: 'Parse failed: grammar' }
+				} as MessageEvent);
+			}, 0);
+		} else if (data.type === 'parse') {
 			setTimeout(() => {
 				this.onmessage?.({
 					data: {
@@ -54,7 +60,23 @@ vi.mock('$lib/utils/languageDetector', () => ({
 	isSupported: vi.fn((lang: string) => ['typescript', 'javascript', 'python'].includes(lang))
 }));
 
-import { parseFile, destroy } from './parserService';
+import { parseFile, parseAllFiles, destroy } from './parserService';
+import type { FileNode } from '$lib/types/fileTree';
+
+function fileNode(path: string, size: number, readable = true): FileNode {
+	return {
+		name: path.split('/').pop()!,
+		path,
+		kind: 'file',
+		language: 'typescript',
+		handle: readable
+			? ({
+					kind: 'file',
+					getFile: async () => ({ size, text: async () => 'function f() {}' })
+				} as unknown as FileSystemFileHandle)
+			: undefined
+	};
+}
 
 describe('parserService', () => {
 	beforeEach(() => {
@@ -106,6 +128,52 @@ describe('parserService', () => {
 			const result = await promise2;
 
 			expect(result).toHaveLength(1);
+		});
+	});
+
+	describe('parseAllFiles', () => {
+		it('reports each file it read nothing from, with the reason', async () => {
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+			const tree: FileNode = {
+				name: 'repo',
+				path: '',
+				kind: 'directory',
+				children: [
+					fileNode('src/ok.ts', 100),
+					fileNode('src/huge.ts', 600_000),
+					fileNode('src/broken.ts', 100),
+					fileNode('src/gone.ts', 100, false)
+				]
+			};
+
+			const promise = parseAllFiles(tree, new Map());
+			await vi.advanceTimersByTimeAsync(50);
+			const { astMap, skipped } = await promise;
+
+			expect([...astMap.keys()]).toEqual(['src/ok.ts']);
+			expect(skipped).toEqual(
+				expect.arrayContaining([
+					{ path: 'src/huge.ts', reason: 'file-size' },
+					{ path: 'src/broken.ts', reason: 'parse-failed' },
+					{ path: 'src/gone.ts', reason: 'unreadable' }
+				])
+			);
+			expect(skipped).toHaveLength(3);
+		});
+
+		it('counts every file in the progress, including the ones it could not read', async () => {
+			// Regression: a file without a handle was skipped without advancing the progress
+			const tree: FileNode = {
+				name: 'repo',
+				path: '',
+				kind: 'directory',
+				children: [fileNode('src/gone.ts', 100, false)]
+			};
+			const progress: number[] = [];
+
+			await parseAllFiles(tree, new Map(), (p) => progress.push(p.done));
+
+			expect(progress.at(-1)).toBe(1);
 		});
 	});
 });

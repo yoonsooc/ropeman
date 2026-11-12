@@ -2,6 +2,8 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
 	extractSkeleton,
 	extractSubSkeleton,
+	selectSkeleton,
+	selectSubSkeleton,
 	estimatePayloadSize,
 	formatPayloadPreview
 } from './skeletonExtractor';
@@ -272,6 +274,161 @@ describe('skeleton budget', () => {
 		const second = formatPayloadPreview(extractSkeleton('repo', tree, astMap));
 
 		expect(second).toBe(first);
+	});
+});
+
+describe('skeleton omissions', () => {
+	afterEach(() => {
+		settingsStore.maxSkeletonKB = 250;
+		settingsStore.skeletonUnlimited = false;
+	});
+
+	it('names every parsed file it leaves out, with the reason', () => {
+		const { tree, astMap } = manyFiles(400);
+		tree.children!.push(
+			{ name: 'types.ts', path: 'src/types.ts', kind: 'file', language: 'typescript' },
+			{ name: 'run.py', path: 'scripts/run.py', kind: 'file', language: 'python' }
+		);
+		astMap.set('src/types.ts', [{ name: 'Config', kind: 'interface', lineStart: 1, lineEnd: 3 }]);
+		astMap.set('scripts/run.py', [{ name: 'main', kind: 'function', lineStart: 1, lineEnd: 3 }]);
+		settingsStore.maxSkeletonKB = 50;
+
+		const { payload, omitted } = selectSkeleton('repo', tree, astMap);
+
+		const reasonOf = new Map(omitted.map((o) => [o.path, o.reason]));
+		expect(reasonOf.get('src/types.ts')).toBe('no-symbols');
+		expect(reasonOf.get('scripts/run.py')).toBe('excluded-path');
+		const overBudget = omitted.filter((o) => o.reason === 'over-budget');
+		expect(payload.totalFiles + overBudget.length).toBe(400);
+		expect(overBudget.length).toBeGreaterThan(0);
+		const sent = new Set(payload.files.map((f) => f.path));
+		expect(omitted.some((o) => sent.has(o.path))).toBe(false);
+	});
+
+	it('sends the same payload as extractSkeleton', () => {
+		const { tree, astMap } = manyFiles(400);
+		settingsStore.maxSkeletonKB = 50;
+
+		expect(selectSkeleton('repo', tree, astMap).payload).toEqual(
+			extractSkeleton('repo', tree, astMap)
+		);
+	});
+});
+
+describe('drill-down budget', () => {
+	afterEach(() => {
+		settingsStore.maxSkeletonKB = 250;
+		settingsStore.skeletonUnlimited = false;
+	});
+
+	it('never sends a drill-down larger than the budget', () => {
+		// Regression: the drill-down request had no byte budget at all
+		const { tree, astMap } = manyFiles(400);
+		const paths = [...astMap.keys()];
+		settingsStore.maxSkeletonKB = 50;
+
+		const { payload, omitted } = selectSubSkeleton(paths, tree, astMap);
+
+		expect(byteLength(formatPayloadPreview(payload))).toBeLessThanOrEqual(50_000);
+		expect(payload.totalFiles + omitted.length).toBe(400);
+		expect(omitted.every((o) => o.reason === 'over-budget')).toBe(true);
+	});
+
+	it('keeps the node file order, so a drill-down that fits is sent unchanged', () => {
+		const { tree, astMap } = manyFiles(5);
+		const paths = [...astMap.keys()].reverse();
+
+		const { payload, omitted } = selectSubSkeleton(paths, tree, astMap);
+
+		expect(payload.files.map((f) => f.path)).toEqual(paths);
+		expect(omitted).toEqual([]);
+	});
+
+	it('keeps the largest outlines when the budget is short', () => {
+		const { tree, astMap } = manyFiles(400);
+		const big = 'src/module7/service7.ts';
+		astMap.set(
+			big,
+			Array.from({ length: 40 }, (_, j) => ({
+				name: `bigHandler${j}`,
+				kind: 'function' as const,
+				lineStart: j,
+				lineEnd: j
+			}))
+		);
+		settingsStore.maxSkeletonKB = 50;
+
+		const { payload } = selectSubSkeleton([...astMap.keys()].reverse(), tree, astMap);
+
+		expect(payload.files.map((f) => f.path)).toContain(big);
+	});
+});
+
+describe('drill-down with a file over the budget', () => {
+	afterEach(() => {
+		settingsStore.maxSkeletonKB = 250;
+	});
+
+	const functions = (prefix: string, count: number): ASTSymbol[] =>
+		Array.from({ length: count }, (_, j) => ({
+			name: `${prefix}Handler${j}`,
+			kind: 'function' as const,
+			lineStart: j,
+			lineEnd: j
+		}));
+
+	function nodeFiles(sizes: Record<string, number>) {
+		const astMap = new Map<string, ASTSymbol[]>();
+		for (const [path, count] of Object.entries(sizes)) astMap.set(path, functions(path, count));
+		const children: FileNode[] = Object.keys(sizes).map((path) => ({
+			name: path,
+			path,
+			kind: 'file',
+			language: 'typescript'
+		}));
+		return { tree: { name: 'repo', path: '', kind: 'directory', children } as FileNode, astMap };
+	}
+
+	it('still sends the smaller files when the largest one alone is over the budget', () => {
+		// Regression: the first file that did not fit ended the selection, so a node whose
+		// largest outline was over the budget sent nothing and could not be drilled into
+		const { tree, astMap } = nodeFiles({ 'big.ts': 1500, 'a.ts': 5, 'b.ts': 5, 'c.ts': 5 });
+		settingsStore.maxSkeletonKB = 50;
+
+		const { payload, omitted, exceedsBudget } = selectSubSkeleton([...astMap.keys()], tree, astMap);
+
+		expect(payload.files.map((f) => f.path)).toEqual(['a.ts', 'b.ts', 'c.ts']);
+		expect(omitted).toEqual([{ path: 'big.ts', reason: 'over-budget' }]);
+		expect(exceedsBudget).toBe(false);
+		expect(byteLength(formatPayloadPreview(payload))).toBeLessThanOrEqual(50_000);
+	});
+
+	it('sends the smallest file, flagged, when no file fits the budget', () => {
+		const { tree, astMap } = nodeFiles({ 'large.ts': 1600, 'small.ts': 1200, 'medium.ts': 1400 });
+		settingsStore.maxSkeletonKB = 50;
+
+		const { payload, omitted, exceedsBudget } = selectSubSkeleton([...astMap.keys()], tree, astMap);
+
+		expect(payload.files.map((f) => f.path)).toEqual(['small.ts']);
+		expect(payload.totalFiles).toBe(1);
+		expect(omitted).toEqual([
+			{ path: 'large.ts', reason: 'over-budget' },
+			{ path: 'medium.ts', reason: 'over-budget' }
+		]);
+		expect(exceedsBudget).toBe(true);
+		expect(byteLength(formatPayloadPreview(payload))).toBeGreaterThan(50_000);
+	});
+
+	it('keeps the top level stopping at the first file that does not fit', () => {
+		// The top-level string is a cache key, so it must not change shape
+		const { tree, astMap } = nodeFiles({ 'src/big.ts': 1500, 'src/a.ts': 5 });
+		settingsStore.maxSkeletonKB = 50;
+
+		const { payload, omitted, exceedsBudget } = selectSkeleton('repo', tree, astMap);
+
+		expect(payload.files).toEqual([]);
+		expect(omitted.map((o) => o.path).sort()).toEqual(['src/a.ts', 'src/big.ts']);
+		expect(exceedsBudget).toBe(false);
 	});
 });
 

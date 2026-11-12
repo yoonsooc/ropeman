@@ -22,6 +22,7 @@ vi.mock('$lib/stores/projectStore.svelte', () => {
 		isLoading: false,
 		projectName: '',
 		parsingProgress: { done: 0, total: 0 },
+		parseSkips: [] as unknown[],
 		githubInfo: null
 	};
 	return { projectStore: store };
@@ -29,6 +30,7 @@ vi.mock('$lib/stores/projectStore.svelte', () => {
 
 import { loadGitHubRepo, GitHubLoadError } from './githubLoader';
 import { projectStore } from '$lib/stores/projectStore.svelte';
+import { parseFile } from '$lib/services/parserService';
 import { MAX_FILES } from '$lib/utils/filePriority';
 
 const mockTreeResponse = {
@@ -214,6 +216,35 @@ describe('loadGitHubRepo', () => {
 		// Only a.ts was parsed successfully
 		expect(projectStore.astMap.size).toBe(1);
 		expect(projectStore.astMap.has('repo/a.ts')).toBe(true);
+		expect(projectStore.parseSkips).toEqual([{ path: 'repo/b.ts', reason: 'unreadable' }]);
+	});
+
+	it('records why each file did not parse, so the coverage list can say so', async () => {
+		const tree = {
+			...mockTreeResponse,
+			tree: [
+				{ path: 'a.ts', mode: '100644', type: 'blob' as const, sha: 'a1', url: '', size: 100 },
+				{ path: 'b.ts', mode: '100644', type: 'blob' as const, sha: 'a2', url: '', size: 100 },
+				{ path: 'c.ts', mode: '100644', type: 'blob' as const, sha: 'a3', url: '', size: 100 }
+			]
+		};
+		const fetchMock = vi.fn() as Mock;
+		fetchMock.mockResolvedValueOnce({ ok: true, json: async () => tree });
+		fetchMock.mockResolvedValueOnce({ ok: true, text: async () => 'broken(' });
+		fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+		fetchMock.mockResolvedValueOnce({ ok: true, text: async () => '' });
+		vi.stubGlobal('fetch', fetchMock);
+		vi.mocked(parseFile).mockRejectedValueOnce(new Error('worker crashed'));
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+		expect(projectStore.astMap.size).toBe(0);
+		expect(projectStore.parseSkips).toEqual([
+			{ path: 'repo/a.ts', reason: 'parse-failed' },
+			{ path: 'repo/b.ts', reason: 'unreadable' },
+			{ path: 'repo/c.ts', reason: 'unreadable' }
+		]);
+		expect(projectStore.isLoading).toBe(false);
 	});
 
 	it('excludes files in skip directories (tests, examples, docs, hidden)', async () => {

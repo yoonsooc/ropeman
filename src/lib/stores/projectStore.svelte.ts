@@ -1,5 +1,5 @@
 import type { FileNode } from '$lib/types/fileTree';
-import type { ASTSymbol } from '$lib/types/ast';
+import type { ASTSymbol, ParseSkip } from '$lib/types/ast';
 import type { CutFile } from '$lib/utils/filePriority';
 
 interface ProjectState {
@@ -20,6 +20,7 @@ function createProjectStore() {
 	let parsingProgress = $state({ done: 0, total: 0 });
 	let isSnippetMode = $state(false);
 	let cutFiles = $state.raw<CutFile[]>([]);
+	let parseSkips = $state.raw<ParseSkip[]>([]);
 
 	return {
 		get fileTree() {
@@ -80,6 +81,14 @@ function createProjectStore() {
 			cutFiles = v;
 		},
 
+		/** Files the parser was given but read no symbols from, with the reason */
+		get parseSkips() {
+			return parseSkips;
+		},
+		set parseSkips(v: ParseSkip[]) {
+			parseSkips = v;
+		},
+
 		reset() {
 			fileTree = null;
 			astMap = new Map();
@@ -89,6 +98,7 @@ function createProjectStore() {
 			parsingProgress = { done: 0, total: 0 };
 			isSnippetMode = false;
 			cutFiles = [];
+			parseSkips = [];
 		}
 	};
 }
