@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { detectLanguage, isSupported, getGrammarFile } from './languageDetector';
+import {
+	detectLanguage,
+	isSupported,
+	getGrammarFile,
+	isEnvFile,
+	isEnvValueFile
+} from './languageDetector';
 
 describe('detectLanguage', () => {
 	it('detects Python from .py extension', () => {
@@ -40,6 +46,53 @@ describe('detectLanguage', () => {
 		expect(isSupported('svelte')).toBe(true);
 		expect(isSupported('vue')).toBe(true);
 		expect(getGrammarFile('svelte', 'Header.svelte')).toBeNull();
+	});
+
+	it('detects Dockerfile, Terraform, env templates and Makefile by name as supported languages without a grammar', () => {
+		const names: [string, string][] = [
+			['Dockerfile', 'dockerfile'],
+			['docker/Dockerfile.agents.example', 'dockerfile'],
+			['services/api.Dockerfile', 'dockerfile'],
+			['Containerfile', 'dockerfile'],
+			['infra/main.tf', 'terraform'],
+			['packages/server/.env.example', 'dotenv'],
+			['.env.sample', 'dotenv'],
+			['.env.template', 'dotenv'],
+			['.env.dist', 'dotenv'],
+			['.env.defaults', 'dotenv'],
+			['.env.local.example', 'dotenv'],
+			['Makefile', 'makefile'],
+			['GNUmakefile', 'makefile'],
+			['build/rules.mk', 'makefile']
+		];
+		for (const [path, language] of names) {
+			expect(detectLanguage(path)).toBe(language);
+			expect(isSupported(language)).toBe(true);
+			expect(getGrammarFile(language, path)).toBeNull();
+		}
+	});
+
+	it('keeps code extensions ahead of config names and leaves value files out', () => {
+		expect(detectLanguage('Dockerfile.ts')).toBe('typescript');
+		expect(detectLanguage('src/makefile.py')).toBe('python');
+		// .tfvars and *.env hold values, which may be secrets, and declare no structure
+		expect(detectLanguage('prod.tfvars')).toBeNull();
+		expect(detectLanguage('prod.env')).toBeNull();
+		expect(detectLanguage('Makefile.in')).toBeNull();
+		expect(detectLanguage('.envrc')).toBeNull();
+	});
+
+	it('reads no env file with real values, only templates of one', () => {
+		// Regression: pasted secret values in a real .env were read into key names
+		const real = ['.env', '.env.local', '.env.production', 'api/.env.staging', '.env.example.bak'];
+		const templates = ['.env.example', 'api/.env.sample', '.env.production.template'];
+
+		expect(real.map(detectLanguage)).toEqual(real.map(() => null));
+		expect(real.every(isEnvValueFile)).toBe(true);
+		expect(templates.map(detectLanguage)).toEqual(templates.map(() => 'dotenv'));
+		expect(templates.some(isEnvValueFile)).toBe(false);
+		expect([...real, ...templates].every(isEnvFile)).toBe(true);
+		expect(['.envrc', 'prod.env', 'src/env.ts'].some(isEnvFile)).toBe(false);
 	});
 
 	it('detects TypeScript from .tsx extension', () => {
@@ -109,7 +162,7 @@ describe('detectLanguage', () => {
 	it('returns null for unknown extensions', () => {
 		expect(detectLanguage('file.xyz')).toBeNull();
 		expect(detectLanguage('file.txt')).toBeNull();
-		expect(detectLanguage('Makefile')).toBeNull();
+		expect(detectLanguage('LICENSE')).toBeNull();
 	});
 
 	it('handles files in nested paths', () => {

@@ -1,15 +1,19 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 // Mock dependencies before importing the module under test
-vi.mock('$lib/utils/languageDetector', () => ({
-	detectLanguage: (filename: string) => {
-		if (filename.endsWith('.ts')) return 'typescript';
-		if (filename.endsWith('.js')) return 'javascript';
-		if (filename.endsWith('.py')) return 'python';
-		return null;
-	},
-	isSupported: (lang: string) => ['typescript', 'javascript', 'python'].includes(lang)
-}));
+vi.mock('$lib/utils/languageDetector', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('$lib/utils/languageDetector')>();
+	return {
+		...actual,
+		detectLanguage: (filename: string) => {
+			if (filename.endsWith('.ts')) return 'typescript';
+			if (filename.endsWith('.js')) return 'javascript';
+			if (filename.endsWith('.py')) return 'python';
+			return actual.detectConfigLanguage(filename);
+		},
+		isSupported: (lang: string) => ['typescript', 'javascript', 'python', 'dotenv'].includes(lang)
+	};
+});
 
 vi.mock('$lib/services/parserService', () => ({
 	parseFile: vi.fn().mockResolvedValue([{ name: 'mockSymbol', kind: 'function' }])
@@ -360,6 +364,36 @@ describe('loadGitHubRepo', () => {
 
 		expect(projectStore.fileTree!.children!.map((c) => c.name)).toEqual(['index.js']);
 		expect([...projectStore.astMap.keys()]).toEqual(['repo/index.js']);
+	});
+
+	it('lists real env files but downloads only env templates', async () => {
+		const envTree = {
+			...mockTreeResponse,
+			tree: ['.env', '.env.production', '.env.example', 'index.js'].map((path, i) => ({
+				path,
+				mode: '100644',
+				type: 'blob' as const,
+				sha: `e${i}`,
+				url: '',
+				size: 10
+			}))
+		};
+		const fetchMock = vi.fn() as Mock;
+		fetchMock.mockResolvedValueOnce({ ok: true, json: async () => envTree });
+		fetchMock.mockResolvedValue({ ok: true, text: async () => 'API_TOKEN=' });
+		vi.stubGlobal('fetch', fetchMock);
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+		const downloaded = fetchMock.mock.calls.slice(1).map(([url]) => String(url).split('/').pop());
+		expect(downloaded.sort()).toEqual(['.env.example', 'index.js']);
+		expect(projectStore.fileTree!.children!.map((c) => c.name).sort()).toEqual([
+			'.env',
+			'.env.example',
+			'.env.production',
+			'index.js'
+		]);
+		expect([...projectStore.astMap.keys()].sort()).toEqual(['repo/.env.example', 'repo/index.js']);
 	});
 
 	it('keeps included agent paths inside a skipped folder and only those', async () => {

@@ -56,12 +56,16 @@ class MockWorker {
 // Mock import.meta.url Worker construction
 vi.stubGlobal('Worker', MockWorker);
 
-vi.mock('$lib/utils/languageDetector', () => ({
-	isSupported: vi.fn((lang: string) => ['typescript', 'javascript', 'python'].includes(lang))
+vi.mock('$lib/utils/languageDetector', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/utils/languageDetector')>()),
+	isSupported: vi.fn((lang: string) =>
+		['typescript', 'javascript', 'python', 'dotenv'].includes(lang)
+	)
 }));
 
 import { parseFile, parseAllFiles, destroy } from './parserService';
 import type { FileNode } from '$lib/types/fileTree';
+import { detectLanguage } from '$lib/utils/languageDetector';
 
 function fileNode(path: string, size: number, readable = true): FileNode {
 	return {
@@ -111,6 +115,21 @@ describe('parserService', () => {
 			expect(symbols[0]).toMatchObject({ name: 'Review', kind: 'heading' });
 			expect(MockWorker.created).toBe(before);
 		});
+
+		it('reads config files with their line parsers without starting the worker', async () => {
+			const before = MockWorker.created;
+
+			const docker = await parseFile('Dockerfile', 'FROM node:20 AS app', 'dockerfile');
+			const terraform = await parseFile('main.tf', 'module "vpc" {\n}', 'terraform');
+			const env = await parseFile('.env.example', 'TOKEN=hunter2', 'dotenv');
+			const make = await parseFile('Makefile', 'all: build', 'makefile');
+
+			expect(docker).toContainEqual(expect.objectContaining({ name: 'app', kind: 'stage' }));
+			expect(terraform[0]).toMatchObject({ name: 'module.vpc', kind: 'resource' });
+			expect(env).toEqual([{ name: 'TOKEN', kind: 'env', lineStart: 1, lineEnd: 1 }]);
+			expect(make[0]).toMatchObject({ name: 'all', kind: 'target' });
+			expect(MockWorker.created).toBe(before);
+		});
 	});
 
 	describe('destroy', () => {
@@ -132,6 +151,36 @@ describe('parserService', () => {
 	});
 
 	describe('parseAllFiles', () => {
+		it('never opens a real env file, and reads env templates', async () => {
+			const envFile = (path: string) => {
+				const getFile = vi.fn(async () => ({ size: 20, text: async () => 'API_TOKEN=sk-live-x' }));
+				const node: FileNode = {
+					name: path,
+					path,
+					kind: 'file',
+					language: detectLanguage(path) ?? undefined,
+					handle: { kind: 'file', getFile } as unknown as FileSystemFileHandle
+				};
+				return { node, getFile };
+			};
+			const real = ['.env', '.env.local', '.env.production'].map(envFile);
+			const template = envFile('.env.example');
+			const tree: FileNode = {
+				name: 'repo',
+				path: '',
+				kind: 'directory',
+				children: [...real, template].map((file) => file.node)
+			};
+
+			const { astMap, skipped } = await parseAllFiles(tree, new Map());
+
+			for (const file of real) expect(file.getFile).not.toHaveBeenCalled();
+			expect([...astMap]).toEqual([
+				['.env.example', [{ name: 'API_TOKEN', kind: 'env', lineStart: 1, lineEnd: 1 }]]
+			]);
+			expect(skipped).toEqual([]);
+		});
+
 		it('reports each file it read nothing from, with the reason', async () => {
 			vi.spyOn(console, 'warn').mockImplementation(() => {});
 			const tree: FileNode = {

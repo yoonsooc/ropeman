@@ -17,7 +17,30 @@ export type SymbolKind =
 	| 'type'
 	// Markdown outline (markdownOutline.ts)
 	| 'frontmatter'
-	| 'heading';
+	| 'heading'
+	| ConfigSymbolKind;
+
+/**
+ * Kinds read from configuration files (configParsers.ts), named in each format's own terms so
+ * the AI reads them without a prompt rule. Images, copied paths, module sources, includes and
+ * Make prerequisites are `import` symbols instead.
+ */
+export const CONFIG_SYMBOL_KINDS = [
+	// Dockerfile: a FROM build stage, its EXPOSE ports, its ENTRYPOINT and CMD
+	'stage',
+	'port',
+	'command',
+	// Terraform: resource, data and module blocks named by address, variable and output blocks
+	'resource',
+	'input',
+	'output',
+	// Makefile rule
+	'target',
+	// A key of an env template (.env.example); the value is never read into a symbol
+	'env'
+] as const;
+
+export type ConfigSymbolKind = (typeof CONFIG_SYMBOL_KINDS)[number];
 
 export interface ASTSymbol {
 	name: string;
