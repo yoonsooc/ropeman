@@ -161,6 +161,39 @@ export function isResolverConfig(path: string): boolean {
  * broken tsconfig costs its own aliases and nothing else.
  */
 export function readResolverConfig(texts: ReadonlyMap<string, string>): ResolverConfig {
+	const json = parseConfigs(texts);
+	const { packages, packageScopes } = readPackages(texts, json);
+	return {
+		tsScopes: readTsScopes(json, packages),
+		kitScopes: readKitScopes(texts),
+		packages,
+		packageScopes
+	};
+}
+
+/**
+ * Configs that the read ones name in `extends` or `references` and that `isResolverConfig` does
+ * not pick by name (`"extends": "./base.json"`, a reference to `configs/app.json`). These are
+ * candidate paths not yet in `texts`, and some may not exist. A caller reads the ones that do
+ * and asks again until nothing new comes back.
+ */
+export function namedConfigs(texts: ReadonlyMap<string, string>): string[] {
+	const json = parseConfigs(texts);
+	const { packages } = readPackages(texts, json);
+	const named = new Set<string>();
+	for (const [path, config] of json) {
+		const parents = Array.isArray(config.extends) ? config.extends : [config.extends];
+		for (const parent of parents) {
+			if (typeof parent !== 'string') continue;
+			for (const candidate of extendsCandidates(dirname(path), parent, packages))
+				named.add(candidate);
+		}
+		for (const target of referenceTargets(path, json)) named.add(target);
+	}
+	return [...named].filter((path) => !texts.has(path));
+}
+
+function parseConfigs(texts: ReadonlyMap<string, string>): Map<string, Record<string, unknown>> {
 	const json = new Map<string, Record<string, unknown>>();
 	for (const [path, text] of texts) {
 		if (!path.endsWith('.json')) continue;
@@ -169,13 +202,7 @@ export function readResolverConfig(texts: ReadonlyMap<string, string>): Resolver
 			json.set(path, value as Record<string, unknown>);
 		}
 	}
-	const { packages, packageScopes } = readPackages(texts, json);
-	return {
-		tsScopes: readTsScopes(json, packages),
-		kitScopes: readKitScopes(texts),
-		packages,
-		packageScopes
-	};
+	return json;
 }
 
 const UNPARSED: ModuleResolution = { status: 'unresolved', rule: null, reason: 'unparsed' };
@@ -643,10 +670,14 @@ interface PythonModule {
 }
 
 /**
- * A relative import from the importing file's package; an absolute one from the source roots
- * only, since Python 3 has no implicit relative import. A namespace package (a folder with no
- * `__init__.py`) has no file, so the site's module is the first listed name that is one of its
- * submodules, as Python `import a, b` keeps the first module.
+ * A relative import from the importing file's package; an absolute one from the source roots,
+ * since Python 3 has no implicit relative import. A file in a folder with no `__init__.py` (a
+ * script or test folder) also sees its siblings, the way `python scripts/a.py` puts `scripts/`
+ * on `sys.path`. The folder is tried after the roots, so a sibling never shadows a project
+ * module, though Python would load the sibling first when the file runs as a script. A regular
+ * module on any path beats a namespace package, as Python's path finder keeps scanning for one.
+ * A namespace package (a folder with no `__init__.py`) has no file, so the site's module is the
+ * first listed name that is one of its submodules, as Python `import a, b` keeps the first module.
  */
 function resolvePythonModule(statement: Statement, from: FilePath, ctx: Context): PythonModule {
 	const written = statement.module;
@@ -654,6 +685,7 @@ function resolvePythonModule(statement: Statement, from: FilePath, ctx: Context)
 	const modulePath = written.slice(dots).split('.').filter(Boolean).join('/');
 	let rule: ImportRule;
 	let bases: string[];
+	let scriptBase: string | null = null;
 	if (dots > 0) {
 		rule = 'python-relative';
 		let dir: string | null = dirname(from);
@@ -668,11 +700,17 @@ function resolvePythonModule(statement: Statement, from: FilePath, ctx: Context)
 	} else {
 		rule = 'python-package';
 		bases = ctx.pythonRoots.map((root) => (root ? `${root}/${modulePath}` : modulePath));
+		const dir = dirname(from);
+		if (!ctx.files.has(`${dir}/__init__.py`))
+			scriptBase = dir ? `${dir}/${modulePath}` : modulePath;
 	}
 	const hits = [...new Set(bases.map((base) => findPython(base, ctx.files)))].filter(
 		(hit): hit is string => hit !== null
 	);
 	if (hits.length > 0) return pythonFile(rule, hits);
+	const sibling = scriptBase === null ? null : findPython(scriptBase, ctx.files);
+	if (sibling) return pythonFile(rule, [sibling]);
+	if (scriptBase !== null && !bases.includes(scriptBase)) bases.push(scriptBase);
 	const namespaces = bases.filter((base) => ctx.pythonDirs.has(base));
 	if (namespaces.length > 0) return namespaceModule(rule, namespaces, statement, ctx);
 	return {
@@ -995,8 +1033,16 @@ function readTsScopes(
 	return scopes;
 }
 
-/** The config each `references` entry names: a config file, or the tsconfig.json in a folder. */
+/** The read configs that `path`'s `references` name. */
 function referencedConfigs(
+	path: string,
+	json: ReadonlyMap<string, Record<string, unknown>>
+): string[] {
+	return referenceTargets(path, json).filter((target) => json.has(target));
+}
+
+/** The config each `references` entry names: a `.json` file, or the tsconfig.json in a folder. */
+function referenceTargets(
 	path: string,
 	json: ReadonlyMap<string, Record<string, unknown>>
 ): string[] {
@@ -1006,9 +1052,8 @@ function referencedConfigs(
 		if (typeof ref?.path !== 'string') return [];
 		const target = joinPath(dirname(path), ref.path);
 		if (target === null) return [];
-		if (target.endsWith('.json') && json.has(target)) return [target];
-		const inDir = target ? `${target}/tsconfig.json` : 'tsconfig.json';
-		return json.has(inDir) ? [inDir] : [];
+		if (target.endsWith('.json')) return [target];
+		return [target ? `${target}/tsconfig.json` : 'tsconfig.json'];
 	});
 }
 
@@ -1030,16 +1075,43 @@ function tsProject(
 			aliases.push({ pattern, targets: resolved });
 		}
 	}
-	// tsc's defaults: no `files` and no `include` takes the whole folder; `files` alone takes only those
-	const dir = dirname(path);
-	const include = options.include ?? (options.files ? [] : [dir ? `${dir}/**/*` : '**/*']);
 	return {
 		aliases,
 		baseUrl: options.baseUrl,
 		files: new Set(options.files ?? []),
-		include: include.map(globToRegExp),
-		exclude: (options.exclude ?? []).map(globToRegExp)
+		include: projectInclude(path, options, json).map(globToRegExp),
+		exclude: (
+			options.exclude ?? [
+				`${prefixOf(dirname(path))}node_modules/**/*`,
+				...(options.outDir === null ? [] : [`${prefixOf(options.outDir)}**/*`])
+			]
+		).map(globToRegExp)
 	};
+}
+
+/**
+ * tsc's defaults: no `files` and no `include` takes every TS/JS file in the folder, and `files`
+ * alone takes only those. A solution config, one with `references` and neither list, takes none,
+ * so its files fall through to the projects it references instead of losing their aliases. tsc
+ * itself would compile them in the solution too, but a config written that way means a solution.
+ */
+function projectInclude(
+	path: string,
+	options: TsOptions,
+	json: ReadonlyMap<string, Record<string, unknown>>
+): string[] {
+	if (options.include) return options.include;
+	if (options.files) return [];
+	if (referencedConfigs(path, json).length > 0) return [];
+	const dir = prefixOf(dirname(path));
+	return TS_INCLUDE_EXTS.map((ext) => `${dir}**/*${ext}`);
+}
+
+/** The extensions tsc's default `include` takes (`.d.ts` ends in `.ts`) */
+const TS_INCLUDE_EXTS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'];
+
+function prefixOf(dir: string): string {
+	return dir ? `${dir}/` : '';
 }
 
 /** Options after `extends`, with paths in key space. null means no config in the chain sets it. */
@@ -1048,6 +1120,8 @@ interface TsOptions {
 	/** The folder of the config that wrote `paths`, which its targets resolve against without `baseUrl` */
 	pathsDir: string | null;
 	rawPaths: Record<string, string[]> | null;
+	/** `compilerOptions.outDir`, which the default `exclude` leaves out */
+	outDir: string | null;
 	files: string[] | null;
 	include: string[] | null;
 	exclude: string[] | null;
@@ -1057,13 +1131,14 @@ const NO_OPTIONS: TsOptions = {
 	baseUrl: null,
 	pathsDir: null,
 	rawPaths: null,
+	outDir: null,
 	files: null,
 	include: null,
 	exclude: null
 };
 
 /**
- * `paths`, `baseUrl`, `files`, `include` and `exclude` after `extends`, as tsc merges them: a
+ * `paths`, `baseUrl`, `outDir`, `files`, `include` and `exclude` after `extends`, as tsc merges them: a
  * child's value replaces its parents', a later `extends` entry beats an earlier one, and each
  * path resolves against the config that wrote it (`paths` targets against `baseUrl` when set).
  * `chain` holds only this config's own ancestors, so two parents that share a base both read it.
@@ -1090,6 +1165,7 @@ function effectiveOptions(
 			baseUrl: options.baseUrl ?? inherited.baseUrl,
 			pathsDir: options.rawPaths ? options.pathsDir : inherited.pathsDir,
 			rawPaths: options.rawPaths ?? inherited.rawPaths,
+			outDir: options.outDir ?? inherited.outDir,
 			files: options.files ?? inherited.files,
 			include: options.include ?? inherited.include,
 			exclude: options.exclude ?? inherited.exclude
@@ -1103,6 +1179,7 @@ function effectiveOptions(
 			typeof options.baseUrl === 'string' ? joinPath(dir, options.baseUrl) : inherited.baseUrl,
 		pathsDir: ownPaths ? dir : inherited.pathsDir,
 		rawPaths: ownPaths ?? inherited.rawPaths,
+		outDir: typeof options.outDir === 'string' ? joinPath(dir, options.outDir) : inherited.outDir,
 		files: configPatterns(config.files, dir, false) ?? inherited.files,
 		include: configPatterns(config.include, dir, true) ?? inherited.include,
 		exclude: configPatterns(config.exclude, dir, true) ?? inherited.exclude
@@ -1131,15 +1208,25 @@ function extendsPath(
 	json: ReadonlyMap<string, unknown>,
 	packages: ReadonlyMap<string, Package>
 ): string | null {
-	const withJson = (p: string) => (json.has(p) ? p : json.has(`${p}.json`) ? `${p}.json` : null);
+	return extendsCandidates(dir, parent, packages).find((p) => json.has(p)) ?? null;
+}
+
+/** The files an `extends` entry may name, in the order tsc tries them: as written, then with `.json`. */
+function extendsCandidates(
+	dir: string,
+	parent: string,
+	packages: ReadonlyMap<string, Package>
+): string[] {
+	let path: string | null = null;
 	if (parent.startsWith('.')) {
-		const joined = joinPath(dir, parent);
-		return joined === null ? null : withJson(joined);
+		path = joinPath(dir, parent);
+	} else {
+		const { name, subpath } = splitPackage(parent);
+		const pkg = packages.get(name);
+		if (pkg) path = joinPath(pkg.dir, subpath === '.' ? 'tsconfig.json' : subpath);
 	}
-	const { name, subpath } = splitPackage(parent);
-	const pkg = packages.get(name);
-	if (!pkg) return null;
-	return withJson(joinPath(pkg.dir, subpath === '.' ? 'tsconfig.json' : subpath) ?? '');
+	if (path === null) return [];
+	return path.endsWith('.json') ? [path] : [path, `${path}.json`];
 }
 
 /** `$lib` and `kit.alias` for each SvelteKit app, read from svelte.config with patterns, since the file is code. */

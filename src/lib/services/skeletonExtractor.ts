@@ -103,7 +103,7 @@ function toEntry(wirePath: string, record: FileRecord, priority: number): Skelet
 
 /**
  * Skeleton v2 for every parsed file. `refs` has the parser's reference sites per astMap key,
- * and `configs` the text of each file `isResolverConfig` names, keyed like astMap. Imports in
+ * and `configs` the text of each file `isResolverConfig` and then `namedConfigs` name, keyed like astMap. Imports in
  * TS/JS, Svelte, Vue and Python are bound to files, symbols and packages; reference sites and
  * other languages' imports stay pending.
  */

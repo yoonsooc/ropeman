@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { isResolverConfig, readResolverConfig, resolveImports } from './importResolver';
+import {
+	isResolverConfig,
+	namedConfigs,
+	readResolverConfig,
+	resolveImports
+} from './importResolver';
 import { buildCodeMap, fileFromAst, toWireFile } from './skeletonExtractor';
 import type { ASTSymbol } from '$lib/types/ast';
 import type { CodeMap, FilePath, FileRecord, ModuleSite } from '$lib/types/codeMap';
@@ -793,6 +798,98 @@ describe('tsconfig project selection', () => {
 		expect(target(result, 'scripts/seed.ts')).toBe('app/src/util.ts');
 	});
 
+	it('gives no file to a solution config that has references and no files or include', () => {
+		// Arrange
+		const configs = {
+			'tsconfig.json': json({ references: [{ path: './tsconfig.app.json' }] }),
+			'tsconfig.app.json': json({
+				compilerOptions: { paths: { '@/*': ['./src/*'] } },
+				include: ['src']
+			})
+		};
+		const files = { 'src/main.ts': { imports: ["import { a } from '@/a'"] }, 'src/a.ts': {} };
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'src/main.ts')).toBe('app/src/a.ts');
+	});
+
+	it('leaves node_modules and outDir out, and takes only TS/JS files, when a config sets neither list', () => {
+		// Arrange: no tsconfig.json, so both configs apply in name order
+		const configs = {
+			'tsconfig.a.json': json({ compilerOptions: { outDir: 'dist', paths: { '@/*': ['./a/*'] } } }),
+			'tsconfig.b.json': json({
+				compilerOptions: { paths: { '@/*': ['./b/*'] } },
+				include: ['dist', 'node_modules', '**/*.svelte'],
+				exclude: []
+			})
+		};
+		const files = {
+			'src/main.ts': { imports: ["import { u } from '@/u'"] },
+			'dist/main.ts': { imports: ["import { u } from '@/u'"] },
+			'node_modules/lib/index.ts': { imports: ["import { u } from '@/u'"] },
+			'src/App.svelte': { imports: ["import { u } from '@/u'"] },
+			'a/u.ts': {},
+			'b/u.ts': {}
+		};
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'src/main.ts')).toBe('app/a/u.ts');
+		expect(target(result, 'dist/main.ts')).toBe('app/b/u.ts');
+		expect(target(result, 'node_modules/lib/index.ts')).toBe('app/b/u.ts');
+		expect(target(result, 'src/App.svelte')).toBe('app/b/u.ts');
+	});
+
+	it('names the custom config files a reference or extends points at, so a caller can read them', () => {
+		// Arrange
+		const texts = new Map([
+			[
+				'app/tsconfig.json',
+				json({ files: [], references: [{ path: './configs/web.json' }, { path: './api' }] })
+			],
+			['app/api/tsconfig.json', json({ extends: '../configs/base' })]
+		]);
+		const web = json({
+			compilerOptions: { paths: { '~/*': ['../web/*'] } },
+			include: ['../web']
+		});
+
+		// Act
+		const named = namedConfigs(texts);
+		const after = namedConfigs(new Map([...texts, ['app/configs/web.json', web]]));
+
+		// Assert
+		expect(named.sort()).toEqual([
+			'app/configs/base',
+			'app/configs/base.json',
+			'app/configs/web.json'
+		]);
+		expect(after.sort()).toEqual(['app/configs/base', 'app/configs/base.json']);
+	});
+
+	it('follows a reference to a config file with a custom name', () => {
+		// Arrange
+		const configs = {
+			'tsconfig.json': json({ files: [], references: [{ path: './configs/web.json' }] }),
+			'configs/web.json': json({
+				compilerOptions: { paths: { '~/*': ['../web/lib/*'] } },
+				include: ['../web']
+			})
+		};
+		const files = { 'web/main.ts': { imports: ["import { b } from '~/b'"] }, 'web/lib/b.ts': {} };
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'web/main.ts')).toBe('app/web/lib/b.ts');
+	});
+
 	it('reads a referenced folder as its tsconfig.json', () => {
 		// Arrange
 		const configs = {
@@ -1020,6 +1117,52 @@ describe('Python namespace packages and source roots', () => {
 		// Assert
 		expect(target(result, 'pkg/a.py', 0)).toBe('external:b');
 		expect(target(result, 'pkg/a.py', 1)).toBe('app/pkg/__init__.py');
+	});
+
+	it('reads an absolute import in a script or test folder as its sibling, after the source roots', () => {
+		// Arrange: `python scripts/a.py` and rootdir-less pytest put the file's folder on sys.path
+		const files = {
+			'svc/__init__.py': {},
+			'svc/db.py': {},
+			'scripts/a.py': { imports: ['import b', 'from b import run'] },
+			'scripts/b.py': { symbols: [fn('run')] },
+			'tests/test_db.py': { imports: ['import helpers', 'import svc.db'] },
+			'tests/helpers.py': {}
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(target(result, 'scripts/a.py', 0)).toBe('app/scripts/b.py');
+		expect(site(result, 'scripts/a.py', 1).specifiers).toMatchObject([
+			{ local: 'run', target: { state: 'bound' } }
+		]);
+		expect(target(result, 'tests/test_db.py', 0)).toBe('app/tests/helpers.py');
+		expect(target(result, 'tests/test_db.py', 1)).toBe('app/svc/db.py');
+	});
+
+	it('lets a source root beat a sibling of the same name, and a sibling file beat a namespace package', () => {
+		// Arrange
+		const files = {
+			'config/__init__.py': {},
+			'utils/fmt.py': {},
+			'scripts/run.py': { imports: ['import config', 'import json', 'import utils'] },
+			'scripts/config.py': {},
+			'scripts/json.py': {},
+			'scripts/utils.py': {}
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		// Python run as a script would load scripts/config.py; imported as a module, the root wins
+		expect(target(result, 'scripts/run.py', 0)).toBe('app/config/__init__.py');
+		// No root has `json`, so the sibling shadows the standard library as it does at runtime
+		expect(target(result, 'scripts/run.py', 1)).toBe('app/scripts/json.py');
+		// Python's path finder keeps a regular module over a namespace portion from any entry
+		expect(target(result, 'scripts/run.py', 2)).toBe('app/scripts/utils.py');
 	});
 });
 
