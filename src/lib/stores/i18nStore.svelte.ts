@@ -269,6 +269,7 @@ interface CoverageTranslations {
 	levelsTitle: string;
 	levelRoot: string;
 	levelOverBudget: string;
+	levelExceedsBudget: string;
 	levelLeftOut: string;
 	levelInvented: string;
 	levelDuplicated: string;
@@ -877,6 +878,7 @@ const translations: Record<Locale, TranslationSet> = {
 			levelsTitle: '다이어그램 단계별 배정',
 			levelRoot: '최상위',
 			levelOverBudget: '크기 한도로 보내지 않은 파일 {count}개',
+			levelExceedsBudget: '한도 안에 드는 파일이 없어 가장 작은 파일 1개를 그대로 보냄',
 			levelLeftOut: 'AI 답에 없어 미분류로 옮긴 파일 {count}개',
 			levelInvented: '입력에 없는 경로라 버린 항목 {count}개',
 			levelDuplicated: '이미 배정된 파일이라 무시한 항목 {count}개',
@@ -1491,6 +1493,7 @@ const translations: Record<Locale, TranslationSet> = {
 			levelsTitle: 'Diagram levels',
 			levelRoot: 'Top level',
 			levelOverBudget: '{count} {count|file|files} not sent, over the size limit',
+			levelExceedsBudget: 'No file fit the size limit, so the smallest one was sent anyway',
 			levelLeftOut: '{count} {count|file|files} missing from the answer, moved to Unclassified',
 			levelInvented: '{count} made-up {count|path|paths} dropped',
 			levelDuplicated: '{count} repeated {count|file|files} ignored',

@@ -44,7 +44,11 @@ function input(overrides: Partial<CoverageInput>): CoverageInput {
 		parseSkips: [],
 		skeleton: selectSkeleton('repo', fileTree, astMap),
 		levels: new Map(),
-		drilldownOverBudget: () => 0,
+		drilldownSkeleton: () => ({
+			payload: { projectName: 'sub-skeleton', totalFiles: 0, totalSymbols: 0, files: [] },
+			omitted: [],
+			exceedsBudget: false
+		}),
 		...overrides
 	};
 }
@@ -162,7 +166,14 @@ describe('buildCoverage', () => {
 					['sem:auth', child],
 					['__root__', root]
 				]),
-				drilldownOverBudget: (parent) => (parent.id === 'sem:auth' ? 4 : 0)
+				drilldownSkeleton: (parent) => ({
+					payload: { projectName: 'sub-skeleton', totalFiles: 1, totalSymbols: 1, files: [] },
+					omitted: Array.from({ length: parent.id === 'sem:auth' ? 4 : 0 }, (_, i) => ({
+						path: `big${i}.ts`,
+						reason: 'over-budget' as const
+					})),
+					exceedsBudget: parent.id === 'sem:auth'
+				})
 			})
 		);
 
@@ -172,9 +183,17 @@ describe('buildCoverage', () => {
 				label: 'Project',
 				depth: 0,
 				assignment: { leftOut: 2, duplicated: 1, invented: 3, emptied: 0 },
-				overBudget: 1
+				overBudget: 1,
+				exceedsBudget: false
 			},
-			{ key: 'sem:auth', label: 'sem:auth', depth: 1, assignment: null, overBudget: 4 }
+			{
+				key: 'sem:auth',
+				label: 'sem:auth',
+				depth: 1,
+				assignment: null,
+				overBudget: 4,
+				exceedsBudget: true
+			}
 		]);
 	});
 });
@@ -219,5 +238,39 @@ describe('currentCoverage', () => {
 		expect(root.overBudget).toBeGreaterThan(0);
 		expect(drill.overBudget).toBeGreaterThan(0);
 		expect(report.byStatus.sent.length + root.overBudget).toBe(300);
+	});
+
+	it('marks a drill-down whose only file is over the budget', () => {
+		// Arrange
+		const small = 'src/small.ts';
+		const huge = 'src/huge.ts';
+		projectStore.projectName = 'repo';
+		projectStore.fileTree = tree('repo', [file(small, 'typescript'), file(huge, 'typescript')]);
+		projectStore.astMap = new Map([
+			[small, [fn('tiny')]],
+			[huge, Array.from({ length: 3000 }, (_, j) => fn(`handler_with_a_long_name_${j}`))]
+		]);
+		settingsStore.maxSkeletonKB = 20;
+		semanticStore.setCachedLevel('__root__', {
+			parentId: null,
+			nodes: [node('sem:small', [small]), node('sem:huge', [huge])],
+			edges: [],
+			breadcrumbLabel: 'Project'
+		});
+		for (const id of ['sem:small', 'sem:huge']) {
+			semanticStore.setCachedLevel(id, {
+				parentId: id,
+				nodes: [],
+				edges: [],
+				breadcrumbLabel: id
+			});
+		}
+
+		// Act
+		const report = currentCoverage();
+
+		// Assert
+		const exceeds = Object.fromEntries(report.levels.map((l) => [l.key, l.exceedsBudget]));
+		expect(exceeds).toEqual({ __root__: false, 'sem:small': false, 'sem:huge': true });
 	});
 });
