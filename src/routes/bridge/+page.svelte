@@ -11,17 +11,18 @@
 	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
 	import CodeViewer from '$lib/components/CodeViewer.svelte';
 	import type { ConnectFailure } from '$lib/services/bridgeClient';
+	import { isLoopbackPage, loadSession, saveSession } from '$lib/services/bridgeSession';
 	import type { RpcErrorCode } from '$lib/types/ropemanMap';
 
 	const DEFAULT_PORT = 9800;
 	const TOKEN_FILE = '~/.ropeman/bridge-token';
-	// Per tab: a reload in local mode reconnects without the token staying in the address
-	const SESSION_KEY = 'ropeman-bridge';
 
 	let port = $state(String(DEFAULT_PORT));
 	let token = $state('');
 	/** The page's own host when serve itself serves it (local mode) */
 	let localHost = $state<string | null>(null);
+	/** Off loopback (ropeman.dev) the token lives in memory only, and the form says so */
+	let onLoopback = $state(true);
 
 	const status = $derived(bridgeStore.status);
 	const showingMap = $derived(
@@ -36,26 +37,9 @@
 	const portNumber = $derived(Number(port));
 	const portValid = $derived(Number.isInteger(portNumber) && portNumber > 0 && portNumber < 65536);
 
-	function remember(host: string, value: string) {
-		try {
-			sessionStorage.setItem(SESSION_KEY, JSON.stringify({ host, token: value }));
-		} catch {
-			// Storage off (private mode): the user pastes the token again after a reload
-		}
-	}
-
-	function recall(): { host: string; token: string } | null {
-		try {
-			const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? 'null');
-			return typeof saved?.host === 'string' && typeof saved?.token === 'string' ? saved : null;
-		} catch {
-			return null;
-		}
-	}
-
 	async function connect(host: string, value: string) {
 		await bridgeStore.connect(host, value);
-		if (bridgeStore.status.state === 'connected') remember(host, value);
+		if (bridgeStore.status.state === 'connected') saveSession(location, { host, token: value });
 	}
 
 	function submit(e: SubmitEvent) {
@@ -71,19 +55,14 @@
 		if (hashToken !== null) {
 			history.replaceState(history.state, '', location.pathname + location.search);
 		}
-		const loopback =
-			location.protocol === 'http:' &&
-			(location.hostname === '127.0.0.1' || location.hostname === 'localhost');
-		const saved = recall();
-		if (loopback && hashToken) {
+		onLoopback = isLoopbackPage(location);
+		const saved = loadSession(location);
+		if (onLoopback && hashToken) {
 			localHost = location.host;
 			connect(location.host, hashToken);
-		} else if (loopback && saved?.host === location.host) {
+		} else if (saved) {
 			localHost = location.host;
 			connect(saved.host, saved.token);
-		} else if (saved) {
-			port = saved.host.split(':')[1] ?? port;
-			token = saved.token;
 		}
 	});
 
@@ -329,6 +308,9 @@
 						<p id="bridge-token-hint" class="bridge-hint">
 							{i18nStore.t('bridge.tokenHint', { file: TOKEN_FILE })}
 						</p>
+						{#if !onLoopback}
+							<p class="bridge-hint">{i18nStore.t('bridge.tokenMemoryOnly')}</p>
+						{/if}
 						<p class="bridge-hint">{i18nStore.t('bridge.copyToken')}</p>
 						<pre class="bridge-command"><code>cat {TOKEN_FILE}</code></pre>
 					{:else if status.state === 'failed'}

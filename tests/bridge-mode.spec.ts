@@ -193,6 +193,10 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
 		await expect(page).toHaveURL(`http://127.0.0.1:${serve.port}/bridge`);
 		await walkThrough(page, serve, 'en-desktop-local');
+
+		// The tab keeps the token, so a reload reconnects without the hash
+		await page.reload();
+		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
 	});
 
 	test('local mode in Korean on a phone', { tag: '@responsive' }, async ({ page }, testInfo) => {
@@ -236,6 +240,8 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		await page.getByLabel('Token').fill(TOKEN);
 		await page.getByRole('button', { name: 'Connect' }).click();
 		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
+		// A page that serve does not host keeps the pasted token in memory only
+		expect(await page.evaluate(() => sessionStorage.length)).toBe(0);
 		await walkThrough(page, serve, 'en-desktop-bridge');
 
 		// serve going away keeps the map and offers to reconnect

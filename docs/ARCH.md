@@ -48,6 +48,7 @@ src/
 │   │   ├── ropemanMapSchema.ts       # `ropeman.json`과 Bridge RPC 메시지를 믿지 않는 입력으로 파싱 (크기, JSON, 형식, 버전, 구조, 단계 트리)
 │   │   ├── mapViewer.ts              # 파싱한 ropeman.json을 시맨틱 스토어가 캐시하는 단계 모양으로 펼친다
 │   │   ├── bridgeClient.ts           # ropeman serve RPC 클라이언트: hello 확인, id로 응답 맞추기, 푸시 전달
+│   │   ├── bridgeSession.ts          # Bridge 토큰을 다시 고침 너머로 남길지: 루프백 로컬 모드만 sessionStorage, ropeman.dev는 메모리
 │   │   ├── mapVerifier.ts            # 지도 검증기 (A-12): 배정 불변식, 경로 실재, 관계 근거를 코드 지도와 대조해 위반을 모두 돌려준다
 │   │   ├── coverageService.ts        # 파일마다 분석에서의 행방(보냄, 안 보냄, 잘림, 건너뜀, 못 읽음)과 단계별 배정 수
 │   │   ├── requestBudget.ts          # 보내기 전 크기 검사: 데모 요청 본문 바이트, BYOK 모델별 토큰 한도
@@ -360,13 +361,13 @@ map.changed    → 바뀐 경로의 revision을 올리고(열린 원문을 제�
 
 - 상태: `bridgeStore`가 연결(`idle`, `connecting`, `connected`, `failed`, `lost`)과 노드별 이름 상태(`pending`, `failed`)를 들고, 단계는 `semanticStore`에 둔다. 소켓은 `bridgeClient`의 `open` 인자로 바꿔 끼울 수 있어서 단위 테스트가 가짜 소켓으로 서버 쪽을 연기한다.
 - 연결 실패: 브라우저는 꺼진 포트, 틀린 토큰(401), 허용 안 된 Origin(403), 로컬 네트워크 차단을 모두 "메시지 없이 닫힘"으로만 알려 준다. 그래서 `closed` 하나로 받고, 화면은 확인할 셋(실행 중인지, 포트, 토큰)을 함께 보여 준다. 다른 major의 serve는 `newer-server`·`older-server`다.
-- 제자리 유지: `map.get`은 이름이 붙은 단계만 담는다. 그래서 `map.changed` 뒤에는 사용자의 드릴다운 경로를 위에서부터 다시 걷고, 새 지도에 없는 단계는 `node.expand`로 다시 받는다. 경로의 노드가 사라졌으면 남아 있는 가장 깊은 단계에서 멈춘다. 선택한 노드도 같은 id로 다시 잡는다. 이름 붙이기가 실패한 폴더는 다시 받을 때 serve가 이름을 다시 묻는다(파일이 바뀐 뒤라 다시 묻는 편이 맞다고 봤다).
+- 제자리 유지: `map.get`은 이름이 붙은 단계만 담는다. 그래서 `map.changed` 뒤에는 사용자의 드릴다운 경로를 위에서부터 다시 걷고, 새 지도에 없는 단계는 `node.expand`로 다시 받는다. 경로의 노드가 사라졌거나 serve가 `unknown-node`로 답하면 남아 있는 가장 깊은 단계에서 멈춘다. 다시 받기가 `busy`(연결당 이름 작업 상한)나 다른 오류로 끝나면 사용자가 보던 단계(폴더 묶음 그대로)와 이름 상태를 지키고, 이미 돌고 있는 이름 작업의 `node.named`가 오면 그대로 받는다. 선택한 노드도 같은 id로 다시 잡는다. 이름 붙이기가 실패한 폴더는 다시 받을 때 serve가 이름을 다시 묻는다(파일이 바뀐 뒤라 다시 묻는 편이 맞다고 봤다).
 - 펼치지 않는 노드: serve는 `files:` 노드(폴더에 바로 든 파일들)를 `unknown-node`로 답한다. 뷰어는 id 모양에 기대지 않고 이 답을 받으면 상세 패널에 그 노드의 파일 목록을 연다. 파일이 하나인 노드는 원래대로 바로 원문을 연다.
 - 앱 AI와 분리: `ZUICanvas`의 `onexpand`가 있으면 캐시에 없는 노드는 그 함수로 가고, 확인 창과 앱의 AI 분석, 다시 분석 버튼은 나오지 않는다.
 - 추론 관계: INFERRED 관계는 `semanticGraphBuilder`가 점선으로 그리고 범례에 뜻을 적는다(A-6). 검증기의 `unverified`(refs가 빈 INFERRED)는 지도만 보고도 알 수 있고, 이름으로만 맞춘 ref를 든 INFERRED도 점선이라, 뷰어는 코드 지도 없이 `evidence.confidence`로 정한다.
-- 로컬 모드: 페이지가 `http://127.0.0.1:<port>`나 `http://localhost:<port>`에서 열리고 주소에 `#token=`이 있으면 같은 호스트로 바로 붙는다. 토큰은 읽자마자 `history.replaceState`로 주소에서 지운다(SvelteKit의 `replaceState`는 라우터가 붙기 전인 첫 페이지 `onMount`에서 예외를 던진다). 다시 고침을 위해 토큰은 그 탭의 `sessionStorage`에만 둔다. ropeman.dev에서도 같은 탭 안에서는 포트와 토큰을 기억한다.
-- 뷰어 번들: `npm run bundle:viewer`(`scripts/bundle-viewer.mjs`)가 `npm run build` 결과를 `bridge/dist/viewer/`로 복사한다. 브라우저에서 파싱하지 않으므로 tree-sitter `.wasm`과 Cloudflare 전용 파일은 빼고(약 7.5MB, 107개), 사이트의 Cloudflare 분석 비콘은 HTML에서 지운다(127.0.0.1 페이지 조회가 Cloudflare로 가지 않게). `bridge`의 `prepack`이 앱 빌드, bridge 빌드, 번들 복사를 차례로 해서 패키지에 싣는다. `serve --local`이 이 번들을 서빙하고, 미리 렌더링한 경로는 `.html`을 붙여 찾는다(`/bridge` → `bridge.html`, Cloudflare Pages와 같다).
-- 검증: `bridgeClient.test.ts`(가짜 소켓, 11개), `bridgeStore.test.ts`(가짜 서버, 12개). `tests/bridge-mode.spec.ts`는 빌드한 serve를 픽스처 저장소 사본과 가짜 CLI로 띄우고 `map.get → node.expand(이름 대기) → node.named → file.read → 파일 수정 → map.changed → binary 거부`를 로컬 모드(영어 데스크톱, 한국어 휴대폰)와 다른 출처의 페이지에서 토큰을 넣는 경우로 돈다. 가짜 CLI의 `gate` 단계가 `release` 파일이 생길 때까지 답을 미뤄서 대기 상태를 화면에서 본다.
+- 로컬 모드: 페이지가 `http://127.0.0.1:<port>`나 `http://localhost:<port>`에서 열리고 주소에 `#token=`이 있으면 같은 호스트로 바로 붙는다. 토큰은 읽자마자 `history.replaceState`로 주소에서 지운다(SvelteKit의 `replaceState`는 라우터가 붙기 전인 첫 페이지 `onMount`에서 예외를 던진다). 다시 고침을 위해 토큰은 그 탭의 `sessionStorage`에 둔다. 페이지가 루프백에서 열렸고 소켓이 그 호스트로 갈 때만 그렇다(`bridgeSession.ts`). ropeman.dev는 Cloudflare 분석 비콘 같은 제3자 스크립트를 실어서 저장소에 둔 토큰을 읽힐 수 있다. 그래서 거기서 넣은 토큰은 메모리에만 두고, 다시 고치면 다시 넣는다(폼이 그렇게 안내한다).
+- 뷰어 번들: `npm run bundle:viewer`(`scripts/bundle-viewer.mjs`)가 `npm run build` 결과를 `bridge/dist/viewer/`로 복사한다. 브라우저에서 파싱하지 않으므로 tree-sitter `.wasm`과 Cloudflare 전용 파일은 빼고(약 7.5MB, 107개), 127.0.0.1에서 연 페이지는 다른 호스트로 요청을 하나도 보내지 않는다. 그래서 사이트의 Cloudflare 분석 비콘과 Google Fonts 링크를 HTML에서 지운다. 글꼴은 CSS 스택의 시스템 글꼴로 내려가고, 대체 글꼴이 없는 Material Symbols 아이콘은 리거처 이름(`arrow_back`)이 보이지 않게 숨긴다(Bridge 모드의 아이콘은 모두 글자 옆에 있다). 지운 뒤에도 `script`·`link`·`img` 같은 태그가 다른 호스트를 가리키거나 CSS가 원격 `url()`·`@import`를 쓰면 번들 단계가 실패한다(`rel=alternate`·`canonical`은 요청이 아니라 뺀다). 글꼴 파일을 번들에 직접 싣는 길은 저장소에 글꼴 파일도 패키지도 없어서 새 의존성이 되므로 택하지 않았다. `bridge`의 `prepack`이 앱 빌드, bridge 빌드, 번들 복사를 차례로 해서 패키지에 싣는다. `serve --local`이 이 번들을 서빙하고, 미리 렌더링한 경로는 `.html`을 붙여 찾는다(`/bridge` → `bridge.html`, Cloudflare Pages와 같다).
+- 검증: `bridgeClient.test.ts`(가짜 소켓, 11개), `bridgeStore.test.ts`(가짜 서버, 15개), `bridgeSession.test.ts`(토큰을 남기는 경우와 안 남기는 경우, 7개). `tests/bridge-mode.spec.ts`는 빌드한 serve를 픽스처 저장소 사본과 가짜 CLI로 띄우고 `map.get → node.expand(이름 대기) → node.named → file.read → 파일 수정 → map.changed → binary 거부`를 로컬 모드(영어 데스크톱, 한국어 휴대폰)와 다른 출처의 페이지에서 토큰을 넣는 경우로 돈다. 가짜 CLI의 `gate` 단계가 `release` 파일이 생길 때까지 답을 미뤄서 대기 상태를 화면에서 본다.
 
 ### Phase 3: 재귀적 드릴다운
 

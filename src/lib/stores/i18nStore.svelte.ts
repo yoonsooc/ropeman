@@ -489,6 +489,7 @@ interface TranslationSet {
 		| 'portLabel'
 		| 'tokenLabel'
 		| 'tokenHint'
+		| 'tokenMemoryOnly'
 		| 'copyToken'
 		| 'connect'
 		| 'connecting'
@@ -1185,6 +1186,8 @@ const translations: Record<Locale, TranslationSet> = {
 			tokenLabel: '토큰',
 			tokenHint:
 				'serve는 토큰을 화면에 찍지 않고 어디 있는지만 알려 줍니다. 기본 위치는 {file} 파일입니다. --token이나 ROPEMAN_BRIDGE_TOKEN으로 정했다면 그 값을 넣으세요.',
+			tokenMemoryOnly:
+				'이 페이지는 토큰을 저장하지 않고 메모리에만 둡니다. 새로고침하면 다시 넣으세요.',
 			copyToken: '토큰 파일 내용 보기:',
 			connect: '연결',
 			connecting: '{host}의 serve에 연결하는 중...',
@@ -1886,6 +1889,8 @@ const translations: Record<Locale, TranslationSet> = {
 			tokenLabel: 'Token',
 			tokenHint:
 				"serve doesn't print the token. It tells you where the token is: by default the file {file}. If you set it with --token or ROPEMAN_BRIDGE_TOKEN, paste that value.",
+			tokenMemoryOnly:
+				"This page keeps the token in memory and doesn't save it, so paste it again after a reload.",
 			copyToken: 'Show the token file:',
 			connect: 'Connect',
 			connecting: 'Connecting to serve on {host}...',

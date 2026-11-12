@@ -87,6 +87,10 @@ function createBridgeStore() {
 		const mine = ++generation;
 		const path = keepPlace ? semanticStore.drilldownPath : [];
 		const selectedId = semanticStore.selectedSemanticNode?.id ?? null;
+		// What the user saw on the way down, for a level serve will not hand out again right now
+		const seen = new Map(
+			path.map((step) => [step.nodeId, semanticStore.getCachedLevel(step.nodeId)])
+		);
 		map = next;
 		projectStore.projectName = next.project.name;
 		semanticStore.replaceLevels(toViewerLevels(next));
@@ -100,8 +104,13 @@ function createBridgeStore() {
 			if (!semanticStore.hasCachedLevel(node.id)) {
 				const expanded = await connection?.request('node.expand', { nodeId: node.id });
 				if (mine !== generation) return;
-				if (!expanded?.ok) break;
-				cacheExpansion(node, expanded.result);
+				const before = seen.get(node.id);
+				if (expanded?.ok) cacheExpansion(node, expanded.result);
+				// busy (the naming cap) or another refusal keeps the level and its naming state, so a
+				// node.named already on the way still lands; only a node serve no longer expands goes
+				else if (before && expanded?.code !== 'unknown-node') {
+					semanticStore.setCachedLevel(node.id, before);
+				} else break;
 			}
 			kept.push({ nodeId: node.id, label: node.label });
 			key = node.id;

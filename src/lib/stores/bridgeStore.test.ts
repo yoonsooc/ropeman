@@ -250,6 +250,51 @@ describe('bridgeStore', () => {
 		expect(semanticStore.selectedSemanticNode?.id).toBe('files:src');
 	});
 
+	// Review of PR #79: a busy reply for the level still naming moved the user up to the top
+	it.each([
+		['busy', 'At most 4 nodes are named at a time per connection.'],
+		['internal', 'boom']
+	])(
+		'stays on a level still naming when serve answers %s on map.changed, then takes the names',
+		async (code, error) => {
+			// Arrange: inside dir:src, its names still on the way
+			const server = await connected();
+			await expandSrc(server);
+
+			// Act: a file changes and serve refuses the level again
+			server.push({ type: 'map.changed', paths: ['src/b.ts'] });
+			await flush();
+			server.answer('map.get', { result: mapOf([TOP]) });
+			await flush();
+			server.answer('node.expand', { code, error });
+			await flush();
+
+			// Assert: the folder grouping stays, and the naming already running still lands
+			expect(semanticStore.drilldownPath).toEqual([{ nodeId: 'dir:src', label: 'src' }]);
+			expect(labels()).toEqual(['api', 'src']);
+			expect(bridgeStore.namingOf('dir:src')).toEqual({ state: 'pending' });
+
+			server.push({ type: 'node.named', nodeId: 'dir:src', level: SRC_NAMED });
+
+			expect(labels()).toEqual(['Named api', 'Named src']);
+		}
+	);
+
+	it('goes up when serve says the folder is no longer one it expands', async () => {
+		const server = await connected();
+		await expandSrc(server);
+
+		server.push({ type: 'map.changed', paths: ['src/b.ts'] });
+		await flush();
+		server.answer('map.get', { result: mapOf([TOP]) });
+		await flush();
+		server.answer('node.expand', { code: 'unknown-node', error: 'dir:src is not a folder node.' });
+		await flush();
+
+		expect(semanticStore.drilldownPath).toEqual([]);
+		expect(labels()).toEqual(['src', '.']);
+	});
+
 	it('uses a named level the new map already holds without asking serve again', async () => {
 		const server = await connected();
 		await expandSrc(server);
