@@ -307,6 +307,11 @@ export const xxxStore = createXxxStore();
 - **정적 분석만**: 런타임 동작 분석 불가
 - **Edge Worker**: Gemini API 지역 제한 → placement hint 필요
 - **WebGPU**: Chrome 113+ / Edge 113+ 필요, ~900MB 모델 다운로드
+- **빌드: web-llm 리터럴 스캔 우회**: `vite.config.js`의 `webllmSkipLiteralScan`(워커 빌드 전용 플러그인)이 `@mlc-ai/web-llm/lib/index.js` 안의 JSDoc 예제 `new URL('./worker.ts', import.meta.url)`를 같은 길이의 공백으로 바꾼다
+  - 이유: 이 주석 하나 때문에 vite의 `vite:worker-import-meta-url`과 `vite:asset-import-meta-url`이 6.5MB 파일 전체에 `stripLiteral`(js-tokens 정규식)을 돌린다. 파일에는 토크나이저 wasm을 담은 약 97만 자짜리 base64 문자열이 있다
+  - V8은 한 프로세스가 정규식 코드를 1MB 넘게 만들고 실행 메모리가 16MB를 넘으면 새 정규식을 최적화 없이 컴파일한다 (V8 14.6 `regexp.cc`의 `TooMuchRegExpCode`). 최적화 없는 문자열 정규식은 그 base64 문자열에서 백트랙 스택을 넘겨 `Maximum call stack size exceeded`를 낸다. 빌드 중 언제 컴파일되느냐에 따라 갈려서 약 10번에 1번 빌드가 실패했다 (2026-11-12 측정: 30회 중 3회, Node 26.4). 오류는 바깥 파일 이름인 `webllmService.ts`로 찍힌다
+  - 주석은 minify에서 어차피 빠지므로 결과 워커 파일은 바이트 단위로 같다. web-llm이 다른 곳에서 `import.meta.url`을 쓰기 시작하면 플러그인이 빌드를 실패시킨다. 그때는 플러그인을 고친다
+  - 재현과 회귀 확인: `node --no-regexp-optimization node_modules/vite/bin/vite.js build`. 플러그인이 없으면 매번 실패하고, 있으면 통과한다
 
 ---
 
