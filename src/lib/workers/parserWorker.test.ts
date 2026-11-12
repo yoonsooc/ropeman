@@ -36,12 +36,16 @@ afterAll(() => {
 	vi.unstubAllGlobals();
 });
 
-async function parse(filePath: string, content: string): Promise<Outline[]> {
+async function parseSymbols(filePath: string, content: string): Promise<ASTSymbol[]> {
 	const language = detectLanguage(filePath);
 	await onmessage({ data: { type: 'parse', filePath, content, language } });
 	const result = posted.pop() as { type: string; symbols?: ASTSymbol[]; error?: string };
 	expect(result).toMatchObject({ type: 'parse-result', filePath });
-	return result.symbols!.map((s) => ({
+	return result.symbols!;
+}
+
+async function parse(filePath: string, content: string): Promise<Outline[]> {
+	return (await parseSymbols(filePath, content)).map((s) => ({
 		name: s.kind === 'import' ? s.name.replace(/\s+/g, ' ') : s.name,
 		kind: s.kind,
 		...(s.children ? { children: s.children.map((c) => c.name) } : {})
@@ -152,5 +156,188 @@ export function second() {
 
 		// Assert
 		expect(symbols).toEqual([]);
+	});
+});
+
+describe('parserWorker with single-file components', () => {
+	const lineOf = (source: string, text: string) =>
+		source.split('\n').findIndex((line) => line.includes(text)) + 1;
+	const outline = (symbols: ASTSymbol[]) =>
+		symbols.map((s) => ({ name: s.name, kind: s.kind, line: s.lineStart }));
+
+	it('reads both script blocks of a generic Svelte 5 component at their file lines', async () => {
+		// Arrange
+		const source = `<script module lang="ts">
+	import type { Snippet } from 'svelte';
+
+	export interface Row {
+		id: string;
+	}
+
+	export function rowKey(row: Row): string {
+		return row.id;
+	}
+</script>
+
+<script lang="ts" generics="T extends Row">
+	import { fade } from 'svelte/transition';
+	import Cell from './Cell.svelte';
+
+	let { rows, header }: { rows: T[]; header?: Snippet } = $props();
+	let selected = $state<T | null>(null);
+
+	function select(row: T) {
+		selected = row;
+	}
+
+	const clear = () => (selected = null);
+</script>
+
+<table transition:fade>
+	{#each rows as row (rowKey(row))}
+		<tr class:active={selected === row} onclick={() => select(row)}><Cell {row} /></tr>
+	{/each}
+</table>
+
+<style>
+	.active { font-weight: bold; }
+</style>
+`;
+
+		// Act
+		const symbols = await parseSymbols('src/lib/components/Table.svelte', source);
+
+		// Assert
+		expect(outline(symbols)).toEqual([
+			{ name: "import type { Snippet } from 'svelte';", kind: 'import', line: 2 },
+			{ name: 'rowKey', kind: 'function', line: lineOf(source, 'export function rowKey') },
+			{ name: "import { fade } from 'svelte/transition';", kind: 'import', line: 14 },
+			{ name: "import Cell from './Cell.svelte';", kind: 'import', line: 15 },
+			{ name: 'select', kind: 'function', line: lineOf(source, 'function select') },
+			{ name: 'clear', kind: 'function', line: lineOf(source, 'const clear') }
+		]);
+		expect(symbols.find((s) => s.name === 'select')?.lineEnd).toBe(
+			lineOf(source, 'function select') + 2
+		);
+	});
+
+	it('reads a Svelte 4 component with a context="module" block and a plain JS instance script', async () => {
+		// Arrange
+		const source = `<script context="module">
+	export async function load({ fetch }) {
+		return { items: await (await fetch('/api')).json() };
+	}
+</script>
+
+<script>
+	import { onMount } from 'svelte';
+	export let items = [];
+	$: total = items.length;
+	onMount(() => console.log(total));
+</script>
+
+<p>{total}</p>
+`;
+
+		// Act
+		const symbols = await parse('src/routes/List.svelte', source);
+
+		// Assert
+		expect(symbols).toEqual([
+			{ name: 'load', kind: 'function' },
+			{ name: "import { onMount } from 'svelte';", kind: 'import' }
+		]);
+	});
+
+	it('reads a Vue <script setup lang="ts"> block that follows the template', async () => {
+		// Arrange
+		const source = `<template>
+  <ul>
+    <li v-for="item in items" :key="item.id" @click="choose(item)">{{ label(item) }}</li>
+  </ul>
+</template>
+
+<script lang="ts">
+export interface Item {
+  id: number;
+  name: string;
+}
+</script>
+
+<script setup lang="ts" generic="T extends Item, M extends Map<string, T>">
+import { computed, ref } from 'vue';
+import { useStore } from '@/stores/items';
+
+const props = defineProps<{ items: T[] }>();
+const emit = defineEmits<{ (e: 'choose', item: T): void }>();
+const chosen = ref<T | null>(null);
+
+function choose(item: T) {
+  chosen.value = item;
+  emit('choose', item);
+}
+
+const label = (item: T) => \`\${item.id}: \${item.name}\`;
+</script>
+
+<style scoped>
+li { cursor: pointer; }
+</style>
+`;
+
+		// Act
+		const symbols = await parseSymbols('src/components/ItemList.vue', source);
+
+		// Assert
+		expect(outline(symbols)).toEqual([
+			{ name: "import { computed, ref } from 'vue';", kind: 'import', line: 15 },
+			{ name: "import { useStore } from '@/stores/items';", kind: 'import', line: 16 },
+			{ name: 'choose', kind: 'function', line: lineOf(source, 'function choose') },
+			{ name: 'label', kind: 'function', line: lineOf(source, 'const label') }
+		]);
+	});
+
+	it('reads JSX in a Vue <script lang="tsx"> block with the tsx grammar', async () => {
+		// Arrange
+		const source = `<script lang="tsx">
+import { defineComponent } from 'vue';
+
+export const Badge = (props: { text: string }) => <span class="badge">{props.text}</span>;
+
+export default defineComponent({ render: () => <Badge text="new" /> });
+</script>
+`;
+
+		// Act
+		const symbols = await parse('src/components/Badge.vue', source);
+
+		// Assert
+		expect(symbols).toEqual([
+			{ name: "import { defineComponent } from 'vue';", kind: 'import' },
+			{ name: 'Badge', kind: 'function' }
+		]);
+	});
+
+	it('returns no symbols for a component without a script', async () => {
+		// Act
+		const symbols = await parse(
+			'src/lib/icons/Logo.svelte',
+			'<svg viewBox="0 0 8 8"><path d="M0 0h8v8z" /></svg>\n'
+		);
+
+		// Assert
+		expect(symbols).toEqual([]);
+	});
+
+	it('reports a parse failure when the script of a component has only broken syntax', async () => {
+		// Arrange
+		const filePath = 'src/lib/components/Broken.svelte';
+		const content = '<script lang="ts">\n\tfunction (:\n {{{{ ))))\n</script>\n<p>hi</p>\n';
+
+		// Act
+		await onmessage({ data: { type: 'parse', filePath, content, language: 'svelte' } });
+
+		// Assert
+		expect(posted.pop()).toMatchObject({ type: 'error', filePath });
 	});
 });
