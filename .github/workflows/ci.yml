@@ -63,7 +63,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-${{ runner.os }}-${{ env.ImageOS }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
 
       # No --with-deps: the runner image already has Chromium's libraries, and the extra fonts it
       # adds came through apt, whose mirror lookups stalled this step for minutes
