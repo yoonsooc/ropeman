@@ -3,24 +3,16 @@
  * map it claims to describe (A-12). Types only, like `ropemanMap.ts`, so the bridge and the
  * Node CLI compile it unchanged.
  */
+import type { MapFailure, RopemanMap } from './ropemanMap';
 
 /** The three checks of A-12. */
 export type VerifierRule = 'assignment' | 'path' | 'evidence';
 
-/** Each code belongs to exactly one rule, so a violation carries only its code. */
+/**
+ * Each code belongs to exactly one rule, so a violation carries only its code. The level tree,
+ * node id uniqueness and edge ends are the parser's: a map that breaks them is a `MapFailure`.
+ */
 export const VIOLATION_RULES = {
-	/** Not exactly one level has a null parentId */
-	'level-root': 'assignment',
-	/** A level expands a node id no level has */
-	'level-parent-unknown': 'assignment',
-	/** A second level expands the same node */
-	'level-parent-twice': 'assignment',
-	/** A level whose parent exists but is not reached from the top level: a cycle */
-	'level-unreachable': 'assignment',
-	/** Two nodes of the map share an id */
-	'node-id-duplicate': 'assignment',
-	/** An edge end is not a node of the edge's level */
-	'edge-end-unknown': 'assignment',
 	/** A file of the level's scope that no node lists */
 	'file-unassigned': 'assignment',
 	/** A file listed a second time in one level */
@@ -31,10 +23,16 @@ export const VIOLATION_RULES = {
 	'node-empty': 'assignment',
 	/** A grouped level with assignment counts, or a named level without them */
 	'assignment-counts': 'assignment',
+	/** `leftOut` is more than the scope, or no node holds that many files (where T0-7 puts them) */
+	'assignment-left-out': 'assignment',
 	/** Not a normalized repo-relative path: empty, absolute, a drive letter, `\`, `.`, `..` or `//` */
 	'path-invalid': 'path',
 	/** A node file or an evidence end that is not a file of the code map */
 	'path-unknown': 'path',
+	/** Two code map files that differ only in Unicode normalization, so a map path cannot pick one */
+	'path-collision': 'path',
+	/** A key symbol that no file of its node declares */
+	'key-symbol-unknown': 'path',
 	/** `files` lists a path twice */
 	'coverage-duplicate': 'path',
 	/** A file of the code map that `files` does not list */
@@ -57,7 +55,7 @@ export interface Violation {
 	code: ViolationCode;
 	/** The field, in the notation of `MapFailure.at`: `levels[1].nodes[0].filePaths[2]` */
 	at: string;
-	/** Index into `levels`; null for a check on `files` or on the level list as a whole */
+	/** Index into `levels`; null for a check on `files` */
 	level: number | null;
 	/** The node to mark in a viewer; null when the violation is not on one node */
 	nodeId: string | null;
@@ -67,9 +65,32 @@ export interface Violation {
 	message: string;
 }
 
-export interface MapVerification {
-	/** Empty when the map passed every check */
-	violations: Violation[];
-	/** What the checks covered, so a clean result over an empty map reads as one */
-	checked: { files: number; levels: number; nodes: number; edges: number; refs: number };
+/**
+ * An INFERRED edge that cites no code relation: the LLM's claim, allowed and drawn dashed
+ * (ADR-21). The code map can neither back nor refute it, so a viewer must not show it as fact.
+ */
+export interface UnverifiedEdge {
+	/** The edge, as `levels[0].edges[1]` */
+	at: string;
+	level: number;
+	source: string;
+	target: string;
 }
+
+/**
+ * `parsed: false` when the input is not a map this reader reads, with the parser's reason;
+ * nothing else was checked. Otherwise `map` is the parsed copy the checks ran on, so a caller
+ * shows what was verified and not the object it passed in.
+ */
+export type MapVerification =
+	| { parsed: false; failure: MapFailure }
+	| {
+			parsed: true;
+			map: RopemanMap;
+			/** Empty when the map passed every check */
+			violations: Violation[];
+			/** Edges that pass but stand on no code: show them as claims, not as relations */
+			unverified: UnverifiedEdge[];
+			/** What the checks covered, so a clean result over an empty map reads as one */
+			checked: { files: number; levels: number; nodes: number; edges: number; refs: number };
+	  };

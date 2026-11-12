@@ -147,15 +147,50 @@ const emptyFile = (path: string): Draft => ({
 	}
 });
 
+/** The checks on a map the parser accepts; a test that means a parser refusal says so. */
+function check(map: unknown, codeMap: CodeMap) {
+	const result = verifyMap(map, codeMap);
+	if (!result.parsed) throw new Error(`${result.failure.code} at ${result.failure.at}`);
+	return result;
+}
+
 const codes = (map: RopemanMap, codeMap: CodeMap) =>
-	verifyMap(map, codeMap).violations.map(({ code, at }) => ({ code, at }));
+	check(map, codeMap).violations.map(({ code, at }) => ({ code, at }));
+
+/** A Korean file name as macOS spells it on disk (NFD) and as an LLM writes it (NFC). */
+const CART_KO = 'src/ui/장바구니.svelte';
+const NFD = CART_KO.normalize('NFD');
+const NFC = CART_KO.normalize('NFC');
 
 describe('verifyMap on a true map', () => {
 	it.each([null, 'sample-shop'])('passes the fixture against its code (root %s)', (root) => {
-		const result = verifyMap(fixtureMap(), shopCode(root));
+		const result = check(fixtureMap(), shopCode(root));
 
 		expect(result.violations).toEqual([]);
 		expect(result.checked).toEqual({ files: 6, levels: 2, nodes: 5, edges: 2, refs: 1 });
+	});
+
+	// ADR-21: an LLM relation with no code behind it is allowed, dashed, and not a fact
+	it('passes an INFERRED edge that cites nothing and lists it as unverified', () => {
+		const result = check(fixtureMap(), shopCode(null));
+
+		expect(result.violations).toEqual([]);
+		expect(result.unverified).toEqual([
+			{ at: 'levels[0].edges[1]', level: 0, source: 'sem:ui', target: 'sem:api' }
+		]);
+	});
+
+	it('returns the parsed copy, so a later change to the input is not what was verified', () => {
+		const input = fixtureMap();
+
+		const result = check(input, shopCode(null));
+		input.levels[0].nodes[0].filePaths.push('src/api/payments.ts');
+
+		expect(result.map).not.toBe(input);
+		expect(result.map.levels[0].nodes[0].filePaths).toEqual([
+			'src/api/routes.ts',
+			'src/api/auth.ts'
+		]);
 	});
 
 	it('accepts an INFERRED ref that is a name-matched relation of the code', () => {
@@ -173,7 +208,10 @@ describe('verifyMap on a true map', () => {
 			]
 		};
 
-		expect(codes(map, shopCode(null))).toEqual([]);
+		const result = check(map, shopCode(null));
+		expect(result.violations).toEqual([]);
+		// It cites a name-matched call, so it is not in the list of edges with nothing behind them
+		expect(result.unverified.map((e) => e.at)).toEqual(['levels[0].edges[1]']);
 	});
 
 	it('accepts a ref to a symbol an import names, read through the symbol to its file', () => {
@@ -214,61 +252,6 @@ const ref = (path: string, line: number, relation: 'imports_from' | 'calls', toP
  * level tree or the coverage list wrong. A Record, so a new code without a case does not compile.
  */
 const CASES: Record<ViolationCode, Case> = {
-	'level-root': {
-		break: (map) => (map.levels[0].parentId = 'sem:ui'),
-		expected: [{ code: 'level-root', at: 'levels' }]
-	},
-	'level-parent-unknown': {
-		break: (map) => (map.levels[1].parentId = 'sem:payments'),
-		expected: [{ code: 'level-parent-unknown', at: 'levels[1].parentId' }]
-	},
-	'level-parent-twice': {
-		break: (map) =>
-			map.levels.push({
-				...map.levels[1],
-				nodes: map.levels[1].nodes.map((n) => ({ ...n, id: `again:${n.id}` }))
-			}),
-		expected: [{ code: 'level-parent-twice', at: 'levels[2].parentId' }]
-	},
-	'level-unreachable': {
-		break: (map) => {
-			const node = (id: string) => ({
-				id,
-				label: id,
-				description: '',
-				filePaths: ['src/api/auth.ts'],
-				keySymbols: []
-			});
-			map.levels.push(
-				{
-					parentId: 'loop:b',
-					naming: 'grouped',
-					nodes: [node('loop:a')],
-					edges: [],
-					assignment: null
-				},
-				{
-					parentId: 'loop:a',
-					naming: 'grouped',
-					nodes: [node('loop:b')],
-					edges: [],
-					assignment: null
-				}
-			);
-		},
-		expected: [
-			{ code: 'level-unreachable', at: 'levels[2].parentId' },
-			{ code: 'level-unreachable', at: 'levels[3].parentId' }
-		]
-	},
-	'node-id-duplicate': {
-		break: (map) => (map.levels[1].nodes[1].id = 'sem:ui'),
-		expected: [{ code: 'node-id-duplicate', at: 'levels[1].nodes[1].id' }]
-	},
-	'edge-end-unknown': {
-		break: (map) => (map.levels[0].edges[1].source = 'sem:payments'),
-		expected: [{ code: 'edge-end-unknown', at: 'levels[0].edges[1].source' }]
-	},
 	'file-unassigned': {
 		// The grouped level of sem:api forgot auth.ts
 		break: (map) => map.levels[1].nodes.pop(),
@@ -300,6 +283,12 @@ const CASES: Record<ViolationCode, Case> = {
 			(map.levels[1].assignment = { leftOut: 0, duplicated: 0, invented: 0, emptied: 0 }),
 		expected: [{ code: 'assignment-counts', at: 'levels[1].assignment' }]
 	},
+	'assignment-left-out': {
+		// Three files went to no role, yet no node holds three: the count is not this level's
+		break: (map) =>
+			(map.levels[0].assignment = { leftOut: 3, duplicated: 0, invented: 0, emptied: 0 }),
+		expected: [{ code: 'assignment-left-out', at: 'levels[0].assignment.leftOut' }]
+	},
 	'path-invalid': {
 		break: (map) => (map.files[5].path = '../.env'),
 		expected: [{ code: 'path-invalid', at: 'files[5].path' }]
@@ -308,6 +297,19 @@ const CASES: Record<ViolationCode, Case> = {
 		// An invented file: the LLM's guess at what a payments module would be called
 		break: (map) => map.levels[1].nodes[0].filePaths.push('src/api/payments.ts'),
 		expected: [{ code: 'path-unknown', at: 'levels[1].nodes[0].filePaths[1]' }]
+	},
+	'path-collision': {
+		// Linux keeps both spellings as two files; a map path cannot say which one it means
+		break: (map, extra) => {
+			extra.push(emptyFile(NFC), emptyFile(NFD));
+			map.files.push({ path: NFC, reason: 'no-symbols' });
+		},
+		expected: [{ code: 'path-collision', at: 'files' }]
+	},
+	'key-symbol-unknown': {
+		// A plausible name the code does not have
+		break: (map) => map.levels[0].nodes[0].keySymbols.push('checkout'),
+		expected: [{ code: 'key-symbol-unknown', at: 'levels[0].nodes[0].keySymbols[2]' }]
 	},
 	'coverage-duplicate': {
 		break: (map) => map.files.push({ path: 'src/api/auth.ts', reason: 'sent' }),
@@ -382,7 +384,7 @@ describe('verifyMap on real failure shapes', () => {
 		const map = fixtureMap();
 		map.levels[1].nodes[0].filePaths.push('src/api/payments.ts');
 
-		expect(verifyMap(map, shopCode(null)).violations).toEqual([
+		expect(check(map, shopCode(null)).violations).toEqual([
 			{
 				code: 'path-unknown',
 				at: 'levels[1].nodes[0].filePaths[1]',
@@ -402,6 +404,8 @@ describe('verifyMap on real failure shapes', () => {
 		expect(codes(map, shopCode(null))).toEqual([
 			{ code: 'file-duplicated', at: 'levels[0].nodes[1].filePaths[0]' },
 			{ code: 'file-unassigned', at: 'levels[0]' },
+			// auth.ts left sem:api, and requireSession with it
+			{ code: 'key-symbol-unknown', at: 'levels[0].nodes[0].keySymbols[1]' },
 			{ code: 'evidence-missing', at: 'levels[0].edges[1].evidence' },
 			{ code: 'file-outside-scope', at: 'levels[1].nodes[1].filePaths[0]' },
 			{ code: 'file-unassigned', at: 'levels[1]' }
@@ -416,6 +420,30 @@ describe('verifyMap on real failure shapes', () => {
 		expect(codes(map, shopCode('sample-shop'))).toEqual([
 			{ code: 'path-unknown', at: 'levels[1].nodes[0].filePaths[0]' },
 			{ code: 'file-unassigned', at: 'levels[1]' }
+		]);
+	});
+
+	it('refuses a reason that says a file of the code map was never read', () => {
+		const map = fixtureMap();
+		map.files[1].reason = 'env-values';
+
+		expect(codes(map, shopCode(null))).toEqual([
+			{ code: 'coverage-mismatch', at: 'files[1].reason' },
+			// Not sent, so auth.ts is outside the top scope and the scope of sem:api's level
+			{ code: 'file-outside-scope', at: 'levels[0].nodes[0].filePaths[1]' },
+			{ code: 'file-outside-scope', at: 'levels[1].nodes[1].filePaths[0]' }
+		]);
+	});
+
+	it('checks the source end too: a real import inside sem:storage does not back sem:api', () => {
+		const map = fixtureMap();
+		map.levels[0].edges[0].evidence = {
+			confidence: 'EXTRACTED',
+			refs: [ref('src/db/client.ts', 2, 'imports_from', 'src/db/schema.ts')]
+		};
+
+		expect(codes(map, shopCode(null))).toEqual([
+			{ code: 'evidence-ends', at: 'levels[0].edges[0].evidence.refs[0]' }
 		]);
 	});
 
@@ -463,8 +491,7 @@ describe('verifyMap on real failure shapes', () => {
 		'src/api/../api/routes.ts',
 		'src//api/routes.ts',
 		'src/api/routes.ts/',
-		'src/api/\u0000routes.ts',
-		''
+		'src/api/\u0000routes.ts'
 	])('refuses the non-normalized path %j wherever it is', (bad) => {
 		const map = fixtureMap();
 		map.levels[1].nodes[0].filePaths = [bad];
@@ -485,10 +512,197 @@ describe('verifyMap on real failure shapes', () => {
 		]);
 	});
 
+	// The parser refuses an empty ref path, so an empty one gets here only as a node file
+	it('refuses an empty node file', () => {
+		const map = fixtureMap();
+		map.levels[1].nodes[0].filePaths = [''];
+
+		expect(codes(map, shopCode(null))).toEqual([
+			{ code: 'path-invalid', at: 'levels[1].nodes[0].filePaths[0]' },
+			{ code: 'file-unassigned', at: 'levels[1]' }
+		]);
+	});
+
 	it.each(['a.ts', '.github/workflows/ci.yml', 'src/routes/[id]/+page.svelte', 'docs/a b.md'])(
 		'accepts the normalized path %j',
 		(good) => {
 			expect(isNormalizedPath(good)).toBe(true);
 		}
 	);
+});
+
+describe('verifyMap parses before it checks', () => {
+	// The verifier's probes on #76: each skipped the parser and either passed or threw
+	it.each([
+		{
+			probe: 'EXTRACTED evidence that cites nothing',
+			break: (map: RopemanMap) =>
+				Object.assign(map.levels[0].edges[0], { evidence: { confidence: 'EXTRACTED', refs: [] } }),
+			at: 'levels[0].edges[0].evidence.refs'
+		},
+		{
+			probe: 'INFERRED evidence that cites an EXTRACTED ref',
+			break: (map: RopemanMap) =>
+				Object.assign(map.levels[0].edges[0].evidence!, { confidence: 'INFERRED' }),
+			at: 'levels[0].edges[0].evidence.refs[0].confidence'
+		},
+		{
+			probe: 'a node with an id only',
+			break: (map: RopemanMap) => Object.assign(map.levels[0], { nodes: [{ id: 'A' }] }),
+			at: 'levels[0].nodes[0].label'
+		},
+		{
+			probe: 'files: null',
+			break: (map: RopemanMap) => Object.assign(map, { files: null }),
+			at: 'files'
+		}
+	])('returns the parser refusal for $probe instead of checking it', ({ break: breakIt, at }) => {
+		const map = fixtureMap();
+		breakIt(map);
+
+		const result = verifyMap(map, shopCode(null));
+
+		expect(result).toMatchObject({ parsed: false, failure: { code: 'invalid', at } });
+	});
+
+	// The tree is the parser's (ADR-24), so the verifier has no codes of its own for it
+	it.each([
+		{
+			tree: 'no top level',
+			break: (map: RopemanMap) => (map.levels[0].parentId = 'sem:ui'),
+			at: 'levels'
+		},
+		{
+			tree: 'an unknown parent',
+			break: (map: RopemanMap) => (map.levels[1].parentId = 'sem:payments'),
+			at: 'levels[1].parentId'
+		},
+		{
+			tree: 'a node id used twice',
+			break: (map: RopemanMap) => (map.levels[1].nodes[1].id = 'sem:ui'),
+			at: 'levels[1].nodes[1].id'
+		},
+		{
+			tree: 'an edge to a node of another level',
+			break: (map: RopemanMap) => (map.levels[0].edges[1].source = 'dir:src/api/auth.ts'),
+			at: 'levels[0].edges[1].source'
+		}
+	])('returns the parser refusal for $tree', ({ break: breakIt, at }) => {
+		const map = fixtureMap();
+		breakIt(map);
+
+		expect(verifyMap(map, shopCode(null))).toMatchObject({
+			parsed: false,
+			failure: { code: 'invalid', at }
+		});
+	});
+
+	it.each([null, undefined, 42, 'ropeman.json', [], {}])('never throws, even on %j', (input) => {
+		const result = verifyMap(input, shopCode(null));
+
+		expect(result).toMatchObject({ parsed: false, failure: { code: 'not-a-map' } });
+	});
+});
+
+describe('verifyMap with names macOS and LLMs spell apart', () => {
+	/** The fixture with Cart's Korean sibling, the code map spelling it `onDisk`, the map `inMap`. */
+	function koreanCart(onDisk: string, inMap: string, root: string | null = null) {
+		const map = fixtureMap();
+		map.files.push({ path: inMap, reason: 'sent' });
+		map.levels[0].nodes[2].filePaths.push(inMap);
+		return { map, codeMap: shopCode(root, [emptyFile(onDisk)]) };
+	}
+
+	it.each([
+		{ onDisk: NFD, inMap: NFC, root: null },
+		{ onDisk: NFD, inMap: NFC, root: 'sample-shop' },
+		{ onDisk: NFC, inMap: NFD, root: null }
+	])('matches a Korean file name across NFC and NFD (root $root)', ({ onDisk, inMap, root }) => {
+		const { map, codeMap } = koreanCart(onDisk, inMap, root);
+
+		expect(codes(map, codeMap)).toEqual([]);
+	});
+
+	it('fails a map when two code map files are one name in NFC', () => {
+		const { map, codeMap } = koreanCart(NFD, NFC);
+		codeMap.files = new Map([
+			...codeMap.files,
+			[NFC as FilePath, { ...codeMap.files.get(NFD as FilePath)!, path: NFC as FilePath }]
+		]);
+
+		expect(check(map, codeMap).violations).toEqual([
+			{
+				code: 'path-collision',
+				at: 'files',
+				level: null,
+				nodeId: null,
+				path: NFC,
+				message: `${JSON.stringify(NFC)} and ${JSON.stringify(NFD)} are one path in NFC.`
+			}
+		]);
+	});
+});
+
+describe('verifyMap on key symbols and counts', () => {
+	it('accepts a dotted name of a nested symbol and refuses a symbol of another node', () => {
+		const codeMap = shopCode(null);
+		const auth = codeMap.files.get('src/api/auth.ts' as FilePath)!;
+		auth.symbols[0].children.push({
+			...auth.symbols[0],
+			id: 'src/api/auth.ts#requireSession.refresh' as SymbolId,
+			name: 'refresh',
+			children: []
+		});
+		const map = fixtureMap();
+		map.levels[0].nodes[0].keySymbols = ['requireSession.refresh', 'refresh', 'Cart'];
+
+		expect(codes(map, codeMap)).toEqual([
+			{ code: 'key-symbol-unknown', at: 'levels[0].nodes[0].keySymbols[2]' }
+		]);
+	});
+
+	it('accepts leftOut when one node holds that many files, as the unclassified node does', () => {
+		const map = fixtureMap();
+		map.levels[0].assignment = { leftOut: 1, duplicated: 2, invented: 1, emptied: 1 };
+
+		expect(codes(map, shopCode(null))).toEqual([]);
+	});
+});
+
+describe('verifyMap reads a symbol target through to its file', () => {
+	function callTo(id: string, line: number) {
+		const codeMap = shopCode(null);
+		codeMap.files.get('src/api/routes.ts' as FilePath)!.refs.push({
+			kind: 'calls',
+			line,
+			from: null,
+			written: 'x',
+			target: {
+				state: 'bound',
+				candidates: [
+					{
+						to: { kind: 'symbol', id: id as SymbolId },
+						provenance: { source: 'resolver', confidence: 'EXTRACTED' }
+					}
+				]
+			}
+		});
+		const map = fixtureMap();
+		map.levels[0].edges[0].evidence = {
+			confidence: 'EXTRACTED',
+			refs: [ref('src/api/routes.ts', line, 'calls', 'src/db/schema.ts')]
+		};
+		return codes(map, codeMap);
+	}
+
+	it('finds the file of a symbol whose name holds a `#`', () => {
+		expect(callTo('src/db/schema.ts#Orders#v2', 11)).toEqual([]);
+	});
+
+	// The old slice dropped the last character, so `schema.tsx` read as `schema.ts`
+	it('backs nothing with an id that has no `#`', () => {
+		expect(callTo('src/db/schema.tsx', 12)).toEqual([
+			{ code: 'evidence-unknown', at: 'levels[0].edges[0].evidence.refs[0]' }
+		]);
+	});
 });

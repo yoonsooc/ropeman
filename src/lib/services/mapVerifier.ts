@@ -1,21 +1,38 @@
 /**
  * The deterministic checks of A-12. An LLM may write a map's names and relations; this module
- * decides whether the map is true to the code: every file in one node per level, every path a
- * file of the code map, every relation backed by a code relation of the confidence it claims.
- * Pure and synchronous, and it imports `$lib/types` only, so the browser, the bridge and
- * `packages/core` run the same code.
+ * decides whether the map is true to the code: every file in one node per level, every path and
+ * key symbol in the code map, every relation backed by a code relation of the confidence it
+ * claims. Pure and synchronous, and it imports `$lib/types` and the map parser only, so the
+ * browser, the bridge and `packages/core` run the same code.
  */
 import type {
 	Binding,
 	CodeMap,
 	Confidence,
 	Endpoint,
+	FilePath,
 	FileRecord,
-	GuessBinding
+	GuessBinding,
+	SymbolRecord
 } from '$lib/types/codeMap';
 import { COVERAGE_REASONS, type CoverageReason } from '$lib/types/coverage';
-import type { MapVerification, Violation, ViolationCode } from '$lib/types/mapVerification';
-import type { MapLevel, MapNode, RopemanMap } from '$lib/types/ropemanMap';
+import type {
+	MapVerification,
+	UnverifiedEdge,
+	Violation,
+	ViolationCode
+} from '$lib/types/mapVerification';
+import type { MapLevel, RopemanMap } from '$lib/types/ropemanMap';
+import { parseRopemanMapValue } from './ropemanMapSchema';
+
+/**
+ * A repo-relative path in NFC. macOS hands out NFD file names and an LLM writes NFC, so both
+ * sides compare in this form, and only this type keys the sets the checks share.
+ */
+type PathKey = string & { readonly __brand: 'PathKey' };
+
+const nfc = (text: string) => text.normalize('NFC');
+const key = (path: string) => nfc(path) as PathKey;
 
 type Report = (
 	code: ViolationCode,
@@ -24,8 +41,8 @@ type Report = (
 	message: string
 ) => void;
 
-/** True for a path that is normalized and a file of the code map; reports any other path. */
-type Known = (path: string, at: string, where: { level: number; nodeId: string }) => boolean;
+/** The key of a path that is normalized and a file of the code map; reports any other path. */
+type Known = (path: string, at: string, where: { level: number; nodeId: string }) => PathKey | null;
 
 /** The coverage reasons of a file the parser read, which therefore has a code map record. */
 const READ_REASONS: ReadonlySet<CoverageReason> = new Set([
@@ -47,8 +64,19 @@ export function isNormalizedPath(path: string): boolean {
 	);
 }
 
-/** Checks `map` against the code map it describes and reports every violation found. */
-export function verifyMap(map: RopemanMap, codeMap: CodeMap): MapVerification {
+/**
+ * Parses `input` as `ropeman.json` would be, then checks the parsed map against the code map it
+ * describes and reports every violation found. Any value is safe to pass: one the parser refuses
+ * comes back as `parsed: false`, so no check ever runs on a map the parser has not seen.
+ */
+export function verifyMap(input: unknown, codeMap: CodeMap): MapVerification {
+	const parsed = parseRopemanMapValue(input);
+	if (!parsed.ok) {
+		const { ok: _ok, ...failure } = parsed;
+		return { parsed: false, failure };
+	}
+	const map = parsed.value;
+
 	const violations: Violation[] = [];
 	const report: Report = (code, at, where, message) => {
 		violations.push({
@@ -63,9 +91,7 @@ export function verifyMap(map: RopemanMap, codeMap: CodeMap): MapVerification {
 
 	const prefix = codeMap.root === null ? '' : `${codeMap.root}/`;
 	const repoPath = (path: string) => (path.startsWith(prefix) ? path.slice(prefix.length) : path);
-	const files = new Map(
-		[...codeMap.files.values()].map((record) => [repoPath(record.path), record])
-	);
+	const files = codeFiles(codeMap, repoPath, report);
 	const known: Known = (path, at, where) => {
 		if (!isNormalizedPath(path)) {
 			report(
@@ -74,28 +100,56 @@ export function verifyMap(map: RopemanMap, codeMap: CodeMap): MapVerification {
 				{ ...where, path },
 				`${JSON.stringify(path)} is not a normalized repo-relative path.`
 			);
-			return false;
+			return null;
 		}
-		if (!files.has(path)) {
+		const k = key(path);
+		if (!files.has(k)) {
 			report('path-unknown', at, { ...where, path }, `${path} is not a file of the code map.`);
-			return false;
+			return null;
 		}
-		return true;
+		return k;
 	};
 
-	const onMap = checkCoverage(map, files, report);
-	const relations = relationIndex(files, repoPath);
+	const onMap = checkCoverage(map, files, repoPath, report);
+	const relations = relationIndex(files, codeMap.files, repoPath);
+	const symbols = symbolIndex(files);
+	const unverified: UnverifiedEdge[] = [];
 	const checked = { files: map.files.length, levels: 0, nodes: 0, edges: 0, refs: 0 };
 
-	for (const { index, level, scope } of levelTree(map, onMap, report)) {
+	for (const { index, level, scope } of levelTree(map, onMap)) {
 		const nodeFiles = checkAssignment(level, index, scope, known, report);
-		const refs = checkEvidence(level, index, nodeFiles, relations, known, report);
+		checkKeySymbols(level, index, nodeFiles, symbols, report);
+		checked.refs += checkEvidence(level, index, nodeFiles, relations, known, report, unverified);
 		checked.levels++;
 		checked.nodes += level.nodes.length;
 		checked.edges += level.edges.length;
-		checked.refs += refs;
 	}
-	return { violations, checked };
+	return { parsed: true, map, violations, unverified, checked };
+}
+
+/**
+ * The code map's files by key. Two files with one key (`한글.ts` in NFC and in NFD, which Linux
+ * keeps apart) leave a map path that cannot say which one it means, so that fails the map.
+ */
+function codeFiles(
+	codeMap: CodeMap,
+	repoPath: (path: string) => string,
+	report: Report
+): Map<PathKey, FileRecord> {
+	const files = new Map<PathKey, FileRecord>();
+	for (const record of codeMap.files.values()) {
+		const path = repoPath(record.path);
+		const first = files.get(key(path));
+		if (first) {
+			report(
+				'path-collision',
+				'files',
+				{ path },
+				`${JSON.stringify(path)} and ${JSON.stringify(repoPath(first.path))} are one path in NFC.`
+			);
+		} else files.set(key(path), record);
+	}
+	return files;
 }
 
 /**
@@ -104,11 +158,12 @@ export function verifyMap(map: RopemanMap, codeMap: CodeMap): MapVerification {
  */
 function checkCoverage(
 	map: RopemanMap,
-	files: ReadonlyMap<string, FileRecord>,
+	files: ReadonlyMap<PathKey, FileRecord>,
+	repoPath: (path: string) => string,
 	report: Report
-): Set<string> {
-	const listed = new Set<string>();
-	const sent = new Set<string>();
+): Set<PathKey> {
+	const listed = new Set<PathKey>();
+	const sent = new Set<PathKey>();
 	map.files.forEach(({ path, reason }, i) => {
 		const at = `files[${i}]`;
 		if (!isNormalizedPath(path)) {
@@ -120,26 +175,28 @@ function checkCoverage(
 			);
 			return;
 		}
-		if (listed.has(path)) {
+		const k = key(path);
+		if (listed.has(k)) {
 			report('coverage-duplicate', `${at}.path`, { path }, `${path} is listed twice.`);
 			return;
 		}
-		listed.add(path);
-		if (READ_REASONS.has(reason) !== files.has(path)) {
+		listed.add(k);
+		if (READ_REASONS.has(reason) !== files.has(k)) {
 			report(
 				'coverage-mismatch',
 				`${at}.reason`,
 				{ path },
-				files.has(path)
+				files.has(k)
 					? `${path} is in the code map, but its reason ${reason} says it was not read.`
 					: `${path} is not in the code map, but its reason ${reason} says it was read.`
 			);
 			return;
 		}
-		if (COVERAGE_REASONS[reason] === 'sent') sent.add(path);
+		if (COVERAGE_REASONS[reason] === 'sent') sent.add(k);
 	});
-	for (const path of files.keys()) {
-		if (!listed.has(path)) {
+	for (const [k, record] of files) {
+		if (!listed.has(k)) {
+			const path = repoPath(record.path);
 			report('coverage-missing', 'files', { path }, `${path} is in the code map but not in files.`);
 		}
 	}
@@ -150,82 +207,25 @@ interface TreeLevel {
 	index: number;
 	level: MapLevel;
 	/** The files this level divides: the top level's sent files, or the files of the node it expands */
-	scope: ReadonlySet<string>;
+	scope: ReadonlySet<PathKey>;
 }
 
 /**
- * The levels reached from the top, parents before children, each with its scope. A level off
- * the tree (a second top level, an unknown or twice-expanded parent, a cycle) is reported once
- * and not checked further.
+ * The levels from the top, parents before children, each with its scope. The parser has made
+ * them one tree (one top level, unique node ids, every level reached once), so this only walks.
  */
-function levelTree(map: RopemanMap, topScope: Set<string>, report: Report): TreeLevel[] {
-	const nodes = new Map<string, MapNode>();
-	map.levels.forEach((level, li) =>
-		level.nodes.forEach((node, ni) => {
-			if (nodes.has(node.id)) {
-				report(
-					'node-id-duplicate',
-					`levels[${li}].nodes[${ni}].id`,
-					{ level: li, nodeId: node.id },
-					`Another node already has the id ${node.id}.`
-				);
-			} else nodes.set(node.id, node);
-		})
-	);
-
-	const byParent = new Map<string | null, number>();
-	const offTree = new Set<number>();
-	map.levels.forEach(({ parentId }, li) => {
-		const at = `levels[${li}].parentId`;
-		if (byParent.has(parentId)) {
-			offTree.add(li);
-			if (parentId === null)
-				report('level-root', at, { level: li }, 'A second level has no parent.');
-			else
-				report(
-					'level-parent-twice',
-					at,
-					{ level: li, nodeId: parentId },
-					`Another level already expands ${parentId}.`
-				);
-		} else if (parentId !== null && !nodes.has(parentId)) {
-			offTree.add(li);
-			report(
-				'level-parent-unknown',
-				at,
-				{ level: li, nodeId: parentId },
-				`No node has the id ${parentId}.`
-			);
-		} else byParent.set(parentId, li);
-	});
-
-	const top = byParent.get(null);
-	if (top === undefined) {
-		report('level-root', 'levels', {}, 'No level has a null parentId.');
-		return [];
-	}
-
+function levelTree(map: RopemanMap, topScope: ReadonlySet<PathKey>): TreeLevel[] {
+	const byParent = new Map(map.levels.map((level, li) => [level.parentId, li]));
+	const top = byParent.get(null)!;
 	const reached: TreeLevel[] = [{ index: top, level: map.levels[top], scope: topScope }];
-	const seen = new Set([top]);
 	for (let i = 0; i < reached.length; i++) {
 		for (const node of reached[i].level.nodes) {
 			const child = byParent.get(node.id);
-			if (child === undefined || seen.has(child)) continue;
-			seen.add(child);
-			const scope = new Set(node.filePaths.filter((path) => reached[i].scope.has(path)));
+			if (child === undefined) continue;
+			const scope = new Set(node.filePaths.map(key).filter((k) => reached[i].scope.has(k)));
 			reached.push({ index: child, level: map.levels[child], scope });
 		}
 	}
-	map.levels.forEach(({ parentId }, li) => {
-		if (!seen.has(li) && !offTree.has(li)) {
-			report(
-				'level-unreachable',
-				`levels[${li}].parentId`,
-				{ level: li, nodeId: parentId ?? undefined },
-				`This level is not reached from the top level.`
-			);
-		}
-	});
 	return reached;
 }
 
@@ -233,10 +233,10 @@ function levelTree(map: RopemanMap, topScope: Set<string>, report: Report): Tree
 function checkAssignment(
 	level: MapLevel,
 	li: number,
-	scope: ReadonlySet<string>,
+	scope: ReadonlySet<PathKey>,
 	known: Known,
 	report: Report
-): Map<string, ReadonlySet<string>> {
+): Map<string, ReadonlySet<PathKey>> {
 	const at = `levels[${li}]`;
 	if ((level.naming === 'grouped') !== (level.assignment === null)) {
 		report(
@@ -249,18 +249,22 @@ function checkAssignment(
 		);
 	}
 
-	const owner = new Map<string, string>();
-	const nodeFiles = new Map<string, ReadonlySet<string>>();
+	const owner = new Map<PathKey, string>();
+	const owned = new Map<string, number>();
+	const nodeFiles = new Map<string, ReadonlySet<PathKey>>();
 	level.nodes.forEach((node, ni) => {
 		const where = { level: li, nodeId: node.id };
 		if (node.filePaths.length === 0) {
 			report('node-empty', `${at}.nodes[${ni}].filePaths`, where, `${node.id} has no files.`);
 		}
+		const keys = new Set<PathKey>();
 		node.filePaths.forEach((path, pi) => {
 			const fat = `${at}.nodes[${ni}].filePaths[${pi}]`;
-			if (!known(path, fat, where)) return;
-			const first = owner.get(path);
-			if (!scope.has(path)) {
+			const k = known(path, fat, where);
+			if (k === null) return;
+			keys.add(k);
+			const first = owner.get(k);
+			if (!scope.has(k)) {
 				report(
 					'file-outside-scope',
 					fat,
@@ -269,54 +273,105 @@ function checkAssignment(
 				);
 			} else if (first !== undefined) {
 				report('file-duplicated', fat, { ...where, path }, `${path} is already in ${first}.`);
-			} else owner.set(path, node.id);
+			} else {
+				owner.set(k, node.id);
+				owned.set(node.id, (owned.get(node.id) ?? 0) + 1);
+			}
 		});
-		nodeFiles.set(node.id, new Set(node.filePaths));
+		nodeFiles.set(node.id, keys);
 	});
-	for (const path of scope) {
-		if (!owner.has(path)) {
-			report('file-unassigned', at, { level: li, path }, `${path} is in no node of this level.`);
+	for (const k of scope) {
+		if (!owner.has(k)) {
+			report('file-unassigned', at, { level: li, path: k }, `${k} is in no node of this level.`);
 		}
+	}
+
+	// T0-7 moves the files the LLM left out into one node of their own, so one node holds that many
+	const leftOut = level.assignment?.leftOut ?? 0;
+	if (leftOut > 0 && ![...owned.values()].includes(leftOut)) {
+		report(
+			'assignment-left-out',
+			`${at}.assignment.leftOut`,
+			{ level: li },
+			`leftOut says ${leftOut} files went to no node of the answer, but no node holds ${leftOut} files.`
+		);
 	}
 	return nodeFiles;
 }
 
-type RelationLookup = (ref: {
-	path: string;
-	line: number;
-	relation: string;
-	toPath: string;
-}) => ReadonlySet<Confidence> | undefined;
+type SymbolLookup = (path: PathKey) => ReadonlySet<string>;
 
-/** Every edge carries evidence whose refs are code relations from its source to its target. */
+/** Each key symbol is a name or a dotted name (`Store.load`) declared in a file of its node. */
+function checkKeySymbols(
+	level: MapLevel,
+	li: number,
+	nodeFiles: ReadonlyMap<string, ReadonlySet<PathKey>>,
+	symbols: SymbolLookup,
+	report: Report
+): void {
+	level.nodes.forEach((node, ni) => {
+		const files = [...nodeFiles.get(node.id)!];
+		node.keySymbols.forEach((name, si) => {
+			if (files.some((path) => symbols(path).has(nfc(name)))) return;
+			report(
+				'key-symbol-unknown',
+				`levels[${li}].nodes[${ni}].keySymbols[${si}]`,
+				{ level: li, nodeId: node.id },
+				`No file of ${node.id} declares ${JSON.stringify(name)}.`
+			);
+		});
+	});
+}
+
+/** The names and dotted names a file declares, built on first use like the relation index. */
+function symbolIndex(files: ReadonlyMap<PathKey, FileRecord>): SymbolLookup {
+	const byFile = new Map<PathKey, Set<string>>();
+	return (path) => {
+		let names = byFile.get(path);
+		if (!names) {
+			const found = new Set<string>();
+			const walk = (records: readonly SymbolRecord[], parent: string | null) => {
+				for (const { name, children } of records) {
+					const dotted = parent === null ? name : `${parent}.${name}`;
+					found.add(nfc(name)).add(nfc(dotted));
+					walk(children, dotted);
+				}
+			};
+			walk(files.get(path)?.symbols ?? [], null);
+			names = found;
+			byFile.set(path, names);
+		}
+		return names;
+	};
+}
+
+type RelationLookup = (
+	path: PathKey,
+	line: number,
+	relation: string,
+	toPath: PathKey
+) => ReadonlySet<Confidence> | undefined;
+
+/**
+ * Every edge carries evidence whose refs are code relations from its source to its target. An
+ * INFERRED edge with no refs passes (ADR-21) and goes to `unverified`.
+ */
 function checkEvidence(
 	level: MapLevel,
 	li: number,
-	nodeFiles: ReadonlyMap<string, ReadonlySet<string>>,
+	nodeFiles: ReadonlyMap<string, ReadonlySet<PathKey>>,
 	relations: RelationLookup,
 	known: Known,
-	report: Report
+	report: Report,
+	unverified: UnverifiedEdge[]
 ): number {
 	let refs = 0;
 	level.edges.forEach((edge, ei) => {
 		const at = `levels[${li}].edges[${ei}]`;
 		const where = { level: li, nodeId: edge.source };
-		const source = nodeFiles.get(edge.source);
-		const target = nodeFiles.get(edge.target);
-		for (const [end, files] of [
-			['source', source],
-			['target', target]
-		] as const) {
-			if (!files) {
-				report(
-					'edge-end-unknown',
-					`${at}.${end}`,
-					where,
-					`${edge[end]} is not a node of this level.`
-				);
-			}
-		}
-		if (!source || !target) return;
+		// The parser puts both ends in this level
+		const source = nodeFiles.get(edge.source)!;
+		const target = nodeFiles.get(edge.target)!;
 		if (edge.evidence === null) {
 			report(
 				'evidence-missing',
@@ -326,14 +381,19 @@ function checkEvidence(
 			);
 			return;
 		}
+		// The parser lets only INFERRED evidence cite nothing
+		if (edge.evidence.refs.length === 0) {
+			unverified.push({ at, level: li, source: edge.source, target: edge.target });
+			return;
+		}
 		edge.evidence.refs.forEach((ref, ri) => {
 			refs++;
 			const rat = `${at}.evidence.refs[${ri}]`;
-			const fromKnown = known(ref.path, `${rat}.path`, where);
-			const toKnown = known(ref.toPath, `${rat}.toPath`, where);
-			if (!fromKnown || !toKnown) return;
+			const from = known(ref.path, `${rat}.path`, where);
+			const to = known(ref.toPath, `${rat}.toPath`, where);
+			if (from === null || to === null) return;
 			const name = `${ref.path}:${ref.line} ${ref.relation} ${ref.toPath}`;
-			if (!source.has(ref.path) || !target.has(ref.toPath)) {
+			if (!source.has(from) || !target.has(to)) {
 				report(
 					'evidence-ends',
 					rat,
@@ -341,7 +401,7 @@ function checkEvidence(
 					`${name} does not run from ${edge.source} to ${edge.target}.`
 				);
 			}
-			const found = relations(ref);
+			const found = relations(from, ref.line, ref.relation, to);
 			if (!found) {
 				report(
 					'evidence-unknown',
@@ -369,16 +429,15 @@ function checkEvidence(
  * `contains` and `method` stay inside one file, so they never back a relation between nodes.
  */
 function relationIndex(
-	files: ReadonlyMap<string, FileRecord>,
+	files: ReadonlyMap<PathKey, FileRecord>,
+	codeFiles: ReadonlyMap<FilePath, FileRecord>,
 	repoPath: (path: string) => string
 ): RelationLookup {
-	const byFile = new Map<string, Map<string, Set<Confidence>>>();
-	return ({ path, line, relation, toPath }) => {
+	const byFile = new Map<PathKey, Map<string, Set<Confidence>>>();
+	return (path, line, relation, toPath) => {
 		let index = byFile.get(path);
 		if (!index) {
-			const record = files.get(path);
-			if (!record) return undefined;
-			index = indexFile(record, repoPath);
+			index = indexFile(files.get(path)!, codeFiles, repoPath);
 			byFile.set(path, index);
 		}
 		return index.get(`${line}\n${relation}\n${toPath}`);
@@ -387,16 +446,17 @@ function relationIndex(
 
 function indexFile(
 	record: FileRecord,
+	codeFiles: ReadonlyMap<FilePath, FileRecord>,
 	repoPath: (path: string) => string
 ): Map<string, Set<Confidence>> {
 	const index = new Map<string, Set<Confidence>>();
 	const add = (line: number, relation: string, to: Endpoint, confidence: Confidence) => {
-		const file = endFile(to);
+		const file = endFile(to, codeFiles);
 		if (file === null) return;
-		const key = `${line}\n${relation}\n${repoPath(file)}`;
-		const known = index.get(key);
-		if (known) known.add(confidence);
-		else index.set(key, new Set([confidence]));
+		const k = `${line}\n${relation}\n${key(repoPath(file))}`;
+		const seen = index.get(k);
+		if (seen) seen.add(confidence);
+		else index.set(k, new Set([confidence]));
 	};
 	const bound = (
 		line: number,
@@ -422,10 +482,17 @@ function indexFile(
 	return index;
 }
 
-/** The code map file an endpoint lies in; null for one outside the project. */
-function endFile(to: Endpoint): string | null {
+/**
+ * The code map file an endpoint lies in; null for one outside the project. A SymbolId is
+ * `${FilePath}#${names}`, and either side may hold a `#` (`a#b.ts`, a heading `C#`), so the file
+ * is the longest prefix before a `#` that the code map has. An id with none names no file.
+ */
+function endFile(to: Endpoint, codeFiles: ReadonlyMap<FilePath, FileRecord>): FilePath | null {
 	if (to.kind === 'file') return to.path;
-	// A SymbolId is `${FilePath}#${names}`, and names hold no `#`
-	if (to.kind === 'symbol') return to.id.slice(0, to.id.lastIndexOf('#'));
+	if (to.kind === 'external') return null;
+	for (let hash = to.id.lastIndexOf('#'); hash > 0; hash = to.id.lastIndexOf('#', hash - 1)) {
+		const path = to.id.slice(0, hash) as FilePath;
+		if (codeFiles.has(path)) return path;
+	}
 	return null;
 }

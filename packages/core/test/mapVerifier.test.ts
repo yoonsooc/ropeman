@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { CodeMap } from '$lib/types/codeMap';
 import type { RopemanMap } from '$lib/types/ropemanMap';
 import { parseRopemanMap } from '$lib/services/ropemanMapSchema';
 import { verifyMap } from '$lib/services/mapVerifier';
@@ -52,12 +53,18 @@ const FAULTS: { rule: string; codes: string[]; make: (map: RopemanMap) => void }
 
 const isLeaf = (node: { id: string }) => node.id.startsWith('files:');
 
+function check(map: RopemanMap, codeMap: CodeMap) {
+	const result = verifyMap(map, codeMap);
+	if (!result.parsed) throw new Error(`${result.failure.code} at ${result.failure.at}`);
+	return result;
+}
+
 function faultCodes(map: RopemanMap, extraction: Extraction): Record<string, string[]> {
 	return Object.fromEntries(
 		FAULTS.map(({ rule, make }) => {
 			const broken = structuredClone(map);
 			make(broken);
-			const codes = verifyMap(broken, extraction.map).violations.map((v) => v.code);
+			const codes = check(broken, extraction.map).violations.map((v) => v.code);
 			return [rule, [...new Set(codes)]];
 		})
 	);
@@ -74,7 +81,7 @@ describe('verifyMap on maps grouped from a Node extraction', () => {
 		const extraction = await extractDirectory(join(repo, relative), { wasmDir });
 		const { map } = roundTrip(groupedMap(extraction, basename(relative)));
 
-		const clean = verifyMap(map, extraction.map);
+		const clean = check(map, extraction.map);
 
 		expect(clean.violations).toEqual([]);
 		expect(clean.checked.files).toBe(extraction.map.files.size + extraction.skipped.length);
@@ -97,10 +104,10 @@ describe.runIf(process.env.ROPEMAN_VERIFY_DIR)('verifyMap on ROPEMAN_VERIFY_DIR'
 		const parseMs = performance.now() - parseStart;
 
 		const runs: number[] = [];
-		let result = verifyMap(map, extraction.map);
+		let result = check(map, extraction.map);
 		for (let i = 0; i < 7; i++) {
 			const start = performance.now();
-			result = verifyMap(map, extraction.map);
+			result = check(map, extraction.map);
 			runs.push(performance.now() - start);
 		}
 		runs.sort((a, b) => a - b);
