@@ -1,6 +1,6 @@
 ---
 name: sprint
-description: Run or finalize a Ropeman sprint — pick tasks from the PRD roadmap, track Task status, and on "마무리" update the PRD's six fields, Task files and changelog, then open and merge the finalize PR. Use only when the user asks to run a sprint or to finalize one.
+description: Run or finalize a Ropeman sprint — pick tasks from the PRD roadmap, track Task status, and on "마무리" update the PRD's six fields, Task files and changelog, then open and merge the finalize PR. Use only when the user asks to run a sprint or to finalize one (스프린트 실행, 스프린트 마무리).
 ---
 
 # 스프린트 실행과 마무리 (Ropeman)

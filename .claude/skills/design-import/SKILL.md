@@ -1,6 +1,6 @@
 ---
 name: design-import
-description: Bring an external design tool's output (Stitch HTML and similar) into Ropeman's Svelte components — mapping table first, exhaustive class-to-CSS conversion, checklist verification, canonical file management. Use when applying a design HTML or mockup from a design tool to the code.
+description: Bring an external design tool's output (Stitch HTML and similar) into Ropeman's Svelte components — mapping table first, exhaustive class-to-CSS conversion, checklist verification, canonical file management. Use when applying a design HTML or mockup from a design tool to the code (디자인 반영).
 ---
 
 # 디자인 반영 규칙 (Ropeman)

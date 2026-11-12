@@ -32,17 +32,17 @@
 
 ## 작업 주기 (일상 작업)
 
-커밋 경계 = 의사결정 경계. 구현 커밋(A)과 리뷰 수정 커밋(B)을 분리해 git 이력에 "구현 → 리뷰 수정" 경계를 남기고, 각 커밋은 따로 revert할 수 있어야 한다.
+커밋 경계 = 의사결정 경계. 구현 커밋(A)과 리뷰 수정 커밋(B)을 분리해 git 이력에 "구현 → 리뷰 수정" 경계를 남기고, 각 커밋은 따로 revert할 수 있어야 한다. 주기는 한 스프린트 안에서 여러 번 돌 수 있고, 태스크 하나씩 리뷰해도 여러 개를 묶어 리뷰해도 된다.
 
 1. 작업 단위마다 `unit/{sprint_id}/{slug}` 브랜치를 만든다. `sprint/{sprint_id}`는 마무리 전용이고 pre-push 훅이 그때 마무리 누락을 검사한다.
-2. 구현 → `npm run test:unit && npm run build` 통과 → **커밋 A** `feat({scope}): ...`/`fix(...)` (리뷰 전 상태).
+2. 구현 → `npm run test:unit && npm run build` 통과 → **커밋 A** `feat({scope}): ...`/`fix(...)`, 복수 태스크면 `feat: SH1, SH2 구현` (리뷰 전 상태).
 3. pstack `thermo-nuclear-review`를 작성자와 다른 모델의 검증 서브에이전트로 돌린다. `/code-reviewer`는 이 주기에서 쓰지 않는다(수시 점검용).
 4. 리뷰 보고서 `.spec/reviews/{sprint_id}-review.md`: 대상, C/W/S 개수, 이슈별 증상·원인·수정·결정, 오탐과 스킵한 Suggestion의 이유. 새 안티패턴은 `common_antipatterns.md`로 올리고 링크한다. 2차 리뷰는 같은 파일에 절을 추가한다(삭제 금지). 보고서는 리뷰 시점의 스냅샷이다.
 5. Critical·Warning은 바로 고치고 Suggestion은 판단한다. 스프린트 중 고친 버그는 `.spec/bug-report/`에 기록한다.
-6. 테스트·빌드 재통과 → **커밋 B** `review: {요약} ({C}C/{W}W/{S}S)`, 본문은 주요 수정 목록과 `- 리뷰 보고서: .spec/reviews/{sprint_id}-review.md`.
-7. 단위 PR은 검증 통과와 PR CI 통과 후 `gh pr merge --merge`로 병합한다(squash 금지). 사용자 승인 단계는 없고 사용자는 병합된 결과를 검토한다.
+6. 테스트·빌드 재통과 → **커밋 B**(리뷰 수정 + 리뷰 보고서) `review: {요약} ({C}C/{W}W/{S}S)`, 본문은 주요 수정 목록과 `- 리뷰 보고서: .spec/reviews/{sprint_id}-review.md`.
+7. 단위 PR은 검증 통과와 PR CI 통과 후 `gh pr merge --merge`로 병합한다(squash 금지: feat·review 커밋이 main에 보이게). 사용자 승인 단계는 없고 사용자는 병합된 결과를 검토한다.
 
-PRD·Task 상태·changelog 같은 메타데이터는 이 주기에서 건드리지 않는다.
+후속 개발과 수정은 독립 커밋(`feat: ...`, `fix: ...`)으로 잇는다. PRD·Task 상태·changelog 같은 메타데이터는 이 주기에서 건드리지 않는다(리뷰 수정 커밋과 메타데이터 커밋은 분리).
 
 ## 문서 위치
 
