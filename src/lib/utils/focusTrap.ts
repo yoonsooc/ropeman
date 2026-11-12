@@ -3,6 +3,7 @@ const FOCUSABLE =
 
 /**
  * Moves focus into a modal card, keeps Tab inside it, and gives focus back to the opener.
+ * Mark the safe choice with `data-autofocus` to focus it first instead of the first control.
  * Give the node `tabindex="-1"`: a click on its plain text then focuses the card, not <body>.
  */
 export function focusTrap(node: HTMLElement) {
@@ -10,7 +11,7 @@ export function focusTrap(node: HTMLElement) {
 	const focusables = () =>
 		[...node.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.getClientRects().length);
 
-	(focusables()[0] ?? node).focus();
+	(node.querySelector<HTMLElement>('[data-autofocus]') ?? focusables()[0] ?? node).focus();
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key !== 'Tab') return;

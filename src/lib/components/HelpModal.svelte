@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusTrap } from '$lib/utils/focusTrap';
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { onboardingStore } from '$lib/stores/onboardingStore.svelte';
@@ -36,7 +37,7 @@
 {#if open}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="modal-backdrop help-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
-		<div class="modal-card help-card" role="dialog" aria-modal="true">
+		<div class="modal-card help-card" role="dialog" aria-modal="true" tabindex="-1" use:focusTrap>
 			<div class="modal-header">
 				<h2>{i18nStore.t('help.title')}</h2>
 				<button class="modal-close" onclick={onclose}>&#10005;</button>

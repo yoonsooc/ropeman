@@ -1,0 +1,68 @@
+{
+	"ts-monorepo": {
+		"imports_from": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		},
+		"imports": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		},
+		"re_exports": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 0
+		},
+		"dynamic_import": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		},
+		"calls": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		}
+	},
+	"svelte-app": {
+		"imports_from": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		},
+		"imports": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		},
+		"re_exports": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 0
+		},
+		"calls": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		}
+	},
+	"py-shop": {
+		"imports_from": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		},
+		"imports": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		},
+		"calls": {
+			"precision": null,
+			"recall": 0,
+			"siteRecall": 1
+		}
+	}
+}

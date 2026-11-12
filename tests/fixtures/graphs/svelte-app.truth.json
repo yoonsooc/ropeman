@@ -1,0 +1,65 @@
+{
+  "kinds": ["imports_from", "imports", "re_exports", "calls"],
+  "edges": [
+    { "kind": "imports_from", "from": "src/lib/utils/cart.ts", "line": 1, "written": "$lib/types", "to": "src/lib/types.ts" },
+    { "kind": "imports", "from": "src/lib/utils/cart.ts", "line": 1, "written": "CartLine", "to": "src/lib/types.ts#CartLine" },
+    { "kind": "calls", "from": "src/lib/utils/cart.ts", "line": 9, "written": "lineTotal", "to": "src/lib/utils/cart.ts#lineTotal" },
+
+    { "kind": "calls", "from": "src/lib/utils/price.ts", "line": 3, "written": "twoDigits", "to": "src/lib/utils/price.ts#twoDigits" },
+
+    { "kind": "imports_from", "from": "src/lib/stores/cart.svelte.ts", "line": 1, "written": "../types", "to": "src/lib/types.ts" },
+    { "kind": "imports", "from": "src/lib/stores/cart.svelte.ts", "line": 1, "written": "CartLine", "to": "src/lib/types.ts#CartLine" },
+    { "kind": "imports", "from": "src/lib/stores/cart.svelte.ts", "line": 1, "written": "Product", "to": "src/lib/types.ts#Product" },
+
+    { "kind": "imports_from", "from": "src/lib/api.ts", "line": 1, "written": "./types", "to": "src/lib/types.ts" },
+    { "kind": "imports", "from": "src/lib/api.ts", "line": 1, "written": "Product", "to": "src/lib/types.ts#Product" },
+    { "kind": "calls", "from": "src/lib/api.ts", "line": 7, "written": "parseProducts", "to": "src/lib/api.ts#parseProducts" },
+
+    { "kind": "re_exports", "from": "src/lib/index.ts", "line": 1, "written": "./components/Button.svelte", "to": "src/lib/components/Button.svelte" },
+    { "kind": "re_exports", "from": "src/lib/index.ts", "line": 2, "written": "./utils/price", "to": "src/lib/utils/price.ts" },
+
+    { "kind": "imports_from", "from": "src/lib/components/ProductCard.svelte", "line": 2, "written": "./Button.svelte", "to": "src/lib/components/Button.svelte" },
+    { "kind": "imports_from", "from": "src/lib/components/ProductCard.svelte", "line": 3, "written": "$lib/utils/price", "to": "src/lib/utils/price.ts" },
+    { "kind": "imports", "from": "src/lib/components/ProductCard.svelte", "line": 3, "written": "formatPrice", "to": "src/lib/utils/price.ts#formatPrice" },
+    { "kind": "imports_from", "from": "src/lib/components/ProductCard.svelte", "line": 4, "written": "$lib/stores/cart.svelte", "to": "src/lib/stores/cart.svelte.ts" },
+    { "kind": "imports", "from": "src/lib/components/ProductCard.svelte", "line": 4, "written": "cart", "to": "src/lib/stores/cart.svelte.ts#cart" },
+    { "kind": "imports_from", "from": "src/lib/components/ProductCard.svelte", "line": 5, "written": "$lib/types", "to": "src/lib/types.ts" },
+    { "kind": "imports", "from": "src/lib/components/ProductCard.svelte", "line": 5, "written": "Product", "to": "src/lib/types.ts#Product" },
+    { "kind": "calls", "from": "src/lib/components/ProductCard.svelte", "line": 9, "written": "formatPrice", "to": "src/lib/utils/price.ts#formatPrice" },
+    { "kind": "calls", "from": "src/lib/components/ProductCard.svelte", "line": 12, "written": "cart.add", "to": "src/lib/stores/cart.svelte.ts#CartStore.add" },
+
+    { "kind": "imports_from", "from": "src/lib/components/CartSummary.svelte", "line": 2, "written": "../stores/cart.svelte", "to": "src/lib/stores/cart.svelte.ts" },
+    { "kind": "imports", "from": "src/lib/components/CartSummary.svelte", "line": 2, "written": "cart", "to": "src/lib/stores/cart.svelte.ts#cart" },
+    { "kind": "imports_from", "from": "src/lib/components/CartSummary.svelte", "line": 3, "written": "../utils/cart", "to": "src/lib/utils/cart.ts" },
+    { "kind": "imports", "from": "src/lib/components/CartSummary.svelte", "line": 3, "written": "total", "to": "src/lib/utils/cart.ts#total" },
+    { "kind": "imports_from", "from": "src/lib/components/CartSummary.svelte", "line": 4, "written": "$lib", "to": "src/lib/index.ts" },
+    { "kind": "imports", "from": "src/lib/components/CartSummary.svelte", "line": 4, "written": "formatPrice", "to": "src/lib/utils/price.ts#formatPrice" },
+    { "kind": "calls", "from": "src/lib/components/CartSummary.svelte", "line": 6, "written": "formatPrice", "to": "src/lib/utils/price.ts#formatPrice" },
+    { "kind": "calls", "from": "src/lib/components/CartSummary.svelte", "line": 6, "written": "total", "to": "src/lib/utils/cart.ts#total" },
+    { "kind": "calls", "from": "src/lib/components/CartSummary.svelte", "line": 9, "written": "cart.clear", "to": "src/lib/stores/cart.svelte.ts#CartStore.clear" },
+
+    { "kind": "imports_from", "from": "src/routes/+page.ts", "line": 1, "written": "$lib/api", "to": "src/lib/api.ts" },
+    { "kind": "imports", "from": "src/routes/+page.ts", "line": 1, "written": "loadProducts", "to": "src/lib/api.ts#loadProducts" },
+    { "kind": "imports_from", "from": "src/routes/+page.ts", "line": 2, "written": "$lib/types", "to": "src/lib/types.ts" },
+    { "kind": "imports", "from": "src/routes/+page.ts", "line": 2, "written": "Product", "to": "src/lib/types.ts#Product" },
+    { "kind": "calls", "from": "src/routes/+page.ts", "line": 5, "written": "loadProducts", "to": "src/lib/api.ts#loadProducts" },
+
+    { "kind": "imports_from", "from": "src/routes/+page.svelte", "line": 2, "written": "$lib/components/ProductCard.svelte", "to": "src/lib/components/ProductCard.svelte" },
+    { "kind": "imports_from", "from": "src/routes/+page.svelte", "line": 3, "written": "$lib/types", "to": "src/lib/types.ts" },
+    { "kind": "imports", "from": "src/routes/+page.svelte", "line": 3, "written": "Product", "to": "src/lib/types.ts#Product" },
+
+    { "kind": "imports_from", "from": "src/routes/+layout.svelte", "line": 2, "written": "svelte", "to": "ext:svelte" },
+    { "kind": "imports", "from": "src/routes/+layout.svelte", "line": 2, "written": "Snippet", "to": "ext:svelte#Snippet" },
+    { "kind": "imports_from", "from": "src/routes/+layout.svelte", "line": 3, "written": "$lib/components/CartSummary.svelte", "to": "src/lib/components/CartSummary.svelte" },
+
+    { "kind": "imports_from", "from": "src/routes/cart/+page.svelte", "line": 2, "written": "$lib", "to": "src/lib/index.ts" },
+    { "kind": "imports_from", "from": "src/routes/cart/+page.svelte", "line": 3, "written": "$lib/stores/cart.svelte", "to": "src/lib/stores/cart.svelte.ts" },
+    { "kind": "imports", "from": "src/routes/cart/+page.svelte", "line": 3, "written": "cart", "to": "src/lib/stores/cart.svelte.ts#cart" },
+    { "kind": "imports_from", "from": "src/routes/cart/+page.svelte", "line": 4, "written": "$lib/utils/cart", "to": "src/lib/utils/cart.ts" },
+    { "kind": "imports", "from": "src/routes/cart/+page.svelte", "line": 4, "written": "lineTotal", "to": "src/lib/utils/cart.ts#lineTotal" },
+    { "kind": "imports_from", "from": "src/routes/cart/+page.svelte", "line": 5, "written": "$lib/utils/price", "to": "src/lib/utils/price.ts" },
+    { "kind": "imports", "from": "src/routes/cart/+page.svelte", "line": 5, "written": "formatPrice", "to": "src/lib/utils/price.ts#formatPrice" },
+    { "kind": "calls", "from": "src/routes/cart/+page.svelte", "line": 8, "written": "formatPrice", "to": "src/lib/utils/price.ts#formatPrice" },
+    { "kind": "calls", "from": "src/routes/cart/+page.svelte", "line": 8, "written": "lineTotal", "to": "src/lib/utils/cart.ts#lineTotal" }
+  ]
+}

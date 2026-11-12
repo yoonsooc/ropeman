@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusTrap } from '$lib/utils/focusTrap';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
@@ -68,7 +69,13 @@
 		onclick={handleBackdropClick}
 		onkeydown={handleKeydown}
 	>
-		<div class="modal-card drilldown-card" role="dialog" aria-modal="true">
+		<div
+			class="modal-card drilldown-card"
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+			use:focusTrap
+		>
 			<div class="drilldown-header">
 				<div class="drilldown-title">
 					<span class="title-dot" style="background: {trackInfo.color}"></span>
@@ -90,7 +97,7 @@
 				{i18nStore.t('dontAskAgain')}
 			</label>
 			<div class="drilldown-actions">
-				<button class="btn btn-secondary drilldown-btn" onclick={handleCancel}
+				<button class="btn btn-secondary drilldown-btn" data-autofocus onclick={handleCancel}
 					>{i18nStore.t('common.cancel')}</button
 				>
 				<button class="btn btn-primary drilldown-btn" onclick={handleConfirm}

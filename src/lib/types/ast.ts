@@ -60,3 +60,13 @@ export interface ParseSkip {
 	path: string;
 	reason: ParseSkipReason;
 }
+
+/**
+ * A relation written in a file, as the parser read it: the line the call or base starts on, as
+ * graphify records it, and the name as written with arguments emptied (`z.object().strict`).
+ * The code map turns each into a `RefSite`.
+ * `ownerLine` is the first line of the class whose heading names the base.
+ */
+export type ASTRef =
+	| { kind: 'calls' | 'dynamic_import'; line: number; written: string }
+	| { kind: 'inherits' | 'implements'; line: number; written: string; ownerLine: number };

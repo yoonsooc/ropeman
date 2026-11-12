@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
+	import { focusTrap } from '$lib/utils/focusTrap';
 	import { parseGitHubUrl, githubLoadErrorKey, type GitHubRepoInfo } from '$lib/utils/githubUrl';
 
 	let {
@@ -24,19 +25,14 @@
 	let loading = $state(false);
 	let inputEl: HTMLInputElement | undefined = $state(undefined);
 
-	// Non-reactive: open/close edges and the element to give focus back to
+	// Non-reactive: the open edge
 	let prevOpen = false;
-	let opener: HTMLElement | null = null;
 	$effect(() => {
 		if (open && !prevOpen) {
 			url = '';
 			error = '';
 			loading = false;
-			opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 			tick().then(() => inputEl?.focus());
-		} else if (!open && prevOpen) {
-			opener?.focus();
-			opener = null;
 		}
 		prevOpen = open;
 	});
@@ -94,6 +90,8 @@
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="newproject-title"
+			tabindex="-1"
+			use:focusTrap
 		>
 			<div class="newproject-header">
 				<h2 id="newproject-title" class="newproject-title">{i18nStore.t('newProject.title')}</h2>

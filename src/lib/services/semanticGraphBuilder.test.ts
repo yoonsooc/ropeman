@@ -131,10 +131,12 @@ describe('toSemanticFlowEdges', () => {
 		};
 
 		const flowEdges = toSemanticFlowEdges(level);
-		expect(flowEdges[0].style).toContain('#94a3b8'); // depends_on
-		expect(flowEdges[1].style).toContain('#53ddfc'); // calls
-		expect(flowEdges[2].style).toContain('#ac8aff'); // extends
-		expect(flowEdges[3].style).toContain('#7ad4a0'); // uses
+		expect(flowEdges.map((edge) => edge.style)).toEqual([
+			expect.stringContaining('stroke: var(--color-edge-depends-on)'),
+			expect.stringContaining('stroke: var(--color-edge-calls)'),
+			expect.stringContaining('stroke: var(--color-edge-extends)'),
+			expect.stringContaining('stroke: var(--color-edge-uses)')
+		]);
 	});
 
 	it('all edges are animated smoothstep', () => {

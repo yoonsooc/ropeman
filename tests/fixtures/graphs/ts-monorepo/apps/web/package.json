@@ -1,0 +1,9 @@
+{
+  "name": "@acme/web",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@acme/core": "workspace:*",
+    "lodash-es": "^4.17.21"
+  }
+}

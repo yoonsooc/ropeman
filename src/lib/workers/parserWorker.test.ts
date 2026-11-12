@@ -15,7 +15,7 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 		}
 	}
 	const Language = { load: (url: string) => real.Language.load(fromStatic(url)) };
-	return { Parser, Language };
+	return { Parser, Language, Query: real.Query };
 });
 
 type Outline = { name: string; kind: string; children?: string[] };
