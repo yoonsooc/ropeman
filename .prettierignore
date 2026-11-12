@@ -7,3 +7,5 @@ package-lock.json
 *.wasm
 *.min.js
 *.min.css
+# Ground-truth repos and truth files cite exact lines
+tests/fixtures/graphs/

@@ -1,0 +1,93 @@
+{
+  "kinds": ["imports_from", "imports", "re_exports", "dynamic_import", "calls"],
+  "edges": [
+    { "kind": "re_exports", "from": "packages/core/src/index.ts", "line": 1, "written": "./format", "to": "packages/core/src/format.ts" },
+    { "kind": "re_exports", "from": "packages/core/src/index.ts", "line": 2, "written": "./logger", "to": "packages/core/src/logger.ts" },
+    { "kind": "re_exports", "from": "packages/core/src/index.ts", "line": 2, "written": "Logger", "to": "packages/core/src/logger.ts#Logger" },
+    { "kind": "re_exports", "from": "packages/core/src/index.ts", "line": 3, "written": "./id", "to": "packages/core/src/id.ts" },
+    { "kind": "re_exports", "from": "packages/core/src/index.ts", "line": 3, "written": "createId", "to": "packages/core/src/id.ts#createId" },
+    { "kind": "re_exports", "from": "packages/core/src/index.ts", "line": 4, "written": "./types", "to": "packages/core/src/types.ts" },
+    { "kind": "re_exports", "from": "packages/core/src/index.ts", "line": 4, "written": "Entity", "to": "packages/core/src/types.ts#Entity" },
+    { "kind": "re_exports", "from": "packages/core/src/index.ts", "line": 4, "written": "Level", "to": "packages/core/src/types.ts#Level" },
+
+    { "kind": "imports_from", "from": "packages/core/src/format.ts", "line": 1, "written": "./pad", "to": "packages/core/src/pad.ts" },
+    { "kind": "imports", "from": "packages/core/src/format.ts", "line": 1, "written": "pad", "to": "packages/core/src/pad.ts#pad" },
+    { "kind": "calls", "from": "packages/core/src/format.ts", "line": 4, "written": "pad", "to": "packages/core/src/pad.ts#pad" },
+    { "kind": "calls", "from": "packages/core/src/format.ts", "line": 5, "written": "pad", "to": "packages/core/src/pad.ts#pad" },
+    { "kind": "calls", "from": "packages/core/src/format.ts", "line": 11, "written": "pad", "to": "packages/core/src/pad.ts#pad" },
+
+    { "kind": "imports_from", "from": "packages/core/src/logger.ts", "line": 1, "written": "./types", "to": "packages/core/src/types.ts" },
+    { "kind": "imports", "from": "packages/core/src/logger.ts", "line": 1, "written": "Level", "to": "packages/core/src/types.ts#Level" },
+    { "kind": "calls", "from": "packages/core/src/logger.ts", "line": 7, "written": "this.write", "to": "packages/core/src/logger.ts#Logger.write" },
+    { "kind": "calls", "from": "packages/core/src/logger.ts", "line": 11, "written": "this.write", "to": "packages/core/src/logger.ts#Logger.write" },
+
+    { "kind": "imports_from", "from": "apps/web/src/main.ts", "line": 1, "written": "@acme/core", "to": "packages/core/src/index.ts" },
+    { "kind": "imports", "from": "apps/web/src/main.ts", "line": 1, "written": "formatDate", "to": "packages/core/src/format.ts#formatDate" },
+    { "kind": "imports", "from": "apps/web/src/main.ts", "line": 1, "written": "Logger", "to": "packages/core/src/logger.ts#Logger" },
+    { "kind": "imports", "from": "apps/web/src/main.ts", "line": 1, "written": "createId", "to": "packages/core/src/id.ts#createId" },
+    { "kind": "imports_from", "from": "apps/web/src/main.ts", "line": 2, "written": "@acme/core", "to": "packages/core/src/index.ts" },
+    { "kind": "imports", "from": "apps/web/src/main.ts", "line": 2, "written": "Entity", "to": "packages/core/src/types.ts#Entity" },
+    { "kind": "imports_from", "from": "apps/web/src/main.ts", "line": 3, "written": "@shared/config", "to": "shared/config.ts" },
+    { "kind": "imports", "from": "apps/web/src/main.ts", "line": 3, "written": "readConfig", "to": "shared/config.ts#readConfig" },
+    { "kind": "imports_from", "from": "apps/web/src/main.ts", "line": 4, "written": "$lib/app", "to": "apps/web/src/lib/app.ts" },
+    { "kind": "imports", "from": "apps/web/src/main.ts", "line": 4, "written": "startApp", "to": "apps/web/src/lib/app.ts#startApp" },
+    { "kind": "imports_from", "from": "apps/web/src/main.ts", "line": 5, "written": "$lib/math", "to": "apps/web/src/lib/math.ts" },
+    { "kind": "imports", "from": "apps/web/src/main.ts", "line": 5, "written": "math", "to": "apps/web/src/lib/math.ts" },
+    { "kind": "imports_from", "from": "apps/web/src/main.ts", "line": 6, "written": "./polyfills", "to": "apps/web/src/polyfills.ts" },
+    { "kind": "calls", "from": "apps/web/src/main.ts", "line": 11, "written": "readConfig", "to": "shared/config.ts#readConfig" },
+    { "kind": "calls", "from": "apps/web/src/main.ts", "line": 12, "written": "createId", "to": "packages/core/src/id.ts#createId" },
+    { "kind": "calls", "from": "apps/web/src/main.ts", "line": 13, "written": "log.info", "to": "packages/core/src/logger.ts#Logger.info" },
+    { "kind": "calls", "from": "apps/web/src/main.ts", "line": 13, "written": "formatDate", "to": "packages/core/src/format.ts#formatDate" },
+    { "kind": "calls", "from": "apps/web/src/main.ts", "line": 14, "written": "startApp", "to": "apps/web/src/lib/app.ts#startApp" },
+    { "kind": "calls", "from": "apps/web/src/main.ts", "line": 14, "written": "math.clamp", "to": "apps/web/src/lib/math.ts#clamp" },
+
+    { "kind": "calls", "from": "apps/web/src/lib/math.ts", "line": 8, "written": "clamp", "to": "apps/web/src/lib/math.ts#clamp" },
+
+    { "kind": "imports_from", "from": "apps/web/src/lib/app.ts", "line": 1, "written": "@shared/config", "to": "shared/config.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/app.ts", "line": 1, "written": "AppConfig", "to": "shared/config.ts#AppConfig" },
+    { "kind": "imports_from", "from": "apps/web/src/lib/app.ts", "line": 2, "written": "./store", "to": "apps/web/src/lib/store.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/app.ts", "line": 2, "written": "createStore", "to": "apps/web/src/lib/store.ts#createStore" },
+    { "kind": "imports_from", "from": "apps/web/src/lib/app.ts", "line": 3, "written": "$lib/api", "to": "apps/web/src/lib/api/index.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/app.ts", "line": 3, "written": "fetchUser", "to": "apps/web/src/lib/api/client.ts#fetchUser" },
+    { "kind": "imports_from", "from": "apps/web/src/lib/app.ts", "line": 4, "written": "./plugins", "to": "apps/web/src/lib/plugins.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/app.ts", "line": 4, "written": "loadPlugin", "to": "apps/web/src/lib/plugins.ts#loadPlugin" },
+    { "kind": "calls", "from": "apps/web/src/lib/app.ts", "line": 7, "written": "createStore", "to": "apps/web/src/lib/store.ts#createStore" },
+    { "kind": "calls", "from": "apps/web/src/lib/app.ts", "line": 8, "written": "store.set", "to": "apps/web/src/lib/store.ts#Store.set" },
+    { "kind": "calls", "from": "apps/web/src/lib/app.ts", "line": 9, "written": "fetchUser", "to": "apps/web/src/lib/api/client.ts#fetchUser" },
+    { "kind": "calls", "from": "apps/web/src/lib/app.ts", "line": 10, "written": "loadPlugin", "to": "apps/web/src/lib/plugins.ts#loadPlugin" },
+
+    { "kind": "imports_from", "from": "apps/web/src/lib/store.ts", "line": 1, "written": "./events", "to": "apps/web/src/lib/events.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/store.ts", "line": 1, "written": "emit", "to": "apps/web/src/lib/events.ts#emit" },
+    { "kind": "calls", "from": "apps/web/src/lib/store.ts", "line": 10, "written": "emit", "to": "apps/web/src/lib/events.ts#emit" },
+
+    { "kind": "imports_from", "from": "apps/web/src/lib/events.ts", "line": 1, "written": "./store", "to": "apps/web/src/lib/store.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/events.ts", "line": 1, "written": "Store", "to": "apps/web/src/lib/store.ts#Store" },
+
+    { "kind": "re_exports", "from": "apps/web/src/lib/api/index.ts", "line": 1, "written": "./client", "to": "apps/web/src/lib/api/client.ts" },
+    { "kind": "re_exports", "from": "apps/web/src/lib/api/index.ts", "line": 1, "written": "fetchUser", "to": "apps/web/src/lib/api/client.ts#fetchUser" },
+    { "kind": "re_exports", "from": "apps/web/src/lib/api/index.ts", "line": 1, "written": "fetchPosts", "to": "apps/web/src/lib/api/client.ts#fetchPosts" },
+    { "kind": "re_exports", "from": "apps/web/src/lib/api/index.ts", "line": 2, "written": "./routes", "to": "apps/web/src/lib/api/routes.ts" },
+
+    { "kind": "imports_from", "from": "apps/web/src/lib/api/client.ts", "line": 1, "written": "lodash-es", "to": "ext:lodash-es" },
+    { "kind": "imports", "from": "apps/web/src/lib/api/client.ts", "line": 1, "written": "debounce", "to": "ext:lodash-es#debounce" },
+    { "kind": "imports_from", "from": "apps/web/src/lib/api/client.ts", "line": 2, "written": "./routes", "to": "apps/web/src/lib/api/routes.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/api/client.ts", "line": 2, "written": "userRoute", "to": "apps/web/src/lib/api/routes.ts#userRoute" },
+    { "kind": "imports", "from": "apps/web/src/lib/api/client.ts", "line": 2, "written": "postsRoute", "to": "apps/web/src/lib/api/routes.ts#postsRoute" },
+    { "kind": "imports_from", "from": "apps/web/src/lib/api/client.ts", "line": 3, "written": "@acme/core", "to": "packages/core/src/index.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/api/client.ts", "line": 3, "written": "Logger", "to": "packages/core/src/logger.ts#Logger" },
+    { "kind": "calls", "from": "apps/web/src/lib/api/client.ts", "line": 8, "written": "userRoute", "to": "apps/web/src/lib/api/routes.ts#userRoute" },
+    { "kind": "calls", "from": "apps/web/src/lib/api/client.ts", "line": 9, "written": "log.warn", "to": "packages/core/src/logger.ts#Logger.warn" },
+    { "kind": "calls", "from": "apps/web/src/lib/api/client.ts", "line": 14, "written": "postsRoute", "to": "apps/web/src/lib/api/routes.ts#postsRoute" },
+    { "kind": "calls", "from": "apps/web/src/lib/api/client.ts", "line": 17, "written": "debounce", "to": "ext:lodash-es#debounce" },
+
+    { "kind": "dynamic_import", "from": "apps/web/src/lib/plugins.ts", "line": 3, "written": "./plugins/charts", "to": "apps/web/src/lib/plugins/charts.ts" },
+    { "kind": "calls", "from": "apps/web/src/lib/plugins.ts", "line": 4, "written": "mod.register", "to": "apps/web/src/lib/plugins/charts.ts#register" },
+
+    { "kind": "imports_from", "from": "apps/web/src/lib/plugins/charts.ts", "line": 1, "written": "../math", "to": "apps/web/src/lib/math.ts" },
+    { "kind": "imports", "from": "apps/web/src/lib/plugins/charts.ts", "line": 1, "written": "lerp", "to": "apps/web/src/lib/math.ts#lerp" },
+    { "kind": "calls", "from": "apps/web/src/lib/plugins/charts.ts", "line": 4, "written": "lerp", "to": "apps/web/src/lib/math.ts#lerp" },
+
+    { "kind": "re_exports", "from": "apps/web/src/lib/plugins/index.ts", "line": 1, "written": "./charts", "to": "apps/web/src/lib/plugins/charts.ts" },
+    { "kind": "re_exports", "from": "apps/web/src/lib/plugins/index.ts", "line": 1, "written": "register", "to": "apps/web/src/lib/plugins/charts.ts#register" }
+  ]
+}

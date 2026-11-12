@@ -42,7 +42,7 @@ const MAX_DEPTH = 30;
 const MAX_FILE_SIZE = 500_000;
 
 /** @param {string} dirPath @param {string} [basePath] @param {number} [depth] @param {{ fileCount: number }} [ctx] @returns {{ name: string, path: string, kind: string, children: any[] }} */
-function scanDirectory(dirPath, basePath = '', depth = 0, ctx = { fileCount: 0 }) {
+export function scanDirectory(dirPath, basePath = '', depth = 0, ctx = { fileCount: 0 }) {
 	const currentPath = basePath || path.basename(dirPath);
 
 	if (depth >= MAX_DEPTH || ctx.fileCount >= MAX_FILES) {
