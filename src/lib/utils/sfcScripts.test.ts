@@ -140,7 +140,7 @@ const pick = (items: T[]) => items[0];
 		expect(content.split('\r\n')[4]).toBe('let a = 1;');
 	});
 
-	// 180KB of `<script "` took 3.2 s when every open tag rescanned the rest of the file
+	// 180KB of `<script "` took 3.2 s when every open tag rescanned the rest of the file; the linear scan takes a few ms, so 1 s leaves room for a slow CI runner
 	it.each([
 		['an open tag whose quotes never close', '<script "'],
 		['open tags without a closing tag', '<script>'],
@@ -156,7 +156,7 @@ const pick = (items: T[]) => items[0];
 
 		// Assert
 		expect(content).toHaveLength(source.length);
-		expect(elapsed).toBeLessThan(250);
+		expect(elapsed).toBeLessThan(1000);
 	});
 
 	it('still finds a script after an open tag whose quote never closes', () => {

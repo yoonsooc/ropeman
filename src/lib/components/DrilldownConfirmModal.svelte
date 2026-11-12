@@ -97,7 +97,7 @@
 				{i18nStore.t('dontAskAgain')}
 			</label>
 			<div class="drilldown-actions">
-				<button class="btn btn-secondary drilldown-btn" onclick={handleCancel}
+				<button class="btn btn-secondary drilldown-btn" data-autofocus onclick={handleCancel}
 					>{i18nStore.t('common.cancel')}</button
 				>
 				<button class="btn btn-primary drilldown-btn" onclick={handleConfirm}

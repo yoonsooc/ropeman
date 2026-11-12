@@ -266,8 +266,10 @@
 				{i18nStore.t('dontAskAgain')}
 			</label>
 			<div class="cancel-confirm-actions">
-				<button class="btn btn-secondary cancel-confirm-btn" onclick={closeCancelConfirm}
-					>{i18nStore.t('analysisCancelConfirmBack')}</button
+				<button
+					class="btn btn-secondary cancel-confirm-btn"
+					data-autofocus
+					onclick={closeCancelConfirm}>{i18nStore.t('analysisCancelConfirmBack')}</button
 				>
 				<button class="btn btn-danger cancel-confirm-btn" onclick={confirmCancel}
 					>{i18nStore.t('analysisCancelConfirmOk')}</button
