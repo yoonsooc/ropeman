@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Ropeman Bridge probe</title>
+		<style>
+			body {
+				margin: 16px;
+				font:
+					13px/1.5 ui-monospace,
+					Menlo,
+					monospace;
+				background: #fff;
+				color: #111;
+			}
+			pre {
+				white-space: pre-wrap;
+				word-break: break-all;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Ropeman Bridge probe</h1>
+		<p>
+			Connects to a local bridge and calls <code>file.read</code>. Parameters go in the hash:
+			<code>#token=…&amp;port=9800&amp;path=README.md&amp;wait=8000&amp;report=&lt;port&gt;</code>
+		</p>
+		<pre id="out">running…</pre>
+		<script>
+			(async () => {
+				const params = new URLSearchParams(location.hash.slice(1));
+				const token = params.get('token') ?? '';
+				const local =
+					location.protocol === 'http:' && /^(127\.0\.0\.1|localhost):\d+$/.test(location.host);
+				const host = local ? location.host : `127.0.0.1:${params.get('port') ?? '9800'}`;
+				const wsUrl = `ws://${host}/?token=${encodeURIComponent(token)}`;
+				const waitMs = Number(params.get('wait') ?? 8000);
+				const out = document.getElementById('out');
+				const r = {
+					origin: location.origin,
+					userAgent: navigator.userAgent,
+					isSecureContext: window.isSecureContext,
+					cryptoSubtle: typeof globalThis.crypto?.subtle?.digest === 'function',
+					wsUrl: `ws://${host}/?token=…`,
+					permissions: {},
+					socket: null,
+					reads: []
+				};
+
+				for (const name of ['loopback-network', 'local-network', 'local-network-access']) {
+					try {
+						r.permissions[name] = (await navigator.permissions.query({ name })).state;
+					} catch (e) {
+						r.permissions[name] = `unsupported (${e.name})`;
+					}
+				}
+
+				const t0 = performance.now();
+				let ws = null;
+				try {
+					ws = new WebSocket(wsUrl);
+				} catch (e) {
+					r.socket = { state: 'threw', error: `${e.name}: ${e.message}` };
+				}
+				if (ws) {
+					r.socket = await new Promise((resolve) => {
+						const ms = () => Math.round(performance.now() - t0);
+						const timer = setTimeout(
+							() => resolve({ state: 'timeout', readyState: ws.readyState, ms: ms() }),
+							waitMs
+						);
+						ws.onmessage = (ev) => {
+							const msg = JSON.parse(ev.data);
+							if (msg.type === 'status' && msg.result === 'connected') {
+								clearTimeout(timer);
+								resolve({ state: 'open', ms: ms() });
+							}
+						};
+						ws.onclose = (ev) => {
+							clearTimeout(timer);
+							resolve({ state: 'closed', code: ev.code, ms: ms() });
+						};
+					});
+				}
+
+				if (r.socket.state === 'open') {
+					let nextId = 0;
+					const call = (msg) =>
+						new Promise((resolve) => {
+							const id = ++nextId;
+							const onMessage = (ev) => {
+								const reply = JSON.parse(ev.data);
+								if (reply.id !== id) return;
+								ws.removeEventListener('message', onMessage);
+								resolve(reply);
+							};
+							ws.addEventListener('message', onMessage);
+							ws.send(JSON.stringify({ ...msg, id }));
+						});
+					const paths = [params.get('path') ?? 'README.md', '.env', '../outside.txt', '/etc/hosts'];
+					for (const path of paths) {
+						const reply = await call({ type: 'file.read', path });
+						const file = reply.result;
+						if (!file) {
+							r.reads.push({ path, code: reply.code, error: reply.error });
+							continue;
+						}
+						let hashMatches = null;
+						if (r.cryptoSubtle) {
+							const digest = await crypto.subtle.digest(
+								'SHA-256',
+								new TextEncoder().encode(file.content)
+							);
+							const hex = [...new Uint8Array(digest)]
+								.map((b) => b.toString(16).padStart(2, '0'))
+								.join('');
+							hashMatches = hex === file.sha256;
+						}
+						r.reads.push({
+							path,
+							size: file.size,
+							sha256: file.sha256.slice(0, 16),
+							hashMatches,
+							head: file.content.slice(0, 40)
+						});
+					}
+					ws.close();
+				}
+
+				out.textContent = JSON.stringify(r, null, 2);
+				window.__probe = r;
+				document.title = 'DONE Ropeman Bridge probe';
+				const report = params.get('report');
+				if (report) {
+					setTimeout(() => {
+						location.href = `http://127.0.0.1:${report}/report?r=${encodeURIComponent(JSON.stringify(r))}`;
+					}, 1500);
+				}
+			})();
+		</script>
+	</body>
+</html>
