@@ -13,7 +13,6 @@ No. Ropeman sends the AI a code summary (file paths, symbol names and imports), 
 
 - **WebGPU mode**: the model runs on your device, and nothing leaves it.
 - **Demo and API Key modes**: the summary goes to the AI provider. Demo requests and Anthropic or OpenAI key requests pass through Ropeman's proxy, which does not store them. Gemini key requests go straight to Google.
-- **Local Bridge mode**: your local CLI sends the summary to its provider. Ropeman's servers are not involved.
 
 For a full breakdown, see [Security](/docs/en/security).
 
@@ -22,7 +21,6 @@ For a full breakdown, see [Security](/docs/en/security).
 Ropeman's servers don't store API keys. The key stays in this browser's local storage.
 
 - **API Key mode**: the key goes out with each AI request. Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store the key.
-- **Local Bridge mode**: you don't enter a key. The CLI uses its own login. The bridge asks for its own token, which stays on your machine and in this browser.
 - **WebGPU mode**: no key is needed.
 
 You can delete stored keys anytime with **Settings → Reset**.
@@ -57,7 +55,11 @@ Unparseable files are skipped silently and do not block the rest of the project.
 
 ### Can I use Ropeman commercially?
 
-Yes. You can analyze your own code with Ropeman, personal or commercial. The tool itself is provided as-is from [ropeman.dev](https://ropeman.dev). If you use **Demo** mode, remember the shared quota is for evaluation; switch to **API Key** or **Local Bridge** for sustained professional use.
+Yes. You can analyze your own code with Ropeman, personal or commercial. The tool itself is provided as-is from [ropeman.dev](https://ropeman.dev). If you use **Demo** mode, remember the shared quota is for evaluation; switch to **API Key** for sustained professional use.
+
+### Can I use my own Claude Code or Gemini CLI?
+
+Not in the main app. Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to `ropeman serve` on your machine, and your CLI names the folders you open. See [Bridge Setup](/docs/en/bridge-setup).
 
 ### Does Ropeman work offline?
 
@@ -79,7 +81,7 @@ Firefox does not yet implement `showDirectoryPicker()`. Use drag-and-drop instea
 
 ### I use Safari. What should I expect?
 
-Drag-and-drop folder upload works. File System Access API features (live re-reads) and WebGPU mode are unavailable. Demo, API Key, and Bridge modes otherwise function normally.
+Drag-and-drop folder upload works. File System Access API features (live re-reads) and WebGPU mode are unavailable. Demo and API Key modes work normally. Bridge mode works in Safari only in local mode. See [Bridge Setup](/docs/en/bridge-setup).
 
 ### Can I analyze a GitHub repository by URL?
 
@@ -95,7 +97,7 @@ Yes. Go to Settings → **Additional Excluded Directories** and enter one direct
 
 ### Can I cancel an ongoing analysis?
 
-Yes. The progress pill at the bottom-right has a red **Cancel** button. A one-time confirmation dialog appears (with a "Don't ask again" option). Cancellation works across all AI modes — Demo, API Key, Bridge, and WebGPU. Analysis also continues seamlessly across in-app route navigation; the pill remains visible on every page. Closing the tab or reloading the page does terminate the analysis — the browser will warn you in that case.
+Yes. The progress pill at the bottom-right has a red **Cancel** button. A one-time confirmation dialog appears (with a "Don't ask again" option). Cancellation works in all three AI modes: Demo, API Key, and WebGPU. Analysis also continues seamlessly across in-app route navigation; the pill remains visible on every page. Closing the tab or reloading the page does terminate the analysis — the browser will warn you in that case.
 
 ### Can I run multiple analyses in parallel?
 

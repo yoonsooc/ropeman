@@ -9,19 +9,19 @@ npx @ropeman/bridge serve --root .
 npx @ropeman/bridge serve --root ~/code/project --port 9900 --cli claude
 ```
 
-`ropeman serve` and `ropeman-bridge` are the same program. Without `--root` it only relays the app's chat requests to the CLI.
+`ropeman serve` and `ropeman-bridge` are the same program. Without `--root` it has no map: `map.get` and `node.expand` answer `not-ready` and `file.read` is off.
 
 The bridge listens on `ws://127.0.0.1:9800` unless you pass `--port`. Without `--cli` it checks for `claude`, then `gemini`, and uses the first one it finds.
 
 On startup the bridge prints where its token is: `~/.ropeman/bridge-token` unless you set one with `--token` or `ROPEMAN_BRIDGE_TOKEN`. It does not print the token itself, so the value stays out of terminal logs. Open https://ropeman.dev/bridge and paste the token from that file (`cat ~/.ropeman/bridge-token`) into the Token field. If you changed the port, enter the same number in the Port field. The page shows the map, opens a folder when you click it (its children right away, the CLI's names when they pass the checks), and opens a file's source when you click the file.
 
-Safari blocks a secure page from reaching `ws://127.0.0.1`, and Chrome and Edge ask first. If that does not work, start the bridge with `--local` and open the `http://127.0.0.1:<port>/bridge#token=…` address it prints instead (see Local mode).
+Chrome and Edge ask once whether ropeman.dev may reach apps on this device; choose Allow. Firefox is rolling out the same prompt (Mozilla says from version 151). Safari blocks a secure page from reaching `ws://127.0.0.1` outright. When a connection fails, the page says which of these happened (permission blocked, nothing on the port, or the bridge refused the token) and how to fix it, including how to reset a blocked permission. If the browser cannot connect, start the bridge with `--local` and open the `http://127.0.0.1:<port>/bridge#token=…` address it prints instead (see Local mode).
 
 Bridge 0.2 requires this token, so upgrade the bridge and the Ropeman app together. An app from before 0.2 connects without a token and is refused.
 
 ## Security
 
-The bridge runs your local CLI with the prompts it receives, so it only accepts connections that pass four checks:
+The bridge runs your local CLI to name folders and reads files under `--root`, so it only accepts connections that pass four checks:
 
 - It listens on `127.0.0.1`. Other machines on the network cannot reach it.
 - The `Host` header must be `127.0.0.1:<port>` or `localhost:<port>`, on the socket and on every HTTP request. A site that points its own domain at 127.0.0.1 (DNS rebinding) sends its domain as Host and is refused.
@@ -77,10 +77,6 @@ When a folder is expanded, the bridge sends your CLI the structure of its parts:
 ```
 
 `path` is relative to `--root`. The bridge refuses absolute paths, paths that leave the root (`..`, or a symlink that resolves outside it), env files with real values (`.env`, `.env.local`; templates such as `.env.example` are allowed), anything but a regular file (a directory, a FIFO, a device), files over 500,000 bytes, and files with a NUL byte (`binary`). A path that changes to point elsewhere while it is read comes back as `changed`. Each connection may have 8 reads in flight; more come back as `busy`. A refusal comes back as `{ "id": 2, "type": "file.read", "code": "outside-root", "error": "…" }`, a file as `{ "id": 2, "type": "file.read", "result": { "path", "content", "sha256", "size" } }`.
-
-### Chat relay
-
-The Ropeman app's Local Bridge track sends `{ "id": 1, "type": "chat", "message": "…", "cli": "claude" }` and gets `{ "id": 1, "type": "chat", "result": "…" }`. `analyze`, `ping` and `status` are also kept. `cli` is optional and must be `claude` or `gemini`. Relay runs use the same CLI flags, empty working folder and limits as naming: two CLI runs at a time across the server, four waiting per connection (namings and relays together), 120 seconds and 1 MB of output per run, and a closed connection stops its runs. This relay goes away once the viewer uses the map RPC.
 
 ## Development
 

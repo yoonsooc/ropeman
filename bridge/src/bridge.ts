@@ -1,15 +1,13 @@
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import {
-	type CLIType,
-	isCLIType,
 	isHostAllowed,
 	isOriginAllowed,
 	localOrigins,
 	tokenFromRequestUrl,
 	tokensMatch
 } from './auth.js';
-import { type CliRunner, headlessCommand } from './cli.js';
+import type { CliRunner } from './cli.js';
 import { readRootedFile } from './fileRead.js';
 import type { MapSession, Subscriber } from './mapSession.js';
 import { parseRpcRequest } from '../../src/lib/services/ropemanMapSchema';
@@ -26,41 +24,31 @@ import { serveViewerFile } from './viewer.js';
 export const HOST = '127.0.0.1';
 /** Per connection, so one page cannot tie up every libuv thread with reads. */
 const MAX_FILE_READS_IN_FLIGHT = 8;
-/** Per connection: CLI runs it waits for, namings and legacy relays together. */
+/** Per connection: the namings it waits for. */
 export const MAX_NAMINGS_IN_FLIGHT = 4;
-const LEGACY_TIMEOUT_MS = 120_000;
-const LEGACY_MAX_OUTPUT_BYTES = 1_000_000;
 
 export interface BridgeOptions {
 	port: number;
 	token: string;
 	allowedOrigins: Set<string>;
-	defaultCli: CLIType | null;
 	/** Real path from `resolveRoot`; `file.read` is refused without one. */
 	root: string | null;
 	/** Directory served at `http://127.0.0.1:<port>/` (local mode); none serves nothing. */
 	viewerDir: string | null;
 	/** The map of `root`; without one `map.get` and `node.expand` answer `not-ready`. */
 	session: MapSession | null;
-	/** Runs the legacy relay's CLI; the session's naming shares it, and with it the slots */
+	/** The session's naming runs here; `close` waits for its process trees */
 	runner: CliRunner;
 	server: { name: string; version: string };
 	log?: (msg: string) => void;
 }
 
-/**
- * The relay the app's Bridge AI track uses (`bridgeService.ts` sends `chat`). It predates the
- * RPC of ADR-24 and stays until the viewer moves to `map.get` and `node.expand` (T2-5). Its
- * runs take the naming's flags, slots, per-connection cap and cancellation on close.
- */
-const LEGACY_TYPES = new Set(['analyze', 'chat', 'status', 'ping']);
-
-interface LegacyMessage {
-	id?: number;
-	type: 'analyze' | 'chat' | 'status' | 'ping';
-	payload?: unknown;
-	message?: string;
-	cli?: unknown;
+/** The answer to a message the parser refused; its type may be one the schema does not know. */
+interface BadRequest {
+	id: number;
+	type: string;
+	code: 'bad-request';
+	error: string;
 }
 
 /** The id and type of a message the parser refused, echoed so the client can match the error. */
@@ -76,15 +64,6 @@ function echo(text: string): { id: number; type: string } {
 	}
 }
 
-function legacyMessage(text: string): LegacyMessage | null {
-	try {
-		const o = JSON.parse(text) as LegacyMessage;
-		return typeof o === 'object' && o !== null && LEGACY_TYPES.has(o.type) ? o : null;
-	} catch {
-		return null;
-	}
-}
-
 /**
  * One loopback port carries the WebSocket and, in local mode, the viewer's static files, so the
  * served page and the socket share an origin. The server is returned unbound; call `listen`.
@@ -95,7 +74,7 @@ export function createBridgeServer(options: BridgeOptions): {
 	/** Closes every socket and the server, and resolves once every CLI process tree is gone. */
 	close(): Promise<void>;
 } {
-	const { port, token, defaultCli, root, viewerDir, session, runner } = options;
+	const { port, token, root, viewerDir, session, runner } = options;
 	const log = options.log ?? (() => {});
 	const allowedOrigins = new Set(options.allowedOrigins);
 	if (viewerDir) for (const origin of localOrigins(port)) allowedOrigins.add(origin);
@@ -156,10 +135,7 @@ export function createBridgeServer(options: BridgeOptions): {
 		);
 
 		let readsInFlight = 0;
-		let legacyRuns = 0;
-		const closed = new AbortController();
-		const runsInFlight = () => legacyRuns + (session?.pendingFor(subscriber) ?? 0);
-		const send = (message: ServerMessage | Record<string, unknown>) => {
+		const send = (message: ServerMessage | BadRequest) => {
 			if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
 		};
 		const subscriber: Subscriber = { push: send };
@@ -185,7 +161,7 @@ export function createBridgeServer(options: BridgeOptions): {
 			'node.expand': (request) => {
 				if (!session) return notReady(request);
 				const { id, nodeId } = request;
-				if (runsInFlight() >= MAX_NAMINGS_IN_FLIGHT) {
+				if (session.pendingFor(subscriber) >= MAX_NAMINGS_IN_FLIGHT) {
 					send({
 						id,
 						type: 'node.expand',
@@ -248,32 +224,6 @@ export function createBridgeServer(options: BridgeOptions): {
 
 		ws.on('message', (raw) => {
 			const text = raw.toString();
-			const legacy = legacyMessage(text);
-			if (legacy) {
-				if (
-					(legacy.type === 'chat' || legacy.type === 'analyze') &&
-					runsInFlight() >= MAX_NAMINGS_IN_FLIGHT
-				) {
-					send({
-						id: legacy.id,
-						type: legacy.type,
-						error: `At most ${MAX_NAMINGS_IN_FLIGHT} CLI runs at a time per connection.`
-					});
-					return;
-				}
-				const run = handleLegacy(legacy, send, {
-					clients,
-					defaultCli,
-					runner,
-					signal: closed.signal,
-					log
-				});
-				if (run) {
-					legacyRuns++;
-					run.finally(() => legacyRuns--);
-				}
-				return;
-			}
 			const parsed = parseRpcRequest(text);
 			if (!parsed.ok) {
 				const { id, type } = echo(text);
@@ -289,7 +239,6 @@ export function createBridgeServer(options: BridgeOptions): {
 		ws.on('close', () => {
 			clients.delete(ws);
 			session?.leave(subscriber);
-			closed.abort();
 			log(`Client disconnected (${clients.size} remaining)`);
 		});
 
@@ -297,7 +246,6 @@ export function createBridgeServer(options: BridgeOptions): {
 			log(`Client error: ${err.message}`);
 			clients.delete(ws);
 			session?.leave(subscriber);
-			closed.abort();
 		});
 
 		send({ type: 'hello', schemaVersion: MAP_SCHEMA_VERSION, server: options.server });
@@ -311,76 +259,4 @@ export function createBridgeServer(options: BridgeOptions): {
 	};
 
 	return { server, clients, close };
-}
-
-/** Answers one legacy message; a CLI run returns its promise, which never rejects. */
-function handleLegacy(
-	msg: LegacyMessage,
-	send: (message: Record<string, unknown>) => void,
-	ctx: {
-		clients: Set<WebSocket>;
-		defaultCli: CLIType | null;
-		runner: CliRunner;
-		signal: AbortSignal;
-		log: (msg: string) => void;
-	}
-): Promise<void> | null {
-	const response: Record<string, unknown> = { id: msg.id, type: msg.type };
-	switch (msg.type) {
-		case 'ping':
-			send({ ...response, result: 'pong' });
-			return null;
-		case 'status':
-			send({
-				...response,
-				result: JSON.stringify({
-					clients: ctx.clients.size,
-					uptime: process.uptime(),
-					cli: ctx.defaultCli
-				})
-			});
-			return null;
-		case 'analyze':
-		case 'chat': {
-			const prompt =
-				msg.message ||
-				(typeof msg.payload === 'string' ? msg.payload : JSON.stringify(msg.payload));
-			if (msg.cli !== undefined && !isCLIType(msg.cli)) {
-				send({ ...response, error: `Unknown CLI: ${String(msg.cli)}. Use 'claude' or 'gemini'.` });
-				return null;
-			}
-			const cliToUse = msg.cli || ctx.defaultCli;
-			if (!cliToUse) {
-				send({
-					...response,
-					error: 'No CLI tool available. Install Claude Code or Gemini CLI, or specify --cli flag.'
-				});
-				return null;
-			}
-			const startTime = Date.now();
-			ctx.log(
-				`Running ${cliToUse} CLI for [${msg.type}] id=${msg.id ?? '-'} (prompt: ${prompt.length} chars)`
-			);
-			const { args, stdin } = headlessCommand(cliToUse, prompt, 'text');
-			return ctx.runner
-				.run({
-					command: cliToUse,
-					args,
-					stdin,
-					timeoutMs: LEGACY_TIMEOUT_MS,
-					maxOutputBytes: LEGACY_MAX_OUTPUT_BYTES,
-					signal: ctx.signal
-				})
-				.then((result) => {
-					const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-					ctx.log(`CLI done id=${msg.id ?? '-'} (${elapsed}s, response: ${result.length} chars)`);
-					send({ ...response, result });
-				})
-				.catch((err: Error) => {
-					const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-					ctx.log(`CLI failed id=${msg.id ?? '-'} (${elapsed}s): ${err.message}`);
-					send({ ...response, error: err.message });
-				});
-		}
-	}
 }

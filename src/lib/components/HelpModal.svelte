@@ -96,13 +96,6 @@
 							</div>
 							<div class="ai-mode-card">
 								<div class="ai-mode-header">
-									<span class="ai-mode-dot" style="background: var(--track-bridge)"></span>
-									<span class="ai-mode-name">{i18nStore.t('help.aiModeBridge')}</span>
-								</div>
-								<p class="ai-mode-desc">{i18nStore.t('help.aiModeBridgeDesc')}</p>
-							</div>
-							<div class="ai-mode-card">
-								<div class="ai-mode-header">
 									<span class="ai-mode-dot" style="background: var(--track-webgpu)"></span>
 									<span class="ai-mode-name">{i18nStore.t('help.aiModeWebgpu')}</span>
 								</div>

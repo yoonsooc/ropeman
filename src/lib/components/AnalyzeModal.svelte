@@ -4,7 +4,6 @@
 	import { authStore } from '$lib/stores/authStore.svelte';
 	import { webgpuStore } from '$lib/stores/webgpuStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
-	import { connectBridge, disconnectBridge } from '$lib/services/bridgeService';
 	import { testApiKey } from '$lib/services/apiKeyValidator';
 	import { modelCatalogStore } from '$lib/stores/modelCatalogStore.svelte';
 	import { untrack } from 'svelte';
@@ -25,8 +24,8 @@
 	import { focusTrap } from '$lib/utils/focusTrap';
 
 	const breakpoint = useBreakpoint();
-	// M4: Bridge needs a local CLI server; WebGPU needs gigabytes of RAM and
-	// stable power — neither is viable on phones. Disable on compact viewports.
+	// M4: WebGPU needs gigabytes of RAM and stable power, which phones lack.
+	// Disable it on compact viewports.
 	const isCompact = $derived(breakpoint.isMobile || breakpoint.isTablet);
 
 	// Check if the selected model is cached on mount
@@ -43,10 +42,10 @@
 	}: {
 		open: boolean;
 		onclose: () => void;
-		onanalyze: (track: 'edge' | 'byok' | 'bridge' | 'webgpu') => void;
+		onanalyze: (track: 'edge' | 'byok' | 'webgpu') => void;
 	} = $props();
 
-	type CardId = 'edge' | 'byok' | 'bridge' | 'webgpu';
+	type CardId = 'edge' | 'byok' | 'webgpu';
 	let expandedCard = $state<CardId | null>(null);
 	let showWebGPUSetup = $state(false);
 	let showPreview = $state(false);
@@ -57,9 +56,6 @@
 	let selectedModel = $state(settingsStore.aiModel);
 	let testStatus = $state<'idle' | 'testing' | 'success' | 'error'>('idle');
 	let testError = $state('');
-
-	// Bridge state
-	let bridgePort = $state(authStore.bridgePort);
 
 	const currentProvider = $derived(getProvider(selectedProvider));
 	const providerModels = $derived(modelCatalogStore.modelsFor(selectedProvider));
@@ -90,8 +86,6 @@
 	const trackInfo = $derived.by(() => {
 		const t = authStore.activeTrack;
 		switch (t) {
-			case 'bridge':
-				return { label: i18nStore.t('track.bridge'), color: 'var(--track-bridge)' };
 			case 'edge':
 				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)' };
 			case 'webgpu':
@@ -109,7 +103,6 @@
 			selectedProvider = settingsStore.aiProvider;
 			selectedModel = settingsStore.aiModel;
 			testStatus = 'idle';
-			bridgePort = authStore.bridgePort;
 			// A key saved in an earlier visit: refresh that provider's model list
 			untrack(() => void modelCatalogStore.load(selectedProvider, apiKeyValue));
 			expandedCard = null;
@@ -117,11 +110,11 @@
 		prevOpen = open;
 	});
 
-	// Reset expanded card if it becomes a disabled mobile-only track (Bridge / WebGPU)
+	// Reset expanded card if it becomes the disabled mobile-only track (WebGPU)
 	// after a viewport resize — keeps the UI from re-expanding when the user returns
 	// to desktop with stale state.
 	$effect(() => {
-		if (isCompact && (expandedCard === 'bridge' || expandedCard === 'webgpu')) {
+		if (isCompact && expandedCard === 'webgpu') {
 			expandedCard = null;
 		}
 	});
@@ -167,14 +160,6 @@
 		testError = result.error ?? '';
 		// Also on failure: a retired model fails the test even with a valid key
 		void modelCatalogStore.load(provider, key);
-	}
-
-	async function handleBridgeConnect() {
-		try {
-			await connectBridge(bridgePort, settingsStore.bridgeToken);
-		} catch {
-			/* handled by authStore */
-		}
 	}
 
 	function switchTrack(track: CardId) {
@@ -388,113 +373,6 @@
 									onclick={() => startAnalysis('byok')}
 								>
 									{i18nStore.t('analyze.startWithApiKey')}
-								</button>
-							{/if}
-						</div>
-					{/if}
-				</div>
-
-				<!-- Bridge -->
-				<div
-					class="track-card"
-					class:active={authStore.activeTrack === 'bridge'}
-					class:disabled={isCompact}
-				>
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="track-row" onclick={() => !isCompact && toggleCard('bridge')}>
-						<span class="track-icon"><span class="material-symbols-outlined">link</span></span>
-						<div class="track-info">
-							<span class="track-name">{i18nStore.t('track.bridge')}</span>
-							<span class="track-sub">
-								{#if isCompact}
-									{i18nStore.t('analyze.bridgeDesktopOnly')}
-								{:else if authStore.bridgeStatus === 'connected'}
-									{i18nStore.t('analyze.connected')}
-								{:else}
-									{i18nStore.t('analyze.disconnected')}
-								{/if}
-							</span>
-						</div>
-						{#if authStore.activeTrack === 'bridge'}
-							<span class="badge badge-accent">{i18nStore.t('analyze.active')}</span>
-						{/if}
-						{#if !isCompact}
-							<span class="expand-arrow" class:expanded={expandedCard === 'bridge'}>&#9656;</span>
-						{/if}
-					</div>
-					{#if expandedCard === 'bridge' && !isCompact}
-						<div class="track-config">
-							<label class="form-label" for="analyze-cli-select"
-								>{i18nStore.t('analyze.cliTool')}</label
-							>
-							<select
-								id="analyze-cli-select"
-								class="select"
-								value={settingsStore.bridgeCli}
-								onchange={(e) =>
-									(settingsStore.bridgeCli = (e.target as HTMLSelectElement).value as
-										| 'claude'
-										| 'gemini'
-										| 'auto')}
-							>
-								<option value="auto">{i18nStore.t('analyze.cliAuto')}</option>
-								<option value="claude">Claude Code</option>
-								<option value="gemini">Gemini CLI</option>
-							</select>
-							<label class="form-label" for="analyze-bridge-port"
-								>{i18nStore.t('analyze.port')}</label
-							>
-							<div class="form-row">
-								<input
-									id="analyze-bridge-port"
-									type="number"
-									class="input"
-									value={bridgePort}
-									oninput={(e) =>
-										(bridgePort = parseInt((e.target as HTMLInputElement).value) || 9800)}
-								/>
-								{#if authStore.bridgeStatus === 'connected'}
-									<button class="btn btn-danger" onclick={disconnectBridge}
-										>{i18nStore.t('analyze.disconnect')}</button
-									>
-								{:else}
-									<button
-										class="btn btn-primary"
-										onclick={handleBridgeConnect}
-										disabled={authStore.bridgeStatus === 'connecting'}
-									>
-										{authStore.bridgeStatus === 'connecting'
-											? '...'
-											: i18nStore.t('analyze.connect')}
-									</button>
-								{/if}
-							</div>
-							<label class="form-label" for="analyze-bridge-token"
-								>{i18nStore.t('analyze.token')}</label
-							>
-							<input
-								id="analyze-bridge-token"
-								type="password"
-								class="input"
-								autocomplete="off"
-								spellcheck="false"
-								placeholder={i18nStore.t('analyze.tokenPlaceholder')}
-								value={settingsStore.bridgeToken}
-								oninput={(e) => (settingsStore.bridgeToken = (e.target as HTMLInputElement).value)}
-							/>
-							<div class="cfg-command">
-								<code
-									>npx @ropeman/bridge --port {bridgePort}{settingsStore.bridgeCli !== 'auto'
-										? ' --cli ' + settingsStore.bridgeCli
-										: ''}</code
-								>
-							</div>
-							{#if authStore.bridgeStatus === 'connected'}
-								<button
-									class="btn btn-primary start-btn wide"
-									onclick={() => startAnalysis('bridge')}
-								>
-									{i18nStore.t('analyze.startWithBridge')}
 								</button>
 							{/if}
 						</div>
@@ -781,18 +659,6 @@
 	.cfg-status.error {
 		color: var(--color-text-error);
 	}
-	.cfg-command {
-		padding: var(--spacing-1-5) var(--spacing-2);
-		background: var(--color-background-body);
-		border: none;
-		border-radius: var(--radius-element);
-	}
-	.cfg-command code {
-		font-size: var(--font-size-sm);
-		color: var(--color-text-success);
-		font-family: 'SF Mono', 'Fira Code', monospace;
-	}
-
 	/* Preview */
 	.preview-section {
 		margin-top: var(--spacing-1);

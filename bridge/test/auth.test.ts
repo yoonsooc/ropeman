@@ -6,7 +6,6 @@ import {
 	DEFAULT_ALLOWED_ORIGINS,
 	MIN_TOKEN_LENGTH,
 	TOKEN_ENV,
-	isCLIType,
 	isOriginAllowed,
 	parseAllowedOrigins,
 	resolveToken,
@@ -70,16 +69,6 @@ describe('bridge auth', () => {
 			expect(tokenFromRequestUrl('/?token=tok%2F%2B%3Den')).toBe('tok/+=en');
 			expect(tokenFromRequestUrl('/')).toBeNull();
 			expect(tokenFromRequestUrl(undefined)).toBeNull();
-		});
-	});
-
-	describe('isCLIType', () => {
-		it('accepts only the supported CLIs', () => {
-			// Regression: the client-chosen `cli` used to go straight into spawn()
-			expect(isCLIType('claude')).toBe(true);
-			expect(isCLIType('gemini')).toBe(true);
-			expect(isCLIType('rm')).toBe(false);
-			expect(isCLIType(undefined)).toBe(false);
 		});
 	});
 

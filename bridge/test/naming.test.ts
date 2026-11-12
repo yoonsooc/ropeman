@@ -200,7 +200,7 @@ describe('nameLevel', () => {
 
 describe('headlessCommand', () => {
 	it('turns off what each CLI lets the bridge turn off', () => {
-		expect(headlessCommand('claude', 'hi', 'json')).toEqual({
+		expect(headlessCommand('claude', 'hi')).toEqual({
 			args: [
 				'-p',
 				'--output-format',
@@ -212,8 +212,7 @@ describe('headlessCommand', () => {
 			],
 			stdin: 'hi'
 		});
-		expect(headlessCommand('claude', 'hi', 'text').args).not.toContain('--output-format');
-		expect(headlessCommand('gemini', 'hi', 'text')).toEqual({
+		expect(headlessCommand('gemini', 'hi')).toEqual({
 			args: [
 				'-p',
 				'hi',

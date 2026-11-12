@@ -149,7 +149,6 @@ describe('bridge server', () => {
 			port,
 			token: TOKEN,
 			allowedOrigins: parseAllowedOrigins([]),
-			defaultCli: null,
 			root: null,
 			viewerDir: null,
 			session: null,
@@ -341,26 +340,16 @@ describe('bridge server', () => {
 			expect(reply.code).toBe('no-root');
 		});
 
-		it.skipIf(process.platform === 'win32')('relays chat to the CLI over stdin', async () => {
-			// Arrange: a stand-in `claude` that echoes the prompt it reads from stdin
-			const bin = path.join(base, 'bin');
-			fs.mkdirSync(bin, { recursive: true });
-			fs.writeFileSync(path.join(bin, 'claude'), '#!/bin/sh\nprintf "got:"\ncat\n', {
-				mode: 0o755
-			});
-			const savedPath = process.env.PATH;
-			process.env.PATH = `${bin}${path.delimiter}${savedPath}`;
-			try {
-				const port = await start({ defaultCli: 'claude' });
+		it('answers the removed chat relay as a bad request', async () => {
+			// Arrange
+			const port = await start();
 
-				// Act
-				const reply = await request(port, { type: 'chat', message: 'explain main.ts' });
+			// Act
+			const reply = await request(port, { type: 'chat', message: 'explain main.ts' });
 
-				// Assert
-				expect(reply.result).toBe('got:explain main.ts');
-			} finally {
-				process.env.PATH = savedPath;
-			}
+			// Assert
+			expect(reply.code).toBe('bad-request');
+			expect(reply.result).toBeUndefined();
 		});
 	});
 });

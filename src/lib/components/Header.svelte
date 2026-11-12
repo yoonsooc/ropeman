@@ -38,12 +38,6 @@
 	const trackInfo = $derived.by(() => {
 		const track = authStore.activeTrack;
 		switch (track) {
-			case 'bridge':
-				return {
-					label: i18nStore.t('track.bridgeShort'),
-					color: 'var(--track-bridge)',
-					icon: '🔗'
-				};
 			case 'edge':
 				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)', icon: '⚡' };
 			case 'webgpu':

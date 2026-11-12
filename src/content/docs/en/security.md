@@ -28,13 +28,13 @@ When you start an analysis, this is the pipeline:
 | **Demo**                        | Ropeman demo Worker, then the Google Gemini API                     | Yes                     |
 | **API Key** (Gemini)            | Google Gemini API, straight from your browser                       | No                      |
 | **API Key** (Anthropic, OpenAI) | Ropeman proxy Worker, then Cloudflare AI Gateway, then the provider | Yes                     |
-| **Local Bridge**                | Bridge on `127.0.0.1`, then your CLI, then its provider             | No                      |
 | **WebGPU**                      | Nowhere. Inference runs in the browser                              | No                      |
 
 - **Demo** requests go to Ropeman's demo Worker, which calls the Gemini free tier with Ropeman's own key. It counts requests per IP address in memory to enforce the rate limit and does not store the summary or the response.
 - **API Key** requests with a Gemini key go from your browser to Google, with the key in the request URL. Because of browser restrictions, Anthropic and OpenAI requests go to Ropeman's proxy Worker, which passes them through Cloudflare AI Gateway to the provider. The proxy does not store the summary, the response or your key. When the provider returns an error, the proxy logs that error response.
-- **Local Bridge** mode talks only to `127.0.0.1`. The bridge hands the summary to your Claude Code or Gemini CLI, which makes the provider call with its own login. See [Bridge Setup](/docs/en/bridge-setup).
 - **WebGPU** mode needs the network only to download the model. After that, analysis runs offline.
+
+Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge) is separate from these modes. In Bridge mode, `ropeman serve` on your machine sends your own Claude Code or Gemini CLI the file paths, declared symbol names, and file and import counts of the folder you open. It never sends file contents. The CLI calls its provider with its own login, and Ropeman's servers are not on that path. See [Bridge Setup](/docs/en/bridge-setup).
 
 ## API Key Handling
 
@@ -46,7 +46,7 @@ When you use **API Key (BYOK)** mode:
 - An Anthropic or OpenAI key travels with each request to Ropeman's proxy, which puts it in the provider's auth header for that one request and keeps nothing.
 - You can wipe all keys at any time with **Settings → Reset**.
 
-For the strictest setup, use **Local Bridge**, where the CLI handles its own login and you enter no key, or **WebGPU**, which calls no provider.
+For the strictest setup, use **WebGPU**, which calls no provider.
 
 ## What Is Cached Locally
 

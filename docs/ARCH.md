@@ -48,6 +48,7 @@ src/
 │   │   ├── ropemanMapSchema.ts       # `ropeman.json`과 Bridge RPC 메시지를 믿지 않는 입력으로 파싱 (크기, JSON, 형식, 버전, 구조, 단계 트리)
 │   │   ├── mapViewer.ts              # 파싱한 ropeman.json을 시맨틱 스토어가 캐시하는 단계 모양으로 펼친다
 │   │   ├── bridgeClient.ts           # ropeman serve RPC 클라이언트: hello 확인, id로 응답 맞추기, 푸시 전달
+│   │   ├── bridgeAccess.ts           # 연결 안내: loopback-network 권한, 포트 확인, 실패 원인과 안내 상태
 │   │   ├── bridgeSession.ts          # Bridge 토큰을 다시 고침 너머로 남길지: 루프백 로컬 모드만 sessionStorage, ropeman.dev는 메모리
 │   │   ├── mapVerifier.ts            # 지도 검증기 (A-12): 배정 불변식, 경로 실재, 관계 근거를 코드 지도와 대조해 위반을 모두 돌려준다
 │   │   ├── coverageService.ts        # 파일마다 분석에서의 행방(보냄, 안 보냄, 잘림, 건너뜀, 못 읽음)과 단계별 배정 수
@@ -57,7 +58,6 @@ src/
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
 │   │   ├── parserService.ts          # Web Worker 통신 (parseFile → { symbols, refs }, parseAllFiles → { astMap, refs, skipped }). 순서와 한도는 sourceExtraction
-│   │   ├── bridgeService.ts          # 로컬 Bridge WebSocket 연결
 │   │   ├── webllmService.ts          # WebLLM Worker 래퍼
 │   │   ├── cacheService.ts           # IndexedDB 채팅 캐시 (Orama)
 │   │   ├── semanticCacheService.ts   # Cache API 시맨틱 분석 응답 캐시 (요청 해시 키)
@@ -138,7 +138,7 @@ edge-proxy/                       # Cloudflare Workers
 bridge/                           # 로컬 Bridge와 `ropeman serve` (`@ropeman/bridge`, npm 패키지)
 ├── src/
 │   ├── server.ts                     # CLI 진입점(`ropeman serve`, `ropeman-bridge`): 플래그 해석, CLI 감지, 토큰, 지도 세션, listen
-│   ├── bridge.ts                     # 한 포트에 HTTP(로컬 모드 정적 서빙)와 WebSocket. 들어온 메시지는 `parseRpcRequest`를 거쳐 RPC 처리, 옛 `chat` 중계는 따로
+│   ├── bridge.ts                     # 한 포트에 HTTP(로컬 모드 정적 서빙)와 WebSocket. 들어온 메시지는 모두 `parseRpcRequest`를 거쳐 RPC 처리
 │   ├── mapSession.ts                 # `--root` 하나의 지도: 추출, `map.get`·`node.expand` 답, 이름 붙이기 작업, 파일 변경 감시 → `map.changed`
 │   ├── naming.ts                     # 이름 붙이기: 프롬프트(구조만), 답 읽기, 이름 입히기, 검증 실패 시 한 번 재시도
 │   ├── cli.ts                        # CLI 실행(argv만, 셸 없음): 시간·출력 상한, 취소, 감지
@@ -333,17 +333,17 @@ file.read(path)    → #72 그대로 (루트 안, 실제 .env 거부, 500KB, 연
 ```
 
 - 노드 id: `dir:<폴더>`는 하위 폴더, `files:<폴더>`(루트는 `files:.`)는 그 폴더에 바로 든 파일들이다. 단계는 id만으로 다시 만들 수 있어서 다시 추출해도 같은 폴더는 같은 id다. 펼칠 수 있는 것은 `dir:` 노드뿐이고 `files:` 노드는 `unknown-node`로 답한다(파일은 `file.read`로 연다). 관계는 계층 요약의 폴더 사이 import이고 근거 ref는 그 import 줄이다(`packages/core/src/groupedMap.ts`). `files`(커버리지)는 지도의 파일을 `sent`, 건너뛴 파일을 그 이유로 적는다.
-- 메시지 처리: 들어온 텍스트는 모두 `parseRpcRequest`가 먼저 읽는다. 거부되면 같은 id와 type(읽을 수 있으면)으로 `code: "bad-request"`를 돌려주고 연결은 유지한다. 모르는 type, JSON이 아닌 텍스트, 필드가 빠진 요청이 다 이렇다. 연결마다 첫 메시지는 `hello`(스키마 버전과 서버 이름·버전)다. 옛 `status: connected` 인사는 없앴다(앱은 그것을 읽지 않았다). 예외: 앱의 Bridge AI 트랙(`bridgeService.ts`)이 보내는 `chat`과 `analyze`·`ping`·`status`는 ADR-24 이전의 중계라 RPC 파서를 거치지 않는다. 다만 `chat`·`analyze`의 CLI 실행은 이름 작업과 같은 규칙을 따른다. 같은 플래그(`claude`는 `--output-format json`만 빼고 같다), 같은 빈 작업 폴더, 서버 전체 동시 2개 슬롯을 같이 쓰고, 연결마다 기다리는 4개 상한도 이름 작업과 합쳐 센다(넘으면 `error`로 답한다). 연결이 닫히면 그 연결의 중계 실행을 멈추고, 한 번에 120초, 출력 1MB를 넘으면 멈춘다. 앱의 프롬프트는 필요한 코드 맥락을 문자열로 담아 보내고, 같은 프롬프트를 도구가 없는 BYOK API에도 보내므로 도구를 꺼도 답이 달라질 이유가 없다(코드로 확인, 실제 모델 호출로는 재지 않음). **T2-5가 뷰어를 RPC로 옮길 때 이 중계(`bridge.ts`의 `LEGACY_TYPES`·`handleLegacy`)를 지운다.**
+- 메시지 처리: 들어온 텍스트는 모두 `parseRpcRequest`가 먼저 읽는다. 거부되면 같은 id와 type(읽을 수 있으면)으로 `code: "bad-request"`를 돌려주고 연결은 유지한다. 모르는 type, JSON이 아닌 텍스트, 필드가 빠진 요청이 다 이렇다. 연결마다 첫 메시지는 `hello`(스키마 버전과 서버 이름·버전)다. 옛 `status: connected` 인사는 없앴다(앱은 그것을 읽지 않았다). ADR-24 이전의 중계(`chat`, `analyze`, `ping`, `status`)는 T2-5에서 앱의 Bridge AI 트랙과 함께 지웠다. 이제 그 메시지도 다른 모르는 type처럼 `bad-request`로 답한다. 클라이언트가 고른 프롬프트로 CLI를 돌리는 길은 이제 없고, CLI에 가는 프롬프트는 모두 서버가 지도에서 만든다.
 - CLI에 보내는 것(그대로): 영어 지시문, 프로젝트 이름(`--root` 폴더 이름), 펼친 폴더 경로, 그리고 부분마다 id, 종류(하위 폴더 또는 바로 든 파일), 파일 수, 파일 경로 최대 12개, 선언한 최상위 심볼 최대 24개(`function add`처럼 종류와 이름. 종류는 function·class·interface·type·variable·service·target·job·resource만), 부분 사이 import 수. 재시도면 지난 답이 거부된 이유(검증기 문장, 최대 20개)가 더해진다. 파일 내용은 한 줄도 보내지 않는다. 실제 값이 든 `.env`는 코드 지도에 없고, 프롬프트를 만들 때 한 번 더 걸러 이름도 나가지 않는다. 설정 파일의 `command`·`key`처럼 값을 담을 수 있는 심볼 종류는 뺐다. 프롬프트는 100,000바이트를 넘지 않는다(넘으면 표본을 반씩 줄인다. Linux가 argv 문자열 하나를 128KiB로 자르므로 `gemini -p <프롬프트>`도 들어간다). 부분이 80개를 넘는 단계는 이름을 붙이지 않고 `naming-failed`로 알린다.
 - CLI 실행: `spawn(cli, argv)`이고 셸 문자열을 만들지 않는다. CLI 감지도 `execFile(cli, ['--version'])`이다. argv는 `cli.ts`의 `headlessCommand` 한 곳에서 만든다. `claude`는 `-p --output-format json --no-session-persistence --strict-mcp-config --tools ""`(도구·MCP 서버 없음, 세션 저장 안 함)로 돌리고 프롬프트는 stdin으로 준다. JSON 출력에서 답과 토큰 수를 읽는다. `gemini`는 `-p <프롬프트> --approval-mode default --allowed-mcp-server-names ropeman-none -e none`이고 토큰 수가 없다. gemini 0.33에는 도구를 모두 끄는 플래그가 없다(`gemini --help`와 설치된 소스 `dist/src/config/config.js`로 확인). `--approval-mode default`는 사용자 설정이 yolo여도 덮어써서, 헤드리스 모드에서 셸·편집·쓰기·웹 가져오기 도구를 뺀다. 아무도 쓰지 않는 MCP 서버 이름만 허용해 사용자의 MCP 서버를 하나도 띄우지 않고, `-e none`으로 확장을 끈다. 읽기·검색 도구(`read_file`, `glob`, `grep_search` 등)는 남는데, 이 도구들은 작업 폴더(빈 임시 폴더) 안만 본다. 이 한계 때문에 gemini가 쓴 이름도 검증기를 통과해야만 보낸다는 점이 마지막 방어선이다. 플래그가 파싱되는지는 인증 없는 환경에서 실행해 인증 단계까지 가는지(종료 코드 41, 모르는 플래그면 1)로 확인했고 모델은 부르지 않았다. 작업 폴더는 시작할 때 만든 빈 임시 폴더라, 파일을 읽는 CLI라도 프로젝트 밖에서 시작한다. 한 번에 180초, 출력 1MB를 넘으면 멈춘다.
 - 프로세스 트리 종료: CLI가 셸 래퍼나 npm 심이면 실제 CLI는 손자 프로세스다. POSIX에서는 CLI를 `detached`로 띄워 자기 프로세스 그룹의 리더로 만들고, 멈출 때 그룹 전체에 SIGTERM, 2초 뒤 SIGKILL을 보낸다(`process.kill(-pid)`). 취소(기다리는 연결이 모두 닫힘), 시간 초과, 출력 초과, 서버 종료가 모두 이 길을 탄다. 자식이 stdio를 놓고 SIGTERM을 무시해도 그룹에 누가 남아 있으면 SIGKILL 타이머를 유지한다. Windows에서는 `taskkill /pid <pid> /T /F`로 트리를 한 번에 끝낸다. 이 Windows 경로는 실행해 보지 않았다. 그룹이 터미널의 포그라운드 그룹에서 빠지므로 Ctrl-C(SIGINT)와 터미널 닫힘(SIGHUP)은 서버의 종료 처리만 CLI에 전한다. 서버가 예외로 죽는 경우를 위해 `process.on('exit')`에서 남은 그룹에 SIGKILL을 동기로 보낸다.
 - 서버 종료: SIGINT·SIGTERM·SIGHUP을 받으면 소켓을 닫고 모든 CLI 실행(대기 포함)을 취소한 뒤, 모든 프로세스 그룹이 사라질 때까지 기다리고(SIGTERM을 무시하는 트리는 2초 뒤 SIGKILL) 서버가 닫히면 끝낸다. 무엇이 걸려도 5초 뒤에는 끝낸다(`createBridgeServer().close()`, `server.ts`의 `shutdown`).
 - 검증과 재시도: 답(JSON 객체 하나, 코드 펜스나 앞뒤 문장은 벗겨 읽는다)의 이름을 grouped 단계의 파일·관계 위에 입힌 `named` 단계를 만들고, 최상위부터 그 단계까지 이은 지도를 `verifyMap`에 넣는다. 위반이 없을 때만 보낸다. 답이 JSON이 아니거나, 없는 id를 지어내거나(`node-empty`), 부분을 빠뜨리거나(`file-unassigned`), 그 부분 파일에 없는 심볼을 적으면(`key-symbol-unknown`) 그 이유를 붙여 한 번 더 묻는다. 두 번 다 실패하면 폴더 이름을 그대로 두고 `verification-failed`와 이유를 보낸다. CLI가 없거나(`no-cli`), 실패·시간 초과면(`naming-failed`) 다시 묻지 않는다. `named` 단계의 배정 수는 모두 0이다. 파일을 LLM이 나누지 않으므로 빠뜨린·중복·지어낸 파일이 생길 수 없다.
 - 이름 보관: 노드마다 마지막으로 통과한 이름을 서버 메모리에 둔다. 파일이 바뀌어 다시 추출하면 새 지도에서 다시 검증하고, 통과하면 그대로 쓴다. 새 하위 폴더가 생기거나 핵심 심볼이 사라져 통과하지 못하면 버리고, 다음 `node.expand`가 다시 묻는다. 디스크에는 쓰지 않는다.
-- 상한과 취소: CLI 실행은 서버 전체에서 동시에 2개(`CliRunner`의 슬롯, 이름 작업과 옛 중계가 같이 쓴다), 연결마다 기다리는 것 4개까지다(넘으면 `node.expand`가 `busy`). 이름 작업 하나가 재시도하면 두 번째 실행도 슬롯을 다시 기다린다. 두 연결이 같은 노드를 펼치면 CLI는 한 번 돌고 둘 다 푸시를 받는다. 기다리는 연결이 모두 닫히면 대기열에서 빼거나 CLI를 멈추고, 아무것도 보내지 않는다. 메시지 크기는 `MAX_MAP_BYTES`(16MiB)다.
+- 상한과 취소: CLI 실행은 서버 전체에서 동시에 2개(`CliRunner`의 슬롯), 연결마다 기다리는 것 4개까지다(넘으면 `node.expand`가 `busy`). 이름 작업 하나가 재시도하면 두 번째 실행도 슬롯을 다시 기다린다. 두 연결이 같은 노드를 펼치면 CLI는 한 번 돌고 둘 다 푸시를 받는다. 기다리는 연결이 모두 닫히면 대기열에서 빼거나 CLI를 멈추고, 아무것도 보내지 않는다. 메시지 크기는 `MAX_MAP_BYTES`(16MiB)다.
 - 파일 감시: Node 내장 `fs.watch`를 추출이 순회한 폴더마다 하나씩(비재귀) 건다. 순회가 이미 건너뛰기 규칙을 적용했으므로 `node_modules`와 숨은 폴더는 처음부터 감시하지 않는다. 재귀 감시(`recursive: true`)는 Linux에서 `node_modules`까지 모든 하위 폴더에 inotify 감시를 걸어서 쓰지 않았다. 폴더마다 거는 방식은 macOS, Linux, Windows에서 같게 동작한다. 이벤트 경로도 같은 규칙(`shouldSkipPath`, 실제 `.env`)으로 거른다. 마지막 이벤트 뒤 300ms 조용하면 전체를 다시 추출하고 그동안 모인 경로를 `map.changed`로 보낸다. 추출 중에 온 이벤트는 끝난 뒤 한 번 더 추출한다. 새로 생긴 폴더는 그 추출이 순회한 뒤부터 감시한다. 감시 라이브러리(chokidar 등)는 넣지 않았다. 폴더마다 감시를 거는 데 필요한 것이 `fs.watch`에 다 있고, 건너뛰기 규칙은 순회와 같은 코드를 써야 해서 라이브러리의 무시 규칙이 이점이 없다.
 - 번들: `bridge/vite.config.ts`가 `server.ts`부터 코어(`packages/core`), 파서, 검증기, `web-tree-sitter`까지 ES 모듈 하나(`dist/server.mjs`, 약 340KB)로 묶고 `$lib` 별칭을 푼다. 문법 `.wasm` 20개는 `dist/wasm/`에 복사한다. 런타임 의존성은 `ws` 하나다. `npm pack`이 `prepack`으로 빌드한다. 타입 검사는 `npm run check:bridge`(`npm ci --prefix bridge` 뒤, `@types/ws`가 거기 있다). 패키지 0.3.0은 아직 npm에 올리지 않았다(배포는 사용자 승인).
-- 검증: `bridge/test/serve.test.ts`가 임시 프로젝트에 `serve`를 띄우고 WebSocket으로 `map.get → node.expand → node.named → file.read → 파일 수정 → map.changed`를 돈다. 받은 메시지는 모두 뷰어의 `parseServerMessage`로 읽고, `map.get` 결과는 새로 추출한 코드 지도로 `verifyMap`해 위반 0을 본다. 가짜 CLI(`test/fixtures/fake-cli.mjs`)가 계획대로 답해서 재시도, 두 번 실패, CLI 오류, 시간 초과, 두 연결의 작업 공유, `busy`, `no-cli`, 잘못된 메시지를 본다. 손자 프로세스를 띄우는 가짜 CLI로 연결이 닫힐 때, 시간 초과 때, 서버 종료 때 손자까지 사라지는지 보고, 서버 종료는 SIGTERM을 무시하는 트리의 SIGKILL까지 기다린 뒤에 끝나는지 본다. 옛 `chat` 중계도 같은 플래그·작업 폴더·슬롯·연결 상한·닫힘 취소를 따르는지 본다. 가짜 CLI가 받은 stdin에는 파일 경로와 심볼 이름이 있고, 함수 본문 문자열과 `.env` 값과 `.env` 이름은 없다. CI는 번들을 빌드해 `scripts/smoke.mjs`로 픽스처 한 바퀴를 돈다.
+- 검증: `bridge/test/serve.test.ts`가 임시 프로젝트에 `serve`를 띄우고 WebSocket으로 `map.get → node.expand → node.named → file.read → 파일 수정 → map.changed`를 돈다. 받은 메시지는 모두 뷰어의 `parseServerMessage`로 읽고, `map.get` 결과는 새로 추출한 코드 지도로 `verifyMap`해 위반 0을 본다. 가짜 CLI(`test/fixtures/fake-cli.mjs`)가 계획대로 답해서 재시도, 두 번 실패, CLI 오류, 시간 초과, 두 연결의 작업 공유, `busy`, `no-cli`, 잘못된 메시지를 본다. 손자 프로세스를 띄우는 가짜 CLI로 연결이 닫힐 때, 시간 초과 때, 서버 종료 때 손자까지 사라지는지 보고, 서버 종료는 SIGTERM을 무시하는 트리의 SIGKILL까지 기다린 뒤에 끝나는지 본다. 가짜 CLI가 받은 stdin에는 파일 경로와 심볼 이름이 있고, 함수 본문 문자열과 `.env` 값과 `.env` 이름은 없다. CI는 번들을 빌드해 `scripts/smoke.mjs`로 픽스처 한 바퀴를 돈다.
 - PASEO 실측(`e0f545fed`, Apple M4, Node 26, 2026-11-13, `ROPEMAN_SERVE_DIR=<폴더> ROPEMAN_SERVE_NODE=<id> npx vitest run bridge/test/realCli.test.ts`, 실제 `claude -p` 2회): 첫 추출 7.1~7.7초(지도 6,171개). 추출이 끝난 뒤 `node.expand`의 grouped 답은 프로세스 안에서 1ms 이하, 소켓 너머(번들, 가짜 CLI)로 21ms다. `dir:packages`(부분 11개, 프롬프트 16,286바이트)는 이름이 15.7초 뒤에 왔고 토큰은 입력 11,281(캐시 포함), 출력 1,651이었다. `dir:packages/server`(부분 3개, 4,148바이트)는 5.3초, 입력 2 + 캐시 읽기 649 + 캐시 쓰기 5,690, 출력 336, $0.0528(CLI가 보고한 값, 사용자 기본 모델)이다. 두 번 다 첫 답이 검증을 통과했고, 그 지도를 새로 추출한 코드 지도로 다시 검증해도 위반 0이다. 이름이 오는 시간은 출력 토큰 수와 함께 늘어서(1,651개 15.7초, 336개 5.3초) 모델 생성이 대부분으로 본다(나눠 재지 않은 추정). 서버는 추출 뒤 쉬는 동안 CPU 0%, RSS 약 976MB이고, 다시 추출하는 동안에는 이전 지도를 들고 있어 그보다 커진다(재지 않음). 증분 갱신은 이 단계에 넣지 않았다(A-13 SQLite).
 
 ### 뷰어 Bridge 모드 (`/bridge`, T2-5)
@@ -360,14 +360,19 @@ map.changed    → 바뀐 경로의 revision을 올리고(열린 원문을 제�
 ```
 
 - 상태: `bridgeStore`가 연결(`idle`, `connecting`, `connected`, `failed`, `lost`)과 노드별 이름 상태(`pending`, `failed`)를 들고, 단계는 `semanticStore`에 둔다. 소켓은 `bridgeClient`의 `open` 인자로 바꿔 끼울 수 있어서 단위 테스트가 가짜 소켓으로 서버 쪽을 연기한다.
-- 연결 실패: 브라우저는 꺼진 포트, 틀린 토큰(401), 허용 안 된 Origin(403), 로컬 네트워크 차단을 모두 "메시지 없이 닫힘"으로만 알려 준다. 그래서 `closed` 하나로 받고, 화면은 확인할 셋(실행 중인지, 포트, 토큰)을 함께 보여 준다. 다른 major의 serve는 `newer-server`·`older-server`다.
+- 연결 실패와 안내 카드(`bridgeAccess.ts`, `BridgeAccessGuide.svelte`): 브라우저는 꺼진 포트, 틀린 토큰(401), 허용 안 된 Origin(403), 로컬 네트워크 차단을 모두 "메시지 없이 닫힘"으로만 알려 준다. 그래서 `bridgeClient`는 `closed` 하나로 받고, 페이지가 두 사실을 더 모아 원인을 가린다.
+  - `loopback-network` 권한: `permissions.query`로 읽고 `change` 이벤트로 따라간다. Chromium만 답하고, 거부된 질의(Firefox, Safari)는 `unknown`이지 `denied`가 아니다. 옛 이름 `local-network-access`는 질의하지 않는다(일부 Chrome에서 렌더러가 죽는다).
+  - 포트 확인: `http://127.0.0.1:<port>/`에 `no-cors` 요청을 보낸다. serve는 Host가 맞으면 어떤 요청에도 답하므로(로컬 모드가 아니면 426) 요청이 끝나면 무언가 듣고 있다는 뜻이다. 권한이 `granted`나 `unknown`일 때만 보낸다. `denied`면 같은 차단에 걸리고, `prompt`면 권한 창을 또 띄우기 때문이다.
+  - 원인(`ClosedCause`): `denied`(막힘), `unanswered`(권한이 아직 `prompt`, 창을 닫았거나 serve가 꺼짐), `serve-down`(권한 있음, 포트에 아무것도 없음), `unreachable`(권한을 모름, 응답 없음), `refused`(포트는 답함, 토큰이 틀렸을 가능성이 큼). 루프백 페이지(로컬 모드, 개발 서버)는 루프백으로 가는 요청이 막히지 않으므로 권한을 보지 않고 포트만 본다.
+  - 카드 상태(`accessState`): 연결 전에는 `unasked`·`granted`·`denied`·`unknown`(Firefox는 151부터 권한 창을 넣는다는 안내)·`safari`(혼합 콘텐츠로 막히므로 바로 로컬 모드 안내, "그래도 연결" 버튼), 연결 중 권한이 `prompt`면 `prompt-pending`(소켓이 CONNECTING으로 권한 창의 답을 기다린다. 400ms 뒤에 보여서 막히지 않는 브라우저에서는 번쩍이지 않는다), 실패 뒤에는 원인. `denied`는 브라우저별 권한 되돌리는 단계(Chrome·Edge는 사이트 설정 주소까지)와 로컬 모드 명령을 보여 준다. 브라우저 이름은 안내 문구에만 쓰고, 판단은 권한 상태와 실제 연결 결과로 한다(ADR-23).
+  - 실측(Chrome for Testing, 2026-11-13): 148 headless는 권한 없이 막히고 질의가 곧 `denied`가 되어 카드가 `denied`다. 148 창 모드는 권한 창이 열린 동안 `prompt-pending`이다. CDP `Browser.setPermission`으로 허락하면 148과 145 모두 연결되고, 포트 확인이 틀린 토큰(요청 끝남)과 꺼진 포트(요청 실패)를 가른다. 145는 `denied`여도 소켓을 막지 않는다. 그런 브라우저에서 serve가 꺼져 있으면 카드는 `serve-down` 대신 `denied`라고 말한다. 다른 major의 serve는 `newer-server`·`older-server`다.
 - 제자리 유지: `map.get`은 이름이 붙은 단계만 담는다. 그래서 `map.changed` 뒤에는 사용자의 드릴다운 경로를 위에서부터 다시 걷고, 새 지도에 없는 단계는 `node.expand`로 다시 받는다. 경로의 노드가 사라졌거나 serve가 `unknown-node`로 답하면 남아 있는 가장 깊은 단계에서 멈춘다. 다시 받기가 `busy`(연결당 이름 작업 상한)나 다른 오류로 끝나면 사용자가 보던 단계(폴더 묶음 그대로)와 이름 상태를 지키고, 이미 돌고 있는 이름 작업의 `node.named`가 오면 그대로 받는다. 선택한 노드도 같은 id로 다시 잡는다. 이름 붙이기가 실패한 폴더는 다시 받을 때 serve가 이름을 다시 묻는다(파일이 바뀐 뒤라 다시 묻는 편이 맞다고 봤다).
 - 펼치지 않는 노드: serve는 `files:` 노드(폴더에 바로 든 파일들)를 `unknown-node`로 답한다. 뷰어는 id 모양에 기대지 않고 이 답을 받으면 상세 패널에 그 노드의 파일 목록을 연다. 파일이 하나인 노드는 원래대로 바로 원문을 연다.
 - 앱 AI와 분리: `ZUICanvas`의 `onexpand`가 있으면 캐시에 없는 노드는 그 함수로 가고, 확인 창과 앱의 AI 분석, 다시 분석 버튼은 나오지 않는다.
 - 추론 관계: INFERRED 관계는 `semanticGraphBuilder`가 점선으로 그리고 범례에 뜻을 적는다(A-6). 검증기의 `unverified`(refs가 빈 INFERRED)는 지도만 보고도 알 수 있고, 이름으로만 맞춘 ref를 든 INFERRED도 점선이라, 뷰어는 코드 지도 없이 `evidence.confidence`로 정한다.
 - 로컬 모드: 페이지가 `http://127.0.0.1:<port>`나 `http://localhost:<port>`에서 열리고 주소에 `#token=`이 있으면 같은 호스트로 바로 붙는다. 토큰은 읽자마자 `history.replaceState`로 주소에서 지운다(SvelteKit의 `replaceState`는 라우터가 붙기 전인 첫 페이지 `onMount`에서 예외를 던진다). 다시 고침을 위해 토큰은 그 탭의 `sessionStorage`에 둔다. 페이지가 루프백에서 열렸고 소켓이 그 호스트로 갈 때만 그렇다(`bridgeSession.ts`). ropeman.dev는 Cloudflare 분석 비콘 같은 제3자 스크립트를 실어서 저장소에 둔 토큰을 읽힐 수 있다. 그래서 거기서 넣은 토큰은 메모리에만 두고, 다시 고치면 다시 넣는다(폼이 그렇게 안내한다).
 - 뷰어 번들: `npm run bundle:viewer`(`scripts/bundle-viewer.mjs`)가 `npm run build` 결과를 `bridge/dist/viewer/`로 복사한다. 브라우저에서 파싱하지 않으므로 tree-sitter `.wasm`과 Cloudflare 전용 파일은 빼고(약 7.5MB, 107개), 127.0.0.1에서 연 페이지는 다른 호스트로 요청을 하나도 보내지 않는다. 그래서 사이트의 Cloudflare 분석 비콘과 Google Fonts 링크를 HTML에서 지운다. 글꼴은 CSS 스택의 시스템 글꼴로 내려가고, 대체 글꼴이 없는 Material Symbols 아이콘은 리거처 이름(`arrow_back`)이 보이지 않게 숨긴다(Bridge 모드의 아이콘은 모두 글자 옆에 있다). 지운 뒤에도 `script`·`link`·`img` 같은 태그가 다른 호스트를 가리키거나 CSS가 원격 `url()`·`@import`를 쓰면 번들 단계가 실패한다(`rel=alternate`·`canonical`은 요청이 아니라 뺀다). 글꼴 파일을 번들에 직접 싣는 길은 저장소에 글꼴 파일도 패키지도 없어서 새 의존성이 되므로 택하지 않았다. `bridge`의 `prepack`이 앱 빌드, bridge 빌드, 번들 복사를 차례로 해서 패키지에 싣는다. `serve --local`이 이 번들을 서빙하고, 미리 렌더링한 경로는 `.html`을 붙여 찾는다(`/bridge` → `bridge.html`, Cloudflare Pages와 같다).
-- 검증: `bridgeClient.test.ts`(가짜 소켓, 11개), `bridgeStore.test.ts`(가짜 서버, 15개), `bridgeSession.test.ts`(토큰을 남기는 경우와 안 남기는 경우, 7개). `tests/bridge-mode.spec.ts`는 빌드한 serve를 픽스처 저장소 사본과 가짜 CLI로 띄우고 `map.get → node.expand(이름 대기) → node.named → file.read → 파일 수정 → map.changed → binary 거부`를 로컬 모드(영어 데스크톱, 한국어 휴대폰)와 다른 출처의 페이지에서 토큰을 넣는 경우로 돈다. 가짜 CLI의 `gate` 단계가 `release` 파일이 생길 때까지 답을 미뤄서 대기 상태를 화면에서 본다.
+- 검증: `bridgeClient.test.ts`(가짜 소켓, 11개), `bridgeStore.test.ts`(가짜 서버, 15개), `bridgeSession.test.ts`(토큰을 남기는 경우와 안 남기는 경우, 7개). `tests/bridge-mode.spec.ts`는 빌드한 serve를 픽스처 저장소 사본과 가짜 CLI로 띄우고 `map.get → node.expand(이름 대기) → node.named → file.read → 파일 수정 → map.changed → binary 거부`를 로컬 모드(영어 데스크톱, 한국어 휴대폰)와 다른 출처의 페이지에서 토큰을 넣는 경우로 돈다. 가짜 CLI의 `gate` 단계가 `release` 파일이 생길 때까지 답을 미뤄서 대기 상태를 화면에서 본다. `bridgeAccess.test.ts`(가짜 권한 API와 가짜 fetch, 거부된 질의 포함)가 원인과 카드 상태를 본다. 같은 spec의 "Connection guide" 묶음은 뷰어 번들을 `https://ropeman.test`(공개 https 출처)로 서빙하고 CDP로 권한을 정해, 카드마다(묻기 전, 허락, 막힘, 권한 창 대기, 답 없음, serve 꺼짐, 틀린 토큰, Firefox, 응답 없음, Safari) 영어 데스크톱과 한국어 휴대폰에서 본다. 권한 창 대기는 업그레이드에 답하지 않는 포트로 만든다.
 
 ### Phase 3: 재귀적 드릴다운
 
@@ -408,8 +413,10 @@ AI 응답은 브라우저 Cache API(`ropeman/semantic-v2`)에 저장한다. 키�
 ### activeTrack 우선순위
 
 ```
-bridge > edge > webgpu > byok > none
+edge > webgpu > byok > none
 ```
+
+로컬 CLI로 분석하던 Bridge 트랙(`bridgeService.ts`, 옛 `chat` 중계)은 T2-5에서 지웠다. 로컬 CLI는 이제 `/bridge` 뷰어에서 `ropeman serve`의 이름 작업으로만 쓴다(아래 "뷰어 Bridge 모드"). 앱 분석을 RPC로 옮기지 않은 이유: 앱은 코드 구조 요약을 프롬프트로 보내는데, serve가 받는 프롬프트를 그대로 CLI에 넘기는 길을 다시 열면 이름 작업이 지키는 규칙(프롬프트는 서버가 지도에서 만든다)이 깨진다.
 
 ### aiAdapter.ts — 단일 진입점
 
@@ -417,22 +424,21 @@ bridge > edge > webgpu > byok > none
 callAI({ system, user, signal }): Promise<string>
 ```
 
-| Track            | 구현                  | Worker        | CORS           |
-| ---------------- | --------------------- | ------------- | -------------- |
-| bridge           | WebSocket → 로컬 데몬 | —             | 불필요         |
-| edge             | fetch(DEMO_URL)       | ropeman-demo  | Worker CORS    |
-| webgpu           | webllmGenerate()      | webllmWorker  | 불필요         |
-| byok (google)    | fetch(Gemini API)     | —             | 직접 호출 가능 |
-| byok (anthropic) | fetch(PROXY_URL)      | ropeman-proxy | Worker CORS    |
+| Track            | 구현              | Worker        | CORS           |
+| ---------------- | ----------------- | ------------- | -------------- |
+| edge             | fetch(DEMO_URL)   | ropeman-demo  | Worker CORS    |
+| webgpu           | webllmGenerate()  | webllmWorker  | 불필요         |
+| byok (google)    | fetch(Gemini API) | —             | 직접 호출 가능 |
+| byok (anthropic) | fetch(PROXY_URL)  | ropeman-proxy | Worker CORS    |
 
-Bridge는 로컬 CLI를 실행한다. RPC의 이름 작업은 서버가 만든 프롬프트로, 옛 `chat` 중계는 받은 프롬프트로 돌린다. 그래서 연결을 받기 전에 네 가지를 검사한다(`bridge/src/auth.ts`).
+Bridge(`ropeman serve`)는 로컬 CLI를 실행하고 `--root` 아래 파일을 읽는다. CLI 프롬프트는 서버가 지도에서 만든다. 그래도 연결을 받기 전에 네 가지를 검사한다(`bridge/src/auth.ts`).
 
 - `127.0.0.1`에만 바인딩한다.
 - `Host` 헤더가 `127.0.0.1:{port}`나 `localhost:{port}`여야 한다. 소켓 연결과 모든 HTTP 요청에 똑같이 적용한다. 공격자가 자기 도메인을 127.0.0.1로 돌려도(DNS 리바인딩) Host에는 그 도메인이 실리므로 거부된다.
 - Origin 허용 목록을 확인한다. 기본은 `https://ropeman.dev`과 로컬 개발 서버이고, `--allow-origin`으로 더할 수 있다.
 - 소켓 URL의 `?token=`을 확인한다. 토큰은 `--token`, `ROPEMAN_BRIDGE_TOKEN`, `~/.ropeman/bridge-token` 순서로 정한다. 직접 준 토큰이 16자보다 짧으면 시작하지 않는다. 토큰 파일은 시작할 때마다 0600으로 맞춘다.
 
-클라이언트가 보낸 `cli` 값은 `claude`나 `gemini`일 때만 실행한다. 클라이언트(`bridgeService.ts`)는 `ws://127.0.0.1:{port}/?token=`으로 연결하고, 토큰은 `settingsStore.bridgeToken`에 저장한다.
+클라이언트(`bridgeClient.ts`)는 `ws://127.0.0.1:{port}/?token=`으로 연결한다. CLI는 serve를 띄울 때 정하고(`--cli`, 없으면 자동 감지), 클라이언트는 고를 수 없다. 토큰은 ropeman.dev에서는 메모리에만, 로컬 모드에서는 그 탭의 `sessionStorage`에만 둔다(`bridgeSession.ts`). 지운 트랙이 `localStorage`(`ropeman-settings`)에 남긴 `bridgeToken`·`bridgeCli`는 `settingsStore`가 처음 읽을 때 지운다.
 
 `file.read`는 `--root`로 준 디렉터리 안의 파일 하나를 읽어 내용, sha-256, 바이트 크기를 돌려준다. 메시지 모양은 `types/ropemanMap.ts`에 있다(ADR-24). `--root`가 없으면 꺼져 있다. 절대 경로, 루트를 벗어나는 경로(`..`이나 루트 밖으로 풀리는 심볼릭 링크), 실제 값이 든 env 파일(앱의 `isEnvValueFile`과 같은 규칙, 대소문자 무시), 500,000바이트를 넘는 파일은 거부하고 이유 코드(`outside-root` 등)를 돌려준다(`bridge/src/fileRead.ts`).
 

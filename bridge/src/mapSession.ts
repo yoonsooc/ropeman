@@ -309,7 +309,7 @@ export class MapSession {
 			const outcome = await nameLevel(target, {
 				codeMap: snap.extraction.map,
 				run: (prompt) => {
-					const { args, stdin } = headlessCommand(naming.cli, prompt, 'json');
+					const { args, stdin } = headlessCommand(naming.cli, prompt);
 					return naming.runner.run({
 						command: naming.command,
 						args,

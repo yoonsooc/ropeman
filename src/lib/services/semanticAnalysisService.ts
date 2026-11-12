@@ -104,8 +104,6 @@ function activeModelId(): string {
 			return `byok:${settingsStore.aiProvider}:${settingsStore.aiModel}`;
 		case 'webgpu':
 			return `webgpu:${webgpuStore.selectedModelId}`;
-		case 'bridge':
-			return `bridge:${settingsStore.bridgeCli}`;
 		case 'edge':
 		case 'none':
 			return track;

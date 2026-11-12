@@ -1,13 +1,13 @@
 ---
 title: AI Modes
-description: Compare Demo, API Key (BYOK), Local Bridge and WebGPU, and pick the right track
+description: Compare Demo, API Key (BYOK) and WebGPU, and pick the right track
 category: guides
 order: 2
 ---
 
-Ropeman offers **four AI tracks** so you can pick the trade-off between convenience, cost, and privacy that suits your workflow. All four modes produce the same kind of semantic diagram — what changes is _where_ the inference happens.
+Ropeman offers **three AI tracks** so you can pick the trade-off between convenience, cost, and privacy that suits your workflow. All three modes produce the same kind of semantic diagram. What changes is _where_ the inference happens.
 
-## The Four Tracks
+## The Three Tracks
 
 ### 1. Demo
 
@@ -16,7 +16,7 @@ The zero-friction default. Great for trying Ropeman on a small project without a
 - **Requirements**: None. Just open [ropeman.dev](https://ropeman.dev).
 - **Data flow**: The browser parses the code locally and sends the code summary to Ropeman's demo Worker, which forwards it to the Google Gemini API and returns the diagram.
 - **Characteristics**: Free, rate-limited, project-size capped. Shared quota across all users.
-- **Free tier notice**: Demo runs on the free tier of the Google Gemini API, where Google may use prompts and responses to improve its products. For code you would not share, use API Key, Bridge, or WebGPU mode.
+- **Free tier notice**: Demo runs on the free tier of the Google Gemini API, where Google may use prompts and responses to improve its products. For code you would not share, use API Key or WebGPU mode.
 - **Recommended for**: First-time users, quick demos, evaluating the tool on a small repo.
 
 ### 2. API Key (BYOK)
@@ -28,16 +28,7 @@ Bring Your Own Key. You plug in a **Google Gemini**, **Anthropic Claude**, or **
 - **Characteristics**: No rate limits beyond your provider's own quota. You control the model (e.g. Gemini 2.5 Pro, Claude Sonnet 4, GPT-4o).
 - **Recommended for**: Regular users, larger projects, when you want a specific model.
 
-### 3. Local Bridge
-
-Connects Ropeman to a **locally installed AI CLI**, Claude Code or Gemini CLI, through a small bridge server on your machine.
-
-- **Requirements**: Claude Code or Gemini CLI installed, plus the Ropeman bridge server running. See [Bridge Setup](/docs/en/bridge-setup).
-- **Data flow**: The browser connects to the bridge on `127.0.0.1` over WebSocket, the bridge runs your CLI, and the CLI calls its provider. Ropeman's servers are not involved.
-- **Characteristics**: Uses your CLI's existing login, so there is no API key to paste. You paste the token the bridge prints at startup instead. Your code summary goes only to the provider your CLI uses.
-- **Recommended for**: Users who already pay for Claude Code or Gemini CLI subscriptions, teams with strict data-routing policies.
-
-### 4. WebGPU (Experimental)
+### 3. WebGPU (Experimental)
 
 Runs a small LLM **entirely inside your browser** using a built-in WebGPU runtime. No network calls during inference.
 
@@ -58,12 +49,13 @@ The recommended workflow: start at the default, and only nudge the limit up or d
 
 ## Mode Selection Guide
 
-| If you want...                                  | Pick             |
-| ----------------------------------------------- | ---------------- |
-| To try Ropeman right now, no setup              | **Demo**         |
-| Full control over model and quota               | **API Key**      |
-| To reuse your existing Claude Code / Gemini CLI | **Local Bridge** |
-| Absolutely nothing to leave your device         | **WebGPU**       |
+| If you want...                          | Pick        |
+| --------------------------------------- | ----------- |
+| To try Ropeman right now, no setup      | **Demo**    |
+| Full control over model and quota       | **API Key** |
+| Absolutely nothing to leave your device | **WebGPU**  |
+
+To map a folder on your machine and have your own Claude Code or Gemini CLI name its parts, use Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge). See [Bridge Setup](/docs/en/bridge-setup).
 
 ## Switching Modes
 

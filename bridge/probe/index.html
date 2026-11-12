@@ -72,7 +72,7 @@
 						);
 						ws.onmessage = (ev) => {
 							const msg = JSON.parse(ev.data);
-							if (msg.type === 'status' && msg.result === 'connected') {
+							if (msg.type === 'hello') {
 								clearTimeout(timer);
 								resolve({ state: 'open', ms: ms() });
 							}

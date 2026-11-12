@@ -74,14 +74,13 @@ npm run dev
 
 ## AI 모드
 
-Ropeman에는 AI 모드가 네 가지 있습니다.
+Ropeman에는 AI 모드가 세 가지 있습니다.
 
 1. **데모**는 무료이고 설정이 필요 없습니다. 요청은 Ropeman 엣지 프록시를 거쳐 Google Gemini 무료 등급으로 가며, 프록시가 요청 횟수를 제한합니다. 무료 등급에서는 Google이 입력을 서비스 개선에 쓸 수 있습니다.
 2. **API 키 (BYOK)** 는 내 Google Gemini, Anthropic, OpenAI 키를 씁니다. 키는 브라우저(localStorage)에만 저장합니다. Gemini 요청은 Google로 바로 가고, Anthropic과 OpenAI 요청은 브라우저 제약 때문에 Ropeman 엣지 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.
-3. **로컬 브리지**는 작은 브리지 서버로 내 컴퓨터의 AI CLI(Claude Code 또는 Gemini CLI)에 연결합니다. 브리지가 스켈레톤을 CLI에 넘기고, CLI가 그것을 자기 제공자에게 보냅니다. 소스 파일은 내 컴퓨터에 남습니다.
-4. **브라우저 AI**는 web-llm으로 브라우저 안에서 WebGPU 모델을 돌립니다. 처음 한 번 모델을 내려받은 뒤에는 오프라인으로 분석합니다. 실험 기능입니다.
+3. **브라우저 AI**는 web-llm으로 브라우저 안에서 WebGPU 모델을 돌립니다. 처음 한 번 모델을 내려받은 뒤에는 오프라인으로 분석합니다. 실험 기능입니다.
 
-로컬 브리지를 쓰려면 `npx @ropeman/bridge`를 실행하세요. 0.2 이상은 시작할 때 토큰을 출력합니다. 이 토큰을 Ropeman의 로컬 브리지 카드에 있는 토큰 칸에 붙여 넣어야 브리지가 연결을 받습니다. 브리지는 `127.0.0.1`에서만 열리고, 브라우저 연결은 `https://ropeman.dev`, 로컬 개발 서버, `--allow-origin`으로 추가한 출처에서 온 것만 받습니다. 토큰을 어디에 저장하는지와 다른 옵션은 [bridge/README.md](bridge/README.md)에 있습니다.
+**브리지 모드**는 이 세 모드와 따로, 별도 페이지에서 씁니다. `ropeman serve`가 내 컴퓨터의 폴더 지도를 만들고, https://ropeman.dev/bridge 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 폴더를 누르면 내 컴퓨터의 CLI(Claude Code 또는 Gemini CLI)가 그 안의 부분에 이름을 붙이고, 파일을 누르면 소스가 열립니다. 프로젝트 폴더에서 `npx @ropeman/bridge serve --root .`를 실행하고, https://ropeman.dev/bridge를 열어 `~/.ropeman/bridge-token`의 토큰을 붙여 넣으세요. Safari를 쓰거나 브라우저가 연결을 막았다면 `--local`을 붙여 serve를 켜고, serve가 출력한 주소를 여세요. 옵션, 토큰, 보안 검사는 [bridge/README.md](bridge/README.md)에 있습니다.
 
 ## 아키텍처
 

@@ -1,16 +1,22 @@
 import { authStore } from '$lib/stores/authStore.svelte';
 import { architectureStore, type ArchitectureGroup } from '$lib/stores/architectureStore.svelte';
 import { extractSkeleton, formatPayloadPreview } from './skeletonExtractor';
-import { sendViaBridge } from './bridgeService';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
 import { graphStore } from '$lib/stores/graphStore.svelte';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 
-const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const GEMINI_ENDPOINT =
+	'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
 const GROUP_COLORS = [
-	'#89b4fa', '#a6e3a1', '#f9e2af', '#f38ba8',
-	'#cba6f7', '#94e2d5', '#fab387', '#74c7ec'
+	'#89b4fa',
+	'#a6e3a1',
+	'#f9e2af',
+	'#f38ba8',
+	'#cba6f7',
+	'#94e2d5',
+	'#fab387',
+	'#74c7ec'
 ];
 
 const SYSTEM_PROMPT = `You are a code architecture analyzer. Given a project skeleton (file paths, symbol names, imports), identify logical architectural groups.
@@ -48,9 +54,7 @@ export async function analyzeArchitecture(): Promise<void> {
 		let responseText: string;
 		const track = authStore.activeTrack;
 
-		if (track === 'bridge') {
-			responseText = await sendViaBridge(SYSTEM_PROMPT + '\n\n' + prompt);
-		} else if (track === 'byok') {
+		if (track === 'byok') {
 			responseText = await callGemini(prompt);
 		} else {
 			throw new Error('AI not connected');
@@ -79,9 +83,9 @@ async function callGemini(prompt: string): Promise<string> {
 			contents: [{ role: 'user', parts: [{ text: prompt }] }],
 			generationConfig: {
 				temperature: 0.3,
-				maxOutputTokens: 4096,
-			},
-		}),
+				maxOutputTokens: 4096
+			}
+		})
 	});
 
 	if (!response.ok) {
@@ -101,13 +105,15 @@ function parseGroups(text: string): ArchitectureGroup[] {
 		const raw = JSON.parse(jsonMatch[0]) as Array<{ name: string; nodeIds: string[] }>;
 
 		// Validate nodeIds against actual graph nodes
-		const validNodeIds = new Set(graphStore.nodes.map(n => n.id));
+		const validNodeIds = new Set(graphStore.nodes.map((n) => n.id));
 
-		return raw.map((group, i) => ({
-			name: group.name,
-			color: GROUP_COLORS[i % GROUP_COLORS.length],
-			nodeIds: group.nodeIds.filter(id => validNodeIds.has(id))
-		})).filter(g => g.nodeIds.length > 0);
+		return raw
+			.map((group, i) => ({
+				name: group.name,
+				color: GROUP_COLORS[i % GROUP_COLORS.length],
+				nodeIds: group.nodeIds.filter((id) => validNodeIds.has(id))
+			}))
+			.filter((g) => g.nodeIds.length > 0);
 	} catch {
 		return [];
 	}

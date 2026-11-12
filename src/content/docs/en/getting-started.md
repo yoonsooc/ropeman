@@ -71,7 +71,8 @@ Large monorepos should be opened one package at a time. You can also tune the co
 
 ## Next Steps
 
-- [AI Modes](/docs/en/ai-modes) — pick the right track for your workflow (Demo, BYOK, Bridge, WebGPU).
+- [AI Modes](/docs/en/ai-modes) — pick the right track for your workflow (Demo, BYOK, WebGPU).
+- [Bridge Setup](/docs/en/bridge-setup) — map a folder on your machine and let your own Claude Code or Gemini CLI name its parts.
 - [Security](/docs/en/security) — exactly what leaves your machine and what doesn't.
 - [Keyboard Shortcuts](/docs/en/keyboard-shortcuts) — navigate the canvas like a pro.
 - [FAQ](/docs/en/faq) — answers to the questions most new users ask.

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
@@ -228,16 +228,16 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		await expect(page.getByRole('heading', { name: 'Connect to ropeman serve' })).toBeVisible();
 		await expect(page.getByText('npx @ropeman/bridge serve --root .')).toBeVisible();
 		await page.getByLabel('Port').fill(String(serve.port));
-		await page.getByLabel('Token').fill('not-the-token-at-all');
+		await page.getByLabel('Token', { exact: true }).fill('not-the-token-at-all');
 		await shot(page, 'en-desktop-connect');
 		await page.getByRole('button', { name: 'Connect' }).click();
 
-		await expect(page.getByRole('alert')).toContainText(
-			`serve didn't answer on 127.0.0.1:${serve.port}`
-		);
+		// The page is on localhost, so it reaches serve ungated and can tell the token was wrong
+		await expect(page.getByTestId('access-guide')).toHaveAttribute('data-state', 'refused');
+		await expect(page.getByRole('alert')).toContainText('serve refused the token');
 		await shot(page, 'en-desktop-connect-failed');
 
-		await page.getByLabel('Token').fill(TOKEN);
+		await page.getByLabel('Token', { exact: true }).fill(TOKEN);
 		await page.getByRole('button', { name: 'Connect' }).click();
 		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
 		// A page that serve does not host keeps the pasted token in memory only
@@ -251,4 +251,202 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		await expect(page.locator('.semantic-node').first()).toBeVisible();
 		await shot(page, 'en-desktop-lost');
 	});
+});
+
+// ropeman.dev itself, as far as the browser can tell: an https public origin whose files are the
+// viewer bundle. Chromium decides the loopback permission for it, which CDP sets per context.
+const PUBLIC_ORIGIN = 'https://ropeman.test';
+const VIEWER_DIR = path.dirname(VIEWER);
+const TYPES: Record<string, string> = {
+	'.html': 'text/html',
+	'.js': 'text/javascript',
+	'.css': 'text/css',
+	'.json': 'application/json',
+	'.svg': 'image/svg+xml',
+	'.png': 'image/png',
+	'.woff2': 'font/woff2'
+};
+const UA = {
+	firefox: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:151.0) Gecko/20100101 Firefox/151.0',
+	safari:
+		'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15'
+};
+const PHONE = { width: 393, height: 851 };
+
+type Permission = 'granted' | 'denied' | 'prompt' | 'unsupported';
+
+async function publicPage(
+	browser: Browser,
+	options: { lang: 'en' | 'ko'; phone: boolean; permission: Permission; userAgent?: string }
+): Promise<{ page: Page; context: BrowserContext }> {
+	const context = await browser.newContext({
+		userAgent: options.userAgent,
+		viewport: options.phone ? PHONE : { width: 1280, height: 800 },
+		isMobile: options.phone,
+		hasTouch: options.phone
+	});
+	await context.route(`${PUBLIC_ORIGIN}/**`, (route) => {
+		const { pathname } = new URL(route.request().url());
+		const rel = pathname === '/' ? 'index.html' : pathname.slice(1);
+		const file = [rel, `${rel}.html`]
+			.map((p) => path.join(VIEWER_DIR, p))
+			.find((p) => p.startsWith(VIEWER_DIR) && fs.existsSync(p) && fs.statSync(p).isFile());
+		if (!file) return route.fulfill({ status: 404, body: '' });
+		return route.fulfill({
+			status: 200,
+			contentType: TYPES[path.extname(file)] ?? 'application/octet-stream',
+			body: fs.readFileSync(file)
+		});
+	});
+	const page = await context.newPage();
+	if (options.permission === 'granted' || options.permission === 'denied') {
+		// Playwright does not know loopback-network yet; the browser-level CDP call does
+		const target = await context.newCDPSession(page);
+		const { targetInfo } = await target.send('Target.getTargetInfo');
+		const cdp = await browser.newBrowserCDPSession();
+		await cdp.send('Browser.setPermission', {
+			permission: { name: 'loopback-network' },
+			setting: options.permission,
+			origin: PUBLIC_ORIGIN,
+			browserContextId: targetInfo.browserContextId
+		});
+	}
+	if (options.permission === 'unsupported') {
+		// Firefox and Safari reject the query: the name is not a permission they know
+		await page.addInitScript(() => {
+			const query = navigator.permissions.query.bind(navigator.permissions);
+			navigator.permissions.query = (descriptor) =>
+				descriptor.name === ('loopback-network' as PermissionName)
+					? Promise.reject(new TypeError('not a valid permission name'))
+					: query(descriptor);
+		});
+	}
+	await settings(page, options.lang);
+	await page.goto(`${PUBLIC_ORIGIN}/bridge`);
+	await expect(page.locator('#bridge-title')).toBeVisible();
+	return { page, context };
+}
+
+async function tryConnect(page: Page, port: number, token: string) {
+	await page.locator('.bridge-form input[type=number]').fill(String(port));
+	await page.locator('.bridge-form input[type=password]').fill(token);
+	await page.locator('.bridge-form button[type=submit]').click();
+}
+
+/** A port that takes the TCP connection and never answers the upgrade, as a held prompt does. */
+async function silentPort(): Promise<{ port: number; close(): void }> {
+	const sockets = new Set<net.Socket>();
+	const server = net.createServer((socket) => sockets.add(socket));
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	return {
+		port: (server.address() as net.AddressInfo).port,
+		close: () => {
+			for (const s of sockets) s.destroy();
+			server.close();
+		}
+	};
+}
+
+const guide = (page: Page) => page.getByTestId('access-guide');
+
+test.describe('Connection guide on ropeman.dev', () => {
+	for (const variant of [
+		{ lang: 'en', phone: false, tag: 'en-desktop' },
+		{ lang: 'ko', phone: true, tag: 'ko-mobile' }
+	] as const) {
+		const open = (browser: Browser, permission: Permission, userAgent?: string) =>
+			publicPage(browser, { lang: variant.lang, phone: variant.phone, permission, userAgent });
+
+		test(`${variant.tag}: not asked yet, then the prompt was not answered`, async ({ browser }) => {
+			const { page, context } = await open(browser, 'prompt');
+			await expect(guide(page)).toHaveAttribute('data-state', 'unasked');
+			await shot(page, `${variant.tag}-guide-unasked`);
+
+			// Nothing listens: with the permission undecided the page cannot tell which it was
+			await tryConnect(page, await freePort(), TOKEN);
+			await expect(guide(page)).toHaveAttribute('data-state', 'unanswered');
+			await expect(guide(page)).toContainText('npx @ropeman/bridge serve --root . --local');
+			await shot(page, `${variant.tag}-guide-unanswered`);
+			await context.close();
+		});
+
+		test(`${variant.tag}: waiting on the prompt while the socket hangs`, async ({ browser }) => {
+			const silent = await silentPort();
+			const { page, context } = await open(browser, 'prompt');
+
+			await tryConnect(page, silent.port, TOKEN);
+
+			await expect(guide(page)).toHaveAttribute('data-state', 'prompt-pending');
+			await expect(guide(page)).toBeVisible();
+			await shot(page, `${variant.tag}-guide-prompt-pending`);
+			await context.close();
+			silent.close();
+		});
+
+		test(`${variant.tag}: granted, then serve down, then a wrong token`, async ({ browser }) => {
+			const serve = await startServe(PUBLIC_ORIGIN);
+			const { page, context } = await open(browser, 'granted');
+			await expect(guide(page)).toHaveAttribute('data-state', 'granted');
+			await shot(page, `${variant.tag}-guide-granted`);
+
+			await tryConnect(page, await freePort(), TOKEN);
+			await expect(guide(page)).toHaveAttribute('data-state', 'serve-down');
+			await expect(guide(page)).toContainText('npx @ropeman/bridge serve --root .');
+			await shot(page, `${variant.tag}-guide-serve-down`);
+
+			await tryConnect(page, serve.port, 'not-the-token-at-all');
+			await expect(guide(page)).toHaveAttribute('data-state', 'refused');
+			await expect(guide(page)).toContainText('cat ~/.ropeman/bridge-token');
+			await shot(page, `${variant.tag}-guide-refused`);
+
+			await tryConnect(page, serve.port, TOKEN);
+			await expect(page.getByTestId('bridge-status')).toBeVisible();
+			await expect(node(page, /^apps$/)).toBeVisible();
+			await context.close();
+		});
+
+		test(`${variant.tag}: denied shows how to allow it again and local mode`, async ({
+			browser
+		}) => {
+			const { page, context } = await open(browser, 'denied');
+
+			await expect(guide(page)).toHaveAttribute('data-state', 'denied');
+			await expect(guide(page).locator('ol li')).toHaveCount(4);
+			await expect(guide(page)).toContainText(
+				'chrome://settings/content/siteDetails?site=https%3A%2F%2Fropeman.test'
+			);
+			await expect(guide(page)).toContainText('npx @ropeman/bridge serve --root . --local');
+			await shot(page, `${variant.tag}-guide-denied`);
+			await context.close();
+		});
+
+		test(`${variant.tag}: Firefox gets the honest note, then an unreachable port`, async ({
+			browser
+		}) => {
+			const { page, context } = await open(browser, 'unsupported', UA.firefox);
+			await expect(guide(page)).toHaveAttribute('data-state', 'unknown');
+			await expect(guide(page)).toContainText('151');
+			await shot(page, `${variant.tag}-guide-firefox`);
+
+			await tryConnect(page, await freePort(), TOKEN);
+			await expect(guide(page)).toHaveAttribute('data-state', 'unreachable');
+			await shot(page, `${variant.tag}-guide-unreachable`);
+			await context.close();
+		});
+
+		test(`${variant.tag}: Safari goes straight to local mode`, async ({ browser }) => {
+			const { page, context } = await open(browser, 'unsupported', UA.safari);
+			await expect(guide(page)).toHaveAttribute('data-state', 'safari');
+			await expect(guide(page)).toContainText('npx @ropeman/bridge serve --root . --local');
+			await expect(page.locator('.bridge-form')).toHaveCount(0);
+			await shot(page, `${variant.tag}-guide-safari`);
+
+			// The way out is a real button the keyboard reaches
+			const anyway = page.getByRole('button', { name: /anyway|그래도/ });
+			await anyway.focus();
+			await page.keyboard.press('Enter');
+			await expect(page.locator('.bridge-form')).toBeVisible();
+			await context.close();
+		});
+	}
 });

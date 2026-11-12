@@ -64,19 +64,6 @@ describe('aiService', () => {
 	});
 
 	describe('sendMessage — non-Gemini tracks delegate to callAI', () => {
-		it('delegates to bridge track', async () => {
-			(authStore as any).activeTrack = 'bridge';
-			(callAI as ReturnType<typeof vi.fn>).mockResolvedValue('bridge answer');
-
-			const result = await sendMessage('explain code', null);
-
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				expect(result.data.content).toBe('bridge answer');
-			}
-			expect(callAI).toHaveBeenCalled();
-		});
-
 		it('delegates to edge track', async () => {
 			(authStore as any).activeTrack = 'edge';
 			(callAI as ReturnType<typeof vi.fn>).mockResolvedValue('edge answer');
@@ -128,7 +115,7 @@ describe('aiService', () => {
 		});
 
 		it('includes node context in related nodes', async () => {
-			(authStore as any).activeTrack = 'bridge';
+			(authStore as any).activeTrack = 'edge';
 			(callAI as ReturnType<typeof vi.fn>).mockResolvedValue('answer');
 
 			const node = {
@@ -146,14 +133,14 @@ describe('aiService', () => {
 		});
 
 		it('returns error result when callAI throws', async () => {
-			(authStore as any).activeTrack = 'bridge';
-			(callAI as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Bridge disconnected'));
+			(authStore as any).activeTrack = 'edge';
+			(callAI as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Proxy unreachable'));
 
 			const result = await sendMessage('explain', null);
 
 			expect(result.ok).toBe(false);
 			if (!result.ok) {
-				expect(result.error).toBe('Bridge disconnected');
+				expect(result.error).toBe('Proxy unreachable');
 				expect(result.code).toBe('AI_ERROR');
 			}
 		});

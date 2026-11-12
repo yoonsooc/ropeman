@@ -107,15 +107,6 @@ class Client {
 		return this.wait((m) => 'id' in m && m.id === id);
 	}
 
-	/** A legacy relay message; its answer is outside the RPC schema, so it lands in `unparsed`. */
-	async relay(msg: Record<string, unknown>): Promise<{ result?: string; error?: string }> {
-		const id = this.nextId++;
-		this.ws.send(JSON.stringify({ id, ...msg }));
-		const answer = () => this.unparsed.map((t) => JSON.parse(t)).find((m) => m.id === id);
-		await until(() => answer() !== undefined, 10_000);
-		return answer();
-	}
-
 	named(nodeId: string) {
 		return this.wait((m) => m.type === 'node.named' && m.nodeId === nodeId, 15_000);
 	}
@@ -140,7 +131,6 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 	type Bridge = ReturnType<typeof createBridgeServer>;
 	let servers: Bridge[] = [];
 	let bases: string[] = [];
-	const savedPath = process.env.PATH;
 
 	afterEach(async () => {
 		for (const { server, clients, close } of servers) {
@@ -151,7 +141,6 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		for (const base of bases) fs.rmSync(base, { recursive: true, force: true });
 		servers = [];
 		bases = [];
-		process.env.PATH = savedPath;
 	});
 
 	async function serve(
@@ -162,12 +151,9 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		const root = resolveRoot(makeProject(base));
 		const cliDir = path.join(base, 'cli');
 		const namingDir = path.join(base, 'naming-cwd');
-		fs.mkdirSync(path.join(cliDir, 'bin'), { recursive: true });
+		fs.mkdirSync(cliDir);
 		fs.mkdirSync(namingDir);
 		fs.writeFileSync(path.join(cliDir, 'plan.json'), JSON.stringify(options.plan ?? []));
-		// The legacy relay runs `claude` from PATH
-		fs.symlinkSync(FAKE_CLI, path.join(cliDir, 'bin', 'claude'));
-		process.env.PATH = `${path.join(cliDir, 'bin')}${path.delimiter}${savedPath}`;
 		process.env.FAKE_CLI_DIR = cliDir;
 		const port = await freePort();
 		const runner = new CliRunner(2, namingDir);
@@ -193,7 +179,6 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 			port,
 			token: TOKEN,
 			allowedOrigins: new Set(),
-			defaultCli: 'claude',
 			root,
 			viewerDir: null,
 			session,
@@ -430,50 +415,6 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		await until(() => !alive(pid) && !alive(grandchild), 1_000);
 	});
 
-	it('relays chat with the naming flags from the empty folder, and kills it on close', async () => {
-		// Arrange
-		const { port, calls, forks, namingDir } = await serve({ plan: ['echo', 'fork-hang'] });
-		const client = await Client.open(port);
-
-		// Act
-		const reply = await client.relay({ type: 'chat', message: 'explain main.ts' });
-		client.relay({ type: 'chat', message: 'and this' }).catch(() => {});
-		await until(() => forks().length === 1);
-		const [{ pid, grandchild }] = forks();
-		client.close();
-
-		// Assert
-		expect(reply).toMatchObject({ result: 'got:explain main.ts' });
-		expect(calls()[0]).toMatchObject({
-			args: ['-p', '--no-session-persistence', '--strict-mcp-config', '--tools', ''],
-			stdin: 'explain main.ts',
-			cwd: fs.realpathSync(namingDir)
-		});
-		await until(() => !alive(pid) && !alive(grandchild));
-	});
-
-	it('counts relays against the CLI slots and the per-connection limit', async () => {
-		// Arrange: every run hangs
-		const { port, calls } = await serve({ plan: Array(10).fill('hang') });
-		const client = await Client.open(port);
-
-		// Act: two namings and two relays fill the connection; two CLIs run, two wait for a slot
-		await client.request({ type: 'node.expand', nodeId: 'dir:src' });
-		await client.request({ type: 'node.expand', nodeId: 'dir:tools' });
-		client.relay({ type: 'chat', message: 'one' }).catch(() => {});
-		client.relay({ type: 'chat', message: 'two' }).catch(() => {});
-		const over = await client.relay({ type: 'chat', message: 'three' });
-		const overNaming = await client.request({ type: 'node.expand', nodeId: 'dir:src/app' });
-		await until(() => calls().length === 2);
-		await new Promise((r) => setTimeout(r, 300));
-
-		// Assert
-		expect(over.error).toContain(`At most ${MAX_NAMINGS_IN_FLIGHT}`);
-		expect(overNaming).toMatchObject({ code: 'busy' });
-		expect(calls()).toHaveLength(2);
-		client.close();
-	});
-
 	it('runs one CLI for two sockets expanding the same node and pushes to both', async () => {
 		// Arrange
 		const { port, calls } = await serve();
@@ -511,19 +452,22 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		client.close();
 	});
 
-	it('refuses expansions past the per-connection limit with busy', async () => {
+	it('runs two CLIs at a time and refuses expansions past the per-connection limit', async () => {
 		// Arrange: every run hangs, so each expansion stays in flight
-		const { port } = await serve({ plan: Array(10).fill('hang') });
+		const { port, calls } = await serve({ plan: Array(10).fill('hang') });
 		const client = await Client.open(port);
 		const ids = ['dir:src', 'dir:src/app', 'dir:src/lib', 'dir:tools'];
 
 		// Act
 		for (const nodeId of ids) await client.request({ type: 'node.expand', nodeId });
 		const over = await client.request({ type: 'node.expand', nodeId: 'dir:src' });
+		await until(() => calls().length === 2);
+		await new Promise((r) => setTimeout(r, 300));
 
-		// Assert
+		// Assert: two run, two wait for a slot
 		expect(ids).toHaveLength(MAX_NAMINGS_IN_FLIGHT);
 		expect(over).toMatchObject({ type: 'node.expand', code: 'busy' });
+		expect(calls()).toHaveLength(2);
 		client.close();
 	});
 

@@ -26,7 +26,7 @@ If something isn't working, find the matching symptom below. Each entry follows 
 ### Symptom — "429 Too Many Requests" when analyzing in Demo mode
 
 - **Cause**: Demo mode uses a shared rate-limited quota. You've hit the temporary ceiling.
-- **Fix**: Wait a few minutes, switch to **API Key (BYOK)** mode with your own key, or use **Bridge** with a local CLI. See [AI Modes](/docs/en/ai-modes).
+- **Fix**: Wait a few minutes, or switch to **API Key (BYOK)** mode with your own key. See [AI Modes](/docs/en/ai-modes).
 
 ### Symptom — "500 Internal Server Error" during analysis
 
@@ -62,6 +62,11 @@ If something isn't working, find the matching symptom below. Each entry follows 
 
 - **Cause**: Your browser or GPU doesn't support WebGPU, or the flag is disabled.
 - **Fix**: Use Chrome 113+ or Edge 113+ on a reasonably modern GPU. Check `chrome://gpu` and confirm WebGPU is listed as "Hardware accelerated". If not, use another mode.
+
+### Symptom — The Bridge page can't connect to `ropeman serve`
+
+- **Cause**: serve is not running, the port or the token does not match, or the browser blocked the request to `127.0.0.1`.
+- **Fix**: The page says which case it is. [Bridge Setup](/docs/en/bridge-setup) covers each case, how to reset a blocked permission, and local mode for Safari.
 
 ### Symptom — Keyboard shortcuts collide with browser shortcuts
 

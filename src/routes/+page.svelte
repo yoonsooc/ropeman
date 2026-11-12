@@ -38,25 +38,11 @@
 	} from '$lib/services/fileSystemService';
 	import { parseAllFiles } from '$lib/services/parserService';
 	import CoverageSummary from '$lib/components/CoverageSummary.svelte';
-	import { setBridgeCallbacks } from '$lib/services/bridgeService';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { createPathFilter } from '$lib/utils/filePriority';
 	import { analysisUiStore } from '$lib/stores/analysisUiStore.svelte';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import { onMount, onDestroy } from 'svelte';
-
-	// Wire bridgeService callbacks to authStore (stateless service pattern)
-	setBridgeCallbacks({
-		onStatusChange: (s) => {
-			authStore.bridgeStatus = s;
-		},
-		onError: (e) => {
-			authStore.bridgeError = e;
-		},
-		onPortChange: (p) => {
-			authStore.bridgePort = p;
-		}
-	});
 
 	let showSettings = $state(false);
 	let showHelp = $state(false);
@@ -71,7 +57,7 @@
 	let zuiCanvasRef: ZUICanvas | undefined = $state(undefined);
 	let sidebarRef: Sidebar | undefined = $state(undefined);
 
-	function handleTrackSelect(track: 'edge' | 'byok' | 'bridge' | 'webgpu') {
+	function handleTrackSelect(track: 'edge' | 'byok' | 'webgpu') {
 		showAnalyze = false;
 		if (track === 'edge') {
 			authStore.edgeEnabled = true;

@@ -23,18 +23,6 @@
 					color: 'var(--color-text-success)',
 					dotClass: 'dot-success'
 				};
-			case 'bridge':
-				return authStore.bridgeStatus === 'connected'
-					? {
-							status: i18nStore.t('track.bridgeConnected'),
-							color: 'var(--color-text-success)',
-							dotClass: 'dot-success'
-						}
-					: {
-							status: i18nStore.t('track.bridgeDisconnected'),
-							color: 'var(--color-text-tertiary)',
-							dotClass: ''
-						};
 			case 'webgpu':
 				return {
 					status: i18nStore.t('track.webgpu'),

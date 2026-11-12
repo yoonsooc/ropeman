@@ -7,7 +7,6 @@
 
 import { authStore, type AuthTrack } from '$lib/stores/authStore.svelte';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
-import { sendViaBridge } from '$lib/services/bridgeService';
 import { generate as webllmGenerate } from '$lib/services/webllmService';
 import { DEMO_URL, PROXY_URL } from '$lib/config';
 import { demoRequestBody, OUTPUT_RESERVE_TOKENS } from '$lib/services/requestBudget';
@@ -34,11 +33,6 @@ export class AIHttpError extends Error {
 }
 
 // --- Track별 구현 ---
-
-async function callBridge(opts: AICallOptions): Promise<string> {
-	const cli = settingsStore.bridgeCli === 'auto' ? undefined : settingsStore.bridgeCli;
-	return await sendViaBridge(opts.system + '\n\n' + opts.user, cli, opts.signal);
-}
 
 /** WebGPU 소형 모델의 대략적 토큰 한계 (char 기준, ~4 chars/token) */
 const WEBGPU_MAX_INPUT_CHARS = 12000; // ~3000 tokens, 4096 context - 1024 output reserve
@@ -165,8 +159,6 @@ export async function callAI(opts: AICallOptions): Promise<string> {
 	const track = authStore.activeTrack;
 
 	switch (track) {
-		case 'bridge':
-			return callBridge(opts);
 		case 'webgpu':
 			return callWebGPU(opts);
 		case 'edge':
