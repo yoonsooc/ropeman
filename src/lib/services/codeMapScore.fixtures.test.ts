@@ -6,7 +6,7 @@ import { scanDirectory } from '../../../scripts/vite-dev-fs-plugin.js';
 import { isSupported } from '$lib/utils/languageDetector';
 import type { ASTRef, ASTSymbol } from '$lib/types/ast';
 import type { CodeMap, SymbolRecord } from '$lib/types/codeMap';
-import { buildCodeMap } from './skeletonExtractor';
+import { buildCodeMap } from './codeMapBuilder';
 import { readGraphifyGraph } from './graphifyAdapter';
 import { isResolverConfig, namedConfigs } from './importResolver';
 import {

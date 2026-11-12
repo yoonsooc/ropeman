@@ -4,6 +4,7 @@ import { collectResolverConfigs } from '$lib/services/importResolver';
 import {
 	capFiles,
 	DEFAULT_PATH_FILTER,
+	MAX_DEPTH,
 	MAX_FILE_SIZE,
 	isIncludeAncestor,
 	shouldSkipPath,
@@ -18,8 +19,6 @@ export async function openDirectory(): Promise<FileSystemDirectoryHandle> {
 	}
 	return await window.showDirectoryPicker({ mode: 'read' });
 }
-
-const MAX_DEPTH = 30;
 
 /** A file seen during the walk. Its handle is fetched again only if it survives the cap. */
 interface FoundFile {

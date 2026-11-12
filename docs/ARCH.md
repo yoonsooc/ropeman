@@ -36,7 +36,10 @@ src/
 │   │   ├── aiAdapter.ts              # ★ AI Track 단일 진입점 (callAI)
 │   │   ├── aiService.ts              # 채팅용 AI 호출 (캐시 + 재시도)
 │   │   ├── semanticAnalysisService.ts # 시맨틱 AI 분석 + JSON 파싱/복구
-│   │   ├── skeletonExtractor.ts      # AST → 스켈레톤 v2 → LLM 전송용 코드 구조 요약 (suffix 매칭). select*는 뺀 파일과 이유도 돌려준다
+│   │   ├── skeletonExtractor.ts      # 코드 지도 → LLM 전송용 코드 구조 요약 (suffix 매칭). select*는 뺀 파일과 이유도 돌려준다
+│   │   ├── codeMapBuilder.ts         # AST → 스켈레톤 v2 코드 지도 (`buildCodeMap`, `fileFromAst`). 스토어를 읽지 않아 Node에서도 돈다
+│   │   ├── sourceExtraction.ts       # 브라우저와 Node가 같이 쓰는 파싱 순서: 줄 단위 파서 고르기, 파일 순위, 크기 한도, 건너뛴 이유
+│   │   ├── hierarchySummary.ts       # 코드 지도 → 폴더 계층 요약 (파일·심볼 수, 폴더 사이 import 수). LLM 없음
 │   │   ├── importResolver.ts         # 코드 지도의 import 위치를 파일·심볼·패키지에 연결 (상대 경로, tsconfig paths, 워크스페이스, $lib, Python)
 │   │   ├── codeMapScore.ts           # 코드 지도를 정답 그래프(`tests/fixtures/graphs/`)와 비교해 관계 종류별 precision·recall과 놓친 관계를 낸다
 │   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다 (T1-12 비교용)
@@ -46,7 +49,7 @@ src/
 │   │   ├── configParsers.ts          # Dockerfile·Terraform·env 템플릿·Makefile → 구조 심볼 (줄 단위 파서, 값은 읽지 않음)
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
-│   │   ├── parserService.ts          # Web Worker 통신 (parseFile → { symbols, refs }, parseAllFiles → { astMap, refs, skipped })
+│   │   ├── parserService.ts          # Web Worker 통신 (parseFile → { symbols, refs }, parseAllFiles → { astMap, refs, skipped }). 순서와 한도는 sourceExtraction
 │   │   ├── bridgeService.ts          # 로컬 Bridge WebSocket 연결
 │   │   ├── webllmService.ts          # WebLLM Worker 래퍼
 │   │   ├── cacheService.ts           # IndexedDB 채팅 캐시 (Orama)
@@ -86,7 +89,8 @@ src/
 │   │       └── SecondarySemanticNode.svelte
 │   │
 │   ├── workers/
-│   │   ├── parserWorker.ts           # tree-sitter WASM 파싱
+│   │   ├── parserWorker.ts           # postMessage 어댑터. 파싱은 grammarParser
+│   │   ├── grammarParser.ts          # tree-sitter WASM 파싱. `.wasm` 위치만 주입받아 워커와 Node가 같이 쓴다
 │   │   ├── configOutline.ts          # YAML·TOML·JSON 매니페스트·Bash 트리 → 구조 심볼 (키와 참조만, 값은 읽지 않음)
 │   │   ├── refQueries.ts             # 문법별 tree-sitter 쿼리: 호출, 동적 import, 클래스 상속 위치
 │   │   └── webllmWorker.ts           # WebLLM 모델 초기화 + 추론
@@ -129,6 +133,14 @@ bridge/                           # 로컬 Bridge (`@ropeman/bridge`, npm 패키
 │   ├── fileRead.ts                   # `file.read`: 루트 안 파일만, 실제 `.env` 거부, 500KB 상한, sha-256
 │   └── viewer.ts                     # `--viewer` 디렉터리 정적 서빙
 └── probe/index.html                  # 브라우저 실측용 시제품 페이지 (ADR-23)
+
+packages/core/                    # Node 추출 코어 (npm 워크스페이스 아님, 루트 의존성을 쓴다)
+├── src/
+│   ├── walk.ts                       # 폴더 순회: 브라우저와 같은 건너뛰기 규칙, 상한 없음. 파일 링크는 대상도 같은 규칙으로 확인, 폴더 링크는 따라가지 않음
+│   ├── extract.ts                    # 순회 → 해석 설정 → 파싱 → 코드 지도 → 계층 요약 (`extractDirectory`)
+│   └── cli.ts                        # `ropeman-extract <폴더> [--out 파일]`
+├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙
+└── vite.config.ts                    # `npm run build:core` → `dist/cli.mjs` 하나와 `dist/wasm/`
 ```
 
 ---
@@ -147,6 +159,28 @@ bridge/                           # 로컬 Bridge (`@ropeman/bridge`, npm 패키
 → { astMap, refs, skipped } 반환. 호출한 쪽이 projectStore.astMap과 projectStore.parseSkips(크기 초과, 파서 오류, 열지 못한 파일)에 쓴다
 → codeMapStore.build({ astMap, root, refs, configs })   # 파싱 한 번에 코드 지도 한 번. GitHub·?testDir= 로더는 스스로 부른다
 ```
+
+### Node 추출 (`packages/core`, T2-2)
+
+CLI와 `ropeman serve`(T2-4)가 쓸 추출 경로다. 브라우저와 같은 코드를 부르고, 다른 것은 입출력 어댑터뿐이다.
+
+```
+walk.walkDirectory()            # fs 순회. shouldSkipPath·include 항목·MAX_DEPTH는 filePriority 그대로, MAX_FILES 없음
+→ collectResolverConfigs()      # 순회한 전체 목록에서 (브라우저와 같은 함수)
+→ createGrammarParser(파일 경로) # 워커와 같은 tree-sitter 코드. 워커는 /static URL, Node는 파일 경로를 준다
+→ sourceExtraction.parseSources(supportedFiles(tree))   # 같은 순서, 줄 단위 파서, 건너뛴 이유
+→ codeMapBuilder.buildCodeMap() → hierarchySummary.summarizeHierarchy()
+```
+
+- 한도: 파일 수와 합계 크기(MAX_TOTAL_SIZE) 상한이 없다. 파일 하나는 2MB(`NODE_MAX_FILE_SIZE`)를 넘으면 생성물이나 압축 파일로 보고 읽지 않는다(`file-size`). 브라우저의 500KB보다 크게 잡았다. 바이너리는 지원 언어 확장자만 읽으므로 파서에 닿지 않는다.
+- 실제 `.env`는 브라우저와 같은 규칙(`detectLanguage`가 템플릿에만 언어를 준다)이라 열지 않는다. 숨은 폴더와 `node_modules`는 `shouldSkipPath`로 거른다.
+- 파일 링크는 대상의 실제 경로가 루트 안이고 그 경로로도 브라우저 규칙을 통과할 때만 따라간다(`walk.isReadableTarget`: `shouldSkipPath`, 실제 `.env` 거부). 그래서 `notes.ts -> .env`나 `dep.ts -> node_modules/...`는 읽지 않는다. 폴더 링크는 따라가지 않는다. 루트 안 폴더는 실제 경로로 순회되므로 readdir 순서와 상관없이 실제 경로 이름이 남고, 루트 밖이거나 건너뛰는 폴더는 읽지 않는다. Chrome의 FileSystemHandle이 링크를 어떻게 다루는지는 확인하지 않았다.
+- 읽을 때 경로를 다시 `realpath`로 풀어 같은 규칙으로 확인하고 실제 경로를 연다. 순회 뒤에 파일이 루트 밖 링크로 바뀌어도 따라가지 않는다(`unreadable`). 그 확인과 `openAsBlob()` 사이의 짧은 틈은 막지 않았다. 사용자 자신의 폴더를 읽는 로컬 CLI라 best effort로 둔다. 원격 요청을 받는 Bridge의 `file.read`는 O_NOFOLLOW와 dev·ino 비교로 이 틈도 막는다.
+- 파일 내용은 `fs.openAsBlob()`으로 연다. 브라우저 `File.text()`처럼 UTF-8 BOM을 지우므로 같은 파일이 같은 줄과 텍스트가 된다.
+- 같음 검증(`packages/core/test/parity.test.ts`): 브라우저 경로(가짜 FileSystemDirectoryHandle → `readDirectoryRecursive` → 실제 `parserWorker`를 같은 스레드에서 돌리는 Worker → `parseAllFiles` → `buildCodeMap`)와 Node 경로의 지도가 파일 순서까지 같고, 순회 목록(`listed`와 전체 경로 집합)과 트리의 파일·언어도 같다. 링크 없는 트리만 대상이다(가짜 핸들이 링크를 만나면 테스트가 실패한다). 링크 규칙은 `extract.test.ts`가 검증한다. 대상: 정답 픽스처 세 저장소(10, 16, 24개 파일)와 이 저장소 `src/`(205개 파일, 참조 위치 13,566개).
+- PASEO 실측(`e0f545fed`, 로컬 체크아웃, Apple M4 10코어, Node 26, 5회): 순회 6,756개, 지도 6,171개(브라우저는 2,000개에서 자른다), 건너뜀 2개(2MB 넘는 `html.gen.ts` 하나, 파서 오류 `launcher.sh` 하나). 벽시계 중앙값 6.52초(6.43~6.72초), 추출 끝 시점 최대 RSS 중앙값 974MB(924~996MB). `--out`으로 덤프까지 쓰면 최대 RSS 1.43GiB다. 한 코어에서 도는 tree-sitter WASM(파싱과 쿼리)이 CPU 프로필의 대부분이라, 더 빠르게 하려면 워커 풀(T1-11)이다. 지도에는 심볼 34,533개, 참조 위치 449,288개, import 32,996개(파일·패키지로 연결 27,498, 연결 못 함 58, 해석기 밖 언어 5,440)가 들었다.
+- 계층 요약: 폴더마다 아래 파일 수, 심볼 수(중첩 포함), 바로 든 파일 수, 하위 폴더, 그리고 이 폴더의 두 부분(하위 폴더나 바로 든 파일들) 사이의 import 수를 담는다. 대상이 파일 하나로 정해진 import만 센다. 같은 지도는 같은 요약이 된다.
+- `--out` 덤프는 확인용이고 `ropeman.json` 형식이 아니다. 형식은 T2-1이, serve 연결은 T2-4가 맡는다.
 
 ### Phase 2: AI 의미론적 분석
 
@@ -399,7 +433,7 @@ export const xxxStore = createXxxStore();
   - `githubLoader.loadGitHubRepo()`도 `cutFiles`에 쓰지 않고 `{ cut }`을 돌려준다. 같은 두 컴포넌트가 받아서 쓴다. 트리와 파싱 진행률은 받는 대로 보여야 해서 로더가 직접 쓴다.
 - **AST 파싱**: 14개 언어 tree-sitter WASM (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala), 설정·스크립트 4형식(YAML, TOML, JSON, Bash)
   - 문법 WASM은 `static/`에 커밋한다. 언어별 파일은 `languageDetector.getGrammarFile()`이 고른다. `.tsx`는 언어는 TypeScript 그대로 두고 JSX를 읽는 `tree-sitter-tsx.wasm`(`tree-sitter-wasms` 0.1.13)으로 파싱한다. `.ts`는 `<T>value` 캐스트를 JSX로 오인하지 않도록 `tree-sitter-typescript.wasm`을 유지한다
-  - 문법이 없는 설정 파일 네 형식은 `configParsers.ts`의 줄 단위 파서가 읽는다(Understand-Anything의 비코드 파서 방식). `parserService.parseFile()`이 `LINE_PARSERS` 표(Markdown 포함)에서 골라 워커를 띄우지 않고 부른다. 형식은 `languageDetector.detectConfigLanguage()`가 파일 이름으로 정한다. 확장자 표가 먼저라서 `Dockerfile.ts`는 TypeScript다
+  - 문법이 없는 설정 파일 네 형식은 `configParsers.ts`의 줄 단위 파서가 읽는다(Understand-Anything의 비코드 파서 방식). `sourceExtraction.parseSource()`가 `LINE_PARSERS` 표(Markdown 포함)에서 골라 워커를 띄우지 않고 부른다. Node 추출도 같은 함수를 부른다. 형식은 `languageDetector.detectConfigLanguage()`가 파일 이름으로 정한다. 확장자 표가 먼저라서 `Dockerfile.ts`는 TypeScript다
     - Dockerfile(`Dockerfile`, `Dockerfile.*`, `*.Dockerfile`, `Containerfile`): FROM부터 다음 FROM까지가 `stage`이고, 자식으로 EXPOSE `port`와 ENTRYPOINT·CMD `command`를 둔다. 베이스 이미지와 COPY·ADD 원본 경로는 `import`다. `COPY --from`과 앞 단계를 가리키는 FROM, `scratch`는 import가 아니다. 이어 쓰기(`\`, `# escape=`), 이어 쓰기 안의 주석, `RUN <<EOF` 본문을 건너뛴다
     - Terraform(`.tf`): 최상위 resource·data·module은 `resource` 종류에 주소 이름(`aws_s3_bucket.logs`, `data.aws_ami.ubuntu`, `module.vpc`), variable은 `input`, output은 `output`이다. 줄 범위는 짝 맞는 중괄호까지이고, 문자열·`${}` 안·주석·heredoc의 중괄호는 세지 않는다. module의 `source`는 `import`다. provider·locals·terraform 블록과 `.tfvars`(값만 있다)는 읽지 않는다
     - env 템플릿(`.env.example`, `.env.sample`, `.env.template`, `.env.dist`, `.env.defaults`, 마지막 접미사가 이 다섯이면 `.env.local.example`도): 키마다 `env` 심볼 하나다. 실제 값이 든 env 파일(`.env`, `.env.local`, `.env.production` 등)은 언어를 붙이지 않으므로 로컬 폴더와 GitHub 모두 내용을 열지 않는다. 트리에는 남기고 커버리지에 `env-values`(건너뜀)로 보인다. 값을 보고 키를 가려내는 규칙이 계속 새어서, 비밀값이 들어올 파일을 아예 읽지 않기로 했다. 템플릿에서도 키는 `^[A-Z_][A-Z0-9_]*$`만 읽는다. 붙여 넣은 base64·PEM·JWT 조각은 대소문자가 섞여 있어서다. 소문자 키와 점이 든 키는 잃는다. 값은 따옴표가 닫히는지만 보고 심볼에 넣지 않는다. 여러 줄 값(PEM 키) 안의 줄은 키로 읽지 않는다. 따옴표 없는 값이 다음 줄로 넘친 경우(붙여 넣은 PEM, 줄바꿈된 base64)도 같다. 키 다음 줄이 대문자 `KEY=` 대입이 아니거나, 키보다 깊게 들여 써 있거나, 앞 줄이 `\`로 끝나면 빈 줄이나 주석까지를 그 키의 값으로 본다. 이 규칙은 진짜 키를 놓칠 수는 있어도 값 글자로 키를 만들지는 않는다. `KEY: value` 형식과 값이 `=`로 시작하는 줄(`QQ==`)은 키로 읽지 않는다. `.env*`는 숨김 파일이지만 `filePriority`가 경로 필터에서 남긴다(`languageDetector.isEnvFile()`). `*.env`와 `.envrc`는 읽지 않는다

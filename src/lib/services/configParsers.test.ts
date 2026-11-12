@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { ASTSymbol } from '$lib/types/ast';
 import { parseDockerfile, parseDotenv, parseMakefile, parseTerraform } from './configParsers';
-import { buildCodeMap, fileFromAst, formatPayloadPreview, toWireFile } from './skeletonExtractor';
+import { buildCodeMap, fileFromAst } from './codeMapBuilder';
+import { formatPayloadPreview, toWireFile } from './skeletonExtractor';
 
 const source = (...lines: string[]) => lines.join('\n');
 

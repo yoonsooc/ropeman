@@ -16,7 +16,7 @@ import type {
 	SymbolId,
 	SymbolRecord
 } from '$lib/types/codeMap';
-import { inferLanguage } from './skeletonExtractor';
+import { inferLanguage } from './codeMapBuilder';
 
 /** The `graph.schema_version` this adapter reads. Graphify 0.9.104 writes 1. */
 export const GRAPHIFY_SCHEMA_VERSION = 1;

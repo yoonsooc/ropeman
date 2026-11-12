@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 import fs from 'node:fs';
 import { detectLanguage } from '$lib/utils/languageDetector';
-import {
-	buildCodeMap,
-	formatPayloadPreview,
-	selectSkeleton
-} from '$lib/services/skeletonExtractor';
+import { buildCodeMap } from '$lib/services/codeMapBuilder';
+import { formatPayloadPreview, selectSkeleton } from '$lib/services/skeletonExtractor';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
 import golden from '$lib/services/__fixtures__/skeletonWire.golden.json';
 import { FIXTURE_AST } from '$lib/services/__fixtures__/skeletonWire';

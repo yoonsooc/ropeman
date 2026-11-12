@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { buildCoverage, currentCoverage, type CoverageInput } from './coverageService';
-import { buildCodeMap, selectSkeleton } from './skeletonExtractor';
+import { buildCodeMap } from './codeMapBuilder';
+import { selectSkeleton } from './skeletonExtractor';
 import { CONFIG_PARSERS } from './configParsers';
 import { detectLanguage, type ConfigLanguage } from '$lib/utils/languageDetector';
 import type { ASTSymbol } from '$lib/types/ast';

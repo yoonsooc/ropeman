@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { detectLanguage } from '$lib/utils/languageDetector';
-import { fileFromAst } from '$lib/services/skeletonExtractor';
+import { fileFromAst } from '$lib/services/codeMapBuilder';
 import type { ASTRef, ASTSymbol } from '$lib/types/ast';
 
 vi.mock('web-tree-sitter', async (importOriginal) => {

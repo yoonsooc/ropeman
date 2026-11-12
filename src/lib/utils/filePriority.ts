@@ -59,6 +59,9 @@ export const MAX_FILE_SIZE = 500_000; // 500KB
 /** Maximum file count safety cap. */
 export const MAX_FILES = 2000;
 
+/** Folder levels a walk descends below the root before it stops. */
+export const MAX_DEPTH = 30;
+
 /** Why a loader left a file out of the project. */
 export type CutReason = 'file-limit' | 'file-size' | 'total-size';
 
