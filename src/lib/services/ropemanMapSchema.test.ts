@@ -3,7 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MAP_SCHEMA_VERSION, MAX_MAP_BYTES, type ParseResult } from '$lib/types/ropemanMap';
-import { parseRopemanMap, parseRpcRequest, parseServerMessage } from './ropemanMapSchema';
+import {
+	parseRopemanMap,
+	parseRopemanMapValue,
+	parseRpcRequest,
+	parseServerMessage
+} from './ropemanMapSchema';
 
 const FIXTURE = fileURLToPath(
 	new URL('../../../tests/fixtures/ropeman-map/ropeman.json', import.meta.url)
@@ -236,6 +241,19 @@ describe('parseRopemanMap', () => {
 	});
 });
 
+describe('parseRopemanMapValue', () => {
+	// serve builds maps in memory, and they must meet the same checks as a file
+	it('reads a value the way parseRopemanMap reads its text', () => {
+		expect(parseRopemanMapValue(JSON.parse(fixtureText))).toEqual(parseRopemanMap(fixtureText));
+	});
+
+	it('returns a refusal with the field instead of throwing on a malformed value', () => {
+		const value = { ...JSON.parse(fixtureText), files: null };
+
+		expect(parseRopemanMapValue(value)).toMatchObject({ ok: false, code: 'invalid', at: 'files' });
+	});
+});
+
 describe('parseRpcRequest', () => {
 	it('reads each request the server answers', () => {
 		expect(parseRpcRequest('{"id":1,"type":"map.get"}')).toEqual({
@@ -384,7 +402,6 @@ describe('parseServerMessage', () => {
 describe('module boundary', () => {
 	const LIB = fileURLToPath(new URL('../', import.meta.url));
 	const TYPES = path.join(LIB, 'types') + path.sep;
-	const SELF = fileURLToPath(new URL('./ropemanMapSchema.ts', import.meta.url));
 
 	function resolveImport(from: string, specifier: string): string {
 		const base = specifier.startsWith('$lib/')
@@ -414,10 +431,19 @@ describe('module boundary', () => {
 		return seen;
 	}
 
-	// T2-4 runs this parser in the bridge and packages/core, which bundle no app runtime.
-	it('imports nothing outside $lib/types, directly or transitively', () => {
-		const outside = [...importGraph(SELF)].filter((f) => f !== SELF && !f.startsWith(TYPES));
+	// T2-4 runs the parser and the verifier in the bridge and packages/core, which bundle no app runtime.
+	const MODULES = ['./ropemanMapSchema.ts', './mapVerifier.ts'];
+	const ALLOWED = new Set(MODULES.map((m) => fileURLToPath(new URL(m, import.meta.url))));
+	it.each(MODULES)(
+		'%s imports nothing outside $lib/types and the two modules, directly or transitively',
+		(module) => {
+			const entry = fileURLToPath(new URL(module, import.meta.url));
 
-		expect(outside).toEqual([]);
-	});
+			const outside = [...importGraph(entry)].filter(
+				(f) => !ALLOWED.has(f) && !f.startsWith(TYPES)
+			);
+
+			expect(outside).toEqual([]);
+		}
+	);
 });

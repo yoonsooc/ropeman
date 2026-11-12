@@ -320,6 +320,11 @@ export function parseRopemanMap(text: string): ParseResult<RopemanMap> {
 	return attempt(() => map(json(text)));
 }
 
+/** The same checks on a value that never was text, such as a map serve builds in memory. */
+export function parseRopemanMapValue(value: unknown): ParseResult<RopemanMap> {
+	return attempt(() => map(value));
+}
+
 /** For the server: what a socket client asked for. */
 export function parseRpcRequest(text: string): ParseResult<RpcRequest> {
 	return attempt(() => {
