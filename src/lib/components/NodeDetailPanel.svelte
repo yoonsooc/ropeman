@@ -30,7 +30,10 @@
 	{#if node}
 		<div class="panel-header">
 			<div class="header-info">
-				<span class="kind-badge" style="background: {kindColors[node.kind] ?? 'var(--accent)'}">
+				<span
+					class="kind-badge"
+					style="background: {kindColors[node.kind] ?? 'var(--color-accent)'}"
+				>
 					<span class="kind-icon">{kindIcons[node.kind] ?? ''}</span>
 					{node.kind}
 				</span>
@@ -117,7 +120,7 @@
 		height: 100%;
 		display: flex;
 		flex-direction: column;
-		background: var(--bg-primary);
+		background: var(--color-background-body);
 		animation: slideIn 0.2s ease;
 	}
 
@@ -137,7 +140,7 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		padding: 16px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		gap: 12px;
 	}
 
@@ -156,7 +159,7 @@
 		border-radius: 12px;
 		font-size: 12px;
 		font-weight: 600;
-		color: #fff;
+		color: var(--color-on-accent);
 		width: fit-content;
 	}
 
@@ -167,13 +170,13 @@
 	.node-name {
 		font-size: 16px;
 		font-weight: 600;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		word-break: break-word;
 	}
 
 	.close-btn {
 		font-size: 16px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		cursor: pointer;
 		padding: 4px;
 		border-radius: 4px;
@@ -184,8 +187,8 @@
 	}
 
 	.close-btn:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.panel-content {
@@ -202,7 +205,7 @@
 		align-items: center;
 		gap: 6px;
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		word-break: break-all;
 	}
 
@@ -223,7 +226,7 @@
 	.section-title {
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.meta-grid {
@@ -237,18 +240,18 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 6px 10px;
-		background: var(--bg-secondary);
+		background: var(--color-background-surface);
 		border-radius: 6px;
 		font-size: 13px;
 	}
 
 	.meta-label {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-weight: 500;
 	}
 
 	.meta-value {
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		font-weight: 500;
 	}
 
@@ -262,7 +265,7 @@
 	}
 
 	.empty {
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		text-align: center;
 		margin-top: 40px;
 	}

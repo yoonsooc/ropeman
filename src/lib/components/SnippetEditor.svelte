@@ -168,14 +168,14 @@
 	.divider-line {
 		flex: 1;
 		height: 1px;
-		background: var(--ghost-border, rgba(255, 255, 255, 0.08));
+		background: var(--color-border);
 	}
 
 	.divider-text {
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		white-space: nowrap;
 	}
 
@@ -191,8 +191,8 @@
 		align-items: center;
 		gap: 12px;
 		padding: 12px 16px;
-		background: var(--bg-tertiary, #1b2028);
-		border: 1px solid var(--ghost-border, rgba(255, 255, 255, 0.05));
+		background: var(--color-background-muted);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		cursor: pointer;
 		transition:
@@ -202,13 +202,13 @@
 	}
 
 	.preset-card:hover {
-		border-color: var(--text-muted);
-		background: var(--bg-highest, #20262f);
+		border-color: var(--color-text-tertiary);
+		background: var(--color-background-muted);
 	}
 
 	.preset-card.active {
-		border-color: var(--accent);
-		background: rgba(163, 166, 255, 0.08);
+		border-color: var(--color-accent);
+		background: var(--color-accent-muted);
 	}
 
 	.preset-dot {
@@ -228,20 +228,20 @@
 		font-family: var(--font-body);
 		font-size: 13px;
 		font-weight: 700;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.preset-desc {
 		font-family: var(--font-body);
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.editor-area {
-		border: 1px solid var(--ghost-border, rgba(255, 255, 255, 0.05));
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		overflow: hidden;
-		background: var(--bg-lowest, #000000);
+		background: var(--color-background-canvas);
 	}
 
 	.editor-toolbar {
@@ -249,13 +249,13 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 8px 12px;
-		background: var(--bg-secondary, #151a21);
-		border-bottom: 1px solid var(--ghost-border, rgba(255, 255, 255, 0.05));
+		background: var(--color-background-surface);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.lang-select {
-		background: var(--bg-bright, #262c36);
-		color: var(--text-primary);
+		background: var(--color-neutral);
+		color: var(--color-text-primary);
 		border: none;
 		border-radius: 4px;
 		padding: 4px 8px;
@@ -265,15 +265,10 @@
 		cursor: pointer;
 	}
 
-	.lang-select:focus {
-		outline: none;
-		box-shadow: 0 0 0 1px var(--accent);
-	}
-
 	.line-info {
 		font-family: var(--font-code);
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -291,8 +286,8 @@
 		min-width: 40px;
 		text-align: right;
 		user-select: none;
-		border-right: 1px solid var(--ghost-border, rgba(255, 255, 255, 0.05));
-		background: var(--sidebar-icon-bg, #0f141a);
+		border-right: 1px solid var(--color-border);
+		background: var(--color-background-sidebar-icon);
 	}
 
 	.line-numbers span {
@@ -301,7 +296,7 @@
 		font-family: var(--font-code);
 		font-size: 11px;
 		line-height: 20px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.code-textarea {
@@ -310,10 +305,10 @@
 		font-family: var(--font-code);
 		font-size: 13px;
 		line-height: 20px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		background: transparent;
 		border: none;
-		outline: none;
+		--focus-outline-offset: -2px;
 		resize: none;
 		tab-size: 4;
 		white-space: pre;
@@ -321,13 +316,13 @@
 	}
 
 	.code-textarea::placeholder {
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		opacity: 0.5;
 	}
 
 	.error-msg {
 		margin-top: 8px;
-		color: var(--color-error);
+		color: var(--color-text-error);
 		font-size: 12px;
 	}
 
@@ -337,16 +332,16 @@
 		gap: 8px;
 		margin-top: 16px;
 		padding: 12px 24px;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 		border-radius: 8px;
 		font-family: var(--font-display);
 		font-size: 14px;
 		font-weight: 700;
 		cursor: pointer;
 		box-shadow:
-			0 10px 15px -3px rgba(163, 166, 255, 0.1),
-			0 4px 6px -4px rgba(163, 166, 255, 0.1);
+			0 10px 15px -3px var(--color-accent-muted),
+			0 4px 6px -4px var(--color-accent-muted);
 		transition:
 			opacity 0.15s ease,
 			transform 0.15s ease;

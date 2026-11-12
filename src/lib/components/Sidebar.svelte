@@ -163,10 +163,11 @@
 <style>
 	.sidebar {
 		display: flex;
-		background: var(--sidebar-content-bg, var(--bg-primary));
+		background: var(--color-background-sidebar-content);
 		overflow: hidden;
+		--focus-outline-offset: -2px;
 		flex-shrink: 0;
-		border-right: 1px solid var(--ghost-border);
+		border-right: 1px solid var(--color-border);
 	}
 
 	.sidebar-icons {
@@ -176,7 +177,7 @@
 		align-items: center;
 		gap: 16px;
 		padding: 16px 0;
-		background: var(--sidebar-icon-bg, var(--bg-secondary));
+		background: var(--color-background-sidebar-icon);
 	}
 
 	.sidebar.content-closed .sidebar-icons {
@@ -190,7 +191,7 @@
 		width: 40px;
 		height: 40px;
 		border-radius: 6px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -200,14 +201,14 @@
 	}
 
 	.icon-btn:hover:not(.disabled) {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.icon-btn.active {
-		color: var(--accent);
-		background: var(--bg-tertiary);
-		border-left: 2px solid var(--accent);
+		color: var(--color-accent);
+		background: var(--color-background-muted);
+		border-left: 2px solid var(--color-accent);
 	}
 
 	.icon-btn.disabled {
@@ -223,7 +224,7 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		background: var(--sidebar-content-bg, var(--bg-primary));
+		background: var(--color-background-sidebar-content);
 	}
 
 	.semantic-panel {
@@ -238,14 +239,14 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 10px 12px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.panel-title {
-		font-family: var(--font-display, inherit);
+		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.panel-toggle {
@@ -255,7 +256,7 @@
 		width: 24px;
 		height: 24px;
 		border-radius: 4px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -263,15 +264,15 @@
 	}
 
 	.panel-toggle:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	/* Mobile overlay mode */
 	.mobile-overlay {
 		position: fixed;
 		inset: 0;
-		background: var(--modal-backdrop);
+		background: var(--color-overlay);
 		z-index: 29;
 	}
 

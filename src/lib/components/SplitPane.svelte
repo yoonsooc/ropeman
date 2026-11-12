@@ -202,7 +202,7 @@
 	}
 
 	.pane.focused {
-		outline: 2px solid var(--accent, #3b82f6);
+		outline: 2px solid var(--color-accent);
 		outline-offset: -2px;
 	}
 
@@ -217,7 +217,7 @@
 		align-items: center;
 		justify-content: center;
 		height: 100%;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-size: 14px;
 	}
 </style>

@@ -170,32 +170,32 @@
 		display: flex;
 		flex-direction: column;
 		height: 100vh;
-		background: var(--bg-primary);
-		color: var(--text-primary);
+		background: var(--color-background-body);
+		color: var(--color-text-primary);
 	}
 
 	.share-header {
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		height: var(--header-height, 48px);
+		height: var(--header-height);
 		padding: 0 16px;
-		background: var(--sidebar-icon-bg, #0f141a);
-		border-bottom: 1px solid var(--ghost-border);
+		background: var(--color-background-sidebar-icon);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.share-logo {
 		font-family: var(--font-display);
 		font-size: 18px;
 		font-weight: 700;
-		color: var(--accent);
+		color: var(--color-accent);
 		text-decoration: none;
 	}
 
 	.share-project-name {
 		font-family: var(--font-code);
 		font-size: 13px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.share-badge {
@@ -203,8 +203,8 @@
 		font-weight: 700;
 		padding: 2px 8px;
 		border-radius: 9999px;
-		background: var(--accent-bg);
-		color: var(--accent);
+		background: var(--color-accent-muted);
+		color: var(--color-accent);
 	}
 
 	.share-header-actions {
@@ -216,8 +216,8 @@
 		align-items: center;
 		gap: 6px;
 		padding: 6px 14px;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 		border: none;
 		border-radius: 6px;
 		font-family: var(--font-display);
@@ -260,7 +260,7 @@
 		position: relative;
 		z-index: 11;
 		width: 320px;
-		border-left: 1px solid var(--ghost-border);
+		border-left: 1px solid var(--color-border);
 		overflow-y: auto;
 		overscroll-behavior: contain;
 	}
@@ -272,15 +272,15 @@
 		align-items: center;
 		justify-content: center;
 		gap: 16px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.loading-ring {
 		width: 48px;
 		height: 48px;
 		border-radius: 50%;
-		border: 2px solid rgba(163, 166, 255, 0.1);
-		border-top-color: var(--accent);
+		border: 2px solid var(--color-accent-muted);
+		border-top-color: var(--color-accent);
 		animation: spin 0.8s linear infinite;
 	}
 
@@ -298,18 +298,18 @@
 		justify-content: center;
 		gap: 12px;
 		text-align: center;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.share-error-icon {
 		font-size: 48px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.share-error h2 {
 		font-family: var(--font-display);
 		font-size: 24px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.share-error p {
@@ -329,9 +329,9 @@
 			max-height: 55dvh;
 			z-index: 30;
 			border-left: none;
-			border-top: 1px solid var(--border);
+			border-top: 1px solid var(--color-border);
 			border-radius: 12px 12px 0 0;
-			box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.24);
+			box-shadow: 0 -8px 24px var(--color-shadow);
 			padding-bottom: env(safe-area-inset-bottom);
 		}
 	}

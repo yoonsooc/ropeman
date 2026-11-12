@@ -130,8 +130,8 @@
 <style>
 	.explore-page {
 		min-height: 100vh;
-		background: var(--bg-primary);
-		color: var(--text-primary);
+		background: var(--color-background-body);
+		color: var(--color-text-primary);
 		display: flex;
 		flex-direction: column;
 	}
@@ -143,9 +143,9 @@
 		align-items: center;
 		gap: 32px;
 		padding: 0 16px;
-		height: var(--header-height, 48px);
-		background: var(--sidebar-icon-bg, #0f141a);
-		border-bottom: 1px solid var(--ghost-border);
+		height: var(--header-height);
+		background: var(--color-background-sidebar-icon);
+		border-bottom: 1px solid var(--color-border);
 		position: sticky;
 		top: 0;
 		z-index: 50;
@@ -155,7 +155,7 @@
 		font-family: var(--font-display);
 		font-size: 18px;
 		font-weight: 700;
-		color: var(--accent);
+		color: var(--color-accent);
 		text-decoration: none;
 	}
 
@@ -174,7 +174,7 @@
 		height: 32px;
 		padding: 4px;
 		border-radius: 4px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		text-decoration: none;
 		transition:
 			background-color 0.15s ease,
@@ -186,8 +186,8 @@
 	}
 
 	.explore-nav-btn:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.explore-main {
@@ -208,7 +208,7 @@
 		font-size: 38px;
 		font-weight: 700;
 		margin: 0 0 16px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		letter-spacing: -0.01em;
 	}
 
@@ -217,7 +217,7 @@
 		margin: 0 auto;
 		font-size: 15px;
 		line-height: 1.6;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.explore-filters {
@@ -229,11 +229,11 @@
 
 	.filter-input,
 	.filter-select {
-		background: var(--bg-secondary, #0f141a);
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		padding: 10px 14px;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		font-size: 13px;
 		font-family: inherit;
 	}
@@ -244,14 +244,13 @@
 	}
 
 	.filter-input::placeholder {
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		opacity: 1;
 	}
 
 	.filter-input:focus,
 	.filter-select:focus {
-		outline: none;
-		border-color: var(--accent);
+		border-color: var(--color-accent);
 	}
 
 	/* When the count leaves one cell short of full rows, the first card spans two */
@@ -285,7 +284,7 @@
 		grid-column: 1 / -1;
 		text-align: center;
 		padding: 48px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-size: 14px;
 	}
 
@@ -295,8 +294,8 @@
 		gap: 8px;
 		padding: 0 20px 20px;
 		overflow: hidden;
-		background: var(--bg-secondary, #0f141a);
-		border: 1px solid var(--ghost-border);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		text-decoration: none;
 		color: inherit;
@@ -312,8 +311,8 @@
 		height: auto;
 		object-fit: cover;
 		object-position: center;
-		background: var(--bg-lowest);
-		border-bottom: 1px solid var(--border);
+		background: var(--color-background-canvas);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.explore-card.featured .card-thumb {
@@ -322,7 +321,7 @@
 
 	@media (hover: hover) {
 		.explore-card:hover {
-			border-color: var(--accent);
+			border-color: var(--color-accent);
 		}
 	}
 
@@ -335,15 +334,15 @@
 
 	.card-language {
 		padding: 2px 8px;
-		background: var(--accent-bg, rgba(83, 221, 252, 0.15));
-		color: var(--accent);
+		background: var(--color-accent-muted);
+		color: var(--color-accent);
 		border-radius: 9999px;
 		font-weight: 600;
 		letter-spacing: 0.02em;
 	}
 
 	.card-stars {
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.card-title {
@@ -351,19 +350,19 @@
 		font-size: 20px;
 		font-weight: 700;
 		margin: 4px 0 0;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 	}
 
 	.card-repo {
 		font-family: var(--font-code);
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.card-desc {
 		font-size: 13px;
 		line-height: 1.5;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 4px 0 12px;
 		flex: 1;
 	}
@@ -371,7 +370,7 @@
 	.card-cta {
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--accent);
+		color: var(--color-accent);
 		margin-top: auto;
 	}
 

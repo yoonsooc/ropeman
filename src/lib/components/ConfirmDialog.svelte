@@ -58,17 +58,17 @@
 		margin: auto;
 		width: min(400px, calc(100vw - 32px));
 		padding: 0;
-		background: var(--bg-primary);
-		color: var(--text-primary);
-		border: 1px solid var(--border);
+		background: var(--color-background-body);
+		color: var(--color-text-primary);
+		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		box-shadow:
-			0 1px 2px rgba(0, 0, 0, 0.08),
-			0 8px 24px rgba(0, 0, 0, 0.16);
+			0 1px 2px var(--color-shadow),
+			0 8px 24px var(--color-shadow);
 	}
 
 	.confirm-dialog::backdrop {
-		background: var(--modal-backdrop);
+		background: var(--color-overlay);
 	}
 
 	.confirm-body {
@@ -85,7 +85,7 @@
 		margin-top: 8px;
 		font-size: 14px;
 		line-height: 1.5;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 	}
 
 	.confirm-actions {

@@ -306,14 +306,14 @@
 
 	/* When no cutout (large elements), overlay itself provides the dim */
 	.tour-overlay.no-cutout {
-		background: rgba(0, 0, 0, 0.55);
+		background: var(--color-overlay);
 	}
 
 	.tour-cutout {
 		position: fixed;
 		border-radius: 8px;
 		background: transparent;
-		box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+		box-shadow: 0 0 0 9999px var(--color-overlay);
 		z-index: 10000;
 		pointer-events: none;
 		transition:
@@ -326,13 +326,13 @@
 	.tour-tooltip {
 		position: fixed;
 		z-index: 10001;
-		background: var(--bg-secondary, #1a1f27);
-		border: 1px solid var(--border, #2a2f38);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		padding: 20px;
 		box-shadow:
-			0 20px 25px -5px rgba(0, 0, 0, 0.3),
-			0 8px 10px -6px rgba(0, 0, 0, 0.2);
+			0 20px 25px -5px var(--color-shadow),
+			0 8px 10px -6px var(--color-shadow);
 		transition:
 			top 0.3s ease,
 			left 0.3s ease;
@@ -347,7 +347,7 @@
 		transform: translateX(-50%);
 		border-left: 8px solid transparent;
 		border-right: 8px solid transparent;
-		border-bottom: 8px solid var(--border, #2a2f38);
+		border-bottom: 8px solid var(--color-border);
 	}
 	.tour-tooltip.arrow-top::after {
 		content: '';
@@ -357,7 +357,7 @@
 		transform: translateX(-50%);
 		border-left: 7px solid transparent;
 		border-right: 7px solid transparent;
-		border-bottom: 7px solid var(--bg-secondary, #1a1f27);
+		border-bottom: 7px solid var(--color-background-surface);
 	}
 
 	.tour-tooltip.arrow-bottom::before {
@@ -368,7 +368,7 @@
 		transform: translateX(-50%);
 		border-left: 8px solid transparent;
 		border-right: 8px solid transparent;
-		border-top: 8px solid var(--border, #2a2f38);
+		border-top: 8px solid var(--color-border);
 	}
 	.tour-tooltip.arrow-bottom::after {
 		content: '';
@@ -378,7 +378,7 @@
 		transform: translateX(-50%);
 		border-left: 7px solid transparent;
 		border-right: 7px solid transparent;
-		border-top: 7px solid var(--bg-secondary, #1a1f27);
+		border-top: 7px solid var(--color-background-surface);
 	}
 
 	.tour-tooltip.arrow-left::before {
@@ -389,7 +389,7 @@
 		transform: translateY(-50%);
 		border-top: 8px solid transparent;
 		border-bottom: 8px solid transparent;
-		border-right: 8px solid var(--border, #2a2f38);
+		border-right: 8px solid var(--color-border);
 	}
 	.tour-tooltip.arrow-left::after {
 		content: '';
@@ -399,7 +399,7 @@
 		transform: translateY(-50%);
 		border-top: 7px solid transparent;
 		border-bottom: 7px solid transparent;
-		border-right: 7px solid var(--bg-secondary, #1a1f27);
+		border-right: 7px solid var(--color-background-surface);
 	}
 
 	.tour-tooltip-header {
@@ -417,11 +417,11 @@
 		height: 22px;
 		padding: 0 8px;
 		border-radius: 9999px;
-		background: var(--accent, #3b82f6);
-		color: var(--on-accent);
+		background: var(--color-accent);
+		color: var(--color-on-accent);
 		font-size: 11px;
 		font-weight: 700;
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+		font-family: var(--font-display);
 		letter-spacing: 0.05em;
 		flex-shrink: 0;
 	}
@@ -430,15 +430,15 @@
 		margin: 0;
 		font-size: 15px;
 		font-weight: 700;
-		color: var(--text-primary, #e8e8e8);
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+		color: var(--color-text-primary);
+		font-family: var(--font-display);
 	}
 
 	.tour-tooltip-desc {
 		margin: 0 0 16px;
 		font-size: 13px;
 		line-height: 1.6;
-		color: var(--text-secondary, #9ca3af);
+		color: var(--color-text-secondary);
 	}
 
 	.tour-tooltip-actions {
@@ -455,11 +455,11 @@
 
 	.tour-btn-prev {
 		padding: 6px 14px;
-		border: 1px solid var(--border, #2a2f38);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-secondary, #9ca3af);
+		color: var(--color-text-secondary);
 		background: transparent;
 		cursor: pointer;
 		transition:
@@ -468,17 +468,17 @@
 	}
 
 	.tour-btn-prev:hover {
-		background: var(--bg-tertiary, #252a33);
-		color: var(--text-primary, #e8e8e8);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.tour-btn-skip {
 		padding: 6px 14px;
-		border: 1px solid var(--border, #2a2f38);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		font-size: 12px;
 		font-weight: 600;
-		color: var(--text-secondary, #9ca3af);
+		color: var(--color-text-secondary);
 		background: transparent;
 		cursor: pointer;
 		transition:
@@ -487,8 +487,8 @@
 	}
 
 	.tour-btn-skip:hover {
-		background: var(--bg-tertiary, #252a33);
-		color: var(--text-primary, #e8e8e8);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.tour-btn-next {
@@ -497,14 +497,14 @@
 		border-radius: 6px;
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--on-accent);
-		background: var(--accent, #3b82f6);
+		color: var(--color-on-accent);
+		background: var(--color-accent);
 		cursor: pointer;
 		transition: background 0.2s;
 	}
 
 	.tour-btn-next:hover {
-		background: var(--accent-hover, #2563eb);
+		background: var(--color-accent-hover);
 	}
 
 	/* Skip confirmation dialog */
@@ -514,21 +514,21 @@
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		background: var(--bg-secondary, #1a1f27);
-		border: 1px solid var(--border, #2a2f38);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		padding: 24px;
 		width: 340px;
 		box-shadow:
-			0 20px 25px -5px rgba(0, 0, 0, 0.3),
-			0 8px 10px -6px rgba(0, 0, 0, 0.2);
+			0 20px 25px -5px var(--color-shadow),
+			0 8px 10px -6px var(--color-shadow);
 	}
 
 	.tour-confirm-text {
 		margin: 0 0 20px;
 		font-size: 13px;
 		line-height: 1.7;
-		color: var(--text-primary, #e8e8e8);
+		color: var(--color-text-primary);
 	}
 
 	.tour-confirm-actions {

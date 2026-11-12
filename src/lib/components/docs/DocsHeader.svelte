@@ -68,9 +68,9 @@
 		justify-content: space-between;
 		padding: 0 16px;
 		width: 100%;
-		background: var(--sidebar-icon-bg);
+		background: var(--color-background-sidebar-icon);
 		flex-shrink: 0;
-		border-bottom: 1px solid var(--ghost-border);
+		border-bottom: 1px solid var(--color-border);
 		position: sticky;
 		top: 0;
 		z-index: 50;
@@ -91,14 +91,14 @@
 	.header-title {
 		font-size: 18px;
 		font-weight: 700;
-		color: var(--accent);
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+		color: var(--color-accent);
+		font-family: var(--font-display);
 		margin: 0;
 	}
 
 	.header-subtitle {
 		font-size: 13px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		font-weight: 500;
 	}
 
@@ -116,7 +116,7 @@
 		border-radius: 4px;
 		font-size: 11px;
 		font-weight: 700;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		background: transparent;
 		border: none;
 		text-decoration: none;
@@ -132,8 +132,8 @@
 	}
 
 	.header-btn:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.back-link {
@@ -149,7 +149,7 @@
 	.header-divider {
 		width: 1px;
 		height: 20px;
-		background: var(--ghost-border);
+		background: var(--color-border);
 	}
 
 	.menu-btn {

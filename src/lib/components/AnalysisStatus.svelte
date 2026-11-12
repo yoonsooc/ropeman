@@ -309,19 +309,19 @@
 		align-items: center;
 		gap: 12px;
 		padding: 8px 16px;
-		background: var(--bg-secondary);
-		border: 1px solid var(--accent-muted);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-accent-muted);
 		border-radius: 9999px;
 		z-index: 50;
 		box-shadow:
-			0 10px 15px -3px rgba(0, 0, 0, 0.3),
-			0 4px 6px -4px rgba(0, 0, 0, 0.2);
+			0 10px 15px -3px var(--color-shadow),
+			0 4px 6px -4px var(--color-shadow);
 		animation: pillFadeIn 0.2s ease;
 		transition: bottom 0.15s ease;
 	}
 
 	.group-pill {
-		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+		border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
 		z-index: 51;
 	}
 
@@ -338,7 +338,7 @@
 
 	.analysis-pill-icon {
 		font-size: 18px;
-		color: var(--accent);
+		color: var(--color-accent);
 		animation: spin-slow 2s linear infinite;
 		flex-shrink: 0;
 	}
@@ -361,14 +361,14 @@
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-primary);
+		color: var(--color-text-primary);
 		white-space: nowrap;
 	}
 
 	.analysis-pill-subtitle {
 		font-family: var(--font-code);
 		font-size: 9px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -379,12 +379,12 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		background: rgba(239, 68, 68, 0.15);
-		border: 1px solid rgba(239, 68, 68, 0.4);
+		background: var(--color-error-muted);
+		border: 1px solid color-mix(in srgb, var(--color-border-error) 40%, transparent);
 		padding: 3px 10px 3px 6px;
 		margin-left: 4px;
 		cursor: pointer;
-		color: #ff8585;
+		color: var(--color-on-error-muted);
 		flex-shrink: 0;
 		border-radius: 9999px;
 		font-size: 11px;
@@ -395,9 +395,9 @@
 			color 0.15s ease;
 	}
 	.analysis-pill-cancel:hover {
-		background: rgba(239, 68, 68, 0.9);
-		color: #fff;
-		border-color: rgba(239, 68, 68, 1);
+		background: var(--color-error);
+		color: var(--color-on-error);
+		border-color: var(--color-border-error);
 	}
 	.analysis-pill-cancel :global(.material-symbols-outlined) {
 		font-size: 14px;
@@ -414,13 +414,13 @@
 		border: none;
 		padding: 2px;
 		cursor: pointer;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		border-radius: 4px;
 		flex-shrink: 0;
 	}
 	.group-toggle-btn:hover {
-		color: var(--text-primary);
-		background: rgba(255, 255, 255, 0.08);
+		color: var(--color-text-primary);
+		background: var(--color-background-muted);
 	}
 	.group-toggle-btn :global(.material-symbols-outlined) {
 		font-size: 16px;
@@ -443,17 +443,17 @@
 	}
 	.cancel-confirm-icon {
 		font-size: 20px;
-		color: #ef4444;
+		color: var(--color-icon-error);
 	}
 	.cancel-confirm-title {
 		font-size: 13px;
 		font-weight: 700;
-		color: var(--text-primary);
-		font-family: var(--font-display, 'Space Grotesk', sans-serif);
+		color: var(--color-text-primary);
+		font-family: var(--font-display);
 	}
 	.cancel-confirm-msg {
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 0 0 16px;
 		line-height: 1.6;
 	}
@@ -462,14 +462,14 @@
 		align-items: center;
 		gap: 8px;
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		cursor: pointer;
 		margin-bottom: 16px;
 	}
 	.dont-ask input {
 		width: 12px;
 		height: 12px;
-		accent-color: var(--accent);
+		accent-color: var(--color-accent);
 		border-radius: 4px;
 	}
 	.cancel-confirm-actions {
@@ -483,15 +483,6 @@
 		font-weight: 700;
 		border-radius: 4px;
 	}
-	:global(.cancel-confirm-card .btn-danger) {
-		background: #ef4444;
-		color: #fff;
-		border: 1px solid #ef4444;
-	}
-	:global(.cancel-confirm-card .btn-danger:hover) {
-		background: #dc2626;
-		border-color: #dc2626;
-	}
 
 	.analysis-error-toast {
 		position: fixed;
@@ -501,11 +492,11 @@
 		align-items: center;
 		gap: 8px;
 		padding: 8px 12px;
-		background: rgba(239, 68, 68, 0.9);
-		border: 1px solid rgba(239, 68, 68, 1);
+		background: var(--color-error);
+		border: 1px solid var(--color-border-error);
 		border-radius: 8px;
 		z-index: 53;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 2px 8px var(--color-shadow);
 		animation: pillFadeIn 0.2s ease;
 		max-width: 360px;
 	}
@@ -520,7 +511,7 @@
 
 	.analysis-error-text {
 		font-size: 12px;
-		color: #fff;
+		color: var(--color-on-error);
 		font-weight: 500;
 		word-break: break-word;
 	}
@@ -532,9 +523,9 @@
 	}
 
 	.analysis-error-action-btn {
-		background: rgba(255, 255, 255, 0.2);
-		border: 1px solid rgba(255, 255, 255, 0.4);
-		color: #fff;
+		background: color-mix(in srgb, var(--color-on-error) 20%, transparent);
+		border: 1px solid color-mix(in srgb, var(--color-on-error) 40%, transparent);
+		color: var(--color-on-error);
 		font-size: 11px;
 		font-weight: 600;
 		padding: 3px 10px;
@@ -545,13 +536,13 @@
 	}
 
 	.analysis-error-action-btn:hover {
-		background: rgba(255, 255, 255, 0.35);
+		background: color-mix(in srgb, var(--color-on-error) 35%, transparent);
 	}
 
 	.analysis-error-dismiss {
 		background: none;
 		border: none;
-		color: rgba(255, 255, 255, 0.8);
+		color: color-mix(in srgb, var(--color-on-error) 80%, transparent);
 		cursor: pointer;
 		font-size: 14px;
 		padding: 0 2px;
@@ -560,7 +551,7 @@
 	}
 
 	.analysis-error-dismiss:hover {
-		color: #fff;
+		color: var(--color-on-error);
 	}
 
 	.analysis-success-toast {
@@ -571,20 +562,20 @@
 		align-items: center;
 		gap: 8px;
 		padding: 8px 14px;
-		background: rgba(34, 197, 94, 0.92);
-		border: 1px solid rgba(34, 197, 94, 1);
+		background: var(--color-success);
+		border: 1px solid var(--color-border-success);
 		border-radius: 9999px;
 		z-index: 54;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 2px 8px var(--color-shadow);
 		animation: pillFadeIn 0.2s ease;
 	}
 	.analysis-success-toast :global(.material-symbols-outlined) {
 		font-size: 16px;
-		color: #fff;
+		color: var(--color-on-success);
 	}
 	.analysis-success-text {
 		font-size: 12px;
-		color: #fff;
+		color: var(--color-on-success);
 		font-weight: 600;
 	}
 </style>

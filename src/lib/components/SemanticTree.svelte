@@ -297,7 +297,7 @@
 	}
 
 	.semantic-tree::-webkit-scrollbar-thumb {
-		background: var(--border);
+		background: var(--color-border);
 		border-radius: 3px;
 	}
 
@@ -310,7 +310,7 @@
 
 	.empty-text {
 		font-size: 12px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 	}
 
 	.tree-row {
@@ -326,7 +326,7 @@
 		align-items: center;
 		justify-content: center;
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -353,7 +353,7 @@
 		padding: 8px 12px;
 		border-radius: 4px;
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -364,13 +364,13 @@
 	}
 
 	.tree-node:hover {
-		background: rgba(27, 32, 40, 0.5);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.tree-node.selected {
-		background: var(--bg-tertiary, #1b2028);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 		font-weight: 500;
 	}
 
@@ -382,7 +382,7 @@
 	}
 
 	.node-label {
-		font-family: var(--font-display, inherit);
+		font-family: var(--font-display);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -392,21 +392,21 @@
 
 	.node-status {
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
 
 	.node-status.cached {
-		color: var(--color-success);
+		color: var(--color-text-success);
 	}
 
 	.node-status.analyzing {
-		color: var(--color-warning);
+		color: var(--color-text-warning);
 	}
 
 	.node-count {
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
 
@@ -417,7 +417,7 @@
 		border: none;
 		border-radius: 3px;
 		background: transparent;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-size: 12px;
 		cursor: pointer;
 		padding: 0;
@@ -434,7 +434,7 @@
 	}
 
 	.tree-reanalyze-btn:hover {
-		background: var(--accent-bg, rgba(59, 130, 246, 0.15));
-		color: var(--accent, #3b82f6);
+		background: var(--color-accent-muted);
+		color: var(--color-accent);
 	}
 </style>

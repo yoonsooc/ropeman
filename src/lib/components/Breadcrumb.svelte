@@ -282,15 +282,15 @@
 		align-items: center;
 		gap: 2px;
 		padding: 6px 20px;
-		background: var(--bg-secondary);
-		border-bottom: 1px solid var(--border);
+		background: var(--color-background-surface);
+		border-bottom: 1px solid var(--color-border);
 		overflow: visible;
 		flex-shrink: 0;
 		min-height: 32px;
 	}
 
 	.separator {
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		font-size: 14px;
 		margin: 0 2px;
 		user-select: none;
@@ -303,7 +303,7 @@
 		padding: 2px 8px;
 		border-radius: 4px;
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		white-space: nowrap;
 		background: none;
 		border: none;
@@ -314,12 +314,12 @@
 	}
 
 	.crumb:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.crumb.active {
-		color: var(--accent);
+		color: var(--color-accent);
 		font-weight: 600;
 	}
 
@@ -340,7 +340,7 @@
 
 	.crumb-chevron {
 		font-size: 8px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		margin-left: 2px;
 	}
 
@@ -357,10 +357,10 @@
 		max-width: 300px;
 		max-height: 280px;
 		overflow-y: auto;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		box-shadow: 0 4px 12px var(--color-shadow);
 		padding: 4px;
 		margin-top: 4px;
 	}
@@ -370,7 +370,7 @@
 	}
 
 	.crumb-dropdown::-webkit-scrollbar-thumb {
-		background: var(--border);
+		background: var(--color-border);
 		border-radius: 2px;
 	}
 
@@ -382,7 +382,7 @@
 		padding: 6px 8px;
 		border-radius: 4px;
 		font-size: 12px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -392,12 +392,12 @@
 	}
 
 	.dropdown-item:hover {
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.dropdown-item.current {
-		color: var(--accent, #3b82f6);
+		color: var(--color-accent);
 		font-weight: 600;
 	}
 
@@ -422,7 +422,7 @@
 
 	.dropdown-count {
 		font-size: 10px;
-		color: var(--text-muted);
+		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
 </style>

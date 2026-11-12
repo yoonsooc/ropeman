@@ -648,8 +648,8 @@
 		right: 0;
 		width: 50%;
 		height: 100%;
-		background: rgba(59, 130, 246, 0.08);
-		border: 2px dashed var(--accent, #3b82f6);
+		background: var(--color-accent-muted);
+		border: 2px dashed var(--color-accent);
 		border-radius: 8px;
 		z-index: 20;
 		display: flex;
@@ -661,11 +661,11 @@
 	.split-drop-hint {
 		font-size: 14px;
 		font-weight: 600;
-		color: var(--accent, #3b82f6);
-		background: var(--bg-secondary);
+		color: var(--color-accent);
+		background: var(--color-background-surface);
 		padding: 8px 16px;
 		border-radius: 8px;
-		border: 1px solid var(--accent, #3b82f6);
+		border: 1px solid var(--color-accent);
 	}
 
 	.detail-panel {
@@ -673,8 +673,8 @@
 		overflow-y: auto;
 		flex-shrink: 0;
 		animation: panelSlide 0.2s ease;
-		background: var(--bg-secondary);
-		border-left: 1px solid rgba(255, 255, 255, 0.05);
+		background: var(--color-background-surface);
+		border-left: 1px solid var(--color-border);
 	}
 
 	@keyframes panelSlide {
@@ -702,12 +702,12 @@
 			width: 100%;
 			height: 50dvh;
 			z-index: 50;
-			background: var(--bg-primary);
+			background: var(--color-background-body);
 			border-left: none;
-			border-top: 1px solid rgba(255, 255, 255, 0.08);
+			border-top: 1px solid var(--color-border);
 			border-top-left-radius: 16px;
 			border-top-right-radius: 16px;
-			box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+			box-shadow: 0 -8px 24px var(--color-shadow);
 			padding-bottom: env(safe-area-inset-bottom);
 			animation: bottomSheetSlide 0.2s ease;
 		}

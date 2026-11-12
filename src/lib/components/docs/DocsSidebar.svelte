@@ -50,8 +50,8 @@
 		height: calc(100vh - var(--header-height));
 		overflow-y: auto;
 		padding: 32px 16px 32px 24px;
-		border-right: 1px solid var(--border);
-		background: var(--bg-primary);
+		border-right: 1px solid var(--color-border);
+		background: var(--color-background-body);
 		font-family: var(--font-body);
 	}
 
@@ -65,7 +65,7 @@
 		font-family: var(--font-display);
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		margin: 0 0 8px;
 		padding: 0 8px;
 	}
@@ -83,7 +83,7 @@
 		display: block;
 		padding: 6px 10px;
 		font-size: 13px;
-		color: var(--text-secondary);
+		color: var(--color-text-secondary);
 		text-decoration: none;
 		border-radius: 6px;
 		border-left: 2px solid transparent;
@@ -93,14 +93,14 @@
 	}
 
 	li a:hover {
-		background: var(--bg-secondary);
-		color: var(--text-primary);
+		background: var(--color-background-surface);
+		color: var(--color-text-primary);
 	}
 
 	li a.active {
-		color: var(--accent);
-		background: var(--bg-secondary);
-		border-left-color: var(--accent);
+		color: var(--color-accent);
+		background: var(--color-background-surface);
+		border-left-color: var(--color-accent);
 		font-weight: 600;
 	}
 
@@ -113,7 +113,7 @@
 			z-index: 15;
 			transform: translateX(-100%);
 			transition: transform 0.25s ease;
-			box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+			box-shadow: 4px 0 16px var(--color-shadow);
 		}
 
 		.docs-sidebar.open {

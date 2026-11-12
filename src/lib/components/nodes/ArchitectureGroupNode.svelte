@@ -21,7 +21,7 @@
 
 <style>
 	.arch-group {
-		border: 1px solid var(--ghost-border);
+		border: 1px solid var(--color-border);
 		border-left: 4px solid;
 		border-radius: 8px;
 		position: relative;
@@ -31,7 +31,7 @@
 	}
 
 	.arch-group:hover {
-		box-shadow: 0 0 0 1px var(--ghost-border);
+		box-shadow: 0 0 0 1px var(--color-border);
 	}
 
 	.arch-group-header {
