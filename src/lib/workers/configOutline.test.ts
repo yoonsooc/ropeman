@@ -561,6 +561,128 @@ deploy
 	});
 });
 
+describe('argument and credential text', () => {
+	it('reads only bare script paths after a shell runner, never a quoted or expanded argument', async () => {
+		// Arrange
+		const script = `exec "secret with words"
+bash 'literal-token'
+sh $SCRIPT_TOKEN
+bash "$DIR_TOKEN/run.sh"
+bash ./$PART_TOKEN.sh
+FOO_TOKEN=bar ./run.sh
+"$CMD_TOKEN" --flag
+bash -c 'echo hi'
+bash ./ok.sh
+q
+`;
+
+		// Act
+		const { symbols, refs } = await parse('repo/run.sh', script);
+
+		// Assert
+		expect(refs.map((ref) => [ref.line, ref.written])).toEqual([
+			[6, './run.sh'],
+			[9, './ok.sh'],
+			// Regression: the query's `\\.` reached the regex as `.`, so any one-letter command was dropped
+			[10, 'q']
+		]);
+		const read = JSON.stringify([symbols, refs]);
+		for (const text of ['secret', 'literal', 'SCRIPT_TOKEN', 'DIR_TOKEN', 'PART_TOKEN']) {
+			expect(read).not.toContain(text);
+		}
+		expect(read).not.toContain('CMD_TOKEN');
+		expect(read).not.toContain('FOO_TOKEN');
+	});
+
+	it('names a reference without its URL userinfo, registry login, query, fragment or digest', async () => {
+		// Arrange
+		const digest = 'sha256:' + 'ab12'.repeat(16);
+		const compose = `services:
+  api:
+    image: deploy:hunter2@registry.example.com/acme/api:1
+    build:
+      context: https://x-access-token:ghp_secret@github.com/acme/api.git#main:docker
+  db:
+    image: postgres:16@${digest}
+  web:
+    build: git@github.com:acme/web.git?token=abc
+`;
+		const workflow = `jobs:
+  ship:
+    steps:
+      - uses: docker://bot:tok@ghcr.io/acme/img:1
+      - uses: actions/checkout@v4
+`;
+		const tsconfig = `{"extends": ["@tsconfig/node20/tsconfig.json", "https://u:pw@cdn.example.com/base.json?sig=xyz"]}`;
+		const script = 'source "tok@host/env.sh"\n';
+
+		// Act
+		const parsed = [
+			await parse('repo/compose.yaml', compose),
+			await parse('repo/.github/workflows/ship.yml', workflow),
+			await parse('repo/tsconfig.json', tsconfig),
+			await parse('repo/env.sh', script)
+		];
+
+		// Assert
+		const names = (symbols: readonly ASTSymbol[]): string[] =>
+			symbols.flatMap((sym) => [sym.name, ...names(sym.children ?? [])]);
+		expect(parsed.map(({ symbols }) => names(symbols))).toEqual([
+			[
+				'services',
+				'api',
+				'registry.example.com/acme/api:1',
+				'https://github.com/acme/api.git',
+				'db',
+				'postgres:16',
+				'web',
+				'github.com:acme/web.git'
+			],
+			['jobs', 'ship', 'docker://ghcr.io/acme/img:1', 'actions/checkout@v4'],
+			['extends', '@tsconfig/node20/tsconfig.json', 'https://cdn.example.com/base.json'],
+			['source host/env.sh"']
+		]);
+		const read = JSON.stringify(parsed);
+		for (const text of [
+			'hunter2',
+			'ghp_secret',
+			'access-token',
+			'main:docker',
+			'ab12',
+			'abc',
+			'tok',
+			'pw',
+			'xyz'
+		]) {
+			expect(read).not.toContain(text);
+		}
+	});
+
+	it('stops reading container images and sourced files past 64 levels of nesting', async () => {
+		// Arrange
+		const containers = (image: string) => `{containers: [{name: c, image: ${image}}]}`;
+		const nest = (depth: number, inner: string) => '{n: '.repeat(depth) + inner + '}'.repeat(depth);
+		const k8s = `apiVersion: v1
+kind: Pod
+metadata:
+  name: p
+spec: ${nest(2, containers('shallow:1'))}
+status: ${nest(100, containers('deep:1'))}
+`;
+		const script = `${'( '.repeat(100)}source ./deep.sh${' )'.repeat(100)}\n( source ./shallow.sh )\n`;
+
+		// Act
+		const yaml = await parse('repo/pod.yaml', k8s);
+		const bash = await parse('repo/nested.sh', script);
+
+		// Assert
+		expect(yaml.symbols.map((sym) => sym.children?.map((child) => child.name))).toEqual([
+			['shallow:1']
+		]);
+		expect(bash.symbols.map((sym) => sym.name)).toEqual(['source ./shallow.sh']);
+	});
+});
+
 describe('config outline secrets', () => {
 	/** A seeded generator, so a failure names the round that reproduces it. */
 	function tokens(seed: number) {
@@ -604,6 +726,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${quote(v())}
+      - uses: docker://bot:${v()}@ghcr.io/acme/img:1
       - run: ${pick(['|', '>', '|-'])}
           ${k()}: ${v()}
           echo ${v()}
@@ -626,6 +749,10 @@ jobs:
     healthcheck:
       test: ${pick(['|', '>'])}
         ${k()}: ${v()}
+  private:
+    image: ${v()}:${v()}@registry.example.com/acme/app:1
+    build:
+      context: https://x-access-token:${v()}@github.com/acme/app.git#${v()}
 `;
 		const k8s = `apiVersion: v1
 kind: Secret
@@ -648,6 +775,8 @@ spec:
       containers:
         - name: api
           image: ghcr.io/acme/api:1
+        - name: sidecar
+          image: ${v()}@registry.local/sidecar:1
           args: ["--token", "${v()}"]
           env:
             - name: ${k()}
@@ -670,7 +799,8 @@ cli = "${v()}"
   "name": "${v()}",
   "scripts": { "deploy": "curl -H 'Authorization: ${v()}' https://example.com" },
   "dependencies": { "x": "https://${v()}@example.com/x.tgz" },
-  "config": { "token": "${v()}", "${k()}": "x" }
+  "config": { "token": "${v()}", "${k()}": "x" },
+  "extends": "https://${v()}@example.com/base.json?sig=${v()}"
 }`;
 		const script = `export TOKEN=${v()}
 API_KEY="${v()}"
@@ -680,6 +810,12 @@ deploy() {
   echo "${k()}: ${v()}"
 }
 source ./env.sh ${v()}
+exec "${v()} ${v()}"
+bash '${v()}'
+bash "$${k()}"
+sh ./$${k()}.sh
+"$${k()}" --flag
+${k()}=${v()} ./run.sh
 `;
 		// The fragment in `config` above is a key; keys of unread objects are never names either
 		return {

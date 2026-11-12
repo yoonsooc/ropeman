@@ -27,6 +27,9 @@ const JSX = `
 (jsx_opening_element name: (_) @jsx)
 (jsx_self_closing_element name: (_) @jsx)`;
 
+// A command or script path: letters, digits and `_./+-`, not starting with `-` (an option)
+const BARE_WORD = '^[A-Za-z0-9_./+][A-Za-z0-9_./+-]*$';
+
 const QUERIES: Record<string, string> = {
 	'tree-sitter-typescript.wasm': ECMA_CALLS + TS_HERITAGE,
 	'tree-sitter-tsx.wasm': ECMA_CALLS + JSX + TS_HERITAGE,
@@ -53,11 +56,13 @@ const QUERIES: Record<string, string> = {
 	'tree-sitter-c_sharp.wasm': `(invocation_expression function: (_) @callee)
 (object_creation_expression type: (_) @callee)`,
 	'tree-sitter-scala.wasm': CALL,
-	// Every command, and the script a shell runs (`bash deploy.sh`); `source` is an import
+	// Every command, and the script a shell runs (`bash deploy.sh`); `source` is an import. Only
+	// bare words: a quoted, `$`-expanded or `KEY=value` word is an argument's text, not a name
 	'tree-sitter-bash.wasm': `(command name: (command_name) @callee
-  (#not-match? @callee "^(source|\\.|(ba|da|z)?sh|exec)$"))
-(command name: (command_name) @runner . argument: (_) @callee
-  (#match? @runner "^((ba|da|z)?sh|exec)$") (#not-match? @callee "^-"))`
+  (#match? @callee "${BARE_WORD}")
+  (#not-match? @callee "^(source|[.]|(ba|da|z)?sh|exec)$"))
+(command name: (command_name) @runner . argument: (word) @callee
+  (#match? @runner "^((ba|da|z)?sh|exec)$") (#match? @callee "${BARE_WORD}"))`
 };
 
 // Python `class A(B, metaclass=M)`: only positional bases are inherited

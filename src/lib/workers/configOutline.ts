@@ -31,6 +31,8 @@ export const CONFIG_OUTLINES: Record<
 };
 
 const MAX_NAME = 200;
+// How deep the outline walks a tree; deeper nesting is never a pod template or a sourced file
+const MAX_DEPTH = 64;
 const REFERENCE = /^\S{1,200}$/;
 
 const symbol = (
@@ -58,8 +60,22 @@ function lastLine(node: OutlineNode): number {
 const named = (node: OutlineNode, type: string) =>
 	node.namedChildren.filter((child) => child.type === type);
 
-const reference = (value: string | null): string | null =>
-	value !== null && REFERENCE.test(value) ? value : null;
+// `scheme://` with the authority after it, or a scheme-less `user:token@registry`, up to the `@`
+const USERINFO = /^((?:[A-Za-z][\w+.-]*:\/\/)?)[^/]+@/;
+const QUERY_OR_FRAGMENT = /[?#].*$/s;
+const DIGEST = /@[\w+.-]+:[0-9a-f]{32,}$/i;
+
+/**
+ * A reference value as a name, without the parts that can carry a credential: the userinfo of
+ * `https://user:token@host/repo.git`, a registry login in `user:token@registry/img`, a `?query`
+ * or `#fragment`, and an `@sha256:` digest. An action's `owner/repo@v4` keeps its ref, since
+ * its `@` comes after a `/`.
+ */
+function reference(value: string | null): string | null {
+	if (value === null || !REFERENCE.test(value)) return null;
+	const name = value.replace(DIGEST, '').replace(USERINFO, '$1').replace(QUERY_OR_FRAGMENT, '');
+	return name || null;
+}
 
 // ---------------------------------------------------------------------------------------------
 // YAML
@@ -179,9 +195,10 @@ function kubernetesResource(
 	return symbol(name ? `${kind}/${name}` : kind, 'resource', mapping, children);
 }
 
-/** The `image` of every container in a pod template, at any depth. */
-function containerImages(mapping: OutlineNode): ASTSymbol[] {
+/** The `image` of every container in a pod template, at any depth up to `MAX_DEPTH`. */
+function containerImages(mapping: OutlineNode, depth = 0): ASTSymbol[] {
 	const images: ASTSymbol[] = [];
+	if (depth >= MAX_DEPTH) return images;
 	for (const [key, pair] of yamlPairs(mapping)) {
 		const value = pair.childForFieldName('value');
 		if (!value) continue;
@@ -195,7 +212,7 @@ function containerImages(mapping: OutlineNode): ASTSymbol[] {
 			continue;
 		}
 		const inner = yamlMapping(value);
-		if (inner) images.push(...containerImages(inner));
+		if (inner) images.push(...containerImages(inner, depth + 1));
 	}
 	return images;
 }
@@ -444,7 +461,8 @@ function outlineBash(root: OutlineNode): ASTSymbol[] {
 	return symbols.sort((a, b) => a.lineStart - b.lineStart);
 }
 
-function collectSources(node: OutlineNode, out: ASTSymbol[]): void {
+function collectSources(node: OutlineNode, out: ASTSymbol[], depth = 0): void {
+	if (depth >= MAX_DEPTH) return;
 	for (const child of node.namedChildren) {
 		if (child.type === 'command') {
 			const command = child.childForFieldName('name')?.text;
@@ -454,10 +472,15 @@ function collectSources(node: OutlineNode, out: ASTSymbol[]): void {
 				if (name) out.push(symbol(`${command} ${name}`, 'import', child));
 			}
 		}
-		collectSources(child, out);
+		collectSources(child, out, depth + 1);
 	}
 }
 
-function hasSubstitution(node: OutlineNode): boolean {
-	return SUBSTITUTION.test(node.type) || node.namedChildren.some(hasSubstitution);
+/** Past `MAX_DEPTH` a path counts as substituted, so it is not read. */
+function hasSubstitution(node: OutlineNode, depth = 0): boolean {
+	return (
+		depth >= MAX_DEPTH ||
+		SUBSTITUTION.test(node.type) ||
+		node.namedChildren.some((child) => hasSubstitution(child, depth + 1))
+	);
 }
