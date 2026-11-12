@@ -355,6 +355,13 @@ export function toFlowNodes(graphNodes: GraphNode[]) {
 	});
 }
 
+// Same edge tokens as the semantic graph and its legend; containment has no legend entry
+const EDGE_STYLES: Record<GraphEdge['type'], string> = {
+	contains: 'stroke: var(--color-edge-contains); stroke-width: 1px;',
+	imports: 'stroke: var(--color-edge-depends-on); stroke-width: 1.5px;',
+	calls: 'stroke: var(--color-edge-calls); stroke-width: 1px;'
+};
+
 /** Convert GraphEdge[] to SvelteFlow edge objects */
 export function toFlowEdges(graphEdges: GraphEdge[]) {
 	return graphEdges.map((e) => ({
@@ -363,10 +370,7 @@ export function toFlowEdges(graphEdges: GraphEdge[]) {
 		target: e.target,
 		type: e.type === 'imports' ? 'smoothstep' : 'default',
 		animated: e.type === 'imports',
-		style:
-			e.type === 'imports'
-				? 'stroke: #3b82f6; stroke-width: 1.5px;'
-				: 'stroke: #666; stroke-width: 1px;',
+		style: EDGE_STYLES[e.type],
 		data: { edgeType: e.type }
 	}));
 }

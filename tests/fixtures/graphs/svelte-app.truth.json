@@ -10,6 +10,7 @@
     { "kind": "imports_from", "from": "src/lib/stores/cart.svelte.ts", "line": 1, "written": "../types", "to": "src/lib/types.ts" },
     { "kind": "imports", "from": "src/lib/stores/cart.svelte.ts", "line": 1, "written": "CartLine", "to": "src/lib/types.ts#CartLine" },
     { "kind": "imports", "from": "src/lib/stores/cart.svelte.ts", "line": 1, "written": "Product", "to": "src/lib/types.ts#Product" },
+    { "kind": "calls", "from": "src/lib/stores/cart.svelte.ts", "line": 15, "written": "CartStore", "to": "src/lib/stores/cart.svelte.ts#CartStore" },
 
     { "kind": "imports_from", "from": "src/lib/api.ts", "line": 1, "written": "./types", "to": "src/lib/types.ts" },
     { "kind": "imports", "from": "src/lib/api.ts", "line": 1, "written": "Product", "to": "src/lib/types.ts#Product" },
