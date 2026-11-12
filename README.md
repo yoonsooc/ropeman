@@ -78,7 +78,7 @@ Ropeman has four AI modes:
 
 1. **Demo** is free and needs no setup. Requests go through Ropeman's edge proxy, which rate-limits them, to the Google Gemini free tier. Google may use free-tier inputs to improve its products.
 2. **API Key (BYOK)** uses your own Google Gemini, Anthropic or OpenAI key. The key stays in the browser (localStorage). Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's edge proxy because of browser restrictions, and the proxy does not store keys.
-3. **Local Bridge** connects to an AI CLI on your machine (Claude Code, Gemini CLI and others) through a small bridge server. The bridge hands the skeleton to the CLI, and the CLI sends it to its own provider. Source files stay on your machine.
+3. **Local Bridge** connects to an AI CLI on your machine (Claude Code or Gemini CLI) through a small bridge server. The bridge hands the skeleton to the CLI, and the CLI sends it to its own provider. Source files stay on your machine.
 4. **Browser AI** runs a model in the browser with WebGPU through web-llm. After the one-time model download, analysis runs offline. This mode is experimental.
 
 To use Local Bridge, run `npx @ropeman/bridge`. Version 0.2 and later prints a token at startup. Paste it into the Token field on the Local Bridge card in Ropeman, or the bridge refuses the connection. The bridge listens only on `127.0.0.1` and accepts browser connections only from `https://ropeman.dev`, local dev servers and origins you add with `--allow-origin`. [bridge/README.md](bridge/README.md) covers where the token is stored and the other flags.
