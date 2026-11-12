@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
 import fs from 'fs';
 import os from 'os';
@@ -27,6 +28,13 @@ describe('bridge file.read', () => {
 		fs.symlinkSync(base, path.join(dir, 'link-dir'));
 		fs.symlinkSync(path.join(dir, 'a.txt'), path.join(dir, 'link-in.txt'));
 		fs.symlinkSync(path.join(dir, '.env'), path.join(dir, 'config.txt'));
+		fs.writeFileSync(path.join(dir, '..x'), 'dots in a name\n');
+		fs.writeFileSync(path.join(dir, 'image.bin'), Buffer.from([0x89, 0x50, 0x00, 0x47]));
+		fs.mkdirSync(path.join(dir, 'race'));
+		fs.writeFileSync(path.join(dir, 'race', 'f.txt'), 'inside\n');
+		fs.mkdirSync(path.join(base, 'elsewhere'));
+		fs.writeFileSync(path.join(base, 'elsewhere', 'f.txt'), 'outside\n');
+		if (process.platform !== 'win32') execFileSync('mkfifo', [path.join(dir, 'pipe')]);
 		root = resolveRoot(dir);
 	});
 
@@ -71,12 +79,71 @@ describe('bridge file.read', () => {
 		['.ENV', 'env-file'],
 		['config.txt', 'env-file'],
 		['big.txt', 'too-large'],
+		['image.bin', 'binary'],
 		['missing.txt', 'not-found'],
 		['sub', 'not-a-file']
 	])('refuses %j as %s', async (requested, reason) => {
 		const read = await readRootedFile(root, requested);
 		expect(read.ok ? 'ok' : read.reason).toBe(reason);
 	});
+
+	it('reads a file whose name starts with two dots', async () => {
+		const read = await readRootedFile(root, '..x');
+		expect(read.ok && read.file.content).toBe('dots in a name\n');
+	});
+
+	it.skipIf(process.platform === 'win32')(
+		'refuses a FIFO without waiting for a writer',
+		async () => {
+			// A blocking open of a FIFO never returns; four of them used to stall every libuv thread
+			const reads = await Promise.all(
+				Array.from({ length: 5 }, () => readRootedFile(root, 'pipe'))
+			);
+			expect(reads.map((read) => (read.ok ? 'ok' : read.reason))).toEqual(
+				Array(5).fill('not-a-file')
+			);
+		},
+		2000
+	);
+
+	it.each([
+		['kept swapped', false],
+		['swapped back after open', true]
+	])(
+		'refuses a parent directory swapped for an outside symlink during the read (%s)',
+		async (_label, swapBack) => {
+			// Arrange: swap `race/` for a link to a directory outside the root right before open
+			const dir = path.join(root, 'race');
+			const parked = path.join(root, 'race-parked');
+			const open = fs.promises.open.bind(fs.promises);
+			vi.spyOn(fs.promises, 'open').mockImplementation(async (...args) => {
+				fs.renameSync(dir, parked);
+				fs.symlinkSync(path.join(base, 'elsewhere'), dir);
+				try {
+					return await open(...args);
+				} finally {
+					if (swapBack) {
+						fs.unlinkSync(dir);
+						fs.renameSync(parked, dir);
+					}
+				}
+			});
+
+			try {
+				// Act
+				const read = await readRootedFile(root, 'race/f.txt');
+
+				// Assert
+				expect(read.ok ? read.file.content : read.reason).toBe('changed');
+			} finally {
+				vi.restoreAllMocks();
+				if (fs.existsSync(parked)) {
+					fs.unlinkSync(dir);
+					fs.renameSync(parked, dir);
+				}
+			}
+		}
+	);
 
 	it('refuses a path that is not a string', async () => {
 		const read = await readRootedFile(root, { path: 'a.txt' });

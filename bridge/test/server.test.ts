@@ -85,6 +85,28 @@ async function request(port: number, msg: object): Promise<Record<string, unknow
 	}
 }
 
+/** Sends every message at once and collects the reply to each, keyed by id. */
+async function requestAll(port: number, msgs: object[]): Promise<Record<string, unknown>[]> {
+	const ws = new WebSocket(`ws://127.0.0.1:${port}/?token=${TOKEN}`);
+	try {
+		return await new Promise((resolve, reject) => {
+			const replies = new Map<number, Record<string, unknown>>();
+			ws.onerror = () => reject(new Error('socket error'));
+			ws.onmessage = (ev) => {
+				const reply = JSON.parse(String(ev.data));
+				if (reply.type === 'status' && reply.result === 'connected') {
+					msgs.forEach((msg, i) => ws.send(JSON.stringify({ id: i, ...msg })));
+				} else {
+					replies.set(reply.id, reply);
+					if (replies.size === msgs.length) resolve(msgs.map((_, i) => replies.get(i)!));
+				}
+			};
+		});
+	} finally {
+		ws.close();
+	}
+}
+
 describe('bridge server', () => {
 	let base: string;
 	let viewerDir: string;
@@ -99,6 +121,11 @@ describe('bridge server', () => {
 		fs.mkdirSync(projectDir);
 		fs.writeFileSync(path.join(viewerDir, 'index.html'), '<!doctype html><title>viewer</title>');
 		fs.writeFileSync(path.join(viewerDir, 'app.js'), 'export {};');
+		fs.writeFileSync(path.join(viewerDir, '.env'), 'SECRET=1\n');
+		fs.mkdirSync(path.join(viewerDir, 'sub'));
+		fs.mkdirSync(path.join(viewerDir, '.git'));
+		fs.writeFileSync(path.join(viewerDir, '.git', 'config'), '[remote]\n');
+		fs.symlinkSync(path.join(viewerDir, '.env'), path.join(viewerDir, 'config.txt'));
 		fs.writeFileSync(path.join(base, 'secret.txt'), 'outside the viewer');
 		fs.writeFileSync(path.join(projectDir, 'main.ts'), 'console.log(1);\n');
 	});
@@ -175,6 +202,33 @@ describe('bridge server', () => {
 			expect((await get(port, '/missing.js')).status).toBe(404);
 		});
 
+		it('does not serve dotfiles, dot directories or links to them', async () => {
+			// Arrange: `--viewer .` started in a project that holds a .env
+			const port = await start({ viewerDir: resolveRoot(viewerDir) });
+
+			// Act
+			const urls = ['/.env', '/%2eenv', '/sub/%2e%2e/.env', '/.git/config', '/config.txt'];
+			const statuses = await Promise.all(urls.map(async (url) => (await get(port, url)).status));
+
+			// Assert
+			expect(statuses).toEqual([404, 404, 404, 404, 404]);
+		});
+
+		it('answers HEAD with the size and no body', async () => {
+			const port = await start({ viewerDir: resolveRoot(viewerDir) });
+			const head = await new Promise<http.IncomingMessage & { body: string }>((resolve, reject) => {
+				http
+					.request({ host: HOST, port, path: '/app.js', method: 'HEAD' }, (res) => {
+						let body = '';
+						res.on('data', (chunk) => (body += chunk));
+						res.on('end', () => resolve(Object.assign(res, { body })));
+					})
+					.on('error', reject)
+					.end();
+			});
+			expect([head.statusCode, head.headers['content-length'], head.body]).toEqual([200, '10', '']);
+		});
+
 		it('accepts its own origin only while it serves the viewer', async () => {
 			// Arrange
 			const served = await start({ viewerDir: resolveRoot(viewerDir) });
@@ -216,6 +270,27 @@ describe('bridge server', () => {
 			const reply = await request(port, { type: 'file.read', path: '../secret.txt' });
 			expect(reply).toMatchObject({ code: 'outside-root' });
 			expect(reply.result).toBeUndefined();
+		});
+
+		it('answers file.read past the per-connection limit with busy, then serves again', async () => {
+			// Arrange: the README promises 8 reads in flight per connection
+			const port = await start({ root: resolveRoot(projectDir) });
+			const burst = Array.from({ length: 24 }, () => ({
+				type: 'file.read',
+				path: 'main.ts'
+			}));
+
+			// Act
+			const replies = await requestAll(port, burst);
+			const after = await request(port, { type: 'file.read', path: 'main.ts' });
+
+			// Assert
+			const busy = replies.filter((reply) => reply.code === 'busy').length;
+			const served = replies.filter((reply) => reply.result !== undefined).length;
+			expect(busy).toBeGreaterThan(0);
+			expect(served).toBeGreaterThanOrEqual(8);
+			expect(busy + served).toBe(burst.length);
+			expect(after.result).toMatchObject({ path: 'main.ts' });
 		});
 
 		it('refuses file.read when started without a root', async () => {

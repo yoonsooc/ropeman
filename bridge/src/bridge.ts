@@ -17,6 +17,8 @@ import { serveViewerFile } from './viewer.js';
 export const HOST = '127.0.0.1';
 /** Skeleton payloads are a few hundred KB; this leaves room without accepting arbitrary sizes. */
 const MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
+/** Per connection, so one page cannot tie up every libuv thread with reads. */
+const MAX_FILE_READS_IN_FLIGHT = 8;
 
 export interface BridgeOptions {
 	port: number;
@@ -44,7 +46,7 @@ interface BridgeResponse {
 	type: string;
 	result?: string | FileContent;
 	error?: string;
-	code?: FileReadRejection | 'no-root';
+	code?: FileReadRejection | 'no-root' | 'busy';
 }
 
 /** CLI별 인자 및 stdin 전략 */
@@ -168,6 +170,7 @@ export function createBridgeServer(options: BridgeOptions): {
 			`Client connected from ${addr} origin=${req.headers.origin ?? '-'} (${clients.size} total)`
 		);
 
+		let readsInFlight = 0;
 		const reply = (response: BridgeResponse) => {
 			if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(response));
 		};
@@ -205,6 +208,15 @@ export function createBridgeServer(options: BridgeOptions): {
 						});
 						return;
 					}
+					if (readsInFlight >= MAX_FILE_READS_IN_FLIGHT) {
+						reply({
+							...response,
+							code: 'busy',
+							error: `At most ${MAX_FILE_READS_IN_FLIGHT} file.read requests at a time.`
+						});
+						return;
+					}
+					readsInFlight++;
 					readRootedFile(root, msg.path)
 						.then((read) => {
 							if (read.ok) {
@@ -215,7 +227,8 @@ export function createBridgeServer(options: BridgeOptions): {
 								reply({ ...response, code: read.reason, error: read.message });
 							}
 						})
-						.catch((err: Error) => reply({ ...response, error: err.message }));
+						.catch((err: Error) => reply({ ...response, error: err.message }))
+						.finally(() => readsInFlight--);
 					return;
 				}
 				case 'analyze':

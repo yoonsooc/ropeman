@@ -1,6 +1,8 @@
 import fs from 'fs';
 import type http from 'http';
 import path from 'path';
+import { pipeline } from 'stream';
+import { isInside, openRegularFile } from './fileRead.js';
 
 const CONTENT_TYPES: Record<string, string> = {
 	'.html': 'text/html; charset=utf-8',
@@ -23,6 +25,14 @@ const HEADERS = {
 	'Cache-Control': 'no-cache'
 };
 
+/**
+ * Dotfiles and dot directories (`.env`, `.git/`) are never served, and `..` is one of them, so a
+ * `--viewer .` started in a project does not hand out its secrets.
+ */
+function hasDotSegment(relative: string): boolean {
+	return relative.split(/[\\/]/).some((segment) => segment.startsWith('.'));
+}
+
 /** Serves a file of the viewer bundle (`viewerDir`, a real path); `/` serves `index.html`. */
 export async function serveViewerFile(
 	viewerDir: string,
@@ -41,29 +51,39 @@ export async function serveViewerFile(
 		return;
 	}
 	const relative = pathname.endsWith('/') ? `${pathname}index.html` : pathname;
-	const target = path.join(viewerDir, relative);
+	if (hasDotSegment(relative)) {
+		res.writeHead(404).end();
+		return;
+	}
 
 	let real: string;
 	try {
-		real = await fs.promises.realpath(target);
+		real = await fs.promises.realpath(path.join(viewerDir, relative));
 	} catch {
 		res.writeHead(404).end();
 		return;
 	}
-	const rel = path.relative(viewerDir, real);
-	const stat = rel.startsWith('..') || path.isAbsolute(rel) ? null : await fs.promises.stat(real);
-	if (!stat?.isFile()) {
+	// A symlink in the bundle may point at a dotfile (`config.txt -> .env`) or out of it
+	const opened =
+		isInside(viewerDir, real) && !hasDotSegment(path.relative(viewerDir, real))
+			? await openRegularFile(real)
+			: 'not-found';
+	if (typeof opened === 'string') {
 		res.writeHead(404).end();
 		return;
 	}
+	const { handle, stat } = opened;
 	res.writeHead(200, {
 		...HEADERS,
 		'Content-Type': CONTENT_TYPES[path.extname(real)] ?? 'application/octet-stream',
 		'Content-Length': stat.size
 	});
 	if (req.method === 'HEAD') {
+		await handle.close();
 		res.end();
 		return;
 	}
-	fs.createReadStream(real).pipe(res);
+	// Streams the opened file, so a path swapped after the checks is never read; pipeline closes
+	// it when the client goes away mid-response
+	pipeline(handle.createReadStream(), res, () => {});
 }

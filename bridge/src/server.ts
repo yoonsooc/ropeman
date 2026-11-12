@@ -2,7 +2,13 @@
 
 import { promisify } from 'util';
 import { exec as execCb } from 'child_process';
-import { type CLIType, parseAllowedOrigins, resolveToken } from './auth.js';
+import {
+	type CLIType,
+	TOKEN_ENV,
+	defaultTokenFile,
+	parseAllowedOrigins,
+	resolveToken
+} from './auth.js';
 import { HOST, createBridgeServer } from './bridge.js';
 import { resolveRoot } from './fileRead.js';
 
@@ -89,6 +95,13 @@ async function main() {
 		process.exit(1);
 	}
 
+	// The value stays off the console (and out of captured logs) unless it is part of a link to open
+	const tokenSource = argv.includes('--token')
+		? 'the --token value'
+		: process.env[TOKEN_ENV]
+			? `the ${TOKEN_ENV} value`
+			: `stored in ${defaultTokenFile()}`;
+
 	const { server, clients } = createBridgeServer({
 		port,
 		token,
@@ -125,8 +138,9 @@ async function main() {
 
 	server.listen(port, HOST, () => {
 		log(`Bridge server ready on ws://${HOST}:${port}`);
-		log(`Token: ${token}`);
-		log('Paste this token into the Token field on the Local Bridge card in Ropeman.');
+		log(
+			`Token: ${tokenSource}. Paste it into the Token field on the Local Bridge card in Ropeman.`
+		);
 		log(`file.read root: ${root ?? 'off (pass --root <dir>)'}`);
 		if (viewerDir) log(`Local mode: open http://${HOST}:${port}/#token=${token}`);
 	});
