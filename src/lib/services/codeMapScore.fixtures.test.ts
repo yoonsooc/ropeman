@@ -217,7 +217,7 @@ const GRAPHIFY_MERGES: Record<string, string[]> = {
 };
 
 /** Config languages Graphify 0.9.104 does not parse, so their keys and tables are parser-only */
-const GRAPHIFY_UNPARSED = new Set(['json', 'yaml', 'toml']);
+const GRAPHIFY_UNPARSED = new Set<string | null>(['json', 'yaml', 'toml']);
 
 /** Every symbol in `symbols` and below, as `id kind` */
 const flatten = (symbols: readonly SymbolRecord[]): string[] =>
