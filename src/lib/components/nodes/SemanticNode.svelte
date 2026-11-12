@@ -54,7 +54,11 @@
 		>
 	</div>
 
-	{#if data.description}
+	{#if data.namePending}
+		<p class="node-naming">
+			<span class="naming-dot" aria-hidden="true"></span>{i18nStore.t('node.naming')}
+		</p>
+	{:else if data.description}
 		<p class="node-description">{data.description}</p>
 	{/if}
 
@@ -199,6 +203,29 @@
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 		flex-shrink: 0;
+	}
+
+	.node-naming {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin: 0;
+		font-size: 12px;
+		color: var(--color-text-tertiary);
+	}
+
+	.naming-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--node-color);
+		animation: naming-pulse 1.2s var(--ease-standard) infinite alternate;
+	}
+
+	@keyframes naming-pulse {
+		from {
+			opacity: 0.25;
+		}
 	}
 
 	.node-description {

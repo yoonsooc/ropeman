@@ -56,10 +56,21 @@ export async function serveViewerFile(
 		return;
 	}
 
-	let real: string;
-	try {
-		real = await fs.promises.realpath(path.join(viewerDir, relative));
-	} catch {
+	// The viewer prerenders `/bridge` as `bridge.html`, the way Cloudflare Pages serves it
+	const candidates = path.extname(relative) ? [relative] : [relative, `${relative}.html`];
+	let real: string | null = null;
+	for (const candidate of candidates) {
+		try {
+			const found = await fs.promises.realpath(path.join(viewerDir, candidate));
+			if ((await fs.promises.stat(found)).isFile()) {
+				real = found;
+				break;
+			}
+		} catch {
+			// try the next spelling
+		}
+	}
+	if (!real) {
 		res.writeHead(404).end();
 		return;
 	}

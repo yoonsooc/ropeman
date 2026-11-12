@@ -213,6 +213,11 @@ function createSemanticStore() {
 			cache = new Map(cache).set(key, level);
 		},
 
+		/** Every cached level at once, for a map that came in whole (Bridge `map.get`). */
+		replaceLevels(levels: Map<string, SemanticLevel>) {
+			cache = new Map(levels);
+		},
+
 		invalidateCache(key: string) {
 			const next = new Map(cache);
 			next.delete(key);

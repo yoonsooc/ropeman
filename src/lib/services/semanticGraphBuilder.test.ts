@@ -108,6 +108,25 @@ describe('toSemanticFlowNodes', () => {
 });
 
 describe('toSemanticFlowEdges', () => {
+	it('dashes an INFERRED relation and leaves an EXTRACTED one solid', () => {
+		// Arrange
+		const level = makeLevel();
+		const base = level.edges[0];
+		level.edges = [
+			{ ...base, id: 'claim', evidence: { confidence: 'INFERRED', refs: [] } },
+			{ ...base, id: 'plain' }
+		];
+
+		// Act
+		const [claim, plain] = toSemanticFlowEdges(level);
+
+		// Assert
+		expect(claim.style).toContain('stroke-dasharray');
+		expect(claim.data).toMatchObject({ inferred: true });
+		expect(plain.style).not.toContain('stroke-dasharray');
+		expect(plain.data).toMatchObject({ inferred: false });
+	});
+
 	it('creates SvelteFlow edges from semantic level', () => {
 		const level = makeLevel();
 		const flowEdges = toSemanticFlowEdges(level);

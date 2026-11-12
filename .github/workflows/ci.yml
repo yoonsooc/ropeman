@@ -64,6 +64,10 @@ jobs:
           npm run build:bridge
           node bridge/scripts/smoke.mjs bridge/dist/server.mjs tests/fixtures/graphs/ts-monorepo
 
+      # The viewer `serve --local` hosts; the Bridge E2E runs serve with it
+      - name: Bundle the local-mode viewer
+        run: npm run bundle:viewer
+
       - name: Unit tests
         run: npm run test:unit
 

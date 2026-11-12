@@ -90,6 +90,7 @@ export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
 
 	return level.edges.map((edge) => {
 		const color = EDGE_TYPE_COLORS[edge.type] ?? EDGE_TYPE_COLORS.uses;
+		const inferred = edge.evidence?.confidence === 'INFERRED';
 
 		const sIdx = sourceIndex.get(edge.source) ?? 0;
 		sourceIndex.set(edge.source, sIdx + 1);
@@ -106,12 +107,16 @@ export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
 			type: 'smoothstep',
 			animated: false,
 			...(edge.label ? { label: edge.label } : {}),
-			style: `stroke: ${color}; stroke-width: 1.5px; opacity: 0.75;`,
+			// An INFERRED relation is the LLM's claim, not a fact the code map shows (A-6), so it is
+			// dashed whether or not it names refs the verifier could check
+			style: inferred
+				? `stroke: ${color}; stroke-width: 1.5px; opacity: 0.6; stroke-dasharray: 6 4;`
+				: `stroke: ${color}; stroke-width: 1.5px; opacity: 0.75;`,
 			markerEnd: {
 				type: 'arrowclosed' as MarkerType,
 				color
 			},
-			data: { edgeType: edge.type }
+			data: { edgeType: edge.type, inferred }
 		};
 	});
 }

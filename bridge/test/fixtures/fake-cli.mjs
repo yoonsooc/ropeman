@@ -95,6 +95,16 @@ switch (step) {
 		process.stderr.write('fake failure\n');
 		process.exit(3);
 		break;
+	case 'gate': {
+		// Names once the test creates $FAKE_CLI_DIR/release, so it can look at the pending state first
+		const release = path.join(dir, 'release');
+		const timer = setInterval(() => {
+			if (!fs.existsSync(release)) return;
+			clearInterval(timer);
+			answer(JSON.stringify({ nodes: partNames() }));
+		}, 50);
+		break;
+	}
 	case 'hang':
 		setInterval(() => {}, 1000);
 		break;
