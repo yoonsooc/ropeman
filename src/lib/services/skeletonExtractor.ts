@@ -1,11 +1,21 @@
 import type { FileNode } from '$lib/types/fileTree';
-import type { ASTSymbol } from '$lib/types/ast';
+import type { ASTSymbol, SymbolKind } from '$lib/types/ast';
 import type {
-	SkeletonFile,
-	SkeletonImport,
-	SkeletonPayload,
-	SkeletonSelection,
-	SkeletonSymbol
+	CodeMap,
+	FilePath,
+	FileRecord,
+	ModuleSite,
+	SymbolId,
+	SymbolRecord
+} from '$lib/types/codeMap';
+import {
+	LOCAL_ONLY_KINDS,
+	type SkeletonFile,
+	type SkeletonImport,
+	type SkeletonPayload,
+	type SkeletonSelection,
+	type SkeletonSymbol,
+	type WireSymbolKind
 } from '$lib/types/skeleton';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
 import {
@@ -17,7 +27,11 @@ import {
 } from '$lib/utils/filePriority';
 import { byteLength } from './requestBudget';
 
-const SKIP_KINDS = new Set(['variable', 'interface', 'type']);
+const LOCAL_ONLY = new Set<SymbolKind>(LOCAL_ONLY_KINDS);
+
+type WireSymbolRecord = SymbolRecord & { kind: WireSymbolKind };
+
+const isWireSymbol = (sym: SymbolRecord): sym is WireSymbolRecord => !LOCAL_ONLY.has(sym.kind);
 
 // 기본값 250KB, settingsStore.maxSkeletonKB로 조절 가능
 const DEFAULT_MAX_SKELETON_KB = 250;
@@ -80,23 +94,91 @@ interface SkeletonEntry {
 	symbolCount: number;
 }
 
-/** The file as it would be sent, or null when it has neither symbols nor imports to send. */
-function toEntry(path: string, astSymbols: ASTSymbol[], priority: number): SkeletonEntry | null {
-	const symbols: SkeletonSymbol[] = [];
-	const imports: SkeletonImport[] = [];
+function toEntry(wirePath: string, record: FileRecord, priority: number): SkeletonEntry | null {
+	const file = toWireFile(wirePath, record);
+	return file && { file, priority, symbolCount: countSymbols(file.symbols) };
+}
+
+/** Skeleton v2 for every parsed file, with no reference sites and every import binding pending. */
+export function buildCodeMap(
+	astMap: ReadonlyMap<string, readonly ASTSymbol[]>,
+	root: string | null
+): CodeMap {
+	const files = new Map<FilePath, FileRecord>();
+	for (const [key, symbols] of astMap) {
+		const record = fileFromAst(key, symbols);
+		files.set(record.path, record);
+	}
+	return { version: 2, root, files };
+}
+
+/**
+ * One parsed file as a code map record. Top-level imports become import sites; an import
+ * nested in a symbol stays a child symbol, as the v1 wire has always sent it.
+ */
+export function fileFromAst(key: string, astSymbols: readonly ASTSymbol[]): FileRecord {
+	const path = key as FilePath;
+	const ids = new Map<string, number>();
+	const symbols: SymbolRecord[] = [];
+	const imports: ModuleSite[] = [];
 	for (const sym of astSymbols) {
 		if (sym.kind === 'import') {
-			imports.push(parseImport(sym));
-		} else if (!SKIP_KINDS.has(sym.kind)) {
-			symbols.push(toSkeletonSymbol(sym));
+			imports.push({
+				line: sym.lineStart,
+				text: sym.name,
+				module: { state: 'pending' },
+				specifiers: null
+			});
+		} else {
+			symbols.push(toSymbolRecord(sym, sym.parentName ?? null, path, ids));
 		}
 	}
-	if (symbols.length === 0 && imports.length === 0) return null;
 	return {
-		file: { path, language: inferLanguage(path), symbols, imports },
-		priority,
-		symbolCount: countSymbols(symbols)
+		path,
+		language: inferLanguage(key),
+		lines: { start: 1, end: null },
+		symbols,
+		imports,
+		reexports: [],
+		refs: []
 	};
+}
+
+function toSymbolRecord(
+	sym: ASTSymbol,
+	parent: string | null,
+	path: FilePath,
+	ids: Map<string, number>
+): SymbolRecord {
+	const qualified = parent ? `${parent}.${sym.name}` : sym.name;
+	const seen = (ids.get(qualified) ?? 0) + 1;
+	ids.set(qualified, seen);
+	return {
+		id: `${path}#${qualified}${seen > 1 ? `~${seen}` : ''}` as SymbolId,
+		name: sym.name,
+		kind: sym.kind,
+		lines: { start: sym.lineStart, end: sym.lineEnd },
+		badges: sym.badges ? [...sym.badges] : [],
+		children: (sym.children ?? []).map((child) => toSymbolRecord(child, qualified, path, ids))
+	};
+}
+
+/** The only parts of a record the AI is sent, so reference sites, re-exports and bindings cannot reach the wire. */
+export interface WireSource {
+	symbols: readonly SymbolRecord[];
+	imports: readonly Pick<ModuleSite, 'text'>[];
+}
+
+/**
+ * The file as the AI receives it, in v1 shape and key order, or null when it has neither
+ * symbols nor imports to send. `wirePath` is the path the request names, which for a
+ * drill-down is the AI's spelling of the record's path.
+ */
+export function toWireFile(wirePath: string, source: WireSource): SkeletonFile | null {
+	const symbols = source.symbols.filter(isWireSymbol).map(toSkeletonSymbol);
+	const imports = source.imports.map((site) => parseImport(site.text));
+	if (symbols.length === 0 && imports.length === 0) return null;
+	return { path: wirePath, language: inferLanguage(wirePath), symbols, imports };
 }
 
 function maxSkeletonBytes(): number {
@@ -161,7 +243,11 @@ export function selectSkeleton(
 	for (const path of collectFilePaths(fileTree)) {
 		const astSymbols = astMap.get(path);
 		if (!astSymbols) continue;
-		const entry = toEntry(path, astSymbols, filePriority(path, filter, projectName));
+		const entry = toEntry(
+			path,
+			fileFromAst(path, astSymbols),
+			filePriority(path, filter, projectName)
+		);
 		if (entry) entries.push(entry);
 		else omitted.push({ path, reason: 'no-symbols' });
 	}
@@ -234,7 +320,8 @@ export function selectSubSkeleton(
 		// Try exact match first, then suffix match
 		const resolvedKey = astMap.has(filePath) ? filePath : astKeysBySuffix.get(filePath);
 		const astSymbols = resolvedKey ? astMap.get(resolvedKey) : undefined;
-		const entry = astSymbols && toEntry(filePath, astSymbols, 1);
+		const entry =
+			resolvedKey && astSymbols ? toEntry(filePath, fileFromAst(resolvedKey, astSymbols), 1) : null;
 		if (entry) entries.push(entry);
 		else omitted.push({ path: filePath, reason: 'no-symbols' });
 	}
@@ -307,26 +394,17 @@ function collectFilePaths(node: FileNode | null): string[] {
 	return paths;
 }
 
-function toSkeletonSymbol(sym: ASTSymbol): SkeletonSymbol {
-	const result: SkeletonSymbol = {
-		name: sym.name,
-		kind: sym.kind as SkeletonSymbol['kind']
-	};
-	if (sym.badges && sym.badges.length > 0) {
-		result.badges = [...sym.badges];
-	}
-	if (sym.children && sym.children.length > 0) {
-		result.children = sym.children.filter((c) => !SKIP_KINDS.has(c.kind)).map(toSkeletonSymbol);
-		if (result.children.length === 0) delete result.children;
-	}
+function toSkeletonSymbol(sym: WireSymbolRecord): SkeletonSymbol {
+	const result: SkeletonSymbol = { name: sym.name, kind: sym.kind };
+	if (sym.badges.length > 0) result.badges = [...sym.badges];
+	const children = sym.children.filter(isWireSymbol).map(toSkeletonSymbol);
+	if (children.length > 0) result.children = children;
 	return result;
 }
 
-function parseImport(sym: ASTSymbol): SkeletonImport {
-	// sym.name typically looks like "module_name" or "from module import x, y"
+function parseImport(name: string): SkeletonImport {
+	// name typically looks like "module_name" or "from module import x, y"
 	// We split on common patterns to extract source and specifiers
-	const name = sym.name;
-
 	// Pattern: "x, y from module" or just "module"
 	const fromMatch = name.match(/^(.+?)\s+from\s+(.+)$/);
 	if (fromMatch) {

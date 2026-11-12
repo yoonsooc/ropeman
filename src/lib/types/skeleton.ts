@@ -1,6 +1,21 @@
+/**
+ * The request the AI receives, frozen at v1: any change to a field or its key order moves
+ * every cache key. Skeleton v2 (`codeMap.ts`) projects into it and adds nothing (ADR-21).
+ */
+import type { SymbolKind } from './ast';
+
+/** Kinds the code map keeps but the AI is not sent. */
+export const LOCAL_ONLY_KINDS = [
+	'variable',
+	'interface',
+	'type'
+] as const satisfies readonly SymbolKind[];
+
+export type WireSymbolKind = Exclude<SymbolKind, (typeof LOCAL_ONLY_KINDS)[number]>;
+
 export interface SkeletonSymbol {
 	name: string;
-	kind: 'function' | 'class' | 'method' | 'import' | 'frontmatter' | 'heading';
+	kind: WireSymbolKind;
 	badges?: string[];
 	children?: SkeletonSymbol[];
 }
