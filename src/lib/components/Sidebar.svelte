@@ -124,7 +124,7 @@
 		</button>
 	</div>
 	{#if contentOpen}
-		<div class="sidebar-content" style:width="{layoutStore.sidebarWidth}px">
+		<div class="sidebar-content" style:width={mobile ? undefined : `${layoutStore.sidebarWidth}px`}>
 			{#if activePanel === 'files'}
 				<FileExplorer collapsed={false} mobile={false} ontoggle={() => (contentOpen = false)} />
 			{:else}
@@ -276,16 +276,22 @@
 		z-index: 29;
 	}
 
+	/* The icon rail stays in the layout; only the open panel floats over the canvas */
 	.sidebar.mobile {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: calc(44px + 80vw);
-		height: 100dvh;
-		padding-top: env(safe-area-inset-top);
-		padding-bottom: env(safe-area-inset-bottom);
-		padding-left: env(safe-area-inset-left);
+		position: relative;
 		z-index: 30;
+		overflow: visible;
+		padding-left: env(safe-area-inset-left);
+	}
+
+	.sidebar.mobile .sidebar-content {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 100%;
+		width: 80vw;
+		padding-bottom: env(safe-area-inset-bottom);
+		border-right: 1px solid var(--color-border);
 		animation: slideIn var(--duration-fast) var(--ease-standard);
 	}
 

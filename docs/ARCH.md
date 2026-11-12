@@ -62,7 +62,7 @@ src/
 │   │   ├── DrilldownConfirmModal.svelte # 추가 분석 확인 팝업
 │   │   ├── WebGPUSetupModal.svelte   # WebGPU 모델 선택 + 백그라운드 다운로드 인디케이터
 │   │   ├── Header.svelte             # 상단 헤더 (Analyze + 트랙 뱃지 + Help + Settings)
-│   │   ├── Sidebar.svelte            # 사이드바 (File Explorer + Semantic Tree, showFiles())
+│   │   ├── Sidebar.svelte            # 사이드바 (File Explorer + Semantic Tree, showFiles()). 모바일·태블릿은 아이콘 레일만 레이아웃에 두고 열린 패널만 캔버스 위에 띄움 (바깥 탭으로 닫힘)
 │   │   ├── FileExplorer.svelte       # 파일 탐색기 (파일 유형별 아이콘)
 │   │   ├── SemanticTree.svelte       # 시맨틱 트리뷰 + 캐시된 노드 자동 드릴다운
 │   │   ├── SemanticDetailPanel.svelte # 노드 상세 패널 (파일 유형별 아이콘)
