@@ -55,6 +55,15 @@ jobs:
           npm run build:core
           node packages/core/dist/cli.mjs tests/fixtures/graphs/ts-monorepo
 
+      # The bundled bridge must serve a fixture on its own: map.get, node.expand, node.named
+      # (with the fake CLI, no model), file.read
+      - name: Build bridge and serve a fixture
+        run: |
+          npm ci --prefix bridge
+          npm run check:bridge
+          npm run build:bridge
+          node bridge/scripts/smoke.mjs bridge/dist/server.mjs tests/fixtures/graphs/ts-monorepo
+
       - name: Unit tests
         run: npm run test:unit
 

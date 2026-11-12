@@ -9,6 +9,8 @@
 		"build": "vite build",
 		"build:core": "vite build -c packages/core/vite.config.ts",
 		"check:core": "tsc -p packages/core/tsconfig.json",
+		"build:bridge": "vite build -c bridge/vite.config.ts",
+		"check:bridge": "tsc -p bridge/tsconfig.json",
 		"preview": "npm run build && wrangler dev",
 		"lint": "eslint .",
 		"format": "prettier --write .",

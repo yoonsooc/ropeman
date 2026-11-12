@@ -132,20 +132,27 @@ edge-proxy/                       # Cloudflare Workers
 ├── wrangler.demo.toml                # Demo Worker 배포 설정 (placement hint)
 └── wrangler.proxy.toml               # Proxy Worker 배포 설정
 
-bridge/                           # 로컬 Bridge (`@ropeman/bridge`, npm 패키지)
+bridge/                           # 로컬 Bridge와 `ropeman serve` (`@ropeman/bridge`, npm 패키지)
 ├── src/
-│   ├── server.ts                     # CLI 진입점: 플래그 해석, CLI 감지, 토큰, listen
-│   ├── bridge.ts                     # 한 포트에 HTTP(로컬 모드 정적 서빙)와 WebSocket(RPC, `claude -p` 중계)
+│   ├── server.ts                     # CLI 진입점(`ropeman serve`, `ropeman-bridge`): 플래그 해석, CLI 감지, 토큰, 지도 세션, listen
+│   ├── bridge.ts                     # 한 포트에 HTTP(로컬 모드 정적 서빙)와 WebSocket. 들어온 메시지는 `parseRpcRequest`를 거쳐 RPC 처리, 옛 `chat` 중계는 따로
+│   ├── mapSession.ts                 # `--root` 하나의 지도: 추출, `map.get`·`node.expand` 답, 이름 붙이기 작업, 파일 변경 감시 → `map.changed`
+│   ├── naming.ts                     # 이름 붙이기: 프롬프트(구조만), 답 읽기, 이름 입히기, 검증 실패 시 한 번 재시도
+│   ├── cli.ts                        # CLI 실행(argv만, 셸 없음): 시간·출력 상한, 취소, 감지
+│   ├── watch.ts                      # 추출이 순회한 폴더마다 `fs.watch` 하나
 │   ├── auth.ts                       # Origin 허용 목록, Host 검사, 토큰
 │   ├── fileRead.ts                   # `file.read`: 루트 안 파일만, 실제 `.env` 거부, 500KB 상한, sha-256. 응답 타입은 `src/lib/types/ropemanMap.ts`
 │   └── viewer.ts                     # `--viewer` 디렉터리 정적 서빙
+├── scripts/smoke.mjs                 # 빌드한 서버를 띄워 가짜 CLI로 RPC 한 바퀴 (CI, `npm pack` 확인)
+├── test/                             # 단위·소켓 통합 테스트, `fixtures/fake-cli.mjs`(가짜 `claude`·`gemini`), `realCli.test.ts`(실제 CLI 실측, 환경 변수로만 켬)
+├── vite.config.ts                    # `npm run build:bridge` → `dist/server.mjs` 하나(코어·파서·검증기 포함, `ws`만 의존성)와 `dist/wasm/`
 └── probe/index.html                  # 브라우저 실측용 시제품 페이지 (ADR-23)
-# tsconfig `rootDir`가 저장소 루트라서 빌드 결과는 `dist/bridge/src/`(bin)와 `dist/src/lib/types/`(공유 타입)에 나온다
 
 packages/core/                    # Node 추출 코어 (npm 워크스페이스 아님, 루트 의존성을 쓴다)
 ├── src/
 │   ├── walk.ts                       # 폴더 순회: 브라우저와 같은 건너뛰기 규칙, 상한 없음. 파일 링크는 대상도 같은 규칙으로 확인, 폴더 링크는 따라가지 않음
 │   ├── extract.ts                    # 순회 → 해석 설정 → 파싱 → 코드 지도 → 계층 요약 (`extractDirectory`)
+│   ├── groupedMap.ts                 # 추출 → 폴더로 묶은 `grouped` 단계(노드 id가 폴더 부분을 가리켜 id만으로 단계를 다시 만든다)
 │   └── cli.ts                        # `ropeman-extract <폴더> [--out 파일]`
 ├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙, 폴더로 묶은 지도의 검증(`mapVerifier.test.ts`)
 └── vite.config.ts                    # `npm run build:core` → `dist/cli.mjs` 하나와 `dist/wasm/`
@@ -309,6 +316,31 @@ LLM은 지도의 이름과 관계를 쓰기만 하고, 믿을지는 결정론 �
 - 검증: 단위 테스트(`mapVerifier.test.ts`)가 코드마다 실제로 나오는 실수 하나를 고장으로 넣고 정확한 코드와 위치를 본다. 표가 `Record<ViolationCode, …>`라 새 코드에 사례가 없으면 컴파일되지 않는다. #76 검증에서 파서를 건너뛰어 통과하거나 예외를 던졌던 값 네 가지, 한글 NFD 파일 이름, `#`이 든 심볼 id는 회귀 테스트로 남겼다. `node scripts/verifier-mutations.mjs`는 `report(...)` 호출 위치마다 하나씩 끄고(18곳), 조건 13개를 약하게 바꾸고(근거의 출발 끝만 보기, NFC 비교 빼기, 옛 `endFile` 자르기 등), 앱 스토어 import를 하나 넣어 본 뒤 테스트가 실패하는지 본다(32개 변이 모두 잡힘). `packages/core/test/mapVerifier.test.ts`는 정답 픽스처 세 저장소를 Node 코어로 추출해 계층 요약대로 폴더마다 펼친 `grouped` 지도를 만들고(관계 근거는 폴더 사이 import), JSON으로 썼다 파서로 읽은 지도가 위반 0인지, 규칙마다 고장 하나를 넣으면 그 코드가 나오는지 본다.
 - PASEO 실측(`e0f545fed`, Apple M4, Node 26, `ROPEMAN_VERIFY_DIR=<폴더> npx vitest run packages/core/test/mapVerifier.test.ts`): 지도 파일 6,171개(건너뜀 2개), 폴더 단계 735개, 노드 1,398개, 관계 1,438개, 근거 ref 12,244개, JSON 5.1MB. 위반 0개. `verifyMap` 한 번이 중앙값 67~73ms(7회씩 3번, 최소 65.5ms, 최대 93.1ms). 파서를 안에서 돌리기 전(#76 첫 커밋)에는 45~54ms였다. 늘어난 약 20ms는 파서의 사본 만들기와 경로 NFC 변환으로 본다(나눠 재지 않은 추정). LLM 호출 하나(수 초)에 비하면 작아서 더 줄이지 않았다. 규칙마다 넣은 고장(파일 중복, `../` 경로, 줄을 바꾼 ref)은 각각 `file-duplicated`, `path-invalid`, `evidence-unknown` 하나로만 잡혔다.
 
+### `ropeman serve` (T2-4)
+
+`npx @ropeman/bridge serve --root <폴더>`는 그 폴더의 지도를 WebSocket RPC(ADR-24)로 내준다. 뷰어가 노드를 펼치면 폴더로 묶은 결정론 단계를 바로 돌려주고, 로컬 CLI(`claude -p`나 `gemini -p`)에게 그 단계의 부분마다 이름을 붙이게 한 뒤, 검증기를 통과한 이름만 `node.named`로 보낸다. LLM은 이름과 설명과 핵심 심볼만 쓰고, 파일이 어느 노드에 드는지와 관계는 결정론 코드가 정한다(A-12).
+
+```
+시작 → MapSession.start(): extractDirectory(--root) → groupExtraction() → 폴더마다 fs.watch
+map.get            → 최상위 grouped 단계 + 이름이 붙은 단계와 그 위 단계들 (한 트리)
+node.expand(id)    → 바로 답: 이름이 있으면 named 단계, 없으면 grouped 단계
+                   → grouped였으면 이름 작업 → node.named 푸시 하나 (단계, 또는 코드와 이유)
+file.read(path)    → #72 그대로 (루트 안, 실제 .env 거부, 500KB, 연결당 8개)
+파일 변경          → 300ms 조용하면 다시 추출 → map.changed { paths } 푸시 → 뷰어가 map.get
+```
+
+- 노드 id: `dir:<폴더>`는 하위 폴더, `files:<폴더>`(루트는 `files:.`)는 그 폴더에 바로 든 파일들이다. 단계는 id만으로 다시 만들 수 있어서 다시 추출해도 같은 폴더는 같은 id다. 펼칠 수 있는 것은 `dir:` 노드뿐이고 `files:` 노드는 `unknown-node`로 답한다(파일은 `file.read`로 연다). 관계는 계층 요약의 폴더 사이 import이고 근거 ref는 그 import 줄이다(`packages/core/src/groupedMap.ts`). `files`(커버리지)는 지도의 파일을 `sent`, 건너뛴 파일을 그 이유로 적는다.
+- 메시지 처리: 들어온 텍스트는 모두 `parseRpcRequest`가 먼저 읽는다. 거부되면 같은 id와 type(읽을 수 있으면)으로 `code: "bad-request"`를 돌려주고 연결은 유지한다. 모르는 type, JSON이 아닌 텍스트, 필드가 빠진 요청이 다 이렇다. 연결마다 첫 메시지는 `hello`(스키마 버전과 서버 이름·버전)다. 옛 `status: connected` 인사는 없앴다(앱은 그것을 읽지 않았다). 예외: 앱의 Bridge AI 트랙(`bridgeService.ts`)이 보내는 `chat`과 `analyze`·`ping`·`status`는 ADR-24 이전의 중계라 RPC 파서를 거치지 않고 예전대로 처리한다. T2-5가 뷰어를 RPC로 옮길 때 지운다.
+- CLI에 보내는 것(그대로): 영어 지시문, 프로젝트 이름(`--root` 폴더 이름), 펼친 폴더 경로, 그리고 부분마다 id, 종류(하위 폴더 또는 바로 든 파일), 파일 수, 파일 경로 최대 12개, 선언한 최상위 심볼 최대 24개(`function add`처럼 종류와 이름. 종류는 function·class·interface·type·variable·service·target·job·resource만), 부분 사이 import 수. 재시도면 지난 답이 거부된 이유(검증기 문장, 최대 20개)가 더해진다. 파일 내용은 한 줄도 보내지 않는다. 실제 값이 든 `.env`는 코드 지도에 없고, 프롬프트를 만들 때 한 번 더 걸러 이름도 나가지 않는다. 설정 파일의 `command`·`key`처럼 값을 담을 수 있는 심볼 종류는 뺐다. 프롬프트는 100,000바이트를 넘지 않는다(넘으면 표본을 반씩 줄인다. Linux가 argv 문자열 하나를 128KiB로 자르므로 `gemini -p <프롬프트>`도 들어간다). 부분이 80개를 넘는 단계는 이름을 붙이지 않고 `naming-failed`로 알린다.
+- CLI 실행: `spawn(cli, argv)`이고 셸 문자열을 만들지 않는다. CLI 감지도 `execFile(cli, ['--version'])`이다. `claude`는 `-p --output-format json --no-session-persistence --strict-mcp-config --tools ""`(도구·MCP 서버 없음, 세션 저장 안 함)로 돌리고 프롬프트는 stdin으로 준다. JSON 출력에서 답과 토큰 수를 읽는다. `gemini`는 `-p <프롬프트>`이고 토큰 수가 없다. 작업 폴더는 시작할 때 만든 빈 임시 폴더라, 파일을 읽는 CLI라도 프로젝트 밖에서 시작한다. 한 번에 180초, 출력 1MB를 넘으면 SIGTERM, 2초 뒤 SIGKILL로 멈춘다.
+- 검증과 재시도: 답(JSON 객체 하나, 코드 펜스나 앞뒤 문장은 벗겨 읽는다)의 이름을 grouped 단계의 파일·관계 위에 입힌 `named` 단계를 만들고, 최상위부터 그 단계까지 이은 지도를 `verifyMap`에 넣는다. 위반이 없을 때만 보낸다. 답이 JSON이 아니거나, 없는 id를 지어내거나(`node-empty`), 부분을 빠뜨리거나(`file-unassigned`), 그 부분 파일에 없는 심볼을 적으면(`key-symbol-unknown`) 그 이유를 붙여 한 번 더 묻는다. 두 번 다 실패하면 폴더 이름을 그대로 두고 `verification-failed`와 이유를 보낸다. CLI가 없거나(`no-cli`), 실패·시간 초과면(`naming-failed`) 다시 묻지 않는다. `named` 단계의 배정 수는 모두 0이다. 파일을 LLM이 나누지 않으므로 빠뜨린·중복·지어낸 파일이 생길 수 없다.
+- 이름 보관: 노드마다 마지막으로 통과한 이름을 서버 메모리에 둔다. 파일이 바뀌어 다시 추출하면 새 지도에서 다시 검증하고, 통과하면 그대로 쓴다. 새 하위 폴더가 생기거나 핵심 심볼이 사라져 통과하지 못하면 버리고, 다음 `node.expand`가 다시 묻는다. 디스크에는 쓰지 않는다.
+- 상한과 취소: 이름 작업은 서버 전체에서 동시에 2개, 연결마다 기다리는 것 4개까지다(넘으면 `node.expand`가 `busy`). 두 연결이 같은 노드를 펼치면 CLI는 한 번 돌고 둘 다 푸시를 받는다. 기다리는 연결이 모두 닫히면 대기열에서 빼거나 CLI를 멈추고, 아무것도 보내지 않는다. 메시지 크기는 `MAX_MAP_BYTES`(16MiB)다.
+- 파일 감시: Node 내장 `fs.watch`를 추출이 순회한 폴더마다 하나씩(비재귀) 건다. 순회가 이미 건너뛰기 규칙을 적용했으므로 `node_modules`와 숨은 폴더는 처음부터 감시하지 않는다. 재귀 감시(`recursive: true`)는 Linux에서 `node_modules`까지 모든 하위 폴더에 inotify 감시를 걸어서 쓰지 않았다. 폴더마다 거는 방식은 macOS, Linux, Windows에서 같게 동작한다. 이벤트 경로도 같은 규칙(`shouldSkipPath`, 실제 `.env`)으로 거른다. 마지막 이벤트 뒤 300ms 조용하면 전체를 다시 추출하고 그동안 모인 경로를 `map.changed`로 보낸다. 추출 중에 온 이벤트는 끝난 뒤 한 번 더 추출한다. 새로 생긴 폴더는 그 추출이 순회한 뒤부터 감시한다. 감시 라이브러리(chokidar 등)는 넣지 않았다. 폴더마다 감시를 거는 데 필요한 것이 `fs.watch`에 다 있고, 건너뛰기 규칙은 순회와 같은 코드를 써야 해서 라이브러리의 무시 규칙이 이점이 없다.
+- 번들: `bridge/vite.config.ts`가 `server.ts`부터 코어(`packages/core`), 파서, 검증기, `web-tree-sitter`까지 ES 모듈 하나(`dist/server.mjs`, 약 340KB)로 묶고 `$lib` 별칭을 푼다. 문법 `.wasm` 20개는 `dist/wasm/`에 복사한다. 런타임 의존성은 `ws` 하나다. `npm pack`이 `prepack`으로 빌드한다. 타입 검사는 `npm run check:bridge`(`npm ci --prefix bridge` 뒤, `@types/ws`가 거기 있다). 패키지 0.3.0은 아직 npm에 올리지 않았다(배포는 사용자 승인).
+- 검증: `bridge/test/serve.test.ts`가 임시 프로젝트에 `serve`를 띄우고 WebSocket으로 `map.get → node.expand → node.named → file.read → 파일 수정 → map.changed`를 돈다. 받은 메시지는 모두 뷰어의 `parseServerMessage`로 읽고, `map.get` 결과는 새로 추출한 코드 지도로 `verifyMap`해 위반 0을 본다. 가짜 CLI(`test/fixtures/fake-cli.mjs`)가 계획대로 답해서 재시도, 두 번 실패, CLI 오류, 시간 초과, 연결이 닫힐 때 CLI 종료, 두 연결의 작업 공유, `busy`, `no-cli`, 잘못된 메시지를 본다. 가짜 CLI가 받은 stdin에는 파일 경로와 심볼 이름이 있고, 함수 본문 문자열과 `.env` 값과 `.env` 이름은 없다. CI는 번들을 빌드해 `scripts/smoke.mjs`로 픽스처 한 바퀴를 돈다.
+- PASEO 실측(`e0f545fed`, Apple M4, Node 26, 2026-11-13, `ROPEMAN_SERVE_DIR=<폴더> ROPEMAN_SERVE_NODE=<id> npx vitest run bridge/test/realCli.test.ts`, 실제 `claude -p` 2회): 첫 추출 7.1~7.7초(지도 6,171개). 추출이 끝난 뒤 `node.expand`의 grouped 답은 프로세스 안에서 1ms 이하, 소켓 너머(번들, 가짜 CLI)로 21ms다. `dir:packages`(부분 11개, 프롬프트 16,286바이트)는 이름이 15.7초 뒤에 왔고 토큰은 입력 11,281(캐시 포함), 출력 1,651이었다. `dir:packages/server`(부분 3개, 4,148바이트)는 5.3초, 입력 2 + 캐시 읽기 649 + 캐시 쓰기 5,690, 출력 336, $0.0528(CLI가 보고한 값, 사용자 기본 모델)이다. 두 번 다 첫 답이 검증을 통과했고, 그 지도를 새로 추출한 코드 지도로 다시 검증해도 위반 0이다. 이름이 오는 시간은 출력 토큰 수와 함께 늘어서(1,651개 15.7초, 336개 5.3초) 모델 생성이 대부분으로 본다(나눠 재지 않은 추정). 서버는 추출 뒤 쉬는 동안 CPU 0%, RSS 약 976MB이고, 다시 추출하는 동안에는 이전 지도를 들고 있어 그보다 커진다(재지 않음). 증분 갱신은 이 단계에 넣지 않았다(A-13 SQLite).
+
 ### Phase 3: 재귀적 드릴다운
 
 ```
@@ -365,7 +397,7 @@ callAI({ system, user, signal }): Promise<string>
 | byok (google)    | fetch(Gemini API)     | —             | 직접 호출 가능 |
 | byok (anthropic) | fetch(PROXY_URL)      | ropeman-proxy | Worker CORS    |
 
-Bridge는 받은 프롬프트로 로컬 CLI를 실행한다. 그래서 연결을 받기 전에 네 가지를 검사한다(`bridge/src/auth.ts`).
+Bridge는 로컬 CLI를 실행한다. RPC의 이름 작업은 서버가 만든 프롬프트로, 옛 `chat` 중계는 받은 프롬프트로 돌린다. 그래서 연결을 받기 전에 네 가지를 검사한다(`bridge/src/auth.ts`).
 
 - `127.0.0.1`에만 바인딩한다.
 - `Host` 헤더가 `127.0.0.1:{port}`나 `localhost:{port}`여야 한다. 소켓 연결과 모든 HTTP 요청에 똑같이 적용한다. 공격자가 자기 도메인을 127.0.0.1로 돌려도(DNS 리바인딩) Host에는 그 도메인이 실리므로 거부된다.
@@ -510,8 +542,8 @@ export const xxxStore = createXxxStore();
 Pages 프로젝트 `ropeman`은 직접 업로드 방식이라 GitHub과 연결되어 있지 않다. 운영 배포는 `ci.yml`의 `deploy` job이 맡는다.
 
 ```
-PR        → ci job (lint, svelte-check, build, unit, worker tests, e2e)
-main push → ci job (lint, svelte-check, build, unit, worker tests)
+PR        → ci job (lint, svelte-check, build, core·bridge 번들 확인, unit, worker tests, e2e)
+main push → ci job (lint, svelte-check, build, core·bridge 번들 확인, unit, worker tests)
           → deploy job
               1. npm run deploy                     앱 (Pages, --branch=main)
               2. scripts/changed-workers.mjs        바뀐 워커만 고름

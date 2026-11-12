@@ -1,16 +1,17 @@
 {
 	"name": "@ropeman/bridge",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"license": "MIT",
-	"description": "WebSocket relay server for Ropeman AI bridge",
+	"description": "Local server for Ropeman: serves the code map of a folder and names it with your CLI",
 	"type": "module",
 	"bin": {
-		"ropeman-bridge": "./dist/bridge/src/server.js"
+		"ropeman": "./dist/server.mjs",
+		"ropeman-bridge": "./dist/server.mjs"
 	},
 	"scripts": {
-		"build": "tsc",
-		"start": "node dist/bridge/src/server.js",
-		"dev": "tsc --watch"
+		"build": "npm --prefix .. run build:bridge",
+		"prepack": "npm run build",
+		"start": "node dist/server.mjs"
 	},
 	"dependencies": {
 		"ws": "^8.18.0"
@@ -21,7 +22,7 @@
 		"typescript": "^5.9.3"
 	},
 	"engines": {
-		"node": ">=18"
+		"node": ">=22"
 	},
 	"files": [
 		"dist"

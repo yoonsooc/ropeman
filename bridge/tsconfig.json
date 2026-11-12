@@ -3,14 +3,15 @@
 		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "bundler",
-		"outDir": "./dist",
-		"rootDir": "..",
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
+		"types": ["node"],
 		"strict": true,
-		"esModuleInterop": true,
+		"noEmit": true,
 		"skipLibCheck": true,
+		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
-		"declaration": true,
-		"sourceMap": true
+		"resolveJsonModule": true,
+		"paths": { "$lib/*": ["../src/lib/*"] }
 	},
-	"include": ["src/**/*"]
+	"include": ["src/**/*.ts", "vite.config.ts", "../src/lib/types/file-system.d.ts"]
 }
