@@ -36,13 +36,14 @@ src/
 │   │   ├── aiService.ts              # 채팅용 AI 호출 (캐시 + 재시도)
 │   │   ├── semanticAnalysisService.ts # 시맨틱 AI 분석 + JSON 파싱/복구
 │   │   ├── skeletonExtractor.ts      # AST → 스켈레톤 v2 → LLM 전송용 코드 구조 요약 (suffix 매칭). select*는 뺀 파일과 이유도 돌려준다
+│   │   ├── importResolver.ts         # 코드 지도의 import 위치를 파일·심볼·패키지에 연결 (상대 경로, tsconfig paths, 워크스페이스, $lib, Python)
 │   │   ├── coverageService.ts        # 파일마다 분석에서의 행방(보냄, 안 보냄, 잘림, 건너뜀, 못 읽음)과 단계별 배정 수
 │   │   ├── requestBudget.ts          # 보내기 전 크기 검사: 데모 요청 본문 바이트, BYOK 모델별 토큰 한도
 │   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
 │   │   ├── parserService.ts          # Web Worker 통신 (parseFile, parseAllFiles → { astMap, skipped })
-│   │   ├── graphBuilder.ts           # FileNode → GraphNode/Edge (fallback)
+│   │   ├── graphBuilder.ts           # FileNode → GraphNode/Edge (fallback, import 관계 없음)
 │   │   ├── bridgeService.ts          # 로컬 Bridge WebSocket 연결
 │   │   ├── webllmService.ts          # WebLLM Worker 래퍼
 │   │   ├── cacheService.ts           # IndexedDB 채팅 캐시 (Orama)
@@ -163,9 +164,14 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
   - 출처(`Provenance`)는 `{ source, confidence }`다. 허용 조합은 `PROVENANCE_RULES` 표 하나가 정하고, 표에 없는 조합은 컴파일되지 않는다. 파서(`ast`)는 EXTRACTED만, LLM(`llm`)은 INFERRED만 쓸 수 있다. 해석기와 graphify는 둘 다 쓸 수 있다. 코드 지도에는 LLM 출처가 들어갈 수 없다(`CodeProvenance`).
   - 역할 사이 관계(`SemanticEdge.evidence`, 선택 필드)는 근거가 된 코드 관계를 `RelationRef`(경로, 줄, 관계 이름, 대상 파일, 신뢰도)로 가리킨다. EXTRACTED는 근거가 하나 이상 있어야 한다.
 - **전송 형식** (`types/skeleton.ts`의 `SkeletonPayload`): v1 그대로 고정한다. `toWireFile()`은 심볼과 import 원문만 읽는다(`WireSource` 타입). 그래서 줄, 호출, 대상, 출처는 요청 바이트와 캐시 키를 바꾸지 못한다.
-- 변환: `fileFromAst()`가 파일 하나를, `buildCodeMap(astMap, root)`이 astMap 전체를 코드 지도로 바꾼다. 지금은 참조·재수출 위치가 비어 있고 import 대상은 모두 `pending`이다. `selectSkeleton`·`selectSubSkeleton`은 `fileFromAst()` → `toWireFile()`을 거친다.
+- 변환: `fileFromAst()`가 파일 하나를, `buildCodeMap(astMap, root, configs)`이 astMap 전체를 코드 지도로 바꾸고 import를 해석한다. 지금은 참조·재수출 위치가 비어 있다. `selectSkeleton`·`selectSubSkeleton`은 `fileFromAst()` → `toWireFile()`을 거치므로 해석 결과를 읽지 않는다.
+- import 해석 (`importResolver.ts`, 순수 함수): `configs`는 `isResolverConfig()`가 고르는 설정 파일(tsconfig·jsconfig, package.json, pnpm-workspace.yaml, svelte.config)의 원문을 astMap 키로 담는다. `readResolverConfig()`가 이를 규칙으로 바꾸고 `resolveImports()`가 import 위치의 모듈 대상과 이름별 대상만 바꾼다.
+  - TS/JS·Svelte·Vue: 상대 경로(확장자 추가, `/index`, 적힌 `.js`→`.ts`, `.d.ts`), SvelteKit `$lib`·`kit.alias`(svelte.config가 없으면 `src/lib`), 가장 가까운 tsconfig의 `paths`·`baseUrl`(`extends` 포함, `tsconfig.json`이 없는 폴더는 `tsconfig.*.json`을 합친다), 워크스페이스 패키지(`exports`·`main`·`types`, `dist/` 경로는 tsconfig `outDir`→`rootDir`로 소스에 되돌린다) 순서로 찾는다. 나머지 이름은 외부 패키지다.
+  - Python: 상대 import, 패키지 루트(`__init__.py`가 시작되는 폴더) 기준 절대 import, `from pkg import mod`의 하위 모듈. 루트 여러 곳에서 찾으면 후보 여럿(INFERRED)이다.
+  - 다른 언어의 import는 `pending`으로 남는다. 못 찾은 import는 `unresolved`이고, `resolveImports()`의 `outcomes`가 규칙과 이유(`no-file`, `no-entry`, `outside-root`, `unparsed`)를 함께 준다.
+  - 이름별 대상은 대상 파일의 최상위 심볼(기본 export는 `export_default` 배지)에서 찾는다. 파서가 기록하지 않는 interface·type·재수출 이름은 `unresolved`다.
 - 고정 장치: `skeletonWire.test.ts`가 v2 이전 코드로 찍어 둔 전송 문자열 7종(최상위·드릴다운, 예산 무제한·50KB, 예산을 넘는 파일 하나)과 지금 출력을 비교한다.
-- 채울 작업: T1-5 참조 위치와 같은 파일 안 대상, T1-6 import 대상(상대 경로, tsconfig paths, 워크스페이스), T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
+- 채울 작업: T1-5 참조 위치와 같은 파일 안 대상, T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
 
 ### 분석 범위 (커버리지)
 

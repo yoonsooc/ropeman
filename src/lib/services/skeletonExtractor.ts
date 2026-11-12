@@ -26,6 +26,7 @@ import {
 	type PathFilter
 } from '$lib/utils/filePriority';
 import { byteLength } from './requestBudget';
+import { readResolverConfig, resolveImports } from './importResolver';
 
 const LOCAL_ONLY = new Set<SymbolKind>(LOCAL_ONLY_KINDS);
 
@@ -99,17 +100,22 @@ function toEntry(wirePath: string, record: FileRecord, priority: number): Skelet
 	return file && { file, priority, symbolCount: countSymbols(file.symbols) };
 }
 
-/** Skeleton v2 for every parsed file, with no reference sites and every import binding pending. */
+/**
+ * Skeleton v2 for every parsed file, with no reference sites yet. Imports in TS/JS, Svelte,
+ * Vue and Python are bound to files, symbols and packages; `configs` holds the text of each
+ * file `isResolverConfig` names, keyed like astMap. Other languages' imports stay pending.
+ */
 export function buildCodeMap(
 	astMap: ReadonlyMap<string, readonly ASTSymbol[]>,
-	root: string | null
+	root: string | null,
+	configs: ReadonlyMap<string, string> = new Map()
 ): CodeMap {
 	const files = new Map<FilePath, FileRecord>();
 	for (const [key, symbols] of astMap) {
 		const record = fileFromAst(key, symbols);
 		files.set(record.path, record);
 	}
-	return { version: 2, root, files };
+	return resolveImports({ version: 2, root, files }, readResolverConfig(configs)).map;
 }
 
 /**

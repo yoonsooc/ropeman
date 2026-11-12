@@ -167,7 +167,6 @@ export function buildGraph(
 ): { nodes: GraphNode[]; edges: GraphEdge[]; utilityNodeIds: Set<string> } {
 	const nodes: GraphNode[] = [];
 	const edges: GraphEdge[] = [];
-	const pathToId = new Map<string, string>();
 
 	// Iterative walk of the file tree
 	const stack: Array<{ node: FileNode; parentId: string | null }> = [
@@ -177,7 +176,6 @@ export function buildGraph(
 	while (stack.length > 0) {
 		const { node, parentId } = stack.pop()!;
 		const nodeId = `node:${node.path}`;
-		pathToId.set(node.path, nodeId);
 
 		if (node.kind === 'directory') {
 			const childCount = node.children?.length ?? 0;
@@ -272,25 +270,6 @@ export function buildGraph(
 		}
 	}
 
-	// Create import edges
-	for (const [filePath, symbols] of astMap) {
-		const sourceFileId = pathToId.get(filePath);
-		if (!sourceFileId) continue;
-
-		for (const sym of symbols) {
-			if (sym.kind !== 'import') continue;
-			const targetId = resolveImportTarget(sym.name, filePath, pathToId);
-			if (targetId) {
-				edges.push({
-					id: `edge:import:${sourceFileId}->${targetId}:${sym.name}`,
-					source: sourceFileId,
-					target: targetId,
-					type: 'imports'
-				});
-			}
-		}
-	}
-
 	// Filter blacklisted nodes
 	const filtered = filterBlacklistedNodes(nodes, edges);
 
@@ -301,30 +280,6 @@ export function buildGraph(
 	applyTreeLayout(filtered.nodes);
 
 	return { nodes: filtered.nodes, edges: filtered.edges, utilityNodeIds };
-}
-
-function resolveImportTarget(
-	importName: string,
-	currentFilePath: string,
-	pathToId: Map<string, string>
-): string | null {
-	const dir = currentFilePath.substring(0, currentFilePath.lastIndexOf('/'));
-	const extensions = ['', '.ts', '.js', '.tsx', '.jsx', '.py', '.svelte'];
-	const basePaths = [`${dir}/${importName}`, `${dir}/${importName}/index`];
-
-	for (const base of basePaths) {
-		for (const ext of extensions) {
-			const id = pathToId.get(`${base}${ext}`);
-			if (id) return id;
-		}
-	}
-
-	for (const ext of extensions) {
-		const id = pathToId.get(`${importName}${ext}`);
-		if (id) return id;
-	}
-
-	return null;
 }
 
 /**
