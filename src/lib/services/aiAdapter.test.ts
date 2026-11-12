@@ -32,6 +32,7 @@ vi.mock('$lib/config', () => ({
 }));
 
 import { callAI, isTrackReady, getActiveTrack, demoFailureMessage } from './aiAdapter';
+import { demoRequestBody } from './requestBudget';
 import { authStore } from '$lib/stores/authStore.svelte';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
 import { sendViaBridge } from '$lib/services/bridgeService';
@@ -103,6 +104,17 @@ describe('aiAdapter', () => {
 					method: 'POST'
 				})
 			);
+		});
+
+		it('posts the demo body the analyze modal measures', async () => {
+			(authStore as any).activeTrack = 'edge';
+			global.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+			const prompt = { system: 'sys "quoted"', user: '{"files":[]}' };
+
+			await callAI(prompt);
+
+			const body = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body;
+			expect(body).toBe(demoRequestBody(prompt));
 		});
 
 		it('calls proxy URL for anthropic byok', async () => {

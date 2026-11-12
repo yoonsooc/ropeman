@@ -22,5 +22,4 @@ export interface SkeletonPayload {
 	totalFiles: number;
 	totalSymbols: number;
 	files: SkeletonFile[];
-	generatedAt: string;
 }

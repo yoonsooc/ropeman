@@ -14,6 +14,7 @@ import {
 	isPrimaryMarkdown,
 	type PathFilter
 } from '$lib/utils/filePriority';
+import { byteLength } from './requestBudget';
 
 const SKIP_KINDS = new Set(['variable', 'interface', 'type']);
 
@@ -79,7 +80,6 @@ export function extractSkeleton(
 ): SkeletonPayload {
 	const files: SkeletonFile[] = [];
 	let totalSymbols = 0;
-	let estimatedBytes = 0;
 	let truncated = false;
 
 	const filePaths = collectFilePaths(fileTree);
@@ -130,45 +130,50 @@ export function extractSkeleton(
 	fileEntries.sort((a, b) => b.priority - a.priority || b.symbolCount - a.symbolCount);
 
 	const totalEntries = fileEntries.length;
+	const maxBytes = settingsStore.skeletonUnlimited
+		? Infinity
+		: (settingsStore.maxSkeletonKB ?? DEFAULT_MAX_SKELETON_KB) * 1000;
+	// The budget covers the whole sent string, so the envelope is reserved at its largest
+	// (truncated name, widest counts) and each file after the first pays for its comma.
+	let usedBytes = byteLength(
+		formatPayloadPreview({
+			projectName: truncatedName(projectName, totalEntries, totalEntries),
+			totalFiles: totalEntries,
+			totalSymbols: fileEntries.reduce((sum, e) => sum + e.symbolCount, 0),
+			files: []
+		})
+	);
 
 	for (const entry of fileEntries) {
 		if (entry.priority === 0) continue; // 제외 디렉토리는 스킵
 
-		const fileJson = JSON.stringify({
+		const file: SkeletonFile = {
 			path: entry.path,
 			language: entry.language,
 			symbols: entry.symbols,
 			imports: entry.imports
-		});
-		const fileBytes = new TextEncoder().encode(fileJson).byteLength;
-
-		if (!settingsStore.skeletonUnlimited) {
-			const maxBytes = (settingsStore.maxSkeletonKB ?? DEFAULT_MAX_SKELETON_KB) * 1000;
-			if (estimatedBytes + fileBytes > maxBytes) {
-				truncated = true;
-				break;
-			}
+		};
+		const fileBytes = byteLength(JSON.stringify(file)) + (files.length > 0 ? 1 : 0);
+		if (usedBytes + fileBytes > maxBytes) {
+			truncated = true;
+			break;
 		}
 
-		estimatedBytes += fileBytes;
+		usedBytes += fileBytes;
 		totalSymbols += entry.symbolCount;
-		files.push({
-			path: entry.path,
-			language: entry.language,
-			symbols: entry.symbols,
-			imports: entry.imports
-		});
+		files.push(file);
 	}
 
 	return {
-		projectName: truncated
-			? `${projectName} (analyzed ${files.length}/${totalEntries} files, core directories prioritized)`
-			: projectName,
+		projectName: truncated ? truncatedName(projectName, files.length, totalEntries) : projectName,
 		totalFiles: files.length,
 		totalSymbols,
-		files,
-		generatedAt: new Date().toISOString()
+		files
 	};
+}
+
+function truncatedName(projectName: string, kept: number, total: number): string {
+	return `${projectName} (analyzed ${kept}/${total} files, core directories prioritized)`;
 }
 
 export function extractSubSkeleton(
@@ -220,22 +225,25 @@ export function extractSubSkeleton(
 		projectName: 'sub-skeleton',
 		totalFiles: files.length,
 		totalSymbols,
-		files,
-		generatedAt: new Date().toISOString()
+		files
 	};
 }
 
+/** Size of the string `formatPayloadPreview` returns, which is what the AI receives. */
 export function estimatePayloadSize(payload: SkeletonPayload): {
 	bytes: number;
 	formatted: string;
 } {
-	const json = JSON.stringify(payload);
-	const bytes = new TextEncoder().encode(json).byteLength;
+	const bytes = byteLength(formatPayloadPreview(payload));
 	return { bytes, formatted: formatBytes(bytes) };
 }
 
+/**
+ * The skeleton as embedded in the prompt. Compact, because indentation nearly doubled the
+ * bytes (464KB against 249KB on PASEO) without telling the model anything new.
+ */
 export function formatPayloadPreview(payload: SkeletonPayload): string {
-	return JSON.stringify(payload, null, 2);
+	return JSON.stringify(payload);
 }
 
 function collectFilePaths(node: FileNode | null): string[] {
@@ -352,10 +360,10 @@ function inferLanguage(filePath: string): string | null {
 	}
 }
 
-function formatBytes(bytes: number): string {
-	if (bytes < 1024) return `${bytes} B`;
-	const kb = bytes / 1024;
-	if (kb < 1024) return `${kb.toFixed(1)} KB`;
-	const mb = kb / 1024;
-	return `${mb.toFixed(1)} MB`;
+// Decimal units, matching maxSkeletonKB (1 KB = 1000 bytes)
+export function formatBytes(bytes: number): string {
+	if (bytes < 1000) return `${bytes} B`;
+	const kb = bytes / 1000;
+	if (kb < 1000) return `${kb.toFixed(1)} KB`;
+	return `${(kb / 1000).toFixed(1)} MB`;
 }

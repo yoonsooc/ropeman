@@ -10,6 +10,7 @@ import { settingsStore } from '$lib/stores/settingsStore.svelte';
 import { sendViaBridge } from '$lib/services/bridgeService';
 import { generate as webllmGenerate } from '$lib/services/webllmService';
 import { DEMO_URL, PROXY_URL } from '$lib/config';
+import { demoRequestBody, OUTPUT_RESERVE_TOKENS } from '$lib/services/requestBudget';
 
 // --- 공통 타입 ---
 
@@ -59,10 +60,7 @@ async function callEdgeProxy(opts: AICallOptions): Promise<string> {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		signal: opts.signal,
-		body: JSON.stringify({
-			messages: [{ role: 'user', content: opts.user }],
-			system: opts.system
-		})
+		body: demoRequestBody(opts)
 	});
 
 	if (!response.ok) {
@@ -135,7 +133,7 @@ async function callGeminiDirect(opts: AICallOptions): Promise<string> {
 
 	const body: Record<string, unknown> = {
 		contents,
-		generationConfig: { maxOutputTokens: 16384 },
+		generationConfig: { maxOutputTokens: OUTPUT_RESERVE_TOKENS.google },
 		system_instruction: { parts: [{ text: opts.system }] }
 	};
 

@@ -7,6 +7,8 @@ import { webgpuStore } from '$lib/stores/webgpuStore.svelte';
 import { extractSkeleton, formatPayloadPreview } from './skeletonExtractor';
 import { extractSubSkeleton } from './skeletonExtractor';
 import { callAI } from './aiAdapter';
+import type { Prompt } from './requestBudget';
+import type { SkeletonPayload } from '$lib/types/skeleton';
 import {
 	loadCachedResponse,
 	saveCachedResponse,
@@ -18,7 +20,6 @@ import type {
 	SemanticNode,
 	SemanticEdge
 } from '$lib/types/semantic';
-import type { SkeletonPayload } from '$lib/types/skeleton';
 
 const SEMANTIC_COLORS = [
 	'#89b4fa',
@@ -121,11 +122,6 @@ function activeModelId(): string {
 	}
 }
 
-// generatedAt is a wall-clock stamp. Sent as is, it makes every request unique and the cache never hits.
-function payloadAsSent(skeleton: SkeletonPayload): string {
-	return formatPayloadPreview({ ...skeleton, generatedAt: '' });
-}
-
 /** A request plus the files its answer must assign, which the cache key leaves out. */
 interface LevelRequest extends SemanticRequest {
 	inputPaths: readonly string[];
@@ -140,9 +136,16 @@ function topLevelRequest(): LevelRequest | null {
 	if (skeleton.files.length === 0) return null;
 	return {
 		model: activeModelId(),
-		system: TOP_LEVEL_SYSTEM_PROMPT + getLocaleInstruction(),
-		user: `Analyze the semantic architecture of this project:\n\n${payloadAsSent(skeleton)}`,
+		...topLevelPrompt(skeleton),
 		inputPaths: skeleton.files.map((f) => f.path)
+	};
+}
+
+/** The prompts a top-level analysis sends, so the analyze modal can measure them. */
+export function topLevelPrompt(skeleton: SkeletonPayload): Prompt {
+	return {
+		system: TOP_LEVEL_SYSTEM_PROMPT + getLocaleInstruction(),
+		user: `Analyze the semantic architecture of this project:\n\n${formatPayloadPreview(skeleton)}`
 	};
 }
 
@@ -156,7 +159,7 @@ function drilldownRequest(parentNode: SemanticNode): LevelRequest | null {
 	return {
 		model: activeModelId(),
 		system: DRILLDOWN_SYSTEM_PROMPT + getLocaleInstruction(),
-		user: `Analyze the internal structure of the "${parentNode.label}" domain:\n\n${payloadAsSent(subSkeleton)}`,
+		user: `Analyze the internal structure of the "${parentNode.label}" domain:\n\n${formatPayloadPreview(subSkeleton)}`,
 		inputPaths: parentNode.filePaths
 	};
 }
