@@ -146,6 +146,24 @@ const PAIRS: [fg: string, bg: string, floor: number][] = [
 	])
 ];
 
+// A glyph's font-size sizes an icon, not text. The subject of the selector (its last compound)
+// must carry a glyph class, so `.icon-label` or `.lexicon h2` still meet the type scale.
+const GLYPH_CLASS = /^material-symbols|-(icon|chevron|spinner)$/;
+const GLYPHS_BY_NAME = new Set([
+	'src/lib/components/ExploreDrilldownPromptDialog.svelte .btn-icon-small',
+	'src/lib/components/SearchBar.svelte .icon-file'
+]);
+
+function isGlyph(path: string, selector: string): boolean {
+	if (GLYPHS_BY_NAME.has(`${path} ${selector}`)) return true;
+	const subject = selector
+		.replace(/:global\(([^)]*)\)/g, '$1')
+		.trim()
+		.split(/\s*[\s>+~]\s*/)
+		.at(-1)!;
+	return [...subject.matchAll(/\.([\w-]+)/g)].some(([, name]) => GLYPH_CLASS.test(name));
+}
+
 describe('color tokens', () => {
 	it.each<[string, Map<string, string>]>([
 		['light', LIGHT],
@@ -205,10 +223,9 @@ describe('color tokens', () => {
 	});
 
 	it('style blocks take font sizes and radii from the scale tokens', () => {
-		// Graph nodes keep px because dagre lays them out in px; icon glyph sizes are not type
+		// Graph nodes keep px because dagre lays them out in px
 		const graph = (path: string, selector: string) =>
 			path.startsWith('src/lib/components/nodes/') || /svelte-flow__(node|edge)/.test(selector);
-		const glyph = /material-symbols|icon|spinner|chevron/i;
 		const kept = new Set([
 			'src/lib/components/Breadcrumb.svelte .dropdown-color border-radius',
 			'src/lib/components/Dropzone.svelte .hero-text h1 font-size',
@@ -227,12 +244,26 @@ describe('color tokens', () => {
 				.filter(({ prop }) => prop === 'font-size' || /^border(-\w+-\w+)?-radius$/.test(prop))
 				.filter(({ value }) => /\d(px|rem)\b/.test(value))
 				.filter(({ selector }) => !graph(path, selector))
-				.filter(({ selector, prop }) => !(prop === 'font-size' && glyph.test(selector)))
+				.filter(({ selector, prop }) => !(prop === 'font-size' && isGlyph(path, selector)))
 				.filter(({ selector, prop }) => !kept.has(`${path} ${selector} ${prop}`))
 				.map(({ selector, prop, value }) => `${path} ${selector} { ${prop}: ${value} }`)
 		);
 
 		expect(offenders).toEqual([]);
+	});
+
+	it('exempts only glyph selectors from the font-size scale', () => {
+		const glyphs = [
+			'.material-symbols-outlined',
+			'.copy-btn :global(.material-symbols-outlined)',
+			'.crumb-icon',
+			'.tree-chevron',
+			'.share-spinner'
+		];
+		const text = ['.icon-label', '.lexicon h2', '.icon-btn span', '.chevron-row > .title'];
+
+		expect(glyphs.filter((selector) => !isGlyph('src/A.svelte', selector))).toEqual([]);
+		expect(text.filter((selector) => isGlyph('src/A.svelte', selector))).toEqual([]);
 	});
 
 	it.each<[string, Map<string, string>]>([
