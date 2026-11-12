@@ -11,6 +11,7 @@ const WEBLLM_DOC_EXAMPLE = "new URL('./worker.ts', import.meta.url)";
 // generated enough code, and the unoptimized js-tokens string regex overflows its backtrack
 // stack on that literal, so about one build in ten failed. Blanking the example skips both
 // scans. The minifier drops comments, so the shipped worker is byte-identical.
+/** @returns {import('vite').Plugin} */
 function webllmSkipLiteralScan() {
 	return {
 		name: 'ropeman:webllm-skip-literal-scan',
