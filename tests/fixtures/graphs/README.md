@@ -67,7 +67,7 @@
 
 T1-5와 T1-6이 넘어야 할 파서 한계도 있다. 파서는 interface, type 별칭, 함수가 아닌 `const`(`cart`), Python 모듈 변수(`ROUND`)를 심볼로 내보내지 않는다. 이런 이름을 가리키는 정답(`types.ts#Entity`, `shared/config.ts#AppConfig`, `cart.svelte.ts#cart`, `pricing.py#ROUND` 등)은 파서가 그 심볼을 만들기 전에는 연결할 수 없다.
 
-추출기를 고쳐 점수가 오르면 기준선을 다시 기록하고 같은 PR에 넣는다.
+추출기를 고쳐 점수가 오르면 기준선을 다시 기록하고 같은 PR에 넣는다. 지금 기준선은 import 위치만 지키고 호출·재수출·동적 import와 precision은 지키지 못하므로, 호출 추출(T1-5)과 import 해석기(T1-6) PR은 반드시 기준선을 다시 기록해야 한다. CI에서 `UPDATE_GRAPH_BASELINE`을 켜면 테스트가 실패한다.
 
 ```sh
 UPDATE_GRAPH_BASELINE=1 npx vitest run src/lib/services/codeMapScore.fixtures.test.ts

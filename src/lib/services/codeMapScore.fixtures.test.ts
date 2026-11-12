@@ -100,6 +100,7 @@ async function extract(
 			astMap.set(node.path, await parse(node.path, content, node.language));
 		}
 	}
+	if (astMap.size === 0) throw new Error(`no parseable files read from ${repo}`);
 	return { map: buildCodeMap(astMap, tree.name), sources };
 }
 
@@ -147,6 +148,8 @@ describe("today's extractor against the ground truth", () => {
 		);
 
 		if (process.env.UPDATE_GRAPH_BASELINE) {
+			if (process.env.CI)
+				throw new Error('UPDATE_GRAPH_BASELINE rewrites the gate; never set it in CI');
 			const current = Object.fromEntries(
 				REPOS.map((repo) => [repo, toBaseline(scores.get(repo)!)])
 			);
