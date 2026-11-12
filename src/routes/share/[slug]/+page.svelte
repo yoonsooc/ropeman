@@ -177,32 +177,32 @@
 	.share-header {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--spacing-3);
 		height: var(--header-height);
-		padding: 0 16px;
+		padding: 0 var(--spacing-4);
 		background: var(--color-background-sidebar-icon);
 		border-bottom: 1px solid var(--color-border);
 	}
 
 	.share-logo {
 		font-family: var(--font-display);
-		font-size: 18px;
-		font-weight: 700;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-accent);
 		text-decoration: none;
 	}
 
 	.share-project-name {
 		font-family: var(--font-code);
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		color: var(--color-text-secondary);
 	}
 
 	.share-badge {
-		font-size: 12px;
-		font-weight: 700;
-		padding: 2px 8px;
-		border-radius: 9999px;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
+		padding: var(--spacing-0-5) var(--spacing-2);
+		border-radius: var(--radius-full);
 		background: var(--color-accent-muted);
 		color: var(--color-accent);
 	}
@@ -214,18 +214,18 @@
 	.share-cta {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
-		padding: 6px 14px;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-1-5) var(--spacing-3);
 		background: var(--color-accent);
 		color: var(--color-on-accent);
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-element);
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		cursor: pointer;
 		text-decoration: none;
-		transition: opacity 0.15s;
+		transition: opacity var(--duration-fast) var(--ease-standard);
 	}
 
 	.share-cta:hover {
@@ -245,7 +245,7 @@
 		left: 0;
 		right: 0;
 		z-index: 10;
-		padding: 8px 16px;
+		padding: var(--spacing-2) var(--spacing-4);
 	}
 
 	.share-canvas-area {
@@ -271,7 +271,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 16px;
+		gap: var(--spacing-4);
 		color: var(--color-text-secondary);
 	}
 
@@ -296,7 +296,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 12px;
+		gap: var(--spacing-3);
 		text-align: center;
 		color: var(--color-text-secondary);
 	}
@@ -308,13 +308,13 @@
 
 	.share-error h2 {
 		font-family: var(--font-display);
-		font-size: 24px;
+		font-size: var(--font-size-2xl);
 		color: var(--color-text-primary);
 	}
 
 	.share-error p {
 		max-width: 400px;
-		font-size: 14px;
+		font-size: var(--font-size-base);
 		line-height: 1.6;
 	}
 
@@ -330,7 +330,7 @@
 			z-index: 30;
 			border-left: none;
 			border-top: 1px solid var(--color-border);
-			border-radius: 12px 12px 0 0;
+			border-radius: var(--radius-container) var(--radius-container) 0 0;
 			box-shadow: 0 -8px 24px var(--color-shadow);
 			padding-bottom: env(safe-area-inset-bottom);
 		}

@@ -167,10 +167,10 @@
 	}
 	.newproject-card {
 		width: 400px;
-		padding: 20px;
+		padding: var(--spacing-5);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--spacing-3);
 	}
 	.newproject-header {
 		display: flex;
@@ -180,15 +180,15 @@
 	.newproject-title {
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 15px;
-		font-weight: 600;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);
 	}
 	.newproject-folder {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 		width: 100%;
 	}
 	.newproject-folder .material-symbols-outlined {
@@ -196,9 +196,9 @@
 	}
 	.newproject-hint {
 		display: flex;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 		margin: 0;
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		line-height: 1.5;
 		color: var(--color-text-secondary);
 	}
@@ -206,14 +206,14 @@
 		font-size: 16px;
 	}
 	.newproject-label {
-		margin-top: 4px;
-		font-size: 12px;
-		font-weight: 500;
+		margin-top: var(--spacing-1);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-medium);
 		color: var(--color-text-secondary);
 	}
 	.newproject-row {
 		display: flex;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 	.newproject-input {
 		flex: 1;
@@ -233,12 +233,12 @@
 	}
 	.newproject-error {
 		margin: 0;
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-error);
 	}
 	.newproject-note {
 		margin: 0;
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 	}
 	@media (prefers-reduced-motion: reduce) {

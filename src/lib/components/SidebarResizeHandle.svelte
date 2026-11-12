@@ -34,12 +34,12 @@
 		width: 4px;
 		cursor: col-resize;
 		background: var(--color-border);
-		transition: background-color 0.15s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 		touch-action: none;
 		z-index: 10;
 		/* 12px hit area around the 4px visible bar */
-		margin: 0 -4px;
-		padding: 0 4px;
+		margin: 0 calc(-1 * var(--spacing-1));
+		padding: 0 var(--spacing-1);
 		background-clip: content-box;
 	}
 

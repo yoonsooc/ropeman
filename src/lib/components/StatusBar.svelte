@@ -85,7 +85,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 0 16px;
+		padding: 0 var(--spacing-4);
 		flex-shrink: 0;
 		z-index: 50;
 		border-top: 1px solid var(--color-border);
@@ -95,15 +95,15 @@
 	.status-right {
 		display: flex;
 		align-items: center;
-		gap: 16px;
+		gap: var(--spacing-4);
 	}
 
 	.status-item {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 		cursor: pointer;
-		transition: color 0.15s ease;
+		transition: color var(--duration-fast) var(--ease-standard);
 	}
 
 	.status-item:hover {
@@ -117,14 +117,14 @@
 
 	.status-text {
 		font-family: var(--font-body);
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 	}
 
 	.status-connection {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 
 	.connection-dot {
@@ -140,7 +140,7 @@
 
 	.connection-text {
 		font-family: var(--font-body);
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 	}
 
 	.status-divider {
@@ -151,7 +151,7 @@
 
 	.status-version {
 		font-family: var(--font-body);
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 	}
 </style>

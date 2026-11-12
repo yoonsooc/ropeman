@@ -126,8 +126,8 @@
 	.chat-empty-state {
 		color: var(--color-text-secondary);
 		text-align: center;
-		margin-top: 40px;
-		font-size: 13px;
+		margin-top: var(--spacing-10);
+		font-size: var(--font-size-base);
 	}
 	.chat-input {
 		resize: none;
@@ -137,11 +137,11 @@
 	.chat-warning {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 8px 12px;
+		gap: var(--spacing-2);
+		padding: var(--spacing-2) var(--spacing-3);
 		background: var(--color-error-muted);
 		border-bottom: 1px solid color-mix(in srgb, var(--color-border-error) 30%, transparent);
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-on-error-muted);
 	}
 	.chat-warning-link {
@@ -149,18 +149,18 @@
 		border: none;
 		color: var(--color-accent);
 		cursor: pointer;
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		text-decoration: underline;
 		padding: 0;
 	}
 	.cache-hit-badge {
 		display: inline-block;
-		margin: 0 0 8px 12px;
-		padding: 2px 8px;
-		border-radius: 10px;
+		margin: 0 0 var(--spacing-2) var(--spacing-3);
+		padding: var(--spacing-0-5) var(--spacing-2);
+		border-radius: var(--radius-full);
 		background: var(--color-success-muted);
 		color: var(--color-on-success-muted);
-		font-size: 10px;
-		font-weight: 500;
+		font-size: var(--font-size-xs);
+		font-weight: var(--font-weight-medium);
 	}
 </style>

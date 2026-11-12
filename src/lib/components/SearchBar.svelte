@@ -237,8 +237,8 @@
 		max-height: 420px;
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		box-shadow: 0 16px 48px var(--color-shadow);
+		border-radius: var(--radius-container);
+		box-shadow: var(--shadow-high);
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
@@ -248,8 +248,8 @@
 	.search-input-wrapper {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 12px 16px;
+		gap: var(--spacing-2);
+		padding: var(--spacing-3) var(--spacing-4);
 		border-bottom: 1px solid var(--color-border);
 	}
 
@@ -263,7 +263,7 @@
 		border: none;
 		background: transparent;
 		color: var(--color-text-primary);
-		font-size: 15px;
+		font-size: var(--font-size-base);
 	}
 
 	.search-field::placeholder {
@@ -271,9 +271,9 @@
 	}
 
 	.search-hint {
-		font-size: 11px;
-		padding: 2px 6px;
-		border-radius: 4px;
+		font-size: var(--font-size-sm);
+		padding: var(--spacing-0-5) var(--spacing-1-5);
+		border-radius: var(--radius-inner);
 		background: var(--color-background-muted);
 		color: var(--color-text-tertiary);
 		border: 1px solid var(--color-border);
@@ -283,7 +283,7 @@
 	.search-results {
 		list-style: none;
 		margin: 0;
-		padding: 4px;
+		padding: var(--spacing-1);
 		overflow-y: auto;
 	}
 
@@ -297,23 +297,23 @@
 
 	.search-results::-webkit-scrollbar-thumb {
 		background: var(--color-border);
-		border-radius: 3px;
+		border-radius: var(--radius-full);
 	}
 
 	.result-item {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--spacing-2);
 		width: 100%;
-		padding: 8px 12px;
+		padding: var(--spacing-2) var(--spacing-3);
 		border: none;
 		background: transparent;
 		color: var(--color-text-primary);
 		cursor: pointer;
-		border-radius: 6px;
+		border-radius: var(--radius-inner);
 		text-align: left;
-		font-size: 13px;
-		transition: background-color 0.1s ease;
+		font-size: var(--font-size-base);
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.result-item:hover,
@@ -327,9 +327,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		flex-shrink: 0;
 		background: var(--color-background-body);
 		color: var(--color-text-secondary);
@@ -369,14 +369,14 @@
 	}
 
 	.result-name {
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
 	.result-path {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -384,19 +384,19 @@
 	}
 
 	.result-badge {
-		font-size: 12px;
-		padding: 2px 6px;
-		border-radius: 4px;
+		font-size: var(--font-size-sm);
+		padding: var(--spacing-0-5) var(--spacing-1-5);
+		border-radius: var(--radius-inner);
 		background: var(--color-background-body);
 		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
 
 	.no-results {
-		padding: 24px;
+		padding: var(--spacing-6);
 		text-align: center;
 		color: var(--color-text-tertiary);
-		font-size: 13px;
+		font-size: var(--font-size-base);
 	}
 
 	@media (max-width: 640px) {

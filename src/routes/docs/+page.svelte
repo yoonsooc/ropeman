@@ -32,13 +32,13 @@
 		align-items: center;
 		justify-content: center;
 		min-height: 60vh;
-		gap: 16px;
+		gap: var(--spacing-4);
 		color: var(--color-text-secondary);
 		font-family: var(--font-body);
 	}
 
 	.hint {
-		font-size: 14px;
+		font-size: var(--font-size-base);
 	}
 
 	.hint a {

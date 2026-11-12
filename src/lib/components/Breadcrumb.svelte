@@ -280,8 +280,8 @@
 	.breadcrumb-bar {
 		display: flex;
 		align-items: center;
-		gap: 2px;
-		padding: 6px 20px;
+		gap: var(--spacing-0-5);
+		padding: var(--spacing-1-5) var(--spacing-5);
 		background: var(--color-background-surface);
 		border-bottom: 1px solid var(--color-border);
 		overflow: visible;
@@ -291,26 +291,26 @@
 
 	.separator {
 		color: var(--color-text-tertiary);
-		font-size: 14px;
-		margin: 0 2px;
+		font-size: var(--font-size-base);
+		margin: 0 var(--spacing-0-5);
 		user-select: none;
 	}
 
 	.crumb {
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		padding: 2px 8px;
-		border-radius: 4px;
-		font-size: 12px;
+		gap: var(--spacing-1);
+		padding: var(--spacing-0-5) var(--spacing-2);
+		border-radius: var(--radius-inner);
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		white-space: nowrap;
 		background: none;
 		border: none;
 		cursor: pointer;
 		transition:
-			background-color var(--transition),
-			color var(--transition);
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.crumb:hover {
@@ -320,12 +320,12 @@
 
 	.crumb.active {
 		color: var(--color-accent);
-		font-weight: 600;
+		font-weight: var(--font-weight-semibold);
 	}
 
 	.group-crumb {
-		font-weight: 600;
-		font-size: 12px;
+		font-weight: var(--font-weight-semibold);
+		font-size: var(--font-size-sm);
 	}
 
 	.crumb-icon {
@@ -341,7 +341,7 @@
 	.crumb-chevron {
 		font-size: 8px;
 		color: var(--color-text-tertiary);
-		margin-left: 2px;
+		margin-left: var(--spacing-0-5);
 	}
 
 	.crumb-dropdown-wrapper {
@@ -359,10 +359,10 @@
 		overflow-y: auto;
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 6px;
-		box-shadow: 0 4px 12px var(--color-shadow);
-		padding: 4px;
-		margin-top: 4px;
+		border-radius: var(--radius-element);
+		box-shadow: var(--shadow-med);
+		padding: var(--spacing-1);
+		margin-top: var(--spacing-1);
 	}
 
 	.crumb-dropdown::-webkit-scrollbar {
@@ -371,24 +371,24 @@
 
 	.crumb-dropdown::-webkit-scrollbar-thumb {
 		background: var(--color-border);
-		border-radius: 2px;
+		border-radius: var(--radius-full);
 	}
 
 	.dropdown-item {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 		width: 100%;
-		padding: 6px 8px;
-		border-radius: 4px;
-		font-size: 12px;
+		padding: var(--spacing-1-5) var(--spacing-2);
+		border-radius: var(--radius-inner);
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		background: none;
 		border: none;
 		cursor: pointer;
 		text-align: left;
 		white-space: nowrap;
-		transition: background-color 0.1s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.dropdown-item:hover {
@@ -398,7 +398,7 @@
 
 	.dropdown-item.current {
 		color: var(--color-accent);
-		font-weight: 600;
+		font-weight: var(--font-weight-semibold);
 	}
 
 	.dropdown-color {
@@ -421,7 +421,7 @@
 	}
 
 	.dropdown-count {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}

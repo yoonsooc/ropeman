@@ -757,12 +757,12 @@
 		--xy-minimap-node-stroke-color: transparent;
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 	}
 
 	.zui-canvas :global(.svelte-flow__controls) {
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		overflow: hidden;
 		background: var(--color-background-surface);
 	}
@@ -823,11 +823,11 @@
 		max-width: 260px;
 		background: var(--color-background-popover);
 		border: 1px solid var(--color-border);
-		border-radius: 8px;
-		box-shadow: 0 4px 16px var(--color-shadow);
-		padding: 10px 12px;
+		border-radius: var(--radius-element);
+		box-shadow: var(--shadow-med);
+		padding: var(--spacing-2) var(--spacing-3);
 		pointer-events: none;
-		animation: relationFadeIn 0.15s ease;
+		animation: relationFadeIn var(--duration-fast) var(--ease-standard);
 	}
 
 	@keyframes relationFadeIn {
@@ -842,37 +842,37 @@
 	}
 
 	.hover-relation-header {
-		font-size: 13px;
-		font-weight: 600;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);
-		margin-bottom: 2px;
+		margin-bottom: var(--spacing-0-5);
 	}
 
 	.hover-relation-desc {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		line-height: 1.4;
-		margin-bottom: 4px;
+		margin-bottom: var(--spacing-1);
 	}
 
 	.hover-relation-meta {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 	}
 
 	.hover-relation-divider {
 		height: 1px;
 		background: var(--color-border);
-		margin: 8px 0;
+		margin: var(--spacing-2) 0;
 	}
 
 	.hover-relation-edge {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		font-size: 11px;
+		gap: var(--spacing-1-5);
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
-		margin-bottom: 4px;
+		margin-bottom: var(--spacing-1);
 	}
 
 	.hover-edge-dot {
@@ -884,7 +884,7 @@
 
 	.hover-edge-label strong {
 		color: var(--color-text-primary);
-		font-weight: 600;
+		font-weight: var(--font-weight-semibold);
 	}
 
 	.hover-edge-label em {
@@ -893,26 +893,26 @@
 	}
 
 	.hover-relation-none {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 		font-style: italic;
 	}
 
 	.hover-relation-shared {
-		margin-top: 6px;
+		margin-top: var(--spacing-1-5);
 	}
 
 	.hover-shared-label {
-		font-size: 12px;
-		font-weight: 600;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-tertiary);
 	}
 
 	.hover-shared-file {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-secondary);
 		font-family: 'SF Mono', 'Fira Code', monospace;
-		padding-left: 8px;
+		padding-left: var(--spacing-2);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -927,12 +927,12 @@
 		z-index: 5;
 		display: flex;
 		align-items: center;
-		gap: 4px;
+		gap: var(--spacing-1);
 		background: var(--color-background-popover);
 		border: 1px solid var(--color-border);
-		border-radius: 8px;
-		padding: 4px;
-		box-shadow: 0 4px 12px var(--color-shadow);
+		border-radius: var(--radius-element);
+		padding: var(--spacing-1);
+		box-shadow: var(--shadow-med);
 	}
 
 	.toolbar-item {
@@ -945,14 +945,14 @@
 		justify-content: center;
 		width: 32px;
 		height: 32px;
-		border-radius: 6px;
+		border-radius: var(--radius-element);
 		background: transparent;
 		border: none;
 		color: var(--color-text-secondary);
 		cursor: pointer;
 		transition:
-			background-color 0.15s ease,
-			color 0.15s ease;
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.toolbar-btn:hover {
@@ -971,9 +971,9 @@
 		right: 0;
 		background: var(--color-background-popover);
 		border: 1px solid var(--color-border);
-		border-radius: 8px;
-		box-shadow: 0 4px 16px var(--color-shadow);
-		animation: toolbarDropdown 0.15s ease;
+		border-radius: var(--radius-element);
+		box-shadow: var(--shadow-med);
+		animation: toolbarDropdown var(--duration-fast) var(--ease-standard);
 	}
 
 	@keyframes toolbarDropdown {
@@ -989,21 +989,21 @@
 
 	.export-menu {
 		min-width: 80px;
-		padding: 4px 0;
+		padding: var(--spacing-1) 0;
 	}
 
 	.export-menu-item {
 		display: block;
 		width: 100%;
-		padding: 8px 16px;
+		padding: var(--spacing-2) var(--spacing-4);
 		background: none;
 		border: none;
 		color: var(--color-text-secondary);
-		font-size: 13px;
-		font-weight: 500;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-medium);
 		cursor: pointer;
 		text-align: left;
-		transition: background-color 0.1s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.export-menu-item:hover {
@@ -1014,27 +1014,27 @@
 	/* Legend panel (dropdown from toolbar) */
 	.legend-panel {
 		min-width: 160px;
-		padding: 8px 0;
+		padding: var(--spacing-2) 0;
 	}
 
 	.legend-header {
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-tertiary);
-		padding: 4px 12px 8px;
+		padding: var(--spacing-1) var(--spacing-3) var(--spacing-2);
 		border-bottom: 1px solid var(--color-border);
-		margin-bottom: 4px;
+		margin-bottom: var(--spacing-1);
 	}
 
 	.legend-item {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 6px 12px;
+		gap: var(--spacing-2);
+		padding: var(--spacing-1-5) var(--spacing-3);
 		cursor: pointer;
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
-		transition: background-color 0.1s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.legend-item:hover {
@@ -1065,7 +1065,7 @@
 		width: 1px;
 		height: 20px;
 		background: var(--color-border);
-		margin: 0 2px;
+		margin: 0 var(--spacing-0-5);
 	}
 
 	.toolbar-badge {
@@ -1074,11 +1074,11 @@
 		right: 2px;
 		min-width: 14px;
 		height: 14px;
-		border-radius: 7px;
+		border-radius: var(--radius-full);
 		background: var(--color-accent);
 		color: var(--color-on-accent);
-		font-size: 9px;
-		font-weight: 700;
+		font-size: var(--font-size-xs);
+		font-weight: var(--font-weight-bold);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -1087,15 +1087,15 @@
 
 	.analysis-requests-panel {
 		min-width: 220px;
-		padding: 8px 0;
+		padding: var(--spacing-2) 0;
 	}
 
 	.analysis-request-item {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 8px 12px;
-		transition: background-color 0.1s ease;
+		gap: var(--spacing-2);
+		padding: var(--spacing-2) var(--spacing-3);
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.analysis-request-item:hover {
@@ -1103,7 +1103,7 @@
 	}
 
 	:global(.analysis-request-item.pulse) {
-		animation: requestPulse 0.4s ease;
+		animation: requestPulse var(--duration-medium) var(--ease-standard);
 	}
 
 	@keyframes requestPulse {
@@ -1123,12 +1123,12 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--spacing-0-5);
 	}
 
 	.analysis-request-name {
-		font-size: 12px;
-		font-weight: 600;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);
 		white-space: nowrap;
 		overflow: hidden;
@@ -1136,7 +1136,7 @@
 	}
 
 	.analysis-request-progress {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 		white-space: nowrap;
 		overflow: hidden;
@@ -1149,15 +1149,15 @@
 		justify-content: center;
 		width: 20px;
 		height: 20px;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		border: none;
 		background: transparent;
 		color: var(--color-text-tertiary);
 		cursor: pointer;
 		flex-shrink: 0;
 		transition:
-			background-color 0.1s ease,
-			color 0.1s ease;
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.analysis-request-cancel:hover {

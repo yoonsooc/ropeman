@@ -106,22 +106,22 @@
 		z-index: 1100;
 	}
 	.drilldown-card {
-		padding: 16px;
+		padding: var(--spacing-4);
 		width: 320px;
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 	}
 	.drilldown-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 12px;
+		margin-bottom: var(--spacing-3);
 	}
 	.drilldown-title {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		font-size: 12px;
-		font-weight: 700;
+		gap: var(--spacing-2);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 		margin-bottom: 0;
 		font-family: var(--font-display);
@@ -133,24 +133,24 @@
 		flex-shrink: 0;
 	}
 	.drilldown-label {
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		font-family: var(--font-code);
 		color: var(--color-text-tertiary);
 	}
 	.drilldown-desc {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
-		margin: 0 0 20px;
+		margin: 0 0 var(--spacing-5);
 		line-height: 1.625;
 	}
 	.drilldown-track {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 8px 12px;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-2) var(--spacing-3);
 		background: var(--color-background-surface);
-		border-radius: 8px;
-		margin-bottom: 14px;
+		border-radius: var(--radius-element);
+		margin-bottom: var(--spacing-3);
 	}
 	.track-dot {
 		width: 8px;
@@ -159,37 +159,37 @@
 		flex-shrink: 0;
 	}
 	.track-name {
-		font-size: 13px;
-		font-weight: 600;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
 	}
 	.track-suffix {
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		color: var(--color-text-secondary);
 	}
 	.dont-ask {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		font-size: 10px;
+		gap: var(--spacing-2);
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 		cursor: pointer;
-		margin-bottom: 20px;
+		margin-bottom: var(--spacing-5);
 	}
 	.dont-ask input {
 		width: 12px;
 		height: 12px;
 		accent-color: var(--color-accent);
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 	}
 	.drilldown-actions {
 		display: flex;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 	.drilldown-btn {
-		padding: 6px 0;
+		padding: var(--spacing-1-5) 0;
 		flex: 1;
-		font-size: 11px;
-		font-weight: 700;
-		border-radius: 4px;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
+		border-radius: var(--radius-inner);
 	}
 </style>

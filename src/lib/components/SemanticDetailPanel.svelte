@@ -118,7 +118,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 20px;
+		padding: var(--spacing-5);
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
@@ -128,12 +128,12 @@
 		height: 10px;
 		border-radius: 50%;
 		flex-shrink: 0;
-		margin-right: 10px;
+		margin-right: var(--spacing-2);
 	}
 
 	.panel-label {
-		font-size: 16px;
-		font-weight: 600;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-semibold);
 		font-family: var(--font-display);
 		line-height: 1.3;
 		color: var(--color-text-primary);
@@ -148,11 +148,11 @@
 		justify-content: center;
 		width: 28px;
 		height: 28px;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		color: var(--color-text-tertiary);
 		cursor: pointer;
 		flex-shrink: 0;
-		transition: background-color 0.15s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.panel-close:hover {
@@ -161,33 +161,33 @@
 	}
 
 	.panel-section {
-		padding: 20px;
+		padding: var(--spacing-5);
 		border-bottom: 1px solid var(--color-border);
 	}
 
 	.section-title {
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-tertiary);
-		margin-bottom: 16px;
+		margin-bottom: var(--spacing-4);
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 	}
 
 	.file-count {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		font-variant-numeric: tabular-nums;
-		font-weight: 600;
+		font-weight: var(--font-weight-semibold);
 		background: var(--color-background-muted);
 		color: var(--color-text-secondary);
-		padding: 1px 6px;
-		border-radius: 8px;
+		padding: 1px var(--spacing-1-5);
+		border-radius: var(--radius-element);
 	}
 
 	.panel-description {
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		line-height: 1.625;
 		margin: 0;
@@ -196,22 +196,22 @@
 	.file-list {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 	}
 
 	.file-item {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 6px 8px;
-		font-size: 11px;
+		gap: var(--spacing-2);
+		padding: var(--spacing-1-5) var(--spacing-2);
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		cursor: pointer;
 		border: none;
 		background: none;
 		text-align: left;
-		border-radius: 4px;
-		transition: background-color 0.1s ease;
+		border-radius: var(--radius-inner);
+		transition: background-color var(--duration-fast) var(--ease-standard);
 		width: 100%;
 	}
 
@@ -227,7 +227,7 @@
 
 	.file-name {
 		font-family: var(--font-code);
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-primary);
 		white-space: nowrap;
 		overflow: hidden;
@@ -238,7 +238,7 @@
 
 	/* The folder trails the file name and gives way first when space runs out */
 	.file-dir {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 		white-space: nowrap;
 		overflow: hidden;
@@ -250,15 +250,15 @@
 	.symbol-tags {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 
 	.symbol-tag {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		font-family: var(--font-code);
 		color: var(--color-text-secondary);
 		background: var(--color-background-muted);
-		padding: 4px 8px;
-		border-radius: 4px;
+		padding: var(--spacing-1) var(--spacing-2);
+		border-radius: var(--radius-inner);
 	}
 </style>

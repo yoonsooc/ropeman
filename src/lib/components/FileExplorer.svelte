@@ -352,7 +352,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 10px 12px;
+		padding: var(--spacing-2) var(--spacing-3);
 		border-bottom: 1px solid var(--color-border);
 		overflow: visible;
 		flex-shrink: 0;
@@ -360,8 +360,8 @@
 
 	.explorer-title {
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 600;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-secondary);
 	}
 
@@ -372,13 +372,13 @@
 		width: 24px;
 		height: 24px;
 		flex-shrink: 0;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		color: var(--color-text-tertiary);
 		background: none;
 		border: none;
 		padding: 0;
 		cursor: pointer;
-		transition: background-color 0.15s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.explorer-toggle:hover {
@@ -399,11 +399,11 @@
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
 		border-left: none;
-		border-radius: 0 6px 6px 0;
+		border-radius: 0 var(--radius-element) var(--radius-element) 0;
 		color: var(--color-text-tertiary);
 		cursor: pointer;
 		z-index: 5;
-		transition: background-color 0.15s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.explorer-collapsed-toggle:hover {
@@ -412,19 +412,19 @@
 	}
 
 	.explorer-search {
-		padding: 8px;
+		padding: var(--spacing-2);
 		border-bottom: 1px solid var(--color-border);
 	}
 
 	.search-wrapper {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 4px 8px;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-1) var(--spacing-2);
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		background: var(--color-background-canvas);
-		transition: box-shadow 0.15s ease;
+		transition: box-shadow var(--duration-fast) var(--ease-standard);
 	}
 
 	.search-wrapper:focus-within {
@@ -440,8 +440,8 @@
 	.search-input {
 		flex: 1;
 		min-width: 0;
-		padding: 2px 0;
-		font-size: 12px;
+		padding: var(--spacing-0-5) 0;
+		font-size: var(--font-size-sm);
 		border: none;
 		background: transparent;
 		color: var(--color-text-primary);
@@ -458,11 +458,11 @@
 		justify-content: center;
 		width: 16px;
 		height: 16px;
-		border-radius: 3px;
+		border-radius: var(--radius-inner);
 		color: var(--color-text-tertiary);
 		cursor: pointer;
 		flex-shrink: 0;
-		transition: color 0.1s ease;
+		transition: color var(--duration-fast) var(--ease-standard);
 	}
 
 	.search-clear:hover {
@@ -473,7 +473,7 @@
 		flex: 1;
 		overflow-y: auto;
 		overflow-x: hidden;
-		padding: 4px 0;
+		padding: var(--spacing-1) 0;
 	}
 
 	.explorer-tree::-webkit-scrollbar {
@@ -486,22 +486,22 @@
 
 	.explorer-tree::-webkit-scrollbar-thumb {
 		background: var(--color-border);
-		border-radius: 10px;
+		border-radius: var(--radius-full);
 	}
 
 	.tree-item {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 		width: 100%;
-		padding: 4px 8px;
-		font-size: 11px;
+		padding: var(--spacing-1) var(--spacing-2);
+		font-size: var(--font-size-sm);
 		cursor: pointer;
 		border: none;
 		background: none;
 		text-align: left;
 		white-space: nowrap;
-		transition: background-color 0.1s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.dir-item {
@@ -570,7 +570,7 @@
 	}
 
 	.tree-count {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
@@ -609,7 +609,7 @@
 		width: 80vw;
 		height: 100vh;
 		z-index: 30;
-		animation: slideIn 0.2s ease;
+		animation: slideIn var(--duration-fast) var(--ease-standard);
 	}
 
 	@keyframes slideIn {

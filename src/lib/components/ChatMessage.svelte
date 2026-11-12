@@ -61,8 +61,8 @@
 		border: none;
 		color: var(--color-accent);
 		cursor: pointer;
-		font-size: 11px;
-		padding: 2px 4px;
+		font-size: var(--font-size-sm);
+		padding: var(--spacing-0-5) var(--spacing-1);
 		text-decoration: underline;
 		text-align: left;
 	}
@@ -71,16 +71,16 @@
 	}
 	.chat-message-content :global(pre) {
 		background: var(--color-background-muted);
-		padding: 8px 12px;
-		border-radius: 6px;
+		padding: var(--spacing-2) var(--spacing-3);
+		border-radius: var(--radius-element);
 		overflow-x: auto;
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 	}
 	.chat-message-content :global(code) {
 		background: var(--color-background-muted);
-		padding: 1px 4px;
-		border-radius: 3px;
-		font-size: 12px;
+		padding: 1px var(--spacing-1);
+		border-radius: var(--radius-inner);
+		font-size: var(--font-size-sm);
 	}
 	.chat-message-content :global(pre code) {
 		background: none;

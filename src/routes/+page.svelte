@@ -655,7 +655,7 @@
 		height: 100%;
 		background: var(--color-accent-muted);
 		border: 2px dashed var(--color-accent);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		z-index: 20;
 		display: flex;
 		align-items: center;
@@ -664,12 +664,12 @@
 	}
 
 	.split-drop-hint {
-		font-size: 14px;
-		font-weight: 600;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-accent);
 		background: var(--color-background-surface);
-		padding: 8px 16px;
-		border-radius: 8px;
+		padding: var(--spacing-2) var(--spacing-4);
+		border-radius: var(--radius-element);
 		border: 1px solid var(--color-accent);
 	}
 
@@ -677,7 +677,7 @@
 		width: 300px;
 		overflow-y: auto;
 		flex-shrink: 0;
-		animation: panelSlide 0.2s ease;
+		animation: panelSlide var(--duration-fast) var(--ease-standard);
 		background: var(--color-background-surface);
 		border-left: 1px solid var(--color-border);
 	}
@@ -710,11 +710,11 @@
 			background: var(--color-background-body);
 			border-left: none;
 			border-top: 1px solid var(--color-border);
-			border-top-left-radius: 16px;
-			border-top-right-radius: 16px;
+			border-top-left-radius: var(--radius-container);
+			border-top-right-radius: var(--radius-container);
 			box-shadow: 0 -8px 24px var(--color-shadow);
 			padding-bottom: env(safe-area-inset-bottom);
-			animation: bottomSheetSlide 0.2s ease;
+			animation: bottomSheetSlide var(--duration-fast) var(--ease-standard);
 		}
 
 		@keyframes bottomSheetSlide {
