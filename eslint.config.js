@@ -15,7 +15,9 @@ export default ts.config(
 			'static/',
 			'*.config.js',
 			'*.config.ts',
-			'src/lib/workers/**'
+			'src/lib/workers/**',
+			// Ground-truth repos: `--fix` would move the lines their truth files cite
+			'tests/fixtures/graphs/*/'
 		]
 	},
 
