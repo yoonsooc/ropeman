@@ -38,6 +38,7 @@ src/
 │   │   ├── skeletonExtractor.ts      # AST → 스켈레톤 v2 → LLM 전송용 코드 구조 요약 (suffix 매칭). select*는 뺀 파일과 이유도 돌려준다
 │   │   ├── importResolver.ts         # 코드 지도의 import 위치를 파일·심볼·패키지에 연결 (상대 경로, tsconfig paths, 워크스페이스, $lib, Python)
 │   │   ├── codeMapScore.ts           # 코드 지도를 정답 그래프(`tests/fixtures/graphs/`)와 비교해 관계 종류별 precision·recall과 놓친 관계를 낸다
+│   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다 (T1-12 비교용)
 │   │   ├── coverageService.ts        # 파일마다 분석에서의 행방(보냄, 안 보냄, 잘림, 건너뜀, 못 읽음)과 단계별 배정 수
 │   │   ├── requestBudget.ts          # 보내기 전 크기 검사: 데모 요청 본문 바이트, BYOK 모델별 토큰 한도
 │   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
@@ -190,7 +191,17 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
   - `fileFromAst()`는 파서가 import로 보고한 `export … from` 문을 `reexports`에 둔다. 전송 형식은 `imports`만 읽으므로 요청 바이트는 그대로다. 지금 파서는 이 문을 내보내지 않는다.
 - 고정 장치: `skeletonWire.test.ts`가 v2 이전 코드로 찍어 둔 전송 문자열 7종(최상위·드릴다운, 예산 무제한·50KB, 예산을 넘는 파일 하나)과 지금 출력을 비교한다.
 - 추출 점수: `tests/fixtures/graphs/`의 정답 그래프로 잰다 (9절).
-- 채울 작업: 참조 위치의 대상(같은 파일 안 포함), T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
+- graph.json 어댑터 (`graphifyAdapter.ts`, 순수 함수): `readGraphifyGraph(json, root)`가 Graphify가 만든 `graph.json`(`schema_version` 1)을 같은 코드 지도로 읽는다. T1-12가 Ropeman 추출과 Graphify 추출을 `scoreCodeMap`으로 나란히 재려고 둔다. 앱에서 사용자의 graph.json을 여는 경로는 아직 없다.
+  - ast 층(`_origin: ast`)만 코드 사실로 읽는다. LLM이 만든 semantic 층, 군집 번호와 군집 이름(`community_name`)은 읽지 않는다(A-10). 관계의 EXTRACTED/INFERRED는 graph.json 값을 그대로 쓰고 출처는 `graphify`다. AMBIGUOUS는 INFERRED로 읽는다.
+  - 경로는 `{root}/{source_file}`이다. 심볼 id는 graph.json 노드 id를 쓰지 않고, `contains`·`method` 트리를 줄 순서로 다시 세워 `fileFromAst`와 같은 규칙(`부모.이름`, 같은 이름이 또 나오면 `~n`)으로 만든다. 줄은 `L9` 같은 시작 줄뿐이라 `end: null`이다. 심볼 종류는 이름 모양(`f()`, `.m()`)과 `_callable_class`로만 정한다.
+  - graph.json은 방향 없는 단순 그래프라 노드 쌍마다 관계를 하나만 남긴다. 같은 관계가 다른 줄에서 또 나오면 `also_seen`에 접는데, 어댑터는 이것을 줄마다 위치로 다시 편다. 다른 관계끼리 부딪혀 사라진 것(파일 맨 위의 호출이 `contains`에 덮인 경우 등)은 되살리지 못하고 이유(`folded-call`, `reverse-import`)만 남긴다.
+  - 한 함수가 한 줄에서 EXTRACTED 대상 둘 이상을 부를 때, 대상 이름이 다르면 위치를 나눠 각각 EXTRACTED로 둔다. PASEO에서 이런 줄 232개를 원문과 맞춰 보니 모두 한 줄에 호출 두 개가 따로 적혀 있었다(`applySkills(targets, nonDestructivePlan(status))`). 이름이 같은 대상들만 한 위치의 후보 여럿이 되고, `Binding` 규칙대로 모두 INFERRED다.
+  - 외부 노드(`external: true`)의 이름은 graphify가 만든 슬러그(`ref_node_fs`, `packages_protocol_src_messages_…`)라 모듈 이름으로 되돌릴 수 없다. 그래서 그 import 위치의 모듈은 `unresolved`(연결 못 한 대상)이고, 그런 이름 대상은 버린다. package.json에 적힌 의존성 노드(`file_type: concept`)를 가리키는 import는 그 패키지(`ext:pino`)로 연결한다. package.json이 의존성을 적은 줄 자체는 import가 아니라서 버린다.
+  - JS/TS에서 `deferred`로 표시된 `imports_from`은 함수 안의 `import()`라서 그 함수에서 나온 `dynamic_import` 위치가 된다. graphify의 `dynamic_import` 관계에는 줄이 없어서 버린다. 다른 언어의 함수 안 import는 파서 결과처럼 위치를 두지 않는다.
+  - 버리거나 약하게 읽은 것은 모두 `issues`에 남는다. 이유는 `ISSUE_REASONS` 표에 있다.
+  - graph.json에는 import 문 원문이 없어서 `ModuleSite.text`는 빈 문자열이고 `written`은 `null`이다. 이 지도로 전송 형식(`toWireFile`)을 만들지 않는다.
+  - Graphify 이름은 호환 설명에만 쓴다. Ropeman은 Graphify 프로젝트와 관련이 없다. 어댑터는 Graphify(Apache-2.0)의 출력 형식만 읽고 코드는 가져오지 않았다.
+- 채울 작업: 참조 위치의 대상(같은 파일 안 포함), T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선).
 
 ### 분석 범위 (커버리지)
 
@@ -335,7 +346,7 @@ export const xxxStore = createXxxStore();
 
 - 색 토큰은 `src/lib/styles/global.css` 맨 위 `:root`(라이트)와 `[data-theme='dark']`(다크)에 있다. 이름은 astryx 색 역할 문법을 따른다. 예: `--color-background-surface`, `--color-text-secondary`, `--color-on-accent`.
 - 상태 색은 쓰이는 표면마다 역할이 따로 있다. 페이지 위 글자는 `--color-text-error`, 진한 채움은 `--color-error`와 그 위 글자 `--color-on-error`, 옅은 채움은 `--color-error-muted`와 그 위 글자 `--color-on-error-muted`다. 점·아이콘은 `--color-icon-*`, 테두리는 `--color-border-*`를 쓴다.
-- 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다. 엣지 범례(`--color-edge-*`)도 범주 색이다. `semanticGraphBuilder.ts`는 캔버스 선과 화살촉을 `var(--color-edge-*)`로 그린다. 그래서 테마 블록에서 이 토큰을 다시 정의하면 선과 범례가 함께 바뀐다. 지금은 두 테마가 같은 값이라 `:root`에만 있다. 선, 화살촉, 범례가 같은 토큰을 가리키는지 `tokens.test.ts`가 검사한다.
+- 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다. 엣지 범례(`--color-edge-*`)도 범주 색이다. `semanticGraphBuilder.ts`는 캔버스 선과 화살촉을, 파일 그래프의 `graphBuilder.ts`는 선을 `var(--color-edge-*)`로 그린다. 파일 그래프의 import는 `depends-on`, 호출은 `calls`를 쓰고, 범례에 없는 포함 관계는 `--color-edge-contains`를 쓴다. 그래서 테마 블록에서 이 토큰을 다시 정의하면 선과 범례가 함께 바뀐다. 지금은 두 테마가 같은 값이라 `:root`에만 있다. 선, 화살촉, 범례가 같은 토큰을 가리키는지 `tokens.test.ts`가 검사한다.
 - 포커스 링은 전역 `:focus-visible` 규칙 하나가 `--focus-outline-*` 토큰으로 그린다. 잘리는 스크롤 컨테이너 안에서는 요소에 `--focus-outline-offset: -2px`를 준다. 컴포넌트에서 `outline: none`을 쓰려면 같은 요소나 감싸는 요소가 링을 대신 그려야 한다.
 - 척도 토큰도 같은 `:root`에 있다. 값은 astryx core를 따른다.
   - 간격 `--spacing-N`은 N × 0.25rem(4px 격자)이다. 1px 선과 48px보다 큰 간격은 숫자로 둔다.
@@ -345,7 +356,7 @@ export const xxxStore = createXxxStore();
   - 동작은 `--duration-fast`(125ms)·`--duration-medium`(300ms)과 `--ease-standard`다. 계속 도는 스피너는 토큰을 쓰지 않는다. 동작 줄이기 설정에서는 전역 규칙이 모든 전환과 애니메이션을 즉시 끝낸다.
   - 그래프 노드 내부(`src/lib/components/nodes/`, xyflow 노드·엣지 규칙)는 dagre가 px로 배치하므로 px를 쓴다. 아이콘 글리프 크기는 글자 척도가 아니라서 px로 둔다.
 - `src/lib/styles/tokens.test.ts`가 다섯 가지를 검사한다. 두 모드의 WCAG AA 대비 하한, 정의되지 않은 `var()` 참조, 쓰이지 않는 전역 토큰, 스타일 블록 안의 색 리터럴, 척도 토큰 대신 쓴 px·rem 글자 크기와 반경이다. 새 색이나 크기가 필요하면 토큰을 먼저 추가한다.
-- 값의 출처와 라이선스는 `global.css` 머리 주석과 `LICENSES/astryx-MIT.txt`에 있다.
+- 값의 출처와 라이선스는 `global.css` 머리 주석과 `LICENSES/astryx-MIT.txt`에 있다. 패키지를 쓰지 않고 값을 옮긴 이유와 값마다 고른 안은 [ADR-22](adr/0022-astryx-tokens-without-package.md)에 있다.
 
 ---
 
@@ -433,3 +444,4 @@ main push → ci job (lint, svelte-check, build, unit, worker tests)
 - 채점: `services/codeMapScore.ts`의 `scoreCodeMap(map, truth)`가 종류마다 precision, recall, siteRecall(대상과 상관없이 그 줄에 위치가 있는 비율)과 놓친 관계를 낸다. 순수 함수이고 입력은 `CodeMap`이라 파서, 해석기, graph.json 어댑터 결과를 같은 방식으로 잰다.
 - 기준선: `codeMapScore.fixtures.test.ts`가 `?testDir=` 로더와 같은 스캐너(`scanDirectory`)로 파일을 읽어 지금 추출기로 코드 지도를 만들고 `baseline.json`보다 낮아진 값이 있으면 실패한다. 점수가 오르면 `UPDATE_GRAPH_BASELINE=1`로 다시 기록해 같은 PR에 넣는다.
 - 저장소 코드는 eslint, prettier, svelte-check에서 뺐다. 포매터가 줄을 옮기면 정답이 틀어진다.
+- Graphify 점수: `tests/fixtures/graphify/`에 세 저장소를 Graphify 0.9.104로 읽은 `graph.json`과 손으로 쓴 `hand.graph.json`이 있다. `graphifyAdapter.test.ts`가 어댑터 결과를 같은 정답으로 채점해 기록한 값과 같은지 본다. 만든 방법과 점수는 그 폴더의 `README.md`에 있다.
