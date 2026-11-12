@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scanDirectory } from '../../../scripts/vite-dev-fs-plugin.js';
 import { isSupported } from '$lib/utils/languageDetector';
-import type { ASTSymbol } from '$lib/types/ast';
+import type { ASTRef, ASTSymbol } from '$lib/types/ast';
 import type { CodeMap } from '$lib/types/codeMap';
 import { buildCodeMap } from './skeletonExtractor';
 import {
@@ -29,7 +29,7 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 		}
 	}
 	const Language = { load: (url: string) => real.Language.load(fromStatic(url)) };
-	return { Parser, Language };
+	return { Parser, Language, Query: real.Query };
 });
 
 const GRAPHS = fileURLToPath(new URL('../../../tests/fixtures/graphs', import.meta.url));
@@ -71,7 +71,7 @@ beforeAll(async () => {
 			repo,
 			await extract(repo, async (filePath, content, language) => {
 				await send({ data: { type: 'parse', filePath, content, language } });
-				return (posted.pop() as { symbols: ASTSymbol[] }).symbols;
+				return posted.pop() as Parsed;
 			})
 		);
 		truths.set(repo, JSON.parse(fs.readFileSync(path.join(GRAPHS, `${repo}.truth.json`), 'utf-8')));
@@ -79,13 +79,19 @@ beforeAll(async () => {
 	vi.unstubAllGlobals();
 });
 
+interface Parsed {
+	symbols: ASTSymbol[];
+	refs: ASTRef[];
+}
+
 /** The code map today's extractor builds from the files the `?testDir=` loader reads. */
 async function extract(
 	repo: string,
-	parse: (filePath: string, content: string, language: string) => Promise<ASTSymbol[]>
+	parse: (filePath: string, content: string, language: string) => Promise<Parsed>
 ): Promise<Extracted> {
 	const tree = scanDirectory(path.join(GRAPHS, repo)) as ScannedNode;
 	const astMap = new Map<string, ASTSymbol[]>();
+	const refMap = new Map<string, ASTRef[]>();
 	const sources = new Map<string, string[]>();
 	const stack = [tree];
 	while (stack.length > 0) {
@@ -97,11 +103,13 @@ async function extract(
 		const content = fs.readFileSync(node._absolutePath!, 'utf-8');
 		sources.set(node.path.slice(tree.name.length + 1), content.split('\n'));
 		if (node.language && isSupported(node.language) && content) {
-			astMap.set(node.path, await parse(node.path, content, node.language));
+			const { symbols, refs } = await parse(node.path, content, node.language);
+			astMap.set(node.path, symbols);
+			refMap.set(node.path, refs);
 		}
 	}
 	if (astMap.size === 0) throw new Error(`no parseable files read from ${repo}`);
-	return { map: buildCodeMap(astMap, tree.name), sources };
+	return { map: buildCodeMap(astMap, tree.name, refMap), sources };
 }
 
 /** `text` standing alone, so `main` does not match inside `__main__` or `fetchUser` inside `refetchUser` */
