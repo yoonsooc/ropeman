@@ -288,6 +288,10 @@
 								{i18nStore.t('landing.exampleCta')}
 								<span aria-hidden="true">&#x2192;</span>
 							</a>
+							<a class="example-link" href={resolve('/open')}>
+								{i18nStore.t('landing.openMapCta')}
+								<span aria-hidden="true">&#x2192;</span>
+							</a>
 							<p class="drag-hint">{i18nStore.t('landing.dragHint')}</p>
 						{:else}
 							<p class="mobile-folder-hint">
@@ -296,6 +300,10 @@
 							</p>
 							<a class="example-link compact" href={resolve('/explore')} data-tour-step="explore">
 								{i18nStore.t('landing.exampleCta')}
+								<span aria-hidden="true">&#x2192;</span>
+							</a>
+							<a class="example-link compact" href={resolve('/open')}>
+								{i18nStore.t('landing.openMapCta')}
 								<span aria-hidden="true">&#x2192;</span>
 							</a>
 						{/if}

@@ -311,7 +311,10 @@
 			// not include its deep-dive → render muted/dashed so users know not
 			// to expect drilldown, and requestDrilldown() will show the prompt
 			// dialog instead of triggering an AI call.
-			const snapshotUnavailable = semanticStore.readOnlyMode === 'snapshot' && !isCached;
+			const readOnly = semanticStore.readOnlyMode === 'snapshot';
+			const snapshotUnavailable = readOnly && !isCached;
+			// A snapshot visitor must not re-run the AI on their own credentials over a frozen level
+			const onReanalyze = readOnly ? undefined : handleReanalyze;
 
 			// Always render as the standard SemanticNode — selection state is
 			// communicated via `highlighted` / `dimmed` / `selected` flags so
@@ -327,7 +330,7 @@
 					isCached,
 					snapshotUnavailable,
 					nodeId: n.id,
-					onReanalyze: handleReanalyze,
+					onReanalyze,
 					onOpen: handleOpenNode
 				};
 			} else {
@@ -339,7 +342,7 @@
 					isCached,
 					snapshotUnavailable,
 					nodeId: n.id,
-					onReanalyze: handleReanalyze,
+					onReanalyze,
 					onOpen: handleOpenNode
 				};
 			}

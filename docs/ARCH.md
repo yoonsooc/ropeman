@@ -12,6 +12,7 @@ src/
 ├── routes/
 │   ├── +page.svelte              # 메인 페이지 (레이아웃 + AnalyzeModal + testDir 감지)
 │   ├── +layout.svelte            # 전역 레이아웃 (테마 CSS 주입)
+│   ├── open/+page.svelte         # JSON 열기: ropeman.json을 골라 읽기 전용 뷰어로 연다 (거부되면 이유와 다시 고르기)
 │   └── +layout.ts                # SSR 비활성화
 │
 ├── lib/
@@ -43,6 +44,8 @@ src/
 │   │   ├── importResolver.ts         # 코드 지도의 import 위치를 파일·심볼·패키지에 연결 (상대 경로, tsconfig paths, 워크스페이스, $lib, Python)
 │   │   ├── codeMapScore.ts           # 코드 지도를 정답 그래프(`tests/fixtures/graphs/`)와 비교해 관계 종류별 precision·recall과 놓친 관계를 낸다
 │   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다 (T1-12 비교용)
+│   │   ├── ropemanMapSchema.ts       # `ropeman.json`과 Bridge RPC 메시지를 믿지 않는 입력으로 파싱 (크기, JSON, 형식, 버전, 구조, 단계 트리)
+│   │   ├── mapViewer.ts              # 파싱한 ropeman.json을 시맨틱 스토어가 캐시하는 단계 모양으로 펼친다
 │   │   ├── coverageService.ts        # 파일마다 분석에서의 행방(보냄, 안 보냄, 잘림, 건너뜀, 못 읽음)과 단계별 배정 수
 │   │   ├── requestBudget.ts          # 보내기 전 크기 검사: 데모 요청 본문 바이트, BYOK 모델별 토큰 한도
 │   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
@@ -99,6 +102,7 @@ src/
 │   │   ├── ast.ts                    # ASTSymbol, ASTRef (파서가 읽은 참조 위치)
 │   │   ├── semantic.ts               # SemanticNode, SemanticEdge, SemanticLevel
 │   │   ├── skeleton.ts               # SkeletonPayload (AI에 보내는 형식, v1에 고정)
+│   │   ├── ropemanMap.ts             # `ropeman.json` 형식과 버전, Bridge RPC 메시지 타입. 타입만 import해서 bridge와 Node CLI도 그대로 컴파일한다 (ADR-24)
 │   │   ├── codeMap.ts                # 스켈레톤 v2: 줄 범위, import·참조 위치와 후보 대상, 관계 출처, 역할 관계의 근거. 브라우저에만 둔다 (ADR-21)
 │   │   ├── graph.ts                  # GraphNode, GraphEdge
 │   │   ├── tab.ts                    # Tab 타입
@@ -107,6 +111,7 @@ src/
 │   │   └── search.ts                 # 검색 타입
 │   │
 │   ├── data/aiProviders.ts           # 키가 없을 때 쓰는 기본 모델 목록 (modelCatalogStore가 대체) + 모델 계열별 컨텍스트 창 표
+│   ├── data/semanticPalette.ts       # 시맨틱 노드 색 목록. AI 분석과 지도 뷰어가 같이 쓴다 (뷰어가 AI 서비스를 불러오지 않게)
 │   ├── config.ts                     # DEMO_URL, PROXY_URL 상수
 │   │
 │   └── utils/
@@ -130,9 +135,10 @@ bridge/                           # 로컬 Bridge (`@ropeman/bridge`, npm 패키
 │   ├── server.ts                     # CLI 진입점: 플래그 해석, CLI 감지, 토큰, listen
 │   ├── bridge.ts                     # 한 포트에 HTTP(로컬 모드 정적 서빙)와 WebSocket(RPC, `claude -p` 중계)
 │   ├── auth.ts                       # Origin 허용 목록, Host 검사, 토큰
-│   ├── fileRead.ts                   # `file.read`: 루트 안 파일만, 실제 `.env` 거부, 500KB 상한, sha-256
+│   ├── fileRead.ts                   # `file.read`: 루트 안 파일만, 실제 `.env` 거부, 500KB 상한, sha-256. 응답 타입은 `src/lib/types/ropemanMap.ts`
 │   └── viewer.ts                     # `--viewer` 디렉터리 정적 서빙
 └── probe/index.html                  # 브라우저 실측용 시제품 페이지 (ADR-23)
+# tsconfig `rootDir`가 저장소 루트라서 빌드 결과는 `dist/bridge/src/`(bin)와 `dist/src/lib/types/`(공유 타입)에 나온다
 
 packages/core/                    # Node 추출 코어 (npm 워크스페이스 아님, 루트 의존성을 쓴다)
 ├── src/
@@ -266,6 +272,20 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 - 단계별 배정 수는 `SemanticLevel.assignment`(T0-7)에서 읽는다. 드릴다운 단계의 예산 초과 수는 `selectSubSkeleton()`을 다시 돌려 센다. 그 결과가 `exceedsBudget`이면(한도 안에 드는 파일이 없어 가장 작은 파일 하나를 한도를 넘겨 보낸 경우) 단계 줄에 그렇다고 적는다. 분석한 뒤 예산을 줄였을 때 생긴다.
 - 세지 않는 것: 로더가 순회하지 않은 폴더(`SKIP_DIRS`, 숨김 파일, 사용자 제외 패턴) 안의 파일, 문법 오류가 있어도 심볼을 돌려준 파일, LLM 출력이 잘리거나 시간이 넘은 경우.
 
+### ropeman.json과 Bridge RPC (ADR-24)
+
+스킬과 CLI가 만든 지도는 `ropeman.json` 파일이나 Bridge 소켓으로 들어온다. 둘 다 같은 타입(`types/ropemanMap.ts`)이고, 읽기 전에 `ropemanMapSchema.ts`가 파싱한다.
+
+- 파일: `format: "ropeman-map"`, `schemaVersion: "MAJOR.MINOR"`, 프로젝트 이름, 만든 도구와 시각, `files`(본 파일 전부와 행방, `FileCoverage`), `levels`(단계 목록).
+- 단계(`MapLevel`)는 펼친 노드(`parentId`, 최상위는 null), `naming`(`grouped`는 폴더로 묶은 결정론 결과, `named`는 검증을 통과한 LLM 이름), 노드, 관계, 배정 수를 담는다. 색, 깊이, 파일 수는 파일에 없고 뷰어가 정한다. 경로는 모두 저장소 기준이다.
+- 버전: 읽는 쪽은 자기 major만 읽고, 그 major의 minor는 모두 읽는다. minor는 선택 필드만 더하고, 모르는 필드는 버린다. 닫힌 값 목록(행방 이유, 관계 종류, 단계 이름 상태)에 값을 더하면 major가 바뀐다. 오류 코드만은 열린 목록이라, 모르는 코드는 `unknown`으로 읽고 함께 온 문장을 보여 준다.
+- 거부 코드: `too-large`(16MiB 초과, 파일은 읽기 전에 크기로), `not-json`, `not-a-map`(`format`이 다름), `newer-version`·`unsupported-version`(major가 다름, 구조보다 먼저 본다), `invalid`(틀린 필드 위치를 `at`에 `levels[1].nodes[0].label`처럼 준다).
+- 구조 검사: 노드 id는 지도 전체에서 하나, `__root__`은 못 쓴다(스토어가 최상위 키로 쓴다). 최상위 단계는 하나이고, 나머지 단계는 최상위에서 닿는 노드를 하나씩 펼친다. 그래서 고아 단계와 순환이 없다. 관계는 같은 단계의 두 노드를 잇는다. 배정 불변식, 경로 실재, 관계 근거는 T2-3 검증기가 본다.
+- 모듈 경계: `ropemanMapSchema.ts`는 `$lib/types/`만 불러온다(타입과 `COVERAGE_REASONS` 같은 상수). T2-4가 이 파서를 Bridge와 `packages/core`에서 돌리는데, 둘 다 앱 런타임(스토어, 서비스, Svelte)을 번들하지 않기 때문이다. 파서가 닿는 `types/` 파일(`ropemanMap`, `codeMap`, `coverage`, `semantic`, `ast`)도 앱 모듈을 불러오면 안 된다. 직접·간접 import 그래프를 따라가는 테스트(`ropemanMapSchema.test.ts`의 module boundary)가 이를 막는다. `$lib` 별칭은 T2-4가 Bridge·core 빌드에서 풀어야 한다.
+- 값은 필드마다 새 객체로 복사한다. 상속된 키는 읽지 않고, 색처럼 화면 스타일이 되는 값은 파일에서 받지 않는다. 라벨과 설명은 Svelte 텍스트로만 그린다.
+- RPC(T2-4가 구현): 요청은 `{ id, type }`이고 응답은 같은 id와 type에 `result`나 `code`·`error`를 담는다. `map.get`은 지도 전체, `node.expand`는 노드 id를 받아 묶음 단계를 바로 돌려주고, 이름이 검증을 통과하면 `node.named` 푸시가 따른다(이미 이름이 있으면 바로 `named` 단계를 돌려주고 푸시는 없다). `file.read`는 #72 모양 그대로다. 서버는 연결마다 `hello`로 스키마 버전을 먼저 알린다. `map.changed`는 바뀐 경로만 알리고, 뷰어가 `map.get`을 다시 부른다.
+- JSON 열기(`/open`)는 파싱한 지도를 `mapViewer.toViewerLevels()`로 펼쳐 스냅샷 모드(`readOnlyMode = 'snapshot'`)로 보여 준다. 파일에 없는 단계는 "스냅샷에 없음"으로 보이고 AI를 부르지 않는다. 스냅샷 모드에서는 노드의 다시 분석 버튼도 숨긴다.
+
 ### Phase 3: 재귀적 드릴다운
 
 ```
@@ -331,7 +351,7 @@ Bridge는 받은 프롬프트로 로컬 CLI를 실행한다. 그래서 연결을
 
 클라이언트가 보낸 `cli` 값은 `claude`나 `gemini`일 때만 실행한다. 클라이언트(`bridgeService.ts`)는 `ws://127.0.0.1:{port}/?token=`으로 연결하고, 토큰은 `settingsStore.bridgeToken`에 저장한다.
 
-`file.read`는 `--root`로 준 디렉터리 안의 파일 하나를 읽어 내용, sha-256, 바이트 크기를 돌려준다. `--root`가 없으면 꺼져 있다. 절대 경로, 루트를 벗어나는 경로(`..`이나 루트 밖으로 풀리는 심볼릭 링크), 실제 값이 든 env 파일(앱의 `isEnvValueFile`과 같은 규칙, 대소문자 무시), 500,000바이트를 넘는 파일은 거부하고 이유 코드(`outside-root` 등)를 돌려준다(`bridge/src/fileRead.ts`).
+`file.read`는 `--root`로 준 디렉터리 안의 파일 하나를 읽어 내용, sha-256, 바이트 크기를 돌려준다. 메시지 모양은 `types/ropemanMap.ts`에 있다(ADR-24). `--root`가 없으면 꺼져 있다. 절대 경로, 루트를 벗어나는 경로(`..`이나 루트 밖으로 풀리는 심볼릭 링크), 실제 값이 든 env 파일(앱의 `isEnvValueFile`과 같은 규칙, 대소문자 무시), 500,000바이트를 넘는 파일은 거부하고 이유 코드(`outside-root` 등)를 돌려준다(`bridge/src/fileRead.ts`).
 
 로컬 모드(`--viewer <dir>`)에서는 같은 포트가 그 디렉터리를 `http://127.0.0.1:{port}/`로 서빙하고, 그 출처(`http://127.0.0.1:{port}`, `http://localhost:{port}`)를 Origin 허용 목록에 더한다. 페이지와 소켓이 같은 출처라 혼합 콘텐츠 차단과 로컬 네트워크 권한 창이 없다. 토큰은 주소의 해시(`#token=`)로 넘겨 서버 로그나 Referer에 남지 않게 한다. 전달 방식의 근거와 브라우저별 실측은 [ADR-23](./adr/0023-bridge-first-delivery.md)에 있다.
 

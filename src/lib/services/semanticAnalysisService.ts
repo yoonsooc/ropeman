@@ -20,17 +20,7 @@ import type {
 	SemanticNode,
 	SemanticEdge
 } from '$lib/types/semantic';
-
-const SEMANTIC_COLORS = [
-	'#89b4fa',
-	'#a6e3a1',
-	'#f9e2af',
-	'#f38ba8',
-	'#cba6f7',
-	'#94e2d5',
-	'#fab387',
-	'#74c7ec'
-];
+import { SEMANTIC_COLORS } from '$lib/data/semanticPalette';
 
 const UNCLASSIFIED_COLOR = '#9399b2';
 

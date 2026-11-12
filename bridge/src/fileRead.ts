@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import type { FileContent, FileReadRejection } from '../../src/lib/types/ropemanMap.js';
 
 /** Same cap as the app's file reader (`src/lib/utils/filePriority.ts`). */
 export const MAX_FILE_SIZE = 500_000;
@@ -15,26 +16,6 @@ export function isEnvValueFile(filePath: string): boolean {
 	const name = path.basename(filePath).toLowerCase();
 	return ENV_FILE.test(name) && !ENV_TEMPLATE.test(name);
 }
-
-export interface FileContent {
-	/** The path as requested, relative to the root. */
-	path: string;
-	content: string;
-	sha256: string;
-	size: number;
-}
-
-export type FileReadRejection =
-	| 'invalid-path'
-	| 'absolute-path'
-	| 'outside-root'
-	| 'symlink-outside-root'
-	| 'env-file'
-	| 'not-found'
-	| 'not-a-file'
-	| 'too-large'
-	| 'binary'
-	| 'changed';
 
 export type FileReadResult =
 	| { ok: true; file: FileContent }

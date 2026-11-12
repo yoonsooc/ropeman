@@ -28,6 +28,7 @@ interface LandingTranslations {
 	specSemantic: string;
 	specNoData: string;
 	exampleCta: string;
+	openMapCta: string;
 	heroShotAlt: string;
 	heroShotCaption: string;
 	heroShotLink: string;
@@ -459,6 +460,25 @@ interface TranslationSet {
 		| 'loadFailed'
 		| 'goHome'
 	>;
+	openMap: Strings<
+		| 'pageTitle'
+		| 'badge'
+		| 'title'
+		| 'desc'
+		| 'choose'
+		| 'chooseAnother'
+		| 'dropHint'
+		| 'loading'
+		| 'errorTitle'
+		| 'errorRecover'
+		| 'tooLarge'
+		| 'notJson'
+		| 'notAMap'
+		| 'newerVersion'
+		| 'unsupportedVersion'
+		| 'invalid'
+		| 'readFailed'
+	>;
 }
 
 const translations: Record<Locale, TranslationSet> = {
@@ -559,6 +579,7 @@ const translations: Record<Locale, TranslationSet> = {
 			specSemantic: '역할별 묶음',
 			specNoData: '데이터 수집 없음',
 			exampleCta: '분석 예시 보기',
+			openMapCta: 'ropeman.json 열기',
 			heroShotAlt:
 				'huggingface/transformers를 분석한 Ropeman 화면. 도메인별 노드와 연결, 오른쪽에 선택한 노드의 파일과 주요 심볼',
 			heroShotCaption:
@@ -1081,6 +1102,27 @@ const translations: Record<Locale, TranslationSet> = {
 			notFound: '공유 링크를 찾을 수 없습니다. 만료되었거나 주소가 잘못되었습니다.',
 			loadFailed: '공유 데이터를 불러오지 못했습니다.',
 			goHome: 'Ropeman으로 이동'
+		},
+		openMap: {
+			pageTitle: '지도 열기',
+			badge: '파일',
+			title: 'ropeman.json 열기',
+			desc: 'Ropeman CLI나 다른 사람이 만든 지도를 엽니다. 파일은 이 브라우저 안에서만 읽고 어디로도 보내지 않습니다.',
+			choose: '파일 선택',
+			chooseAnother: '다른 파일 열기',
+			dropHint: '파일을 여기로 끌어다 놓아도 됩니다',
+			loading: '파일을 읽는 중...',
+			errorTitle: '이 파일을 열 수 없습니다',
+			errorRecover: '다른 파일을 고르면 다시 열어 봅니다.',
+			tooLarge: '파일이 {limit}MB보다 큽니다.',
+			notJson: 'JSON 형식이 아닙니다. 파일이 잘렸거나 다른 종류의 파일일 수 있습니다.',
+			notAMap: 'JSON이지만 Ropeman 지도가 아닙니다. CLI가 만든 ropeman.json을 고르세요.',
+			newerVersion:
+				'더 새로운 Ropeman이 만든 지도입니다(스키마 {version}). 페이지를 새로 고친 뒤 다시 열어 보세요.',
+			unsupportedVersion:
+				'이 Ropeman이 더 이상 읽지 않는 스키마 {version}로 만든 지도입니다. CLI로 지도를 다시 만드세요.',
+			invalid: '지도 내용이 형식에 맞지 않습니다. 문제가 있는 곳: {field}',
+			readFailed: '파일을 읽지 못했습니다.'
 		}
 	},
 	en: {
@@ -1180,6 +1222,7 @@ const translations: Record<Locale, TranslationSet> = {
 			specSemantic: 'Role-based grouping',
 			specNoData: 'Zero Data Collection',
 			exampleCta: 'See an example',
+			openMapCta: 'Open a ropeman.json',
 			heroShotAlt:
 				"Ropeman analysis of huggingface/transformers: domain nodes and their links, with the selected node's files and key symbols on the right",
 			heroShotCaption: 'A real analysis of huggingface/transformers. Click to explore it.',
@@ -1703,6 +1746,27 @@ const translations: Record<Locale, TranslationSet> = {
 			notFound: "This share link doesn't exist. It may have expired, or the URL is wrong.",
 			loadFailed: "Couldn't load the shared analysis.",
 			goHome: 'Go to Ropeman'
+		},
+		openMap: {
+			pageTitle: 'Open a map',
+			badge: 'File',
+			title: 'Open a ropeman.json',
+			desc: 'View a map that the Ropeman CLI or someone else made. The file is read in this browser and sent nowhere.',
+			choose: 'Choose file',
+			chooseAnother: 'Open another file',
+			dropHint: 'or drop the file here',
+			loading: 'Reading the file...',
+			errorTitle: "Can't open this file",
+			errorRecover: 'Choose another file to try again.',
+			tooLarge: 'The file is larger than {limit} MB.',
+			notJson: "This isn't valid JSON. The file may be cut off or of another kind.",
+			notAMap: 'This is JSON but not a Ropeman map. Choose the ropeman.json the CLI wrote.',
+			newerVersion:
+				'A newer Ropeman made this map (schema {version}). Reload the page and open it again.',
+			unsupportedVersion:
+				'This map uses schema {version}, which this Ropeman no longer reads. Make the map again with the CLI.',
+			invalid: "The map doesn't match the format. The problem is at {field}.",
+			readFailed: "Couldn't read the file."
 		}
 	}
 };

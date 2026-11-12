@@ -1,0 +1,94 @@
+{
+	"format": "ropeman-map",
+	"schemaVersion": "1.0",
+	"project": { "name": "sample-shop" },
+	"generator": { "name": "ropeman-cli", "version": "0.0.0-fixture" },
+	"generatedAt": "2026-11-12T09:00:00.000Z",
+	"files": [
+		{ "path": "src/api/routes.ts", "reason": "sent" },
+		{ "path": "src/api/auth.ts", "reason": "sent" },
+		{ "path": "src/db/client.ts", "reason": "sent" },
+		{ "path": "src/db/schema.ts", "reason": "sent" },
+		{ "path": "src/ui/Cart.svelte", "reason": "sent" },
+		{ "path": ".env", "reason": "env-values" }
+	],
+	"levels": [
+		{
+			"parentId": null,
+			"naming": "named",
+			"nodes": [
+				{
+					"id": "sem:api",
+					"label": "HTTP API",
+					"description": "Routes and session checks for the shop backend.",
+					"filePaths": ["src/api/routes.ts", "src/api/auth.ts"],
+					"keySymbols": ["router", "requireSession"]
+				},
+				{
+					"id": "sem:storage",
+					"label": "Storage",
+					"description": "Database client and table definitions.",
+					"filePaths": ["src/db/client.ts", "src/db/schema.ts"],
+					"keySymbols": ["db", "orders"]
+				},
+				{
+					"id": "sem:ui",
+					"label": "Storefront UI",
+					"description": "Svelte components the customer sees.",
+					"filePaths": ["src/ui/Cart.svelte"],
+					"keySymbols": ["Cart"]
+				}
+			],
+			"edges": [
+				{
+					"source": "sem:api",
+					"target": "sem:storage",
+					"type": "depends_on",
+					"label": "reads orders",
+					"evidence": {
+						"confidence": "EXTRACTED",
+						"refs": [
+							{
+								"path": "src/api/routes.ts",
+								"line": 3,
+								"relation": "imports_from",
+								"toPath": "src/db/client.ts",
+								"confidence": "EXTRACTED"
+							}
+						]
+					}
+				},
+				{
+					"source": "sem:ui",
+					"target": "sem:api",
+					"type": "calls",
+					"label": null,
+					"evidence": { "confidence": "INFERRED", "refs": [] }
+				}
+			],
+			"assignment": { "leftOut": 0, "duplicated": 0, "invented": 0, "emptied": 0 }
+		},
+		{
+			"parentId": "sem:api",
+			"naming": "grouped",
+			"nodes": [
+				{
+					"id": "dir:src/api/routes.ts",
+					"label": "routes.ts",
+					"description": "",
+					"filePaths": ["src/api/routes.ts"],
+					"keySymbols": []
+				},
+				{
+					"id": "dir:src/api/auth.ts",
+					"label": "auth.ts",
+					"description": "",
+					"filePaths": ["src/api/auth.ts"],
+					"keySymbols": []
+				}
+			],
+			"edges": [],
+			"assignment": null
+		}
+	]
+}
