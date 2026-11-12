@@ -62,7 +62,7 @@ src/
 │   │   ├── DrilldownConfirmModal.svelte # 추가 분석 확인 팝업
 │   │   ├── WebGPUSetupModal.svelte   # WebGPU 모델 선택 + 백그라운드 다운로드 인디케이터
 │   │   ├── Header.svelte             # 상단 헤더 (Analyze + 트랙 뱃지 + Help + Settings)
-│   │   ├── Sidebar.svelte            # 사이드바 (File Explorer + Semantic Tree, showFiles()). 모바일·태블릿은 아이콘 레일만 레이아웃에 두고 열린 패널만 캔버스 위에 띄움 (바깥 탭으로 닫힘)
+│   │   ├── Sidebar.svelte            # 사이드바 (File Explorer + Semantic Tree, showFiles()). 모바일·태블릿은 아이콘 레일만 레이아웃에 두고 열린 패널만 캔버스 위에 띄움 (바깥 탭, Esc, 파일 선택으로 닫힘. 분석이 끝나도 다시 열지 않음)
 │   │   ├── FileExplorer.svelte       # 파일 탐색기 (파일 유형별 아이콘)
 │   │   ├── SemanticTree.svelte       # 시맨틱 트리뷰 + 캐시된 노드 자동 드릴다운
 │   │   ├── SemanticDetailPanel.svelte # 노드 상세 패널 (파일 유형별 아이콘)
@@ -102,6 +102,7 @@ src/
 │       ├── languageDetector.ts       # 확장자 → 언어 매핑
 │       ├── locale.ts                 # UI 언어 결정 (저장된 선택 > 브라우저 언어 ko* > en)
 │       ├── fileIcons.ts              # 파일 유형별 Material Symbols + 색상 매핑
+│       ├── focusTrap.ts              # div 모달 카드용 액션: 열 때 포커스를 넣고 Tab을 안에 가두고 닫으면 연 버튼으로 돌려줌
 │       └── contextBuilder.ts         # 채팅용 코드 컨텍스트 구성
 
 edge-proxy/                       # Cloudflare Workers
@@ -156,8 +157,9 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 - 파일 하나에는 이유 하나만 붙는다. 상태는 `COVERAGE_REASONS` 표(`types/coverage.ts`)에서 이유로 정해진다.
   - 이유를 정하는 순서는 로더가 자른 이유, 문법 없음(`unsupported`), 파서가 남긴 이유, 스켈레톤이 뺀 이유(`over-budget`, `excluded-path`, `no-symbols`), 보냄이다.
   - astMap에 없고 기록도 없는 파일은 `unreadable`이다. GitHub 로더는 다운로드 실패와 빈 응답을 `unreadable`, 파서 오류를 `parse-failed`로 `projectStore.parseSkips`에 직접 쓴다.
+  - tree-sitter는 문법 오류가 있어도 트리를 돌려준다. 그래서 파서 워커는 트리에 오류가 있고 심볼이 하나도 없을 때 실패로 답하고, 세 로더(폴더, 테스트, GitHub)는 이를 `parse-failed`로 기록한다. 오류가 있어도 심볼이 나온 파일은 그 심볼을 쓴다.
 - 수는 지금 설정으로 다시 계산한다. 분석한 뒤 예산을 바꾸면 요약은 새 예산 기준이다.
-- 단계별 배정 수는 `SemanticLevel.assignment`(T0-7)에서 읽는다. 드릴다운 단계의 예산 초과 수는 `selectSubSkeleton()`을 다시 돌려 센다.
+- 단계별 배정 수는 `SemanticLevel.assignment`(T0-7)에서 읽는다. 드릴다운 단계의 예산 초과 수는 `selectSubSkeleton()`을 다시 돌려 센다. 그 결과가 `exceedsBudget`이면(한도 안에 드는 파일이 없어 가장 작은 파일 하나를 한도를 넘겨 보낸 경우) 단계 줄에 그렇다고 적는다. 분석한 뒤 예산을 줄였을 때 생긴다.
 - 세지 않는 것: 로더가 순회하지 않은 폴더(`SKIP_DIRS`, 숨김 파일, 사용자 제외 패턴) 안의 파일, 문법 오류가 있어도 심볼을 돌려준 파일, LLM 출력이 잘리거나 시간이 넘은 경우.
 
 ### Phase 3: 재귀적 드릴다운
@@ -290,7 +292,7 @@ export const xxxStore = createXxxStore();
 
 - 색 토큰은 `src/lib/styles/global.css` 맨 위 `:root`(라이트)와 `[data-theme='dark']`(다크)에 있다. 이름은 astryx 색 역할 문법을 따른다. 예: `--color-background-surface`, `--color-text-secondary`, `--color-on-accent`.
 - 상태 색은 쓰이는 표면마다 역할이 따로 있다. 페이지 위 글자는 `--color-text-error`, 진한 채움은 `--color-error`와 그 위 글자 `--color-on-error`, 옅은 채움은 `--color-error-muted`와 그 위 글자 `--color-on-error-muted`다. 점·아이콘은 `--color-icon-*`, 테두리는 `--color-border-*`를 쓴다.
-- 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다.
+- 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다. 엣지 범례(`--color-edge-*`)도 범주 색이다. 캔버스 선 색은 `semanticGraphBuilder.ts`가 두 테마에 같은 값으로 그리므로 범례 토큰도 `:root`에만 두고, 두 값이 같은지 `tokens.test.ts`가 검사한다.
 - 포커스 링은 전역 `:focus-visible` 규칙 하나가 `--focus-outline-*` 토큰으로 그린다. 잘리는 스크롤 컨테이너 안에서는 요소에 `--focus-outline-offset: -2px`를 준다. 컴포넌트에서 `outline: none`을 쓰려면 같은 요소나 감싸는 요소가 링을 대신 그려야 한다.
 - 척도 토큰도 같은 `:root`에 있다. 값은 astryx core를 따른다.
   - 간격 `--spacing-N`은 N × 0.25rem(4px 격자)이다. 1px 선과 48px보다 큰 간격은 숫자로 둔다.

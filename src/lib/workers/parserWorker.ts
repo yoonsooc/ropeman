@@ -58,6 +58,11 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 
 			const tree = parserInstance.parse(msg.content);
 			const symbols = extractSymbols(tree.rootNode, msg.language);
+			// tree-sitter recovers from any syntax error, so a broken file would otherwise read as
+			// a valid file without definitions
+			if (symbols.length === 0 && tree.rootNode.hasError) {
+				throw new Error('syntax errors and no symbols');
+			}
 
 			self.postMessage({
 				type: 'parse-result',

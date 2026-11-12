@@ -92,10 +92,10 @@
 	};
 
 	const EDGE_TYPE_INFO: { type: string; i18nKey: string; color: string }[] = [
-		{ type: 'depends_on', i18nKey: 'legend.depends_on', color: '#94a3b8' },
-		{ type: 'calls', i18nKey: 'legend.calls', color: '#53ddfc' },
-		{ type: 'extends', i18nKey: 'legend.extends', color: '#ac8aff' },
-		{ type: 'uses', i18nKey: 'legend.uses', color: '#7ad4a0' }
+		{ type: 'depends_on', i18nKey: 'legend.depends_on', color: 'var(--color-edge-depends-on)' },
+		{ type: 'calls', i18nKey: 'legend.calls', color: 'var(--color-edge-calls)' },
+		{ type: 'extends', i18nKey: 'legend.extends', color: 'var(--color-edge-extends)' },
+		{ type: 'uses', i18nKey: 'legend.uses', color: 'var(--color-edge-uses)' }
 	];
 
 	// Use $state.raw to prevent SvelteFlow's internal mutations (fitView, drag)
@@ -520,7 +520,7 @@
 							<span
 								class="hover-edge-dot"
 								style="background: {EDGE_TYPE_INFO.find((e) => e.type === edge.type)?.color ??
-									'#94a3b8'};"
+									'var(--color-edge-depends-on)'};"
 							></span>
 							{#if edge.direction === 'outgoing'}
 								<span class="hover-edge-label">

@@ -70,24 +70,24 @@
 	}
 
 	function levelLines(level: LevelCoverage): string[] {
-		if (!level.assignment) {
-			return level.overBudget > 0
-				? [i18nStore.t('coverage.levelOverBudget', { count: level.overBudget })]
-				: [i18nStore.t('coverage.levelUnknown')];
-		}
-		const { leftOut, invented, duplicated, emptied } = level.assignment;
-		const lines = (
+		const a = level.assignment;
+		const counts = (
 			[
 				['levelOverBudget', level.overBudget],
-				['levelLeftOut', leftOut],
-				['levelInvented', invented],
-				['levelDuplicated', duplicated],
-				['levelEmptied', emptied]
+				['levelLeftOut', a?.leftOut ?? 0],
+				['levelInvented', a?.invented ?? 0],
+				['levelDuplicated', a?.duplicated ?? 0],
+				['levelEmptied', a?.emptied ?? 0]
 			] as const
 		)
 			.filter(([, count]) => count > 0)
 			.map(([key, count]) => i18nStore.t(`coverage.${key}`, { count }));
-		return lines.length > 0 ? lines : [i18nStore.t('coverage.levelClean')];
+		const lines = [
+			...(level.exceedsBudget ? [i18nStore.t('coverage.levelExceedsBudget')] : []),
+			...counts
+		];
+		if (lines.length > 0) return lines;
+		return [i18nStore.t(a ? 'coverage.levelClean' : 'coverage.levelUnknown')];
 	}
 
 	function handleKeydown(e: KeyboardEvent) {

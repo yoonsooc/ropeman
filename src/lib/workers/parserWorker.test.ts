@@ -125,4 +125,32 @@ export function second() {
 			{ name: 'second', kind: 'function' }
 		]);
 	});
+
+	it('reports a parse failure when syntax errors leave no symbols', async () => {
+		// Arrange
+		const filePath = 'src/broken.py';
+		const content = 'def (:\n  )))) class\n garbage {{{{';
+
+		// Act
+		await onmessage({ data: { type: 'parse', filePath, content, language: 'python' } });
+
+		// Assert
+		expect(posted.pop()).toMatchObject({ type: 'error', filePath });
+	});
+
+	it('keeps the symbols of a file that parses with some syntax errors', async () => {
+		// Act
+		const symbols = await parse('src/half.py', 'def ok():\n    pass\n\ndef broken(:\n');
+
+		// Assert
+		expect(symbols.map((s) => s.name)).toContain('ok');
+	});
+
+	it('returns no symbols for a valid file without definitions', async () => {
+		// Act
+		const symbols = await parse('src/pkg/__init__.py', '# package marker\n');
+
+		// Assert
+		expect(symbols).toEqual([]);
+	});
 });

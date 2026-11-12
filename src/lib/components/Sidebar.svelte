@@ -18,13 +18,15 @@
 	let contentOpen = $state(true);
 
 	const hasSemanticData = $derived(semanticStore.cache.size > 0);
+	const railButtons: Partial<Record<'files' | 'semantic', HTMLButtonElement>> = {};
 
-	// Auto-switch to semantic panel when first analysis completes
+	// Auto-switch to semantic panel when first analysis completes. On mobile the panel would
+	// cover the new diagram, so it stays as the user left it.
 	let autoSwitched = $state(false);
 	$effect(() => {
 		if (hasSemanticData && !autoSwitched) {
 			activePanel = 'semantic';
-			contentOpen = true;
+			if (!mobile) contentOpen = true;
 			autoSwitched = true;
 		}
 	});
@@ -62,21 +64,26 @@
 	function handleMobileClose() {
 		contentOpen = false;
 	}
+
+	function handleWindowKeydown(e: KeyboardEvent) {
+		if (e.key !== 'Escape' || !mobile || !contentOpen) return;
+		// A modal over the drawer owns this Escape
+		if (e.target instanceof Element && e.target.closest('[aria-modal="true"], dialog')) return;
+		handleMobileClose();
+		railButtons[activePanel]?.focus();
+	}
 </script>
 
+<svelte:window onkeydown={handleWindowKeydown} />
+
 {#if mobile && contentOpen}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div
-		class="mobile-overlay"
-		onclick={handleMobileClose}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') handleMobileClose();
-		}}
-	></div>
+	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+	<div class="mobile-overlay" onclick={handleMobileClose}></div>
 {/if}
 <aside class="sidebar" class:mobile class:content-closed={!contentOpen}>
 	<div class="sidebar-icons">
 		<button
+			bind:this={railButtons.files}
 			class="icon-btn"
 			class:active={activePanel === 'files' && contentOpen}
 			onclick={() => handleIconClick('files')}
@@ -96,6 +103,7 @@
 			</svg>
 		</button>
 		<button
+			bind:this={railButtons.semantic}
 			class="icon-btn"
 			class:active={activePanel === 'semantic' && contentOpen}
 			class:disabled={!hasSemanticData}
@@ -126,7 +134,12 @@
 	{#if contentOpen}
 		<div class="sidebar-content" style:width={mobile ? undefined : `${layoutStore.sidebarWidth}px`}>
 			{#if activePanel === 'files'}
-				<FileExplorer collapsed={false} mobile={false} ontoggle={() => (contentOpen = false)} />
+				<FileExplorer
+					collapsed={false}
+					mobile={false}
+					ontoggle={() => (contentOpen = false)}
+					onfileopen={mobile ? handleMobileClose : undefined}
+				/>
 			{:else}
 				<div class="semantic-panel" data-tour-step="4">
 					<div class="panel-header">

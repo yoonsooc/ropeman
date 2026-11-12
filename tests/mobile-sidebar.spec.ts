@@ -39,6 +39,30 @@ async function hitTarget(page: Page, x: number, y: number) {
 	);
 }
 
+async function mockDemoAnalysis(page: Page) {
+	await page.route('https://demo.ropeman.dev/**', async (route) => {
+		const paths = [
+			...new Set(
+				route
+					.request()
+					.postData()
+					?.match(/[\w./-]*module_\d\.py/g)
+			)
+		];
+		const text = JSON.stringify({
+			roles: paths.map((p, i) => ({
+				id: `role${i}`,
+				label: `Role ${i}`,
+				description: 'd',
+				filePaths: [p],
+				keySymbols: []
+			})),
+			edges: []
+		});
+		await route.fulfill({ json: { candidates: [{ content: { parts: [{ text }] } }] } });
+	});
+}
+
 async function tapBackdrop(page: Page) {
 	const viewport = page.viewportSize()!;
 	await page.locator('.mobile-overlay').tap({ position: { x: viewport.width - 10, y: 200 } });
@@ -92,5 +116,42 @@ test.describe('Mobile sidebar', { tag: '@responsive' }, () => {
 
 		await summary.tap();
 		await expect(page.getByTestId('coverage-panel')).toBeVisible();
+	});
+
+	test('Escape closes the open drawer and returns focus to its rail button', async ({ page }) => {
+		await openProject(page);
+		const aside = page.locator('aside.sidebar');
+		await page.getByPlaceholder('Filter files...').focus();
+
+		await page.keyboard.press('Escape');
+
+		await expect(aside).toHaveClass(/content-closed/);
+		await expect(page.getByTitle('File Explorer')).toBeFocused();
+	});
+
+	test('picking a file in the drawer closes it', async ({ page }) => {
+		await openProject(page);
+		const aside = page.locator('aside.sidebar');
+		await aside.getByRole('button', { name: /folder src/ }).tap();
+
+		await aside.getByRole('button', { name: /module_0\.py/ }).tap();
+
+		await expect(aside).toHaveClass(/content-closed/);
+		await expect(page.locator('.mobile-overlay')).toHaveCount(0);
+	});
+
+	test('a finished analysis leaves the closed drawer closed', async ({ page }) => {
+		await mockDemoAnalysis(page);
+		await openProject(page);
+		await tapBackdrop(page);
+		const aside = page.locator('aside.sidebar');
+		await expect(aside).toHaveClass(/content-closed/);
+
+		await page.locator('.analyze-btn').tap();
+		await page.locator('.analyze-card .start-btn').first().tap();
+
+		await expect(page.locator('.svelte-flow__node').first()).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByTitle('Semantic Tree')).not.toHaveClass(/disabled/);
+		await expect(aside).toHaveClass(/content-closed/);
 	});
 });

@@ -42,6 +42,8 @@ export interface LevelCoverage {
 	assignment: AssignmentCounts | null;
 	/** Files of this level the budget kept out of the request */
 	overBudget: number;
+	/** No file fit the budget, so the request sent the smallest one over it */
+	exceedsBudget: boolean;
 }
 
 export interface CoverageReport {

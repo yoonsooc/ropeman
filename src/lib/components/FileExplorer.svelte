@@ -13,11 +13,13 @@
 	let {
 		collapsed = false,
 		mobile = false,
-		ontoggle
+		ontoggle,
+		onfileopen
 	}: {
 		collapsed?: boolean;
 		mobile?: boolean;
 		ontoggle?: () => void;
+		onfileopen?: () => void;
 	} = $props();
 
 	let searchQuery = $state('');
@@ -73,6 +75,7 @@
 
 		selectionStore.selectedNode = syntheticNode;
 		selectionStore.breadcrumb = [syntheticNode];
+		onfileopen?.();
 	}
 
 	function matchesSearch(node: FileNode, query: string): boolean {

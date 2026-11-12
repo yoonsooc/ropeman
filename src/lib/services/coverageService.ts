@@ -26,8 +26,8 @@ export interface CoverageInput {
 	skeleton: SkeletonSelection;
 	/** Diagram levels keyed like the semantic store's cache ('__root__' or the parent node id) */
 	levels: ReadonlyMap<string, SemanticLevel>;
-	/** Files of a drill-down level the budget kept out of its request */
-	drilldownOverBudget: (parent: SemanticNode) => number;
+	/** The skeleton a drill-down into `parent` sends */
+	drilldownSkeleton: (parent: SemanticNode) => SkeletonSelection;
 }
 
 const READ_REASONS = new Set<CoverageReason>([
@@ -92,18 +92,19 @@ function levelCoverage(input: CoverageInput): LevelCoverage[] {
 	for (const level of input.levels.values()) {
 		for (const node of level.nodes) nodes.set(node.id, node);
 	}
-	const rootOverBudget = input.skeleton.omitted.filter((o) => o.reason === 'over-budget').length;
 
 	const levels: LevelCoverage[] = [];
 	for (const [key, level] of input.levels) {
 		const parent = level.parentId ? nodes.get(level.parentId) : undefined;
 		if (level.parentId && !parent) continue;
+		const skeleton = parent ? input.drilldownSkeleton(parent) : input.skeleton;
 		levels.push({
 			key,
 			label: parent?.label ?? level.breadcrumbLabel,
 			depth: parent ? parent.depth + 1 : 0,
 			assignment: level.assignment ?? null,
-			overBudget: parent ? input.drilldownOverBudget(parent) : rootOverBudget
+			overBudget: skeleton.omitted.filter((o) => o.reason === 'over-budget').length,
+			exceedsBudget: skeleton.exceedsBudget
 		});
 	}
 	return levels.sort((a, b) => a.depth - b.depth || a.label.localeCompare(b.label));
@@ -130,9 +131,6 @@ export function currentCoverage(): CoverageReport {
 		parseSkips: projectStore.parseSkips,
 		skeleton: selectSkeleton(projectName, fileTree, astMap),
 		levels,
-		drilldownOverBudget: (parent) =>
-			selectSubSkeleton(parent.filePaths, fileTree, astMap).omitted.filter(
-				(o) => o.reason === 'over-budget'
-			).length
+		drilldownSkeleton: (parent) => selectSubSkeleton(parent.filePaths, fileTree, astMap)
 	});
 }
