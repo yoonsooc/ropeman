@@ -486,7 +486,7 @@ function countSymbols(symbols: SkeletonSymbol[]): number {
 	return count;
 }
 
-function inferLanguage(filePath: string): string | null {
+export function inferLanguage(filePath: string): string | null {
 	const ext = filePath.split('.').pop()?.toLowerCase();
 	switch (ext) {
 		case 'py':
