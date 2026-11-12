@@ -49,7 +49,7 @@
 		top: var(--header-height);
 		height: calc(100vh - var(--header-height));
 		overflow-y: auto;
-		padding: 32px 16px 32px 24px;
+		padding: var(--spacing-8) var(--spacing-4) var(--spacing-8) var(--spacing-6);
 		border-right: 1px solid var(--color-border);
 		background: var(--color-background-body);
 		font-family: var(--font-body);
@@ -58,16 +58,16 @@
 	nav {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--spacing-6);
 	}
 
 	.category-label {
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-secondary);
-		margin: 0 0 8px;
-		padding: 0 8px;
+		margin: 0 0 var(--spacing-2);
+		padding: 0 var(--spacing-2);
 	}
 
 	ul {
@@ -76,20 +76,20 @@
 		margin: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--spacing-0-5);
 	}
 
 	li a {
 		display: block;
-		padding: 6px 10px;
-		font-size: 13px;
+		padding: var(--spacing-1-5) var(--spacing-2);
+		font-size: var(--font-size-base);
 		color: var(--color-text-secondary);
 		text-decoration: none;
-		border-radius: 6px;
+		border-radius: var(--radius-element);
 		border-left: 2px solid transparent;
 		transition:
-			background 0.15s ease,
-			color 0.15s ease;
+			background var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	li a:hover {
@@ -101,7 +101,7 @@
 		color: var(--color-accent);
 		background: var(--color-background-surface);
 		border-left-color: var(--color-accent);
-		font-weight: 600;
+		font-weight: var(--font-weight-semibold);
 	}
 
 	@media (max-width: 960px) {
@@ -112,7 +112,7 @@
 			width: 280px;
 			z-index: 15;
 			transform: translateX(-100%);
-			transition: transform 0.25s ease;
+			transition: transform var(--duration-medium) var(--ease-standard);
 			box-shadow: 4px 0 16px var(--color-shadow);
 		}
 

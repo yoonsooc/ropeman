@@ -44,7 +44,7 @@
 	.resize-handle {
 		flex-shrink: 0;
 		background: var(--color-border);
-		transition: background-color 0.15s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 		touch-action: none;
 		z-index: 10;
 	}
@@ -58,16 +58,16 @@
 		width: 4px;
 		cursor: col-resize;
 		/* 12px hit area */
-		margin: 0 -4px;
-		padding: 0 4px;
+		margin: 0 calc(-1 * var(--spacing-1));
+		padding: 0 var(--spacing-1);
 		background-clip: content-box;
 	}
 
 	.resize-handle.horizontal {
 		height: 4px;
 		cursor: row-resize;
-		margin: -4px 0;
-		padding: 4px 0;
+		margin: calc(-1 * var(--spacing-1)) 0;
+		padding: var(--spacing-1) 0;
 		background-clip: content-box;
 	}
 </style>

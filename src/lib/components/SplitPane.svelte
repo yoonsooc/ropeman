@@ -218,6 +218,6 @@
 		justify-content: center;
 		height: 100%;
 		color: var(--color-text-tertiary);
-		font-size: 14px;
+		font-size: var(--font-size-base);
 	}
 </style>

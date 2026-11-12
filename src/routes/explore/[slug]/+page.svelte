@@ -187,17 +187,17 @@
 	.explore-header {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--spacing-3);
 		height: var(--header-height);
-		padding: 0 16px;
+		padding: 0 var(--spacing-4);
 		background: var(--color-background-sidebar-icon);
 		border-bottom: 1px solid var(--color-border);
 	}
 
 	.explore-logo {
 		font-family: var(--font-display);
-		font-size: 18px;
-		font-weight: 700;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-accent);
 		text-decoration: none;
 	}
@@ -205,7 +205,7 @@
 	.back-link {
 		color: var(--color-text-secondary);
 		text-decoration: none;
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		white-space: nowrap;
 		flex-shrink: 0;
 	}
@@ -215,7 +215,7 @@
 
 	.project-name {
 		font-family: var(--font-code);
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		color: var(--color-text-secondary);
 		min-width: 0;
 		overflow: hidden;
@@ -224,10 +224,10 @@
 	}
 
 	.badge {
-		font-size: 12px;
-		font-weight: 700;
-		padding: 2px 8px;
-		border-radius: 9999px;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
+		padding: var(--spacing-0-5) var(--spacing-2);
+		border-radius: var(--radius-full);
 		background: var(--color-accent-muted);
 		color: var(--color-accent);
 	}
@@ -236,12 +236,12 @@
 		margin-left: auto;
 		flex-shrink: 0;
 		display: flex;
-		gap: 12px;
+		gap: var(--spacing-3);
 		align-items: center;
 	}
 
 	.repo-link {
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		text-decoration: none;
 	}
@@ -252,14 +252,14 @@
 	.cta {
 		display: inline-flex;
 		align-items: center;
-		padding: 6px 14px;
+		padding: var(--spacing-1-5) var(--spacing-3);
 		background: var(--color-accent);
 		color: var(--color-on-accent);
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-element);
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		cursor: pointer;
 		text-decoration: none;
 	}
@@ -280,10 +280,10 @@
 
 	.state-actions {
 		display: flex;
-		gap: 12px;
+		gap: var(--spacing-3);
 		flex-wrap: wrap;
 		justify-content: center;
-		margin-top: 8px;
+		margin-top: var(--spacing-2);
 	}
 
 	.explore-content {
@@ -299,7 +299,7 @@
 		left: 0;
 		right: 0;
 		z-index: 10;
-		padding: 8px 16px;
+		padding: var(--spacing-2) var(--spacing-4);
 	}
 
 	.canvas-area {
@@ -325,8 +325,8 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 16px;
-		padding: 24px;
+		gap: var(--spacing-4);
+		padding: var(--spacing-6);
 		text-align: center;
 		color: var(--color-text-secondary);
 	}
@@ -340,7 +340,7 @@
 
 	.state p {
 		max-width: 460px;
-		font-size: 14px;
+		font-size: var(--font-size-base);
 		line-height: 1.6;
 	}
 
@@ -367,8 +367,8 @@
 	/* Phones: logo, back, repo name and the one action; the rest steps aside */
 	@media (max-width: 640px) {
 		.explore-header {
-			gap: 8px;
-			padding: 0 12px;
+			gap: var(--spacing-2);
+			padding: 0 var(--spacing-3);
 		}
 
 		.badge,
@@ -388,7 +388,7 @@
 			z-index: 30;
 			border-left: none;
 			border-top: 1px solid var(--color-border);
-			border-radius: 12px 12px 0 0;
+			border-radius: var(--radius-container) var(--radius-container) 0 0;
 			box-shadow: 0 -8px 24px var(--color-shadow);
 			padding-bottom: env(safe-area-inset-bottom);
 		}

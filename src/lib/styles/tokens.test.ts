@@ -20,6 +20,33 @@ const E2E_TEXT = walk(join(ROOT, 'tests'))
 	.map((p) => readFileSync(p, 'utf8'))
 	.join('\n');
 
+const STYLES = SOURCES.filter(({ path }) => /\.(svelte|css)$/.test(path)).map(({ path, text }) => ({
+	path,
+	css: (path.endsWith('.svelte')
+		? [...text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n')
+		: text
+	).replace(/\/\*[\s\S]*?\*\//g, '')
+}));
+
+function declarations(css: string): { selector: string; prop: string; value: string }[] {
+	const out: { selector: string; prop: string; value: string }[] = [];
+	const stack: string[] = [];
+	let start = 0;
+	for (let i = 0; i < css.length; i++) {
+		const ch = css[i];
+		if (ch === '{') {
+			stack.push(css.slice(start, i).trim().replace(/\s+/g, ' '));
+			start = i + 1;
+		} else if (ch === ';' || ch === '}') {
+			const m = css.slice(start, i).match(/^\s*([\w-]+)\s*:\s*([\s\S]*?)\s*$/);
+			if (m && stack.length) out.push({ selector: stack.at(-1)!, prop: m[1], value: m[2] });
+			if (ch === '}') stack.pop();
+			start = i + 1;
+		}
+	}
+	return out;
+}
+
 function themeBlock(selector: string): Map<string, string> {
 	const start = GLOBAL_CSS.indexOf(`${selector} {`);
 	const body = GLOBAL_CSS.slice(start, GLOBAL_CSS.indexOf('}', start));
@@ -164,17 +191,43 @@ describe('color tokens', () => {
 	it('style blocks use tokens instead of literal colors', () => {
 		const literal =
 			/#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch)\(|(?<![\w-])(?:white|black)(?![\w-])/i;
-		const offenders = SOURCES.filter(({ path }) => /\.(svelte|css)$/.test(path)).flatMap(
-			({ path, text }) => {
-				const css = path.endsWith('.svelte')
-					? [...text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n')
-					: text;
-				return css
-					.replace(/\/\*[\s\S]*?\*\//g, '')
-					.split('\n')
-					.filter((line) => literal.test(line) && !/^\s*--[\w-]+\s*:/.test(line))
-					.map((line) => `${path}: ${line.trim()}`);
-			}
+		const offenders = STYLES.flatMap(({ path, css }) =>
+			css
+				.replace(/(?<![\w-])--[\w-]+\s*:[^;{}]*;/g, '')
+				.split('\n')
+				.filter((line) => literal.test(line))
+				.map((line) => `${path}: ${line.trim()}`)
+		);
+
+		expect(offenders).toEqual([]);
+	});
+
+	it('style blocks take font sizes and radii from the scale tokens', () => {
+		// Graph nodes keep px because dagre lays them out in px; icon glyph sizes are not type
+		const graph = (path: string, selector: string) =>
+			path.startsWith('src/lib/components/nodes/') || /svelte-flow__(node|edge)/.test(selector);
+		const glyph = /material-symbols|icon|spinner|chevron/i;
+		const kept = new Set([
+			'src/lib/components/Breadcrumb.svelte .dropdown-color border-radius',
+			'src/lib/components/Dropzone.svelte .hero-text h1 font-size',
+			'src/lib/components/LoadingOverlay.svelte .progress-bar border-radius',
+			'src/lib/components/LoadingOverlay.svelte .progress-fill border-radius',
+			'src/lib/components/SettingsModal.svelte .settings-range border-radius',
+			'src/lib/components/ZUICanvas.svelte .hover-edge-dot border-radius',
+			'src/lib/components/ZUICanvas.svelte .legend-color border-radius',
+			'src/lib/styles/code.css .section-category-bar border-radius',
+			'src/routes/docs/[lang]/[...slug]/+page.svelte .docs-content :global(h2) font-size',
+			'src/routes/explore/+page.svelte .explore-hero h1 font-size',
+			'src/routes/explore/[slug]/+page.svelte .state h2 font-size'
+		]);
+		const offenders = STYLES.flatMap(({ path, css }) =>
+			declarations(css)
+				.filter(({ prop }) => prop === 'font-size' || /^border(-\w+-\w+)?-radius$/.test(prop))
+				.filter(({ value }) => /\d(px|rem)\b/.test(value))
+				.filter(({ selector }) => !graph(path, selector))
+				.filter(({ selector, prop }) => !(prop === 'font-size' && glyph.test(selector)))
+				.filter(({ selector, prop }) => !kept.has(`${path} ${selector} ${prop}`))
+				.map(({ selector, prop, value }) => `${path} ${selector} { ${prop}: ${value} }`)
 		);
 
 		expect(offenders).toEqual([]);

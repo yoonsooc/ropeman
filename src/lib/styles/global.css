@@ -1,6 +1,6 @@
 /*
- * Color role names, the status role values and the focus ring tokens are adapted
- * from Astryx 0.7.13 (https://github.com/meta/astryx, @astryxdesign/theme-neutral),
+ * Color role names, the status role values, the focus ring tokens and the spacing,
+ * radius, type, shadow and motion scales are adapted from Astryx 0.7.13 (https://github.com/meta/astryx, @astryxdesign/theme-neutral),
  * MIT License, Copyright (c) 2026 Meta Platforms, Inc. See LICENSES/astryx-MIT.txt.
  * Light surfaces snap to the Neutral ramp; dark surfaces and the accent are Ropeman's own.
  */
@@ -76,12 +76,48 @@
 	--focus-outline-color: var(--color-accent);
 	--focus-outline-offset: 3px;
 
+	/* Scales follow astryx core; graph nodes keep px because dagre lays them out in px */
+	--spacing-0-5: 0.125rem;
+	--spacing-1: 0.25rem;
+	--spacing-1-5: 0.375rem;
+	--spacing-2: 0.5rem;
+	--spacing-3: 0.75rem;
+	--spacing-4: 1rem;
+	--spacing-5: 1.25rem;
+	--spacing-6: 1.5rem;
+	--spacing-7: 1.75rem;
+	--spacing-8: 2rem;
+	--spacing-9: 2.25rem;
+	--spacing-10: 2.5rem;
+	--spacing-12: 3rem;
+	--radius-inner: 4px;
+	--radius-element: 8px;
+	--radius-container: 12px;
+	--radius-full: 9999px;
+	--font-size-xs: 0.625rem;
+	--font-size-sm: 0.75rem;
+	--font-size-base: 0.875rem;
+	--font-size-lg: 1.0625rem;
+	--font-size-xl: 1.25rem;
+	--font-size-2xl: 1.5rem;
+	--font-size-3xl: 1.8125rem;
+	--font-size-4xl: 2.1875rem;
+	--font-weight-normal: 400;
+	--font-weight-medium: 500;
+	--font-weight-semibold: 600;
+	--font-weight-bold: 700;
+	--shadow-low: 0 2px 4px rgb(0 0 0 / 5%), 0 4px 8px rgb(0 0 0 / 10%);
+	--shadow-med: 0 2px 4px rgb(0 0 0 / 5%), 0 4px 12px rgb(0 0 0 / 10%);
+	--shadow-high: 0 4px 6px rgb(0 0 0 / 10%), 0 12px 24px rgb(0 0 0 / 15%);
+	--duration-fast: 125ms;
+	--duration-medium: 300ms;
+	--ease-standard: cubic-bezier(0.24, 1, 0.4, 1);
+
 	--font-display: 'Space Grotesk', sans-serif;
 	--font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 	--font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 
 	--header-height: 48px;
-	--transition: 0.2s ease;
 
 	/* Mobile breakpoints, read by tests/mobile-foundation.spec.ts */
 	--bp-mobile: 430px;
@@ -147,6 +183,13 @@
 	--track-byok: #fbbf24;
 	--track-bridge: #4ade80;
 	--track-webgpu: #ac8aff;
+
+	--shadow-low:
+		0 2px 4px rgb(0 0 0 / 25%), 0 4px 8px rgb(0 0 0 / 40%), inset 0 0 0 1px rgb(255 255 255 / 8%);
+	--shadow-med:
+		0 2px 4px rgb(0 0 0 / 35%), 0 4px 12px rgb(0 0 0 / 50%), inset 0 0 0 1px rgb(255 255 255 / 12%);
+	--shadow-high:
+		0 4px 6px rgb(0 0 0 / 50%), 0 12px 24px rgb(0 0 0 / 70%), inset 0 0 0 1px rgb(255 255 255 / 15%);
 }
 
 :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
@@ -169,8 +212,8 @@ body {
 	background-color: var(--color-background-body);
 	color: var(--color-text-primary);
 	transition:
-		background-color var(--transition),
-		color var(--transition);
+		background-color var(--duration-fast) var(--ease-standard),
+		color var(--duration-fast) var(--ease-standard);
 	overflow: hidden;
 }
 
@@ -221,7 +264,7 @@ pre,
 
 ::-webkit-scrollbar-thumb {
 	background: var(--color-border);
-	border-radius: 10px;
+	border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -293,14 +336,12 @@ a:hover {
 .modal-card {
 	background: var(--color-background-body);
 	border: 1px solid var(--color-border);
-	border-radius: 12px;
+	border-radius: var(--radius-container);
 	max-width: 90vw;
 	max-height: 85vh;
 	overflow-y: auto;
 	overscroll-behavior: contain;
-	box-shadow:
-		0 1px 2px var(--color-shadow),
-		0 8px 24px var(--color-shadow);
+	box-shadow: var(--shadow-high);
 }
 
 /* Modal header */
@@ -308,7 +349,7 @@ a:hover {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 16px 20px;
+	padding: var(--spacing-4) var(--spacing-5);
 	background: var(--color-background-surface);
 	border-bottom: none;
 }
@@ -320,8 +361,8 @@ a:hover {
 
 .modal-header h2 {
 	margin: 0;
-	font-size: 16px;
-	font-weight: 700;
+	font-size: var(--font-size-lg);
+	font-weight: var(--font-weight-bold);
 	color: var(--color-text-primary);
 	font-family: var(--font-display);
 }
@@ -331,9 +372,9 @@ a:hover {
 	background: none;
 	border: none;
 	color: var(--color-text-secondary);
-	font-size: 18px;
+	font-size: var(--font-size-lg);
 	cursor: pointer;
-	padding: 4px;
+	padding: var(--spacing-1);
 	line-height: 1;
 }
 
@@ -343,10 +384,10 @@ a:hover {
 
 /* Modal body */
 .modal-body {
-	padding: 20px;
+	padding: var(--spacing-5);
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
+	gap: var(--spacing-4);
 }
 
 /* M2: Mobile modal sheet — turns any .modal-card into a full-screen sheet.
@@ -359,7 +400,7 @@ a:hover {
 		max-width: none;
 		max-height: none;
 		border-radius: 0;
-		padding-top: max(16px, env(safe-area-inset-top));
+		padding-top: max(var(--spacing-4), env(safe-area-inset-top));
 		padding-bottom: max(env(safe-area-inset-bottom), var(--keyboard-inset, 0px));
 		padding-left: env(safe-area-inset-left);
 		padding-right: env(safe-area-inset-right);
@@ -375,14 +416,14 @@ a:hover {
 
 /* Buttons */
 .btn {
-	padding: 8px 16px;
+	padding: var(--spacing-2) var(--spacing-4);
 	border: none;
-	border-radius: 6px;
-	font-size: 13px;
-	font-weight: 500;
+	border-radius: var(--radius-element);
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-medium);
 	cursor: pointer;
 	white-space: nowrap;
-	transition: opacity 0.15s ease;
+	transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .btn:disabled {
@@ -412,7 +453,7 @@ a:hover {
 .btn-ghost {
 	background: transparent;
 	color: var(--color-text-secondary);
-	padding: 8px 12px;
+	padding: var(--spacing-2) var(--spacing-3);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -424,14 +465,14 @@ a:hover {
 /* Form inputs */
 .input,
 .select {
-	padding: 8px 12px;
+	padding: var(--spacing-2) var(--spacing-3);
 	background: var(--color-background-body);
 	border: 1px solid transparent;
-	border-radius: 6px;
+	border-radius: var(--radius-element);
 	color: var(--color-text-primary);
-	font-size: 13px;
+	font-size: var(--font-size-base);
 	font-family: inherit;
-	transition: border-color 0.15s ease;
+	transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .input:focus-visible,
@@ -445,8 +486,8 @@ a:hover {
 
 /* Form label */
 .form-label {
-	font-size: 12px;
-	font-weight: 500;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
 	color: var(--color-text-secondary);
 }
 
@@ -454,7 +495,7 @@ a:hover {
 .form-row {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--spacing-2);
 }
 
 .form-row .input {
@@ -465,12 +506,12 @@ a:hover {
 .toggle {
 	width: 44px;
 	height: 24px;
-	border-radius: 12px;
+	border-radius: var(--radius-container);
 	border: none;
 	background: var(--color-background-muted);
 	position: relative;
 	cursor: pointer;
-	transition: background 0.2s;
+	transition: background var(--duration-fast) var(--ease-standard);
 	padding: 0;
 }
 
@@ -486,7 +527,7 @@ a:hover {
 	height: 18px;
 	border-radius: 50%;
 	background: var(--color-background-toggle-knob);
-	transition: transform 0.2s;
+	transition: transform var(--duration-fast) var(--ease-standard);
 }
 
 .toggle.active .toggle-knob {
@@ -497,10 +538,10 @@ a:hover {
 .badge {
 	display: inline-flex;
 	align-items: center;
-	padding: 2px 8px;
-	border-radius: 10px;
-	font-size: 11px;
-	font-weight: 500;
+	padding: var(--spacing-0-5) var(--spacing-2);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-medium);
 	line-height: 1.4;
 }
 
@@ -532,9 +573,9 @@ a:hover {
 /* Card */
 .card {
 	border: none;
-	border-radius: 10px;
+	border-radius: var(--radius-container);
 	background: var(--color-background-surface);
-	transition: background-color 0.2s;
+	transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .card:hover:not(.disabled) {
@@ -552,8 +593,8 @@ a:hover {
 /* Section label (uppercase) */
 .section-label {
 	font-family: var(--font-display);
-	font-size: 12px;
-	font-weight: 600;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
 	color: var(--color-text-secondary);
 }
 
@@ -580,7 +621,7 @@ a:hover {
 
 /* Hint text */
 .hint {
-	font-size: 11px;
+	font-size: var(--font-size-sm);
 	color: var(--color-text-secondary);
 	margin: 0;
 	opacity: 0.7;
@@ -591,9 +632,9 @@ a:hover {
 .notice {
 	display: flex;
 	align-items: flex-start;
-	gap: 8px;
-	padding: 10px 12px;
-	border-radius: 6px;
+	gap: var(--spacing-2);
+	padding: var(--spacing-2) var(--spacing-3);
+	border-radius: var(--radius-element);
 }
 
 .notice-warning {
@@ -612,7 +653,7 @@ a:hover {
 }
 
 .notice-text {
-	font-size: 12px;
+	font-size: var(--font-size-sm);
 	color: var(--color-text-secondary);
 	line-height: 1.5;
 }
@@ -620,13 +661,13 @@ a:hover {
 /* Keyboard shortcut key */
 kbd {
 	display: inline-block;
-	padding: 2px 6px;
-	font-size: 11px;
+	padding: var(--spacing-0-5) var(--spacing-1-5);
+	font-size: var(--font-size-sm);
 	font-family: inherit;
 	color: var(--color-text-primary);
 	background: var(--color-background-muted);
 	border: none;
-	border-radius: 4px;
+	border-radius: var(--radius-inner);
 	min-width: 20px;
 	text-align: center;
 }

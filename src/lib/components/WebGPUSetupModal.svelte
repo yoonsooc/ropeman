@@ -189,12 +189,12 @@
 	.confirm-section {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--spacing-4);
 	}
 	.model-selector {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 	}
 	.model-select:focus {
 		border-color: var(--color-accent);
@@ -202,29 +202,29 @@
 	.model-info {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 12px;
+		gap: var(--spacing-2);
+		padding: var(--spacing-3);
 		background: var(--color-background-surface);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 	}
 	.info-row {
 		display: flex;
 		justify-content: space-between;
-		font-size: 13px;
+		font-size: var(--font-size-base);
 	}
 	.info-label {
 		color: var(--color-text-secondary);
 	}
 	.info-value {
 		color: var(--color-text-primary);
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 	}
 	.confirm-desc {
 		line-height: 1.6;
 	}
 	.confirm-actions {
 		display: flex;
-		gap: 8px;
+		gap: var(--spacing-2);
 		justify-content: flex-end;
 	}
 
@@ -233,7 +233,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 12px;
+		gap: var(--spacing-3);
 		text-align: center;
 	}
 	.error-icon {
@@ -241,7 +241,7 @@
 		color: var(--color-text-error);
 	}
 	.error-text {
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		color: var(--color-text-error);
 		margin: 0;
 	}
@@ -254,18 +254,18 @@
 		width: 256px;
 		background: var(--color-background-muted);
 		border: 1px solid var(--color-border);
-		border-radius: 8px;
-		padding: 16px;
-		box-shadow: 0 25px 50px -12px var(--color-shadow);
+		border-radius: var(--radius-element);
+		padding: var(--spacing-4);
+		box-shadow: var(--shadow-med);
 		z-index: 1200;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 	.di-header {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 	.di-icon {
 		font-size: 18px;
@@ -274,9 +274,9 @@
 	}
 	.di-title {
 		flex: 1;
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		font-family: var(--font-display);
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -286,11 +286,11 @@
 		background: none;
 		border: none;
 		color: var(--color-text-secondary);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		letter-spacing: -0.05em;
 		cursor: pointer;
-		padding: 2px;
+		padding: var(--spacing-0-5);
 		flex-shrink: 0;
 	}
 	.di-cancel:hover {
@@ -300,24 +300,24 @@
 		width: 100%;
 		height: 4px;
 		background: var(--color-background-sidebar-icon);
-		border-radius: 9999px;
+		border-radius: var(--radius-full);
 		overflow: hidden;
 	}
 	.di-progress-fill {
 		height: 100%;
 		background: var(--color-accent);
-		border-radius: 9999px;
-		transition: width 0.3s ease;
+		border-radius: var(--radius-full);
+		transition: width var(--duration-medium) var(--ease-standard);
 	}
 	.di-info {
 		display: flex;
 		justify-content: space-between;
 		font-family: var(--font-code);
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-secondary);
 	}
 	.di-percent {
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		color: var(--color-accent);
 	}
 	.di-stage {
@@ -334,20 +334,20 @@
 		right: 20px;
 		background: var(--color-success);
 		color: var(--color-on-success);
-		border-radius: 10px;
-		padding: 12px 16px;
+		border-radius: var(--radius-container);
+		padding: var(--spacing-3) var(--spacing-4);
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		font-size: 13px;
-		font-weight: 600;
-		box-shadow: 0 4px 20px var(--color-shadow);
+		gap: var(--spacing-2);
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
+		box-shadow: var(--shadow-med);
 		z-index: 1200;
-		animation: slideIn 0.3s ease;
+		animation: slideIn var(--duration-medium) var(--ease-standard);
 	}
 	.dc-icon {
 		font-size: 16px;
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 	}
 	.dc-text {
 		flex: 1;
@@ -356,9 +356,9 @@
 		background: none;
 		border: none;
 		color: var(--color-background-body);
-		font-size: 14px;
+		font-size: var(--font-size-base);
 		cursor: pointer;
-		padding: 2px;
+		padding: var(--spacing-0-5);
 		opacity: 0.7;
 	}
 	.dc-dismiss:hover {

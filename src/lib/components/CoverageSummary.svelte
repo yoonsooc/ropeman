@@ -204,10 +204,10 @@
 	.summary {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 		width: 100%;
 		min-height: 28px;
-		padding: 4px 12px;
+		padding: var(--spacing-1) var(--spacing-3);
 		border: none;
 		background: transparent;
 		color: var(--color-text-secondary);
@@ -243,15 +243,15 @@
 		z-index: 20;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--spacing-2);
 		width: min(560px, calc(100% - 16px));
 		max-height: min(70vh, 640px);
-		padding: 12px;
-		margin-bottom: 8px;
+		padding: var(--spacing-3);
+		margin-bottom: var(--spacing-2);
 		border: 1px solid var(--color-border);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		background: var(--color-background-popover);
-		box-shadow: 0 8px 24px var(--color-shadow);
+		box-shadow: var(--shadow-med);
 		color: var(--color-text-primary);
 		overflow: hidden;
 	}
@@ -268,16 +268,16 @@
 	}
 
 	h3 {
-		margin: 4px 0 0;
+		margin: var(--spacing-1) 0 0;
 		font: 600 12px var(--font-body);
 		color: var(--color-text-secondary);
 	}
 
 	.close-btn {
 		display: inline-flex;
-		padding: 2px;
+		padding: var(--spacing-0-5);
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		background: transparent;
 		color: var(--color-text-secondary);
 		cursor: pointer;
@@ -291,23 +291,23 @@
 	.intro,
 	.capped {
 		margin: 0;
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 	}
 
 	.groups {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px;
+		gap: var(--spacing-1);
 	}
 
 	.group-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
-		padding: 3px 8px;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-0-5) var(--spacing-2);
 		border: 1px solid var(--color-border);
-		border-radius: 999px;
+		border-radius: var(--radius-full);
 		background: transparent;
 		color: var(--color-text-secondary);
 		font: 12px var(--font-body);
@@ -345,9 +345,9 @@
 	}
 
 	.filter {
-		padding: 5px 8px;
+		padding: var(--spacing-1) var(--spacing-2);
 		border: 1px solid var(--color-border);
-		border-radius: 6px;
+		border-radius: var(--radius-element);
 		background: var(--color-background-body);
 		color: var(--color-text-primary);
 		font: 12px var(--font-body);
@@ -374,10 +374,10 @@
 	.rows li,
 	.levels li {
 		display: flex;
-		gap: 12px;
+		gap: var(--spacing-3);
 		justify-content: space-between;
-		padding: 3px 0;
-		font-size: 12px;
+		padding: var(--spacing-0-5) 0;
+		font-size: var(--font-size-sm);
 		border-bottom: 1px solid var(--color-border);
 	}
 

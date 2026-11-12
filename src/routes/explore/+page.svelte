@@ -141,8 +141,8 @@
 	.explore-header {
 		display: flex;
 		align-items: center;
-		gap: 32px;
-		padding: 0 16px;
+		gap: var(--spacing-8);
+		padding: 0 var(--spacing-4);
 		height: var(--header-height);
 		background: var(--color-background-sidebar-icon);
 		border-bottom: 1px solid var(--color-border);
@@ -153,8 +153,8 @@
 
 	.explore-logo {
 		font-family: var(--font-display);
-		font-size: 18px;
-		font-weight: 700;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-accent);
 		text-decoration: none;
 	}
@@ -162,7 +162,7 @@
 	.explore-nav {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 		margin-left: auto;
 	}
 
@@ -172,13 +172,13 @@
 		justify-content: center;
 		width: 32px;
 		height: 32px;
-		padding: 4px;
-		border-radius: 4px;
+		padding: var(--spacing-1);
+		border-radius: var(--radius-inner);
 		color: var(--color-text-secondary);
 		text-decoration: none;
 		transition:
-			background-color 0.15s ease,
-			color 0.15s ease;
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.explore-nav-btn .material-symbols-outlined {
@@ -195,19 +195,19 @@
 		max-width: 1200px;
 		width: 100%;
 		margin: 0 auto;
-		padding: 48px 24px 80px;
+		padding: var(--spacing-12) var(--spacing-6) 80px;
 	}
 
 	.explore-hero {
 		text-align: center;
-		margin-bottom: 40px;
+		margin-bottom: var(--spacing-10);
 	}
 
 	.explore-hero h1 {
 		font-family: var(--font-display);
 		font-size: 38px;
-		font-weight: 700;
-		margin: 0 0 16px;
+		font-weight: var(--font-weight-bold);
+		margin: 0 0 var(--spacing-4);
 		color: var(--color-text-primary);
 		letter-spacing: -0.01em;
 	}
@@ -215,15 +215,15 @@
 	.explore-hero p {
 		max-width: 640px;
 		margin: 0 auto;
-		font-size: 15px;
+		font-size: var(--font-size-base);
 		line-height: 1.6;
 		color: var(--color-text-secondary);
 	}
 
 	.explore-filters {
 		display: flex;
-		gap: 12px;
-		margin-bottom: 32px;
+		gap: var(--spacing-3);
+		margin-bottom: var(--spacing-8);
 		flex-wrap: wrap;
 	}
 
@@ -231,10 +231,10 @@
 	.filter-select {
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 6px;
-		padding: 10px 14px;
+		border-radius: var(--radius-element);
+		padding: var(--spacing-2) var(--spacing-3);
 		color: var(--color-text-primary);
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		font-family: inherit;
 	}
 
@@ -257,7 +257,7 @@
 	.explore-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 16px;
+		gap: var(--spacing-4);
 	}
 
 	.explore-card.featured {
@@ -283,30 +283,30 @@
 	.explore-empty {
 		grid-column: 1 / -1;
 		text-align: center;
-		padding: 48px;
+		padding: var(--spacing-12);
 		color: var(--color-text-secondary);
-		font-size: 14px;
+		font-size: var(--font-size-base);
 	}
 
 	.explore-card {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 0 20px 20px;
+		gap: var(--spacing-2);
+		padding: 0 var(--spacing-5) var(--spacing-5);
 		overflow: hidden;
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		text-decoration: none;
 		color: inherit;
-		transition: border-color 0.15s ease-out;
+		transition: border-color var(--duration-fast) var(--ease-standard);
 	}
 
 	/* Real snapshot of the graph, full bleed at the top of the card */
 	.card-thumb {
 		display: block;
 		width: calc(100% + 40px);
-		margin: 0 -20px 8px;
+		margin: 0 calc(-1 * var(--spacing-5)) var(--spacing-2);
 		aspect-ratio: 800 / 430;
 		height: auto;
 		object-fit: cover;
@@ -329,15 +329,15 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 	}
 
 	.card-language {
-		padding: 2px 8px;
+		padding: var(--spacing-0-5) var(--spacing-2);
 		background: var(--color-accent-muted);
 		color: var(--color-accent);
-		border-radius: 9999px;
-		font-weight: 600;
+		border-radius: var(--radius-full);
+		font-weight: var(--font-weight-semibold);
 		letter-spacing: 0.02em;
 	}
 
@@ -347,36 +347,36 @@
 
 	.card-title {
 		font-family: var(--font-display);
-		font-size: 20px;
-		font-weight: 700;
-		margin: 4px 0 0;
+		font-size: var(--font-size-xl);
+		font-weight: var(--font-weight-bold);
+		margin: var(--spacing-1) 0 0;
 		color: var(--color-text-primary);
 	}
 
 	.card-repo {
 		font-family: var(--font-code);
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 	}
 
 	.card-desc {
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		line-height: 1.5;
 		color: var(--color-text-secondary);
-		margin: 4px 0 12px;
+		margin: var(--spacing-1) 0 var(--spacing-3);
 		flex: 1;
 	}
 
 	.card-cta {
-		font-size: 12px;
-		font-weight: 600;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-accent);
 		margin-top: auto;
 	}
 
 	@media (max-width: 640px) {
 		.explore-hero h1 {
-			font-size: 28px;
+			font-size: var(--font-size-3xl);
 		}
 	}
 </style>

@@ -286,13 +286,20 @@ export const xxxStore = createXxxStore();
 
 - `chatStore.svelte.ts`, `i18nStore.svelte.ts`, `themeStore.svelte.ts` — R2에서 Svelte 5 runes 마이그레이션 완료
 
-### 색 토큰과 포커스 링
+### 디자인 토큰과 포커스 링
 
 - 색 토큰은 `src/lib/styles/global.css` 맨 위 `:root`(라이트)와 `[data-theme='dark']`(다크)에 있다. 이름은 astryx 색 역할 문법을 따른다. 예: `--color-background-surface`, `--color-text-secondary`, `--color-on-accent`.
 - 상태 색은 쓰이는 표면마다 역할이 따로 있다. 페이지 위 글자는 `--color-text-error`, 진한 채움은 `--color-error`와 그 위 글자 `--color-on-error`, 옅은 채움은 `--color-error-muted`와 그 위 글자 `--color-on-error-muted`다. 점·아이콘은 `--color-icon-*`, 테두리는 `--color-border-*`를 쓴다.
 - 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다.
 - 포커스 링은 전역 `:focus-visible` 규칙 하나가 `--focus-outline-*` 토큰으로 그린다. 잘리는 스크롤 컨테이너 안에서는 요소에 `--focus-outline-offset: -2px`를 준다. 컴포넌트에서 `outline: none`을 쓰려면 같은 요소나 감싸는 요소가 링을 대신 그려야 한다.
-- `src/lib/styles/tokens.test.ts`가 네 가지를 검사한다. 두 모드의 WCAG AA 대비 하한, 정의되지 않은 `var()` 참조, 쓰이지 않는 전역 토큰, 스타일 블록 안의 색 리터럴이다. 새 색이 필요하면 토큰을 먼저 추가한다.
+- 척도 토큰도 같은 `:root`에 있다. 값은 astryx core를 따른다.
+  - 간격 `--spacing-N`은 N × 0.25rem(4px 격자)이다. 1px 선과 48px보다 큰 간격은 숫자로 둔다.
+  - 글자 크기 `--font-size-xs`~`4xl`은 14px(`base`)을 기준으로 한 rem 척도(10·12·14·17·20·24·29·35px)이고, 굵기는 `--font-weight-normal`·`medium`·`semibold`·`bold`다. 줄 간격은 토큰으로 묶지 않는다. 한글 문단에는 astryx 본문 줄 간격 1.4286이 좁기 때문이다.
+  - 반경은 역할로 고른다. `--radius-inner`(4px, 배지·kbd), `--radius-element`(8px, 버튼·입력란), `--radius-container`(12px, 카드·모달), `--radius-full`(알약·스크롤바 손잡이)이다.
+  - 그림자는 `--shadow-low`·`med`·`high` 3단계이고 다크 모드에서 다시 정의한다. 바닥이나 옆에 붙은 시트의 방향 그림자는 그대로 둔다.
+  - 동작은 `--duration-fast`(125ms)·`--duration-medium`(300ms)과 `--ease-standard`다. 계속 도는 스피너는 토큰을 쓰지 않는다. 동작 줄이기 설정에서는 전역 규칙이 모든 전환과 애니메이션을 즉시 끝낸다.
+  - 그래프 노드 내부(`src/lib/components/nodes/`, xyflow 노드·엣지 규칙)는 dagre가 px로 배치하므로 px를 쓴다. 아이콘 글리프 크기는 글자 척도가 아니라서 px로 둔다.
+- `src/lib/styles/tokens.test.ts`가 다섯 가지를 검사한다. 두 모드의 WCAG AA 대비 하한, 정의되지 않은 `var()` 참조, 쓰이지 않는 전역 토큰, 스타일 블록 안의 색 리터럴, 척도 토큰 대신 쓴 px·rem 글자 크기와 반경이다. 새 색이나 크기가 필요하면 토큰을 먼저 추가한다.
 - 값의 출처와 라이선스는 `global.css` 머리 주석과 `LICENSES/astryx-MIT.txt`에 있다.
 
 ---

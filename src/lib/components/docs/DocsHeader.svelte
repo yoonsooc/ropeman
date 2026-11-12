@@ -66,7 +66,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 16px;
+		padding: 0 var(--spacing-4);
 		width: 100%;
 		background: var(--color-background-sidebar-icon);
 		flex-shrink: 0;
@@ -79,7 +79,7 @@
 	.header-left {
 		display: flex;
 		align-items: baseline;
-		gap: 32px;
+		gap: var(--spacing-8);
 	}
 
 	.logo {
@@ -89,33 +89,33 @@
 	}
 
 	.header-title {
-		font-size: 18px;
-		font-weight: 700;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-accent);
 		font-family: var(--font-display);
 		margin: 0;
 	}
 
 	.header-subtitle {
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		color: var(--color-text-secondary);
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 	}
 
 	.header-right {
 		display: flex;
 		align-items: center;
-		gap: 16px;
+		gap: var(--spacing-4);
 	}
 
 	.header-btn {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 4px;
-		border-radius: 4px;
-		font-size: 11px;
-		font-weight: 700;
+		padding: var(--spacing-1);
+		border-radius: var(--radius-inner);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-secondary);
 		background: transparent;
 		border: none;
@@ -123,8 +123,8 @@
 		cursor: pointer;
 		font-family: var(--font-body);
 		transition:
-			background-color var(--transition),
-			color var(--transition);
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.header-btn :global(.material-symbols-outlined) {
@@ -137,13 +137,13 @@
 	}
 
 	.back-link {
-		gap: 6px;
-		padding: 4px 8px;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-1) var(--spacing-2);
 	}
 
 	.back-label {
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 	}
 
 	.header-divider {
@@ -167,10 +167,10 @@
 
 	@media (max-width: 640px) {
 		.header {
-			padding: 0 12px;
+			padding: 0 var(--spacing-3);
 		}
 		.header-left {
-			gap: 16px;
+			gap: var(--spacing-4);
 		}
 		.header-subtitle {
 			display: none;

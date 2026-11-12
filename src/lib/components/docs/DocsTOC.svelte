@@ -109,7 +109,7 @@
 		position: sticky;
 		top: var(--header-height);
 		align-self: start;
-		padding: 32px 24px 32px 16px;
+		padding: var(--spacing-8) var(--spacing-6) var(--spacing-8) var(--spacing-4);
 		max-height: calc(100vh - var(--header-height));
 		overflow-y: auto;
 		font-family: var(--font-body);
@@ -117,10 +117,10 @@
 
 	h4 {
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-secondary);
-		margin: 0 0 12px;
+		margin: 0 0 var(--spacing-3);
 	}
 
 	ul {
@@ -129,24 +129,24 @@
 		margin: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--spacing-1);
 	}
 
 	li.h3 {
-		padding-left: 12px;
+		padding-left: var(--spacing-3);
 	}
 
 	li a {
 		display: block;
-		padding: 4px 8px;
-		font-size: 12px;
+		padding: var(--spacing-1) var(--spacing-2);
+		font-size: var(--font-size-sm);
 		line-height: 1.4;
 		color: var(--color-text-secondary);
 		text-decoration: none;
 		border-left: 2px solid transparent;
 		transition:
-			color 0.15s ease,
-			border-color 0.15s ease;
+			color var(--duration-fast) var(--ease-standard),
+			border-color var(--duration-fast) var(--ease-standard);
 	}
 
 	li a:hover {
