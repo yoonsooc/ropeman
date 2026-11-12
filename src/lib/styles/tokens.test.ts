@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
@@ -117,10 +118,10 @@ const PAIRS: [fg: string, bg: string, floor: number][] = [
 ];
 
 describe('color tokens', () => {
-	it.each([
+	it.each<[string, Map<string, string>]>([
 		['light', LIGHT],
 		['dark', DARK]
-	] as const)('every role pair meets its WCAG AA floor in %s mode', (_mode, theme) => {
+	])('every role pair meets its WCAG AA floor in %s mode', (_mode, theme) => {
 		const failures = PAIRS.map(([fg, bg, floor]) => ({
 			fg,
 			bg,
