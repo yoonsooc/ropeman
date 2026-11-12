@@ -178,8 +178,8 @@ const SECRET_ENV = source(
 	'PRIVATE_KEY="-----BEGIN PRIVATE KEY-----',
 	'NOT_A_KEY=inside-the-pem-secret',
 	'-----END PRIVATE KEY-----"',
-	'YAML_STYLE: colon-secret',
 	'  # indented comment',
+	'YAML_STYLE: colon-secret',
 	'lowercase.key-name=dotted-secret',
 	'BROKEN="never-closed-secret',
 	'AFTER_BROKEN=after-secret'
@@ -209,7 +209,6 @@ describe('parseDotenv', () => {
 			{ name: 'EMPTY', kind: 'env', lines: [5, 5] },
 			{ name: 'SPACED', kind: 'env', lines: [6, 6] },
 			{ name: 'PRIVATE_KEY', kind: 'env', lines: [7, 9] },
-			{ name: 'YAML_STYLE', kind: 'env', lines: [10, 10] },
 			{ name: 'lowercase.key-name', kind: 'env', lines: [12, 12] },
 			{ name: 'BROKEN', kind: 'env', lines: [13, 13] },
 			{ name: 'AFTER_BROKEN', kind: 'env', lines: [14, 14] }
@@ -237,9 +236,87 @@ describe('parseDotenv', () => {
 		}
 	});
 
-	it('reads every key and no value from well-formed values full of quotes, separators and newlines', () => {
-		// A newline ends an unquoted value, so only quoted values may hold one, as dotenv reads them
+	it('keeps a pasted unquoted PEM out of the key names', () => {
+		const pem = source(
+			'PEM=-----BEGIN KEY-----',
+			'MIIEvQIBADANBg',
+			'Xk3jQ9Zz==',
+			'abc=',
+			'-----END KEY-----',
+			'SWALLOWED=next-to-the-paste',
+			'',
+			'NEXT=1'
+		);
+
+		const symbols = parseDotenv(pem);
+
+		expect(outline(symbols)).toEqual([
+			{ name: 'PEM', kind: 'env', lines: [1, 6] },
+			{ name: 'NEXT', kind: 'env', lines: [8, 8] }
+		]);
+		for (const fragment of ['MIIEvQ', 'Xk3jQ9Zz', 'abc', 'END KEY']) {
+			expect(JSON.stringify(symbols)).not.toContain(fragment);
+		}
+	});
+
+	it('keeps wrapped base64 lines out of the key names, padding included', () => {
+		const blobs = source(
+			'CERT=MIIBszCCAVmgAwIBAgIUQ',
+			'Zz9xY2abc+/defGHIJ',
+			'QUJDREVGR0g=',
+			'# a comment ends the value',
+			'TOKEN=dGhpcyBpcyBh',
+			'c2VjcmV0dG9rZW4==',
+			'',
+			'AFTER=1'
+		);
+
+		const symbols = parseDotenv(blobs);
+
+		expect(symbols.map((sym) => sym.name)).toEqual(['CERT', 'TOKEN', 'AFTER']);
+		expect(outline(symbols)[1]).toEqual({ name: 'TOKEN', kind: 'env', lines: [5, 6] });
+		expect(JSON.stringify(symbols)).not.toMatch(/QUJD|c2Vj/);
+	});
+
+	it('reads lines indented under a key as its value, and same-indent keys as keys', () => {
+		const indented = source(
+			'KEY=',
+			'  nested=value-secret',
+			'  more value text',
+			'OTHER=after-the-continuation',
+			'',
+			'  GROUPED=1',
+			'  GROUPED_TOO=2'
+		);
+
+		expect(outline(parseDotenv(indented))).toEqual([
+			{ name: 'KEY', kind: 'env', lines: [1, 4] },
+			{ name: 'GROUPED', kind: 'env', lines: [6, 6] },
+			{ name: 'GROUPED_TOO', kind: 'env', lines: [7, 7] }
+		]);
+	});
+
+	it('reads only `=` assignments, not `name: value` lines', () => {
+		expect(parseDotenv(source('https: //example.com', 'URL: value'))).toEqual([]);
+	});
+
+	it('scans unclosed quotes in linear time', () => {
+		// 400KB, under the 500KB file limit, of keys whose quote closes on the next line
+		const content = 'x="\n'.repeat(100_000);
+		const started = performance.now();
+
+		const symbols = parseDotenv(content);
+
+		expect(symbols).toHaveLength(50_000);
+		expect(performance.now() - started).toBeLessThan(250);
+	});
+
+	it('reads every key and no value from generated values full of quotes, separators and spilled lines', () => {
+		// A newline ends an unquoted value, so only quoted values hold one. An unquoted value may
+		// still spill onto following lines when pasted, and a blank line or comment ends the spill.
 		const marks = ['"', "'", '`', '=', '#', ':', ' ', '\\', '\n', 'KEY_X='];
+		const spillStarts = ['zqxword', '  zqxA=zqx', 'zqxB==', 'zqx word zqx'];
+		const spillLines = ['zqxC=zqx', 'zqx_D=', 'zqx', 'export zqxE=1', '  zqxF: zqx'];
 		let seed = 7;
 		const next = () => (seed = (seed * 48271) % 2147483647);
 		const lines: string[] = [];
@@ -252,11 +329,18 @@ describe('parseDotenv', () => {
 				? quote + value.replace(/\\/g, '\\\\').replaceAll(quote, '\\' + quote) + quote
 				: 'zqx' + value.replace(/\n/g, ' ');
 			lines.push(`${next() % 2 ? 'export ' : ''}KEY_${i}${next() % 2 ? ' = ' : '='}${written}`);
+			if (!quoted && next() % 2 === 0) {
+				lines.push(spillStarts[next() % spillStarts.length]);
+				for (let j = next() % 4; j > 0; j--) lines.push(spillLines[next() % spillLines.length]);
+				lines.push(next() % 2 ? '' : '# zqx');
+			}
 		}
 
 		const symbols = parseDotenv(lines.join('\n'));
 
-		expect(symbols.map((sym) => sym.name)).toEqual(lines.map((_, i) => `KEY_${i}`));
+		expect(symbols.map((sym) => sym.name)).toEqual(
+			Array.from({ length: 300 }, (_, i) => `KEY_${i}`)
+		);
 		expect(JSON.stringify(symbols)).not.toContain('zqx');
 	});
 });

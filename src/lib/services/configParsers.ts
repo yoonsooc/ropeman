@@ -275,27 +275,51 @@ function scanHclLine(line: string, scan: HclScan): void {
 	}
 }
 
-const DOTENV_KEY = /^\s*(?:export\s+)?([A-Za-z_][\w.-]*)\s*(?:=|:\s)/;
+const DOTENV_ASSIGNMENT = /^(\s*)(?:export\s+)?([A-Za-z_][\w.-]*)\s*=(?!=)/;
+const DOTENV_SEPARATOR = /^\s*(?:#|$)/;
 
 /**
- * One `env` symbol per key. The value is only scanned for an unclosed quote, so a multi-line
- * value (a PEM key) is skipped whole and none of its lines can be read as a key.
+ * One `env` symbol per key, out of the keys dotenv reads. The value is scanned only for an
+ * unclosed quote, so a quoted multi-line value (a PEM key) is skipped whole.
+ *
+ * An unquoted value ends at its newline, so a pasted multi-line value spills onto lines dotenv
+ * reads as keys (`Xk3jQ9Zz==` becomes key `Xk3jQ9Zz`). Once a key is followed by a line that is
+ * no assignment, or by one indented deeper than the key, every line up to the next blank line or
+ * comment is taken as that key's value. This can drop a real key, never make one from value text.
+ * A value starting with `=` is base64 padding, not a key.
  */
 export function parseDotenv(content: string): ASTSymbol[] {
 	const lines = content.split(/\r?\n/);
 	const symbols: ASTSymbol[] = [];
+	let open: { symbol: ASTSymbol; indent: number } | null = null;
+	let spilled = false;
 	for (let i = 0; i < lines.length; i++) {
-		const match = lines[i].match(DOTENV_KEY);
-		if (!match) continue;
-		const start = i + 1;
+		if (DOTENV_SEPARATOR.test(lines[i])) {
+			open = null;
+			spilled = false;
+			continue;
+		}
+		const match = lines[i].match(DOTENV_ASSIGNMENT);
+		if (!match || spilled || (open && match[1].length > open.indent)) {
+			if (open) {
+				spilled = true;
+				open.symbol.lineEnd = i + 1;
+			}
+			continue;
+		}
+		const symbol: ASTSymbol = { name: match[2], kind: 'env', lineStart: i + 1, lineEnd: i + 1 };
 		const value = lines[i].slice(match[0].length).trimStart();
 		const quote = value[0];
 		if ((quote === '"' || quote === "'" || quote === '`') && !closesQuote(value.slice(1), quote)) {
+			// Linear: a found close moves i past the scan, and after a failed scan no later key opens this quote
+			let close = i + 1;
+			while (close < lines.length && !closesQuote(lines[close], quote)) close++;
 			// A quote never closed is a one-line value, as dotenv reads it
-			const close = lines.findIndex((line, idx) => idx > i && closesQuote(line, quote));
-			if (close !== -1) i = close;
+			if (close < lines.length) i = close;
 		}
-		symbols.push({ name: match[1], kind: 'env', lineStart: start, lineEnd: i + 1 });
+		symbol.lineEnd = i + 1;
+		symbols.push(symbol);
+		open = { symbol, indent: match[1].length };
 	}
 	return symbols;
 }
