@@ -136,7 +136,7 @@ bridge/                           # 로컬 Bridge (`@ropeman/bridge`, npm 패키
 
 packages/core/                    # Node 추출 코어 (npm 워크스페이스 아님, 루트 의존성을 쓴다)
 ├── src/
-│   ├── walk.ts                       # 폴더 순회: 브라우저와 같은 건너뛰기 규칙, 상한 없음, 루트 밖 링크는 따라가지 않음
+│   ├── walk.ts                       # 폴더 순회: 브라우저와 같은 건너뛰기 규칙, 상한 없음. 파일 링크는 대상도 같은 규칙으로 확인, 폴더 링크는 따라가지 않음
 │   ├── extract.ts                    # 순회 → 해석 설정 → 파싱 → 코드 지도 → 계층 요약 (`extractDirectory`)
 │   └── cli.ts                        # `ropeman-extract <폴더> [--out 파일]`
 ├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙
@@ -174,9 +174,10 @@ walk.walkDirectory()            # fs 순회. shouldSkipPath·include 항목·MAX
 
 - 한도: 파일 수와 합계 크기(MAX_TOTAL_SIZE) 상한이 없다. 파일 하나는 2MB(`NODE_MAX_FILE_SIZE`)를 넘으면 생성물이나 압축 파일로 보고 읽지 않는다(`file-size`). 브라우저의 500KB보다 크게 잡았다. 바이너리는 지원 언어 확장자만 읽으므로 파서에 닿지 않는다.
 - 실제 `.env`는 브라우저와 같은 규칙(`detectLanguage`가 템플릿에만 언어를 준다)이라 열지 않는다. 숨은 폴더와 `node_modules`는 `shouldSkipPath`로 거른다.
-- 심볼릭 링크는 대상이 루트 안일 때만 따라간다. 같은 폴더에 링크로 두 번 닿으면 한 번만 읽는다. Chrome의 FileSystemHandle이 링크를 어떻게 다루는지는 확인하지 않았다.
+- 파일 링크는 대상의 실제 경로가 루트 안이고 그 경로로도 브라우저 규칙을 통과할 때만 따라간다(`walk.isReadableTarget`: `shouldSkipPath`, 실제 `.env` 거부). 그래서 `notes.ts -> .env`나 `dep.ts -> node_modules/...`는 읽지 않는다. 폴더 링크는 따라가지 않는다. 루트 안 폴더는 실제 경로로 순회되므로 readdir 순서와 상관없이 실제 경로 이름이 남고, 루트 밖이거나 건너뛰는 폴더는 읽지 않는다. Chrome의 FileSystemHandle이 링크를 어떻게 다루는지는 확인하지 않았다.
+- 읽을 때 경로를 다시 `realpath`로 풀어 같은 규칙으로 확인하고 실제 경로를 연다. 순회 뒤에 파일이 루트 밖 링크로 바뀌어도 따라가지 않는다(`unreadable`). 그 확인과 `openAsBlob()` 사이의 짧은 틈은 막지 않았다. 사용자 자신의 폴더를 읽는 로컬 CLI라 best effort로 둔다. 원격 요청을 받는 Bridge의 `file.read`는 O_NOFOLLOW와 dev·ino 비교로 이 틈도 막는다.
 - 파일 내용은 `fs.openAsBlob()`으로 연다. 브라우저 `File.text()`처럼 UTF-8 BOM을 지우므로 같은 파일이 같은 줄과 텍스트가 된다.
-- 같음 검증(`packages/core/test/parity.test.ts`): 브라우저 경로(가짜 FileSystemDirectoryHandle → `readDirectoryRecursive` → 실제 `parserWorker`를 같은 스레드에서 돌리는 Worker → `parseAllFiles` → `buildCodeMap`)와 Node 경로의 지도가 파일 순서까지 같다. 대상: 정답 픽스처 세 저장소(10, 16, 24개 파일)와 이 저장소 `src/`(205개 파일, 참조 위치 13,566개).
+- 같음 검증(`packages/core/test/parity.test.ts`): 브라우저 경로(가짜 FileSystemDirectoryHandle → `readDirectoryRecursive` → 실제 `parserWorker`를 같은 스레드에서 돌리는 Worker → `parseAllFiles` → `buildCodeMap`)와 Node 경로의 지도가 파일 순서까지 같고, 순회 목록(`listed`와 전체 경로 집합)과 트리의 파일·언어도 같다. 링크 없는 트리만 대상이다(가짜 핸들이 링크를 만나면 테스트가 실패한다). 링크 규칙은 `extract.test.ts`가 검증한다. 대상: 정답 픽스처 세 저장소(10, 16, 24개 파일)와 이 저장소 `src/`(205개 파일, 참조 위치 13,566개).
 - PASEO 실측(`e0f545fed`, 로컬 체크아웃, Apple M4 10코어, Node 26, 5회): 순회 6,756개, 지도 6,171개(브라우저는 2,000개에서 자른다), 건너뜀 2개(2MB 넘는 `html.gen.ts` 하나, 파서 오류 `launcher.sh` 하나). 벽시계 중앙값 6.52초(6.43~6.72초), 추출 끝 시점 최대 RSS 중앙값 974MB(924~996MB). `--out`으로 덤프까지 쓰면 최대 RSS 1.43GiB다. 한 코어에서 도는 tree-sitter WASM(파싱과 쿼리)이 CPU 프로필의 대부분이라, 더 빠르게 하려면 워커 풀(T1-11)이다. 지도에는 심볼 34,533개, 참조 위치 449,288개, import 32,996개(파일·패키지로 연결 27,498, 연결 못 함 58, 해석기 밖 언어 5,440)가 들었다.
 - 계층 요약: 폴더마다 아래 파일 수, 심볼 수(중첩 포함), 바로 든 파일 수, 하위 폴더, 그리고 이 폴더의 두 부분(하위 폴더나 바로 든 파일들) 사이의 import 수를 담는다. 대상이 파일 하나로 정해진 import만 센다. 같은 지도는 같은 요약이 된다.
 - `--out` 덤프는 확인용이고 `ropeman.json` 형식이 아니다. 형식은 T2-1이, serve 연결은 T2-4가 맡는다.

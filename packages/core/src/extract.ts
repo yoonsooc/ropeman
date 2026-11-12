@@ -1,4 +1,5 @@
 import { openAsBlob } from 'node:fs';
+import { realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ParseSkip } from '$lib/types/ast';
 import type { CodeMap } from '$lib/types/codeMap';
@@ -8,7 +9,7 @@ import { collectResolverConfigs } from '$lib/services/importResolver';
 import { buildCodeMap } from '$lib/services/codeMapBuilder';
 import { summarizeHierarchy, type HierarchyGroup } from '$lib/services/hierarchySummary';
 import { DEFAULT_PATH_FILTER, type PathFilter } from '$lib/utils/filePriority';
-import { walkDirectory } from './walk';
+import { isReadableTarget, walkDirectory } from './walk';
 
 /**
  * The per-file guard in place of the browser's MAX_FILE_SIZE (500 KB): a source file larger
@@ -39,7 +40,14 @@ export interface Extraction {
 export async function extractDirectory(root: string, options: ExtractOptions): Promise<Extraction> {
 	const { wasmDir, filter = DEFAULT_PATH_FILTER, maxFileSize = NODE_MAX_FILE_SIZE } = options;
 	const { tree, paths, rootReal } = await walkDirectory(root, filter);
-	const open = (path: string) => openAsBlob(join(rootReal, path));
+	// The path is resolved again at read time, so a file swapped for a link after the walk is
+	// not followed out of the root. The gap between this check and the open is left open.
+	const open = async (path: string) => {
+		const real = await realpath(join(rootReal, path));
+		if (!isReadableTarget(rootReal, real, filter))
+			throw new Error(`${path} changed after the walk`);
+		return openAsBlob(real);
+	};
 
 	const configs = await collectResolverConfigs(paths, async (path) => {
 		try {

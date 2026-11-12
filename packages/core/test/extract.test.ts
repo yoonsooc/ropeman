@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { rmSync, symlinkSync } from 'node:fs';
 import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -80,7 +81,7 @@ describe('extractDirectory', () => {
 		expect(paths(extraction)).toEqual(['.github/workflows/ci.yml', 'src/main.ts']);
 	});
 
-	it('follows a link inside the root, never one out of it, and reads a linked folder once', async () => {
+	it('follows a file link inside the root, never one out of it, and no folder link', async () => {
 		// Arrange
 		const outside = await project('outside', { 'secret.ts': 'export function leaked() {}\n' });
 		const root = await project('links', { 'src/real.ts': 'export function real() {}\n' });
@@ -94,6 +95,66 @@ describe('extractDirectory', () => {
 
 		// Assert
 		expect(paths(extraction)).toEqual(['src/alias.ts', 'src/real.ts']);
+	});
+
+	it('refuses a link whose target the loader would refuse by its own name', async () => {
+		// Arrange
+		const root = await project('link-targets', {
+			'.env': 'export const SECRET = "sk-live-secret";\n',
+			'.ENV.prod': 'export const SECRET = "sk-live-upper";\n',
+			'node_modules/dep/index.ts': 'export function dep() {}\n',
+			'.secrets/key.ts': 'export const KEY = "sk-live-hidden";\n',
+			'app.ts': 'export const a = 1;\n'
+		});
+		await symlink(join(root, '.env'), join(root, 'notes.ts'));
+		await symlink(join(root, '.ENV.prod'), join(root, 'prod.ts'));
+		await symlink(join(root, 'node_modules/dep/index.ts'), join(root, 'dep.ts'));
+		await symlink(join(root, '.secrets'), join(root, 'conf'));
+
+		// Act
+		const extraction = await extractDirectory(root, { wasmDir });
+
+		// Assert
+		expect(paths(extraction)).toEqual(['app.ts']);
+		expect(JSON.stringify([...extraction.map.files.values()])).not.toMatch(/sk-live|dep/);
+	});
+
+	it('names a folder reached through a link by its real path, whatever the readdir order', async () => {
+		// Arrange
+		const root = await project('dir-links', {
+			'm1/one.ts': 'export function one() {}\n',
+			'm2/two.ts': 'export function two() {}\n'
+		});
+		await symlink(join(root, 'm1'), join(root, 'a'));
+		await symlink(join(root, 'm2'), join(root, 'z'));
+
+		// Act
+		const extraction = await extractDirectory(root, { wasmDir });
+
+		// Assert
+		expect(paths(extraction)).toEqual(['m1/one.ts', 'm2/two.ts']);
+	});
+
+	it('does not follow a file swapped for a link out of the root after the walk', async () => {
+		// Arrange
+		const outside = await project('swap-outside', { 'secret.ts': 'export function leaked() {}\n' });
+		const root = await project('swap', {
+			'a.ts': 'export function kept() {}\n',
+			'b.ts': 'export function swapped() {}\n'
+		});
+		const swap = ({ done }: { done: number }) => {
+			if (done !== 0) return;
+			rmSync(join(root, 'b.ts'));
+			symlinkSync(join(outside, 'secret.ts'), join(root, 'b.ts'));
+		};
+
+		// Act
+		const extraction = await extractDirectory(root, { wasmDir, onProgress: swap });
+
+		// Assert
+		expect(paths(extraction)).toEqual(['a.ts']);
+		expect(extraction.skipped).toEqual([{ path: 'b.ts', reason: 'unreadable' }]);
+		expect(JSON.stringify([...extraction.map.files.values()])).not.toMatch(/leaked/);
 	});
 
 	it('reads files over the browser size limit and skips ones over the Node guard', async () => {

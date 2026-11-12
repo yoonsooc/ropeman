@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { readDirectoryRecursive } from '$lib/services/fileSystemService';
 import { parseAllFiles, destroy } from '$lib/services/parserService';
 import { buildCodeMap } from '$lib/services/codeMapBuilder';
+import type { FileNode } from '$lib/types/fileTree';
 import { extractDirectory } from '../src/extract';
+import { walkDirectory } from '../src/walk';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const wasmDir = join(repo, 'static');
@@ -26,13 +28,19 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 	return { Parser, Language, Query: real.Query };
 });
 
-/** A read-only FileSystemDirectoryHandle over a folder on disk, as showDirectoryPicker returns. */
+/**
+ * A read-only FileSystemDirectoryHandle over a folder on disk, as showDirectoryPicker returns.
+ * How Chrome's handles treat symbolic links is not known, so parity holds for trees without
+ * them and a link fails the test; `extract.test.ts` covers the Node link rules.
+ */
 function directoryHandle(path: string): FileSystemDirectoryHandle {
 	const handle = {
 		kind: 'directory',
 		name: basename(path),
 		async *values() {
 			for (const entry of await readdir(path, { withFileTypes: true })) {
+				if (entry.isSymbolicLink())
+					throw new Error(`parity covers trees without links: ${entry.name}`);
 				if (entry.isDirectory()) yield directoryHandle(join(path, entry.name));
 				else if (entry.isFile()) yield fileHandle(join(path, entry.name));
 			}
@@ -87,11 +95,18 @@ class InProcessWorker {
 	}
 }
 
+/** Every file in `node`, in tree order, with the language the parser will read it as. */
+const files = (node: FileNode): { path: string; language?: string }[] =>
+	node.kind === 'file'
+		? [{ path: node.path, language: node.language }]
+		: node.children!.flatMap(files);
+
 /** The browser path, as Dropzone runs it on a picked folder. */
 async function browserMap(root: string) {
-	const { tree, configs } = await readDirectoryRecursive(directoryHandle(root));
+	const { tree, cut, configs } = await readDirectoryRecursive(directoryHandle(root));
 	const { astMap, refs, skipped } = await parseAllFiles(tree);
-	return { map: buildCodeMap(astMap, null, { refs, configs }), skipped };
+	const listed = [...files(tree).map((file) => file.path), ...cut.map((file) => file.path)];
+	return { map: buildCodeMap(astMap, null, { refs, configs }), skipped, tree, cut, listed };
 }
 
 beforeAll(() => {
@@ -122,8 +137,13 @@ describe('Node extraction parity with the browser loader', () => {
 
 			// Act
 			const node = await extractDirectory(root, { wasmDir });
+			const walked = await walkDirectory(root);
 
 			// Assert
+			expect(browser.cut).toEqual([]);
+			expect(walked.paths.toSorted()).toEqual(browser.listed.toSorted());
+			expect(node.listed).toBe(browser.listed.length);
+			expect(files(walked.tree)).toEqual(files(browser.tree));
 			expect(node.map.files.size).toBeGreaterThan(0);
 			expect([...node.map.files.entries()]).toEqual([...browser.map.files.entries()]);
 			expect(node.map).toEqual(browser.map);

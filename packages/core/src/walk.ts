@@ -1,7 +1,7 @@
 import { readdir, realpath, stat } from 'node:fs/promises';
-import { basename, join, sep } from 'node:path';
+import { basename, join, relative, sep } from 'node:path';
 import type { FileNode } from '$lib/types/fileTree';
-import { detectLanguage } from '$lib/utils/languageDetector';
+import { detectLanguage, isEnvValueFile } from '$lib/utils/languageDetector';
 import {
 	DEFAULT_PATH_FILTER,
 	MAX_DEPTH,
@@ -20,9 +20,22 @@ export interface WalkedTree {
 }
 
 /**
+ * Whether `real`, a path from realpath, is a file the loader reads under its own name: inside
+ * the root, kept by `shouldSkipPath`, and not an env file with real values. A link is checked by
+ * its target too, so `notes.ts -> .env` is not read as TypeScript.
+ */
+export function isReadableTarget(rootReal: string, real: string, filter: PathFilter): boolean {
+	if (!real.startsWith(rootReal + sep)) return false;
+	const path = relative(rootReal, real).split(sep).join('/');
+	// Lowercased because on a case-insensitive disk `.ENV` opens `.env`
+	return !shouldSkipPath(path, filter, true) && !isEnvValueFile(path.toLowerCase());
+}
+
+/**
  * Walk `root` with the browser loader's skip rules (`shouldSkipPath`, include entries,
- * MAX_DEPTH) and no file cap. A symbolic link is followed only when its target is inside the
- * root, and a folder reached twice through links is read once.
+ * MAX_DEPTH) and no file cap. A link to a file is followed when `isReadableTarget` accepts its
+ * target. A link to a folder is never followed: a folder inside the root is walked under its
+ * real path whatever the readdir order, and one outside it or skipped is not read at all.
  */
 export async function walkDirectory(
 	root: string,
@@ -37,8 +50,18 @@ export async function walkDirectory(
 		children: []
 	};
 	const paths: string[] = [];
-	const seen = new Set<string>([rootReal]);
-	const inside = (real: string) => real === rootReal || real.startsWith(rootReal + sep);
+
+	async function isFile(entry: { isFile(): boolean; isSymbolicLink(): boolean }, absolute: string) {
+		if (entry.isFile()) return true;
+		if (!entry.isSymbolicLink()) return false;
+		try {
+			const real = await realpath(absolute);
+			return (await stat(real)).isFile() && isReadableTarget(rootReal, real, filter);
+		} catch {
+			// A dangling link
+			return false;
+		}
+	}
 
 	async function walk(dir: string, basePath: string, node: FileNode, depth: number) {
 		if (depth >= MAX_DEPTH) return;
@@ -52,14 +75,10 @@ export async function walkDirectory(
 		for (const entry of entries) {
 			const absolute = join(dir, entry.name);
 			const entryPath = basePath ? `${basePath}/${entry.name}` : entry.name;
-			const kind = await kindOf(entry, absolute);
-			if (kind === 'directory') {
+			if (entry.isDirectory()) {
 				if (shouldSkipPath(entryPath + '/', filter) && !isIncludeAncestor(entryPath, filter)) {
 					continue;
 				}
-				const real = await realpath(absolute);
-				if (!inside(real) || seen.has(real)) continue;
-				seen.add(real);
 				const child: FileNode = {
 					name: entry.name,
 					path: entryPath,
@@ -68,9 +87,8 @@ export async function walkDirectory(
 				};
 				node.children!.push(child);
 				await walk(absolute, entryPath, child, depth + 1);
-			} else if (kind === 'file') {
+			} else if (await isFile(entry, absolute)) {
 				if (shouldSkipPath(entryPath, filter, true)) continue;
-				if (entry.isSymbolicLink() && !inside(await realpath(absolute))) continue;
 				paths.push(entryPath);
 				node.children!.push({
 					name: entry.name,
@@ -85,20 +103,4 @@ export async function walkDirectory(
 	await walk(rootReal, '', tree, 0);
 	sortFileTree(tree);
 	return { tree, paths, rootReal };
-}
-
-async function kindOf(
-	entry: { isDirectory(): boolean; isFile(): boolean; isSymbolicLink(): boolean },
-	absolute: string
-): Promise<'directory' | 'file' | null> {
-	if (entry.isDirectory()) return 'directory';
-	if (entry.isFile()) return 'file';
-	if (!entry.isSymbolicLink()) return null;
-	try {
-		const target = await stat(absolute);
-		return target.isDirectory() ? 'directory' : target.isFile() ? 'file' : null;
-	} catch {
-		// A dangling link
-		return null;
-	}
 }
