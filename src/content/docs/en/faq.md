@@ -9,27 +9,27 @@ order: 4
 
 ### Is my original source code ever sent to an external server?
 
-Rest assured — your original source code is **never** transmitted externally under any circumstances. Only minimal code structure information (metadata) is used for AI context, and it is handled securely based on your chosen AI mode.
+No. Ropeman sends the AI a code summary (file paths, symbol names and imports), not the files themselves. Where the summary goes depends on the AI mode.
 
-- **WebGPU mode (highest security)**: Processed 100% offline on your device. No data leaves your machine.
-- **Demo / API Key mode**: Routed through a secure relay server to the AI model provider. The relay never stores the payload.
-- **Bridge mode**: Sent directly to the AI provider via your locally installed CLI tool — Ropeman's servers are not involved.
+- **WebGPU mode**: the model runs on your device, and nothing leaves it.
+- **Demo and API Key modes**: the summary goes to the AI provider. Demo requests and Anthropic or OpenAI key requests pass through Ropeman's proxy, which does not store them. Gemini key requests go straight to Google.
+- **Local Bridge mode**: your local CLI sends the summary to its provider. Ropeman's servers are not involved.
 
 For a full breakdown, see [Security](/docs/en/security).
 
 ### Are my API keys stored securely?
 
-API keys are never stored on Ropeman's servers — they are kept only in your browser on your device.
+Ropeman's servers don't store API keys. The key stays in this browser's local storage.
 
-- **API Key mode**: Keys are attached only at the moment of an API call and securely transmitted to the AI model provider via the edge proxy.
-- **Bridge mode**: No API key input is needed. It inherits the authentication of your locally configured CLI tool.
-- **WebGPU mode**: Runs offline, so no API key is required at all.
+- **API Key mode**: the key goes out with each AI request. Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store the key.
+- **Local Bridge mode**: you don't enter a key. The CLI uses its own login. The bridge asks for its own token, which stays on your machine and in this browser.
+- **WebGPU mode**: no key is needed.
 
-You can delete keys anytime from **Settings → Reset Settings**.
+You can delete stored keys anytime with **Settings → Reset**.
 
 ### What exactly is in the "code structure summary"?
 
-Function and method signatures, class declarations, import/export statements, and top-level type definitions. **Not** included: function bodies, inline comments, string literals, or configuration values. The summary is capped at 250 KB by default and is adjustable in Settings.
+File paths, the names of functions, classes and methods, and imports. For Markdown files it holds the frontmatter name and description, headings and links. Function bodies, comments, string literals, variable values, and type and interface declarations are left out. The summary is capped at 250 KB by default, adjustable in **Settings → Code Summary Size Limit**.
 
 ## Languages & Projects
 
@@ -57,7 +57,7 @@ Unparseable files are skipped silently and do not block the rest of the project.
 
 ### Can I use Ropeman commercially?
 
-Yes. Ropeman is a visualization tool — analyzing your own code, whether personal or commercial, is fully supported. The tool itself is provided as-is from [ropeman.dev](https://ropeman.dev). If you use **Demo** mode, remember the shared quota is for evaluation; switch to **API Key** or **Bridge** for sustained professional use.
+Yes. You can analyze your own code with Ropeman, personal or commercial. The tool itself is provided as-is from [ropeman.dev](https://ropeman.dev). If you use **Demo** mode, remember the shared quota is for evaluation; switch to **API Key** or **Local Bridge** for sustained professional use.
 
 ### Does Ropeman work offline?
 
@@ -87,7 +87,7 @@ Yes. Paste a public GitHub repository URL into the input field on the landing pa
 
 ### Can I share my analysis results?
 
-Yes. After AI analysis completes, click the **Share** button in the header to generate a public link. You can share this link with anyone to let them view the analysis.
+Yes. After AI analysis completes, click the **Share** button in the header to generate a public link. Anyone with the link can view the analysis for 14 days.
 
 ### Can I exclude specific directories from analysis?
 

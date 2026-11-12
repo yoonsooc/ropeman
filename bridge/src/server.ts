@@ -287,7 +287,7 @@ function startServer(
 
 	log(`Bridge server ready on ws://${HOST}:${port}`);
 	log(`Token: ${auth.token}`);
-	log('Paste this token into the Bridge tab in Ropeman to connect.');
+	log('Paste this token into the Token field on the Local Bridge card in Ropeman.');
 	log(`Allowed origins: ${[...auth.allowedOrigins].join(', ')}`);
 }
 

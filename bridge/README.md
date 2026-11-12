@@ -6,10 +6,12 @@ WebSocket relay server for Ropeman AI bridge connections.
 
 ```bash
 npx @ropeman/bridge
-npx @ropeman/bridge --port 9800
+npx @ropeman/bridge --port 9900 --cli claude
 ```
 
-On startup the bridge prints a token. Paste it into the Bridge tab in Ropeman.
+The bridge listens on `ws://127.0.0.1:9800` unless you pass `--port`. Without `--cli` it checks for `claude`, then `gemini`, and uses the first one it finds.
+
+On startup the bridge prints a token. Paste it into the Token field on the Local Bridge card in Ropeman (open the AI Architecture Analysis dialog with the Analyze button). If you changed the port, enter the same number in the card's Port field.
 
 Bridge 0.2 requires this token, so upgrade the bridge and the Ropeman app together. An app from before 0.2 connects without a token and is refused.
 
