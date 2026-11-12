@@ -743,3 +743,318 @@ describe('isResolverConfig', () => {
 		expect(picked).toEqual(paths.slice(0, 6));
 	});
 });
+
+describe('tsconfig project selection', () => {
+	it('follows references and gives each file the project whose include and exclude take it', () => {
+		// Arrange: the Vite template, where tsconfig.json holds only `references`
+		const configs = {
+			'tsconfig.json': json({
+				files: [],
+				references: [
+					{ path: './tsconfig.app.json' },
+					{ path: './tsconfig.node.json' },
+					{ path: './tsconfig.test.json' }
+				]
+			}),
+			'tsconfig.app.json': json({
+				compilerOptions: { paths: { '@/*': ['./src/*'] } },
+				include: ['src'],
+				exclude: ['src/**/*.test.ts']
+			}),
+			'tsconfig.node.json': json({
+				compilerOptions: { paths: { '@/*': ['./config/*'] } },
+				include: ['vite.config.ts']
+			}),
+			'tsconfig.test.json': json({
+				compilerOptions: { paths: { '@/*': ['./test/*'] } },
+				include: ['src/**/*.test.ts']
+			})
+		};
+		const files = {
+			'src/main.ts': { imports: ["import { util } from '@/util'"] },
+			'src/deep/view.ts': { imports: ["import { util } from '@/util'"] },
+			'src/main.test.ts': { imports: ["import { util } from '@/util'"] },
+			'vite.config.ts': { imports: ["import { util } from '@/util'"] },
+			'scripts/seed.ts': { imports: ["import { util } from '@/util'"] },
+			'src/util.ts': {},
+			'config/util.ts': {},
+			'test/util.ts': {}
+		};
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'src/main.ts')).toBe('app/src/util.ts');
+		expect(target(result, 'src/deep/view.ts')).toBe('app/src/util.ts');
+		expect(target(result, 'src/main.test.ts')).toBe('app/test/util.ts');
+		expect(target(result, 'vite.config.ts')).toBe('app/config/util.ts');
+		// No project lists it, so the first one with `paths` applies
+		expect(target(result, 'scripts/seed.ts')).toBe('app/src/util.ts');
+	});
+
+	it('reads a referenced folder as its tsconfig.json', () => {
+		// Arrange
+		const configs = {
+			'tsconfig.json': json({ files: [], references: [{ path: './web' }] }),
+			'web/tsconfig.json': json({
+				compilerOptions: { paths: { '~/*': ['./lib/*'] } },
+				include: ['../shared/**/*.ts']
+			})
+		};
+		const files = {
+			'shared/a.ts': { imports: ["import { b } from '~/b'"] },
+			'web/lib/b.ts': {}
+		};
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'shared/a.ts')).toBe('app/web/lib/b.ts');
+	});
+
+	it('reads a tsconfig that starts with a byte order mark', () => {
+		// Arrange
+		const configs = {
+			'tsconfig.json': `\uFEFF${json({ compilerOptions: { paths: { '@/*': ['./src/*'] } } })}`
+		};
+		const files = { 'main.ts': { imports: ["import { a } from '@/a'"] }, 'src/a.ts': {} };
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'main.ts')).toBe('app/src/a.ts');
+	});
+});
+
+describe('tsconfig extends chains', () => {
+	it('reads a shared base through both sides of a diamond, the later parent winning', () => {
+		// Arrange: tsconfig extends [a, b], and a and b both extend base
+		const configs = {
+			'base.json': json({ compilerOptions: { paths: { '@x': ['./base/x.ts'] } } }),
+			'a.json': json({
+				extends: './base.json',
+				compilerOptions: { paths: { '@x': ['./a/x.ts'] } }
+			}),
+			'b.json': json({ extends: './base.json' }),
+			'tsconfig.json': json({ extends: ['./a.json', './b.json'] }),
+			'one.json': json({ compilerOptions: { baseUrl: './one' } }),
+			'two.json': json({ compilerOptions: { baseUrl: './two' } }),
+			'pkg/tsconfig.json': json({ extends: ['../one.json', '../two.json'] })
+		};
+		const files = {
+			'main.ts': { imports: ["import { x } from '@x'"] },
+			'pkg/main.ts': { imports: ["import { y } from 'lib/y'"] },
+			'base/x.ts': {},
+			'a/x.ts': {},
+			'one/lib/y.ts': {},
+			'two/lib/y.ts': {}
+		};
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'main.ts')).toBe('app/base/x.ts');
+		expect(target(result, 'pkg/main.ts')).toBe('app/two/lib/y.ts');
+	});
+
+	it('extends a config shipped by a workspace package, by file or by package name', () => {
+		// Arrange
+		const configs = {
+			'package.json': json({ name: 'root', workspaces: ['packages/*', 'apps/*'] }),
+			'packages/tsconfig/package.json': json({ name: '@repo/tsconfig' }),
+			'packages/tsconfig/base.json': json({
+				compilerOptions: { paths: { '@shared/*': ['../../shared/*'] } }
+			}),
+			'packages/tsconfig/tsconfig.json': json({
+				compilerOptions: { paths: { '@root/*': ['../../*'] } }
+			}),
+			'apps/web/tsconfig.json': json({ extends: '@repo/tsconfig/base.json' }),
+			'apps/api/tsconfig.json': json({ extends: '@repo/tsconfig' })
+		};
+		const files = {
+			'apps/web/src/a.ts': { imports: ["import { x } from '@shared/x'"] },
+			'apps/api/src/a.ts': { imports: ["import { x } from '@root/shared/x'"] },
+			'shared/x.ts': {}
+		};
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'apps/web/src/a.ts')).toBe('app/shared/x.ts');
+		expect(target(result, 'apps/api/src/a.ts')).toBe('app/shared/x.ts');
+	});
+});
+
+describe('package conditions and #imports', () => {
+	const configs = {
+		'package.json': json({
+			name: 'root',
+			workspaces: ['packages/*'],
+			imports: {
+				'#lib/*': './src/lib/*.js',
+				'#cfg': { node: './src/node-config.ts', import: './src/config.ts' },
+				'#dep': 'lodash-es',
+				'#gone': './src/gone.js'
+			}
+		}),
+		'packages/ui/package.json': json({
+			name: '@acme/ui',
+			exports: {
+				'.': { worker: './w.js', default: './a.js', types: './b.d.ts' },
+				'./*': './src/*.js'
+			}
+		})
+	};
+	const files = {
+		'src/main.ts': {
+			imports: [
+				"import { a } from '#lib/a'",
+				"import { cfg } from '#cfg'",
+				"import { debounce } from '#dep'",
+				"import { gone } from '#gone'",
+				"import { none } from '#none'",
+				"import { ui } from '@acme/ui'",
+				"import { odd } from '@acme/ui/x$$y'"
+			]
+		},
+		'src/lib/a.ts': {},
+		'src/config.ts': {},
+		'src/node-config.ts': {},
+		'packages/ui/w.js': {},
+		'packages/ui/a.js': {},
+		'packages/ui/b.d.ts': {},
+		'packages/ui/src/x$$y.ts': {}
+	};
+
+	it('resolves #imports from the nearest package.json and never calls a miss external', () => {
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		const main = 'src/main.ts';
+		expect(outcome(result, main, 0)).toEqual({
+			status: 'file',
+			rule: 'package-imports',
+			paths: ['app/src/lib/a.ts']
+		});
+		expect(target(result, main, 1)).toBe('app/src/config.ts');
+		expect(target(result, main, 2)).toBe('external:lodash-es');
+		for (const index of [3, 4]) {
+			expect(outcome(result, main, index)).toEqual({
+				status: 'unresolved',
+				rule: 'package-imports',
+				reason: 'no-entry'
+			});
+		}
+	});
+
+	it('walks export conditions in the order the package wrote them', () => {
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert: `worker` is not followed, and `default` is written before `types`
+		expect(target(result, 'src/main.ts', 5)).toBe('app/packages/ui/a.js');
+		expect(target(result, 'src/main.ts', 6)).toBe('app/packages/ui/src/x$$y.ts');
+	});
+});
+
+describe('Python namespace packages and source roots', () => {
+	it('resolves imports into a folder with no __init__.py through its submodules', () => {
+		// Arrange
+		const files = {
+			'svc/api/views.py': {
+				imports: [
+					'from . import helpers',
+					'from .tools import fmt, missing',
+					'from svc.api.tools import fmt',
+					'from .tools import *'
+				]
+			},
+			'svc/api/helpers.py': {},
+			'svc/api/tools/fmt.py': { symbols: [fn('missing')] }
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		const views = 'svc/api/views.py';
+		expect(target(result, views, 0)).toBe('app/svc/api/helpers.py');
+		expect(site(result, views, 0).specifiers).toMatchObject([
+			{ kind: 'namespace', target: { candidates: [{ to: { path: 'app/svc/api/helpers.py' } }] } }
+		]);
+		expect(target(result, views, 1)).toBe('app/svc/api/tools/fmt.py');
+		// `missing` is not a submodule, and a namespace package has no module to declare it
+		expect(site(result, views, 1).specifiers!.map((s) => [s.kind, s.target.state])).toEqual([
+			['namespace', 'bound'],
+			['named', 'unresolved']
+		]);
+		expect(outcome(result, views, 2)).toEqual({
+			status: 'file',
+			rule: 'python-package',
+			paths: ['app/svc/api/tools/fmt.py']
+		});
+		expect(outcome(result, views, 3)).toEqual({
+			status: 'unresolved',
+			rule: 'python-relative',
+			reason: 'no-file'
+		});
+	});
+
+	it('does not read an absolute import as a sibling module, since Python 3 has no implicit relative import', () => {
+		// Arrange
+		const files = {
+			'pkg/__init__.py': {},
+			'pkg/a.py': { imports: ['import b', 'from pkg import b'] },
+			'pkg/b.py': {}
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(target(result, 'pkg/a.py', 0)).toBe('external:b');
+		expect(target(result, 'pkg/a.py', 1)).toBe('app/pkg/__init__.py');
+	});
+});
+
+describe('specifier edge cases', () => {
+	it('loads the .ts source a written .js names even when the .js exists too', () => {
+		// Arrange
+		const files = {
+			'main.ts': { imports: ["import { a } from './a.js'"] },
+			'a.ts': {},
+			'a.js': {}
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(target(result, 'main.ts')).toBe('app/a.ts');
+	});
+
+	it('keeps a $ in the part a tsconfig * matched', () => {
+		// Arrange
+		const configs = {
+			'tsconfig.json': json({ compilerOptions: { paths: { '@/*': ['./src/*'] } } })
+		};
+		const files = {
+			'main.ts': { imports: ["import a from '@/a$&b'", "import c from '@/c$$d'"] },
+			'src/a$&b.ts': {},
+			'src/c$$d.ts': {}
+		};
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'main.ts', 0)).toBe('app/src/a$&b.ts');
+		expect(target(result, 'main.ts', 1)).toBe('app/src/c$$d.ts');
+	});
+});

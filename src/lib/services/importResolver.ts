@@ -23,14 +23,16 @@ export type ImportRule =
 	| 'sveltekit-alias'
 	| 'base-url'
 	| 'workspace'
+	| 'package-imports'
 	| 'python-relative'
 	| 'python-package';
 
 /**
  * Why a site that names something local found no file. `no-file`: the rule produced a path the
  * map lacks (a missing, cut or unparsed file, such as `.css`). `no-entry`: a workspace package
- * whose `exports`, `main` or `types` reach no file in the map. `outside-root`: a relative path
- * that climbs out of the project. `unparsed`: the statement text names no module.
+ * whose `exports`, `main` or `types`, or a package.json `imports` key, reach no file in the map.
+ * `outside-root`: a relative path that climbs out of the project. `unparsed`: the statement
+ * text names no module.
  */
 export type UnresolvedReason = 'no-file' | 'no-entry' | 'outside-root' | 'unparsed';
 
@@ -56,12 +58,17 @@ interface PathAlias {
 	targets: string[];
 }
 
-interface AliasScope {
+/** One tsconfig as it applies to a file: its aliases, and the files `files`, `include` and `exclude` give it. */
+interface TsProject {
 	aliases: PathAlias[];
 	baseUrl: string | null;
+	files: ReadonlySet<string>;
+	include: RegExp[];
+	exclude: RegExp[];
 }
 
-interface WorkspacePackage {
+/** A folder with a package.json, workspace member or not. */
+interface Package {
 	dir: string;
 	manifest: PackageManifest;
 	/** tsconfig `outDir` → `rootDir`, so a `dist/` entry maps back to its source */
@@ -71,6 +78,7 @@ interface WorkspacePackage {
 interface PackageManifest {
 	name?: unknown;
 	exports?: unknown;
+	imports?: unknown;
 	main?: unknown;
 	types?: unknown;
 	typings?: unknown;
@@ -89,9 +97,13 @@ interface CompilerOptions {
 
 /** Everything the config files say about resolution, keyed by the directory each applies to. */
 export interface ResolverConfig {
-	tsScopes: ReadonlyMap<string, AliasScope>;
+	/** The tsconfigs a folder's files may belong to, in the order they are tried */
+	tsScopes: ReadonlyMap<string, readonly TsProject[]>;
 	kitScopes: ReadonlyMap<string, PathAlias[]>;
-	packages: ReadonlyMap<string, WorkspacePackage>;
+	/** Workspace members by package name */
+	packages: ReadonlyMap<string, Package>;
+	/** Every package.json by folder, for `#imports` */
+	packageScopes: ReadonlyMap<string, Package>;
 }
 
 const PROVENANCE: CodeProvenance = { source: 'resolver', confidence: 'EXTRACTED' };
@@ -122,16 +134,8 @@ const COMPILED_EXTS: [string, string[]][] = [
 ];
 /** Build output folders a package entry may point into when no tsconfig maps them */
 const BUILD_DIRS = new Set(['dist', 'build', 'lib', 'out', 'esm', 'cjs']);
-const CONDITIONS = [
-	'source',
-	'svelte',
-	'types',
-	'import',
-	'module',
-	'browser',
-	'default',
-	'require'
-];
+/** `exports` and `imports` conditions the resolver follows, in the order the package wrote them */
+const CONDITIONS = new Set(['types', 'import', 'require', 'default', 'svelte', 'browser']);
 
 type Family = 'script' | 'python';
 
@@ -165,13 +169,16 @@ export function readResolverConfig(texts: ReadonlyMap<string, string>): Resolver
 			json.set(path, value as Record<string, unknown>);
 		}
 	}
-	const packages = readWorkspacePackages(texts, json);
+	const { packages, packageScopes } = readPackages(texts, json);
 	return {
 		tsScopes: readTsScopes(json, packages),
 		kitScopes: readKitScopes(texts),
-		packages
+		packages,
+		packageScopes
 	};
 }
+
+const UNPARSED: ModuleResolution = { status: 'unresolved', rule: null, reason: 'unparsed' };
 
 /**
  * Bind every import and re-export site the resolver understands; other languages keep
@@ -189,11 +196,13 @@ export function resolveImports(
 		const read = (site: ModuleSite): ReadSite => {
 			const statement =
 				family === 'python' ? readPythonImport(site.text) : readScriptImport(site.text);
-			const resolution = statement
-				? resolveModule(statement.module, path, family, ctx)
-				: ({ status: 'unresolved', rule: null, reason: 'unparsed' } as const);
+			const { resolution, pythonPackage } = !statement
+				? { resolution: UNPARSED, pythonPackage: null }
+				: family === 'python'
+					? resolvePythonModule(statement, path, ctx)
+					: { resolution: resolveScriptModule(statement.module, path, ctx), pythonPackage: null };
 			outcomes.push({ path, line: site.line, written: statement?.module ?? null, resolution });
-			return { site, statement, resolution };
+			return { site, statement, resolution, pythonPackage };
 		};
 		ctx.sites.set(path, {
 			imports: record.imports.map(read),
@@ -222,6 +231,18 @@ interface ReadSite {
 	site: ModuleSite;
 	statement: Statement | null;
 	resolution: ModuleResolution;
+	/** The package a Python `from` names, whose submodules its listed names may load */
+	pythonPackage: PythonPackage | null;
+}
+
+/**
+ * A Python package's folders: one, or one per source root for a namespace package found under
+ * several. A namespace package (no `__init__.py`) has no module of its own, so a listed name
+ * that is not a submodule binds nothing.
+ */
+interface PythonPackage {
+	dirs: string[];
+	namespace: boolean;
 }
 
 interface Context {
@@ -231,6 +252,8 @@ interface Context {
 	/** Every key starts with this; '' when keys are repo-relative */
 	prefix: string;
 	pythonRoots: string[];
+	/** Every folder that holds a `.py` file, at any depth, so a namespace package is found */
+	pythonDirs: ReadonlySet<string>;
 	/** `$lib` as SvelteKit defaults it, for a project with no svelte.config */
 	defaultKit: PathAlias[] | null;
 	/** Each file's sites with their modules resolved, filled before any name is bound */
@@ -250,6 +273,7 @@ function createContext(map: CodeMap, config: ResolverConfig): Context {
 		records: map.files,
 		prefix,
 		pythonRoots: pythonRoots(files, prefix),
+		pythonDirs: pythonDirs(files),
 		defaultKit,
 		sites: new Map()
 	};
@@ -365,17 +389,6 @@ function stripComments(text: string): string {
 	return out;
 }
 
-function resolveModule(
-	written: string,
-	from: FilePath,
-	family: Family,
-	ctx: Context
-): ModuleResolution {
-	return family === 'python'
-		? resolvePythonModule(written, from, ctx)
-		: resolveScriptModule(written, from, ctx);
-}
-
 const fileHit = (rule: ImportRule, path: string): ModuleResolution => ({
 	status: 'file',
 	rule,
@@ -411,7 +424,7 @@ function resolveScriptModule(specifier: string, from: FilePath, ctx: Context): M
 		if (hit) return fileHit('sveltekit-alias', hit);
 		if (hit === null) aliased = 'sveltekit-alias';
 	}
-	const ts = nearestScope(ctx.config.tsScopes, from);
+	const ts = tsProjectFor(nearestScope(ctx.config.tsScopes, from), from);
 	if (ts) {
 		const hit = matchAliases(ts.aliases, written, ctx.files);
 		if (hit) return fileHit('tsconfig-paths', hit);
@@ -421,15 +434,59 @@ function resolveScriptModule(specifier: string, from: FilePath, ctx: Context): M
 			if (viaBase) return fileHit('base-url', viaBase);
 		}
 	}
+	if (written.startsWith('#')) return resolvePackageImport(written, from, ctx);
 
+	const workspace = resolveWorkspace(written, ctx);
+	if (workspace) return workspace;
+	if (aliased) return miss(aliased, 'no-file');
+	return { status: 'external', module: splitPackage(written).name };
+}
+
+/**
+ * The project tsc would put a file in: the first one whose `files`/`include`/`exclude` take it,
+ * else the first that sets `paths` or `baseUrl`, so a file no config lists keeps the aliases.
+ */
+function tsProjectFor(projects: readonly TsProject[] | null, from: string): TsProject | null {
+	if (!projects) return null;
+	return (
+		projects.find(
+			(p) =>
+				p.files.has(from) ||
+				(p.include.some((glob) => glob.test(from)) && !p.exclude.some((glob) => glob.test(from)))
+		) ??
+		projects.find((p) => p.aliases.length > 0 || p.baseUrl !== null) ??
+		projects[0] ??
+		null
+	);
+}
+
+/** A bare name that is a workspace member, null when it names no member. */
+function resolveWorkspace(written: string, ctx: Context): ModuleResolution | null {
 	const { name, subpath } = splitPackage(written);
 	const pkg = ctx.config.packages.get(name);
-	if (pkg) {
-		const hit = resolvePackageEntry(pkg, subpath, ctx.files);
-		return hit ? fileHit('workspace', hit) : miss('workspace', 'no-entry');
+	if (!pkg) return null;
+	const hit = resolvePackageEntry(pkg, subpath, ctx.files);
+	return hit ? fileHit('workspace', hit) : miss('workspace', 'no-entry');
+}
+
+/** `#x` through the `imports` field of the nearest package.json, as Node reads it. */
+function resolvePackageImport(written: string, from: FilePath, ctx: Context): ModuleResolution {
+	const scope = nearestScope(ctx.config.packageScopes, from);
+	const { imports } = scope?.manifest ?? {};
+	if (!scope || !imports || typeof imports !== 'object' || Array.isArray(imports)) {
+		return miss('package-imports', 'no-entry');
 	}
-	if (aliased) return miss(aliased, 'no-file');
-	return { status: 'external', module: name };
+	for (const target of subpathTargets(imports as Record<string, unknown>, written)) {
+		if (target.startsWith('./')) {
+			const hit = findPackageFile(scope, target, ctx.files);
+			if (hit) return fileHit('package-imports', hit);
+		} else if (!/^[#./]/.test(target)) {
+			return (
+				resolveWorkspace(target, ctx) ?? { status: 'external', module: splitPackage(target).name }
+			);
+		}
+	}
+	return miss('package-imports', 'no-entry');
 }
 
 /** A file path, null when a pattern matched but no target exists, undefined when none matched. */
@@ -446,12 +503,17 @@ function matchAliases(
 		if (!best || rank > best.rank) best = { alias, star, rank };
 	}
 	if (!best) return undefined;
-	for (const target of best.alias.targets) {
-		const hit = findScript(target.replace('*', best.star), files);
+	const { alias, star } = best;
+	for (const target of alias.targets) {
+		// A function replacement, so a `$&` or `$$` in the import is not a substitution pattern
+		const hit = findScript(
+			target.replace('*', () => star),
+			files
+		);
 		if (hit) return hit;
 	}
 	// A catch-all `*` claims every bare name, so its miss falls through to packages
-	return best.alias.pattern === '*' ? undefined : null;
+	return alias.pattern === '*' ? undefined : null;
 }
 
 function matchPattern(pattern: string, written: string): string | null {
@@ -464,17 +526,21 @@ function matchPattern(pattern: string, written: string): string | null {
 	return written.slice(head.length, written.length - tail.length);
 }
 
-/** The file a script specifier loads: as written, compiled extension swapped, extension added, or `/index`. */
+/**
+ * The file a script specifier loads: the source a compiled extension names, as written,
+ * extension added, or `/index`. A source beats the written file, as in tsc, so `./a.js`
+ * loads `a.ts` when both exist.
+ */
 function findScript(base: string, files: ReadonlySet<string>): string | null {
 	const normalized = joinPath('', base);
 	if (normalized === null) return null;
-	if (files.has(normalized)) return normalized;
 	for (const [compiled, sources] of COMPILED_EXTS) {
 		if (!normalized.endsWith(compiled)) continue;
 		const stem = normalized.slice(0, -compiled.length);
 		for (const ext of sources) if (files.has(stem + ext)) return stem + ext;
 		break;
 	}
+	if (files.has(normalized)) return normalized;
 	for (const ext of SCRIPT_EXTS) if (files.has(normalized + ext)) return normalized + ext;
 	for (const ext of SCRIPT_EXTS) {
 		if (files.has(`${normalized}/index${ext}`)) return `${normalized}/index${ext}`;
@@ -490,7 +556,7 @@ function splitPackage(written: string): { name: string; subpath: string } {
 }
 
 function resolvePackageEntry(
-	pkg: WorkspacePackage,
+	pkg: Package,
 	subpath: string,
 	files: ReadonlySet<string>
 ): string | null {
@@ -512,7 +578,7 @@ function resolvePackageEntry(
 	return null;
 }
 
-/** Targets for a subpath in `exports`, preferred conditions first, `*` substituted. */
+/** Targets for a subpath in `exports`, which may be sugar for `{ ".": … }`. */
 function exportTargets(exports: unknown, subpath: string): string[] {
 	const map =
 		typeof exports === 'string' ||
@@ -522,7 +588,12 @@ function exportTargets(exports: unknown, subpath: string): string[] {
 			!Object.keys(exports).some((key) => key.startsWith('.')))
 			? { '.': exports }
 			: (exports as Record<string, unknown>);
-	if (subpath in map) return conditionTargets(map[subpath], '');
+	return subpathTargets(map, subpath);
+}
+
+/** Targets for a key of an `exports` or `imports` map, exact key first, then the longest `*` pattern. */
+function subpathTargets(map: Record<string, unknown>, subpath: string): string[] {
+	if (Object.hasOwn(map, subpath)) return conditionTargets(map[subpath], '');
 	let best: { key: string; star: string } | null = null;
 	for (const key of Object.keys(map)) {
 		const star = key.includes('*') ? matchPattern(key, subpath) : null;
@@ -533,25 +604,21 @@ function exportTargets(exports: unknown, subpath: string): string[] {
 	return best ? conditionTargets(map[best.key], best.star) : [];
 }
 
+/**
+ * Every target a condition tree can pick, in the order its keys are written, as Node walks
+ * them. All followed conditions are kept, since the file the map holds may sit behind any.
+ */
 function conditionTargets(value: unknown, star: string): string[] {
-	if (typeof value === 'string') return [value.replaceAll('*', star)];
+	if (typeof value === 'string') return [value.replaceAll('*', () => star)];
 	if (Array.isArray(value)) return value.flatMap((v) => conditionTargets(v, star));
 	if (!value || typeof value !== 'object') return [];
-	const record = value as Record<string, unknown>;
-	const keys = Object.keys(record);
-	const ordered = [
-		...CONDITIONS.filter((c) => keys.includes(c)),
-		...keys.filter((k) => !CONDITIONS.includes(k))
-	];
-	return ordered.flatMap((key) => conditionTargets(record[key], star));
+	return Object.entries(value)
+		.filter(([key]) => CONDITIONS.has(key))
+		.flatMap(([, target]) => conditionTargets(target, star));
 }
 
 /** A package entry, mapped from its build folder back to source when only the source is in the map. */
-function findPackageFile(
-	pkg: WorkspacePackage,
-	target: string,
-	files: ReadonlySet<string>
-): string | null {
+function findPackageFile(pkg: Package, target: string, files: ReadonlySet<string>): string | null {
 	const joined = joinPath(pkg.dir, target);
 	if (joined === null) return null;
 	const direct = findScript(joined, files);
@@ -570,32 +637,105 @@ function findPackageFile(
 	return null;
 }
 
-function resolvePythonModule(written: string, from: FilePath, ctx: Context): ModuleResolution {
+interface PythonModule {
+	resolution: ModuleResolution;
+	pythonPackage: PythonPackage | null;
+}
+
+/**
+ * A relative import from the importing file's package; an absolute one from the source roots
+ * only, since Python 3 has no implicit relative import. A namespace package (a folder with no
+ * `__init__.py`) has no file, so the site's module is the first listed name that is one of its
+ * submodules, as Python `import a, b` keeps the first module.
+ */
+function resolvePythonModule(statement: Statement, from: FilePath, ctx: Context): PythonModule {
+	const written = statement.module;
 	const dots = written.match(/^\.*/)![0].length;
 	const modulePath = written.slice(dots).split('.').filter(Boolean).join('/');
+	let rule: ImportRule;
+	let bases: string[];
 	if (dots > 0) {
+		rule = 'python-relative';
 		let dir: string | null = dirname(from);
 		for (let i = 1; i < dots && dir !== null; i++) dir = parentDir(dir, ctx.prefix);
-		if (dir === null) return miss('python-relative', 'outside-root');
-		const hit = modulePath ? findPython(`${dir}/${modulePath}`, ctx.files) : `${dir}/__init__.py`;
-		return hit && ctx.files.has(hit)
-			? fileHit('python-relative', hit)
-			: miss('python-relative', 'no-file');
+		if (dir === null) return { resolution: miss(rule, 'outside-root'), pythonPackage: null };
+		if (!modulePath) {
+			const init = `${dir}/__init__.py`;
+			if (ctx.files.has(init)) return pythonFile(rule, [init]);
+			return namespaceModule(rule, [dir], statement, ctx);
+		}
+		bases = [`${dir}/${modulePath}`];
+	} else {
+		rule = 'python-package';
+		bases = ctx.pythonRoots.map((root) => (root ? `${root}/${modulePath}` : modulePath));
 	}
-	const hits = new Set<string>();
-	for (const root of [dirname(from), ...ctx.pythonRoots]) {
-		const hit = findPython(root ? `${root}/${modulePath}` : modulePath, ctx.files);
-		if (hit) hits.add(hit);
+	const hits = [...new Set(bases.map((base) => findPython(base, ctx.files)))].filter(
+		(hit): hit is string => hit !== null
+	);
+	if (hits.length > 0) return pythonFile(rule, hits);
+	const namespaces = bases.filter((base) => ctx.pythonDirs.has(base));
+	if (namespaces.length > 0) return namespaceModule(rule, namespaces, statement, ctx);
+	return {
+		resolution:
+			rule === 'python-relative'
+				? miss(rule, 'no-file')
+				: { status: 'external', module: modulePath.split('/')[0] },
+		pythonPackage: null
+	};
+}
+
+function pythonFile(rule: ImportRule, [first, ...others]: string[]): PythonModule {
+	const resolution: ModuleResolution = {
+		status: 'file',
+		rule,
+		paths: [first as FilePath, ...(others as FilePath[])]
+	};
+	const pythonPackage =
+		others.length === 0 && first.endsWith('/__init__.py')
+			? { dirs: [dirname(first)], namespace: false }
+			: null;
+	return { resolution, pythonPackage };
+}
+
+function namespaceModule(
+	rule: ImportRule,
+	dirs: string[],
+	statement: Statement,
+	ctx: Context
+): PythonModule {
+	const pythonPackage = { dirs, namespace: true };
+	for (const { name } of statement.named) {
+		const hit = findSubmodule(pythonPackage, name, ctx.files);
+		if (hit) return { resolution: fileHit(rule, hit), pythonPackage };
 	}
-	const [first, ...others] = [...hits] as FilePath[];
-	if (first) return { status: 'file', rule: 'python-package', paths: [first, ...others] };
-	return { status: 'external', module: modulePath.split('/')[0] };
+	return { resolution: miss(rule, 'no-file'), pythonPackage };
+}
+
+function findSubmodule(
+	pkg: PythonPackage,
+	name: string,
+	files: ReadonlySet<string>
+): string | null {
+	for (const dir of pkg.dirs) {
+		const hit = findPython(`${dir}/${name}`, files);
+		if (hit) return hit;
+	}
+	return null;
 }
 
 function findPython(base: string, files: ReadonlySet<string>): string | null {
 	if (files.has(`${base}.py`)) return `${base}.py`;
 	if (files.has(`${base}/__init__.py`)) return `${base}/__init__.py`;
 	return null;
+}
+
+function pythonDirs(files: ReadonlySet<string>): Set<string> {
+	const dirs = new Set<string>();
+	for (const file of files) {
+		if (!file.endsWith('.py')) continue;
+		for (let dir = dirname(file); dir && !dirs.has(dir); dir = dirname(dir)) dirs.add(dir);
+	}
+	return dirs;
 }
 
 /** Folders a top-level package sits in, plus the project folder and `src/`. */
@@ -610,7 +750,10 @@ function pythonRoots(files: ReadonlySet<string>, prefix: string): string[] {
 	return [...roots];
 }
 
-function bindSite({ site, statement, resolution }: ReadSite, ctx: Context): ModuleSite {
+function bindSite(
+	{ site, statement, resolution, pythonPackage }: ReadSite,
+	ctx: Context
+): ModuleSite {
 	const module = moduleBinding(resolution);
 	if (!statement) return { ...site, module };
 	if (!statement.split) return { ...site, module, specifiers: [] };
@@ -627,13 +770,14 @@ function bindSite({ site, statement, resolution }: ReadSite, ctx: Context): Modu
 		specifiers.push({ ...statement.namespaceLocal, kind: 'namespace', target: module });
 	}
 	for (const item of statement.named) {
-		const submodule = pythonSubmodule(resolution, item.name, ctx);
+		// `from pkg import mod` binds a module when `pkg/mod.py` exists, which outranks a symbol
+		const submodule = pythonPackage && findSubmodule(pythonPackage, item.name, ctx.files);
 		if (submodule) {
 			specifiers.push({
 				local: item.local,
 				typeOnly: item.typeOnly,
 				kind: 'namespace',
-				target: submodule
+				target: bound({ kind: 'file', path: submodule as FilePath })
 			});
 			continue;
 		}
@@ -642,7 +786,9 @@ function bindSite({ site, statement, resolution }: ReadSite, ctx: Context): Modu
 			typeOnly: item.typeOnly,
 			kind: 'named',
 			name: item.name,
-			target: symbolBinding(resolution, item.name, ctx)
+			target: pythonPackage?.namespace
+				? { state: 'unresolved' }
+				: symbolBinding(resolution, item.name, ctx)
 		});
 	}
 	return { ...site, module, specifiers };
@@ -714,22 +860,9 @@ function exportedName(
 	return { state: 'unresolved' };
 }
 
-/** `from pkg import mod` binds a module when `pkg/mod.py` exists, which outranks a symbol. */
-function pythonSubmodule(
-	resolution: ModuleResolution,
-	name: string,
-	ctx: Context
-): Binding<FileEnd | ExternalEnd> | null {
-	if (resolution.status !== 'file' || resolution.paths.length > 1) return null;
-	const [path] = resolution.paths;
-	if (!path.endsWith('/__init__.py')) return null;
-	const hit = findPython(`${dirname(path)}/${name}`, ctx.files);
-	return hit ? bound({ kind: 'file', path: hit as FilePath }) : null;
-}
-
-/** JSON with comments and trailing commas, as tsconfig allows. null when it does not parse. */
+/** JSON with comments, trailing commas and a byte order mark, as tsconfig allows. null when it does not parse. */
 function parseJsonc(text: string): unknown {
-	const noComments = stripComments(text);
+	const noComments = stripComments(text.replace(/^\uFEFF/, ''));
 	let out = '';
 	let quote = false;
 	for (let i = 0; i < noComments.length; i++) {
@@ -751,10 +884,10 @@ function parseJsonc(text: string): unknown {
 	}
 }
 
-function readWorkspacePackages(
+function readPackages(
 	texts: ReadonlyMap<string, string>,
 	json: ReadonlyMap<string, Record<string, unknown>>
-): Map<string, WorkspacePackage> {
+): { packages: Map<string, Package>; packageScopes: Map<string, Package> } {
 	const globs: RegExp[] = [];
 	const negated: RegExp[] = [];
 	const addGlob = (dir: string, glob: string) => {
@@ -778,16 +911,19 @@ function readWorkspacePackages(
 		for (const glob of readPnpmPackages(text)) addGlob(dirname(path), glob);
 	}
 
-	const packages = new Map<string, WorkspacePackage>();
+	const packages = new Map<string, Package>();
+	const packageScopes = new Map<string, Package>();
 	for (const [path, manifest] of json) {
 		if (basename(path) !== 'package.json') continue;
 		const dir = dirname(path);
+		const pkg: Package = { dir, manifest, outDirs: readOutDirs(dir, json) };
+		packageScopes.set(dir, pkg);
 		const name = (manifest as PackageManifest).name;
 		if (typeof name !== 'string') continue;
 		if (!globs.some((g) => g.test(dir)) || negated.some((g) => g.test(dir))) continue;
-		packages.set(name, { dir, manifest, outDirs: readOutDirs(dir, json) });
+		packages.set(name, pkg);
 	}
-	return packages;
+	return { packages, packageScopes };
 }
 
 /** The `packages:` list of a pnpm-workspace.yaml, the only key the resolver reads. */
@@ -809,8 +945,8 @@ function readPnpmPackages(text: string): string[] {
 function readOutDirs(
 	dir: string,
 	json: ReadonlyMap<string, Record<string, unknown>>
-): WorkspacePackage['outDirs'] {
-	const outDirs: WorkspacePackage['outDirs'] = [];
+): Package['outDirs'] {
+	const outDirs: Package['outDirs'] = [];
 	for (const [path, config] of json) {
 		if (dirname(path) !== dir || !/^tsconfig(\..+)?\.json$/.test(basename(path))) continue;
 		const options = config.compilerOptions as CompilerOptions | undefined;
@@ -823,13 +959,15 @@ function readOutDirs(
 }
 
 /**
- * One alias scope per folder: its tsconfig.json or jsconfig.json, or, when it has neither (a
- * package built only with `tsconfig.server.json`), every `tsconfig.*.json` in it merged.
+ * The tsconfigs each folder's files may belong to: its tsconfig.json or jsconfig.json, or, when
+ * it has neither (a package built only with `tsconfig.server.json`), every `tsconfig.*.json` in
+ * it, each followed by the projects it `references`, depth first. A file then takes the first
+ * one that lists it (`tsProjectFor`), the way tsc puts a file in a solution's project.
  */
 function readTsScopes(
 	json: ReadonlyMap<string, Record<string, unknown>>,
-	packages: ReadonlyMap<string, WorkspacePackage>
-): Map<string, AliasScope> {
+	packages: ReadonlyMap<string, Package>
+): Map<string, TsProject[]> {
 	const byDir = new Map<string, string[]>();
 	for (const path of json.keys()) {
 		if (!/^[jt]sconfig(\..+)?\.json$/.test(basename(path))) continue;
@@ -837,75 +975,53 @@ function readTsScopes(
 		list.push(path);
 		byDir.set(dirname(path), list);
 	}
-	const scopes = new Map<string, AliasScope>();
+	const scopes = new Map<string, TsProject[]>();
 	for (const [dir, paths] of byDir) {
 		const primary =
 			paths.find((p) => basename(p) === 'tsconfig.json') ??
 			paths.find((p) => basename(p) === 'jsconfig.json');
-		const chosen = primary ? [primary] : [...paths].sort();
-		const scope: AliasScope = { aliases: [], baseUrl: null };
-		for (const path of chosen) {
-			const options = effectiveOptions(path, json, packages, new Set());
-			scope.baseUrl ??= options.baseUrl;
-			for (const alias of options.aliases) {
-				if (!scope.aliases.some((a) => a.pattern === alias.pattern)) scope.aliases.push(alias);
-			}
-		}
-		scopes.set(dir, scope);
+		const order: string[] = [];
+		const visit = (path: string) => {
+			if (order.includes(path) || !json.has(path)) return;
+			order.push(path);
+			for (const ref of referencedConfigs(path, json)) visit(ref);
+		};
+		(primary ? [primary] : [...paths].sort()).forEach(visit);
+		scopes.set(
+			dir,
+			order.map((path) => tsProject(path, json, packages))
+		);
 	}
 	return scopes;
 }
 
-interface TsOptions {
-	aliases: PathAlias[];
-	baseUrl: string | null;
-	/** The folder of the config that wrote `paths`, which its targets resolve against without `baseUrl` */
-	pathsDir: string | null;
-	rawPaths: Record<string, string[]> | null;
+/** The config each `references` entry names: a config file, or the tsconfig.json in a folder. */
+function referencedConfigs(
+	path: string,
+	json: ReadonlyMap<string, Record<string, unknown>>
+): string[] {
+	const references = json.get(path)?.references;
+	if (!Array.isArray(references)) return [];
+	return references.flatMap((ref: { path?: unknown } | null) => {
+		if (typeof ref?.path !== 'string') return [];
+		const target = joinPath(dirname(path), ref.path);
+		if (target === null) return [];
+		if (target.endsWith('.json') && json.has(target)) return [target];
+		const inDir = target ? `${target}/tsconfig.json` : 'tsconfig.json';
+		return json.has(inDir) ? [inDir] : [];
+	});
 }
 
-const NO_OPTIONS: TsOptions = { aliases: [], baseUrl: null, pathsDir: null, rawPaths: null };
-
-/**
- * `paths` and `baseUrl` after `extends`. A child's `paths` replaces its parent's, and targets
- * resolve against `baseUrl` when set, else against the config that wrote them, as tsc does.
- */
-function effectiveOptions(
+function tsProject(
 	path: string,
 	json: ReadonlyMap<string, Record<string, unknown>>,
-	packages: ReadonlyMap<string, WorkspacePackage>,
-	seen: Set<string>
-): TsOptions {
-	const config = json.get(path);
-	if (!config || seen.has(path)) return NO_OPTIONS;
-	seen.add(path);
-
-	let inherited = NO_OPTIONS;
-	const parents = Array.isArray(config.extends) ? config.extends : [config.extends];
-	for (const parent of parents) {
-		if (typeof parent !== 'string') continue;
-		const parentPath = extendsPath(dirname(path), parent, json, packages);
-		if (!parentPath) continue;
-		const options = effectiveOptions(parentPath, json, packages, seen);
-		inherited = {
-			aliases: [],
-			baseUrl: options.baseUrl ?? inherited.baseUrl,
-			pathsDir: options.rawPaths ? options.pathsDir : inherited.pathsDir,
-			rawPaths: options.rawPaths ?? inherited.rawPaths
-		};
-	}
-
-	const options = (config.compilerOptions ?? {}) as CompilerOptions;
-	const dir = dirname(path);
-	const baseUrl =
-		typeof options.baseUrl === 'string' ? joinPath(dir, options.baseUrl) : inherited.baseUrl;
-	const ownPaths = options.paths && typeof options.paths === 'object' ? options.paths : null;
-	const rawPaths = ownPaths ?? inherited.rawPaths;
-	const pathsDir = ownPaths ? dir : inherited.pathsDir;
-	const targetDir = baseUrl ?? pathsDir;
+	packages: ReadonlyMap<string, Package>
+): TsProject {
+	const options = effectiveOptions(path, json, packages, new Set());
+	const targetDir = options.baseUrl ?? options.pathsDir;
 	const aliases: PathAlias[] = [];
-	if (rawPaths && targetDir !== null) {
-		for (const [pattern, targets] of Object.entries(rawPaths)) {
+	if (options.rawPaths && targetDir !== null) {
+		for (const [pattern, targets] of Object.entries(options.rawPaths)) {
 			if (!Array.isArray(targets)) continue;
 			const resolved = targets
 				.filter((t): t is string => typeof t === 'string')
@@ -914,14 +1030,106 @@ function effectiveOptions(
 			aliases.push({ pattern, targets: resolved });
 		}
 	}
-	return { aliases, baseUrl, pathsDir, rawPaths };
+	// tsc's defaults: no `files` and no `include` takes the whole folder; `files` alone takes only those
+	const dir = dirname(path);
+	const include = options.include ?? (options.files ? [] : [dir ? `${dir}/**/*` : '**/*']);
+	return {
+		aliases,
+		baseUrl: options.baseUrl,
+		files: new Set(options.files ?? []),
+		include: include.map(globToRegExp),
+		exclude: (options.exclude ?? []).map(globToRegExp)
+	};
+}
+
+/** Options after `extends`, with paths in key space. null means no config in the chain sets it. */
+interface TsOptions {
+	baseUrl: string | null;
+	/** The folder of the config that wrote `paths`, which its targets resolve against without `baseUrl` */
+	pathsDir: string | null;
+	rawPaths: Record<string, string[]> | null;
+	files: string[] | null;
+	include: string[] | null;
+	exclude: string[] | null;
+}
+
+const NO_OPTIONS: TsOptions = {
+	baseUrl: null,
+	pathsDir: null,
+	rawPaths: null,
+	files: null,
+	include: null,
+	exclude: null
+};
+
+/**
+ * `paths`, `baseUrl`, `files`, `include` and `exclude` after `extends`, as tsc merges them: a
+ * child's value replaces its parents', a later `extends` entry beats an earlier one, and each
+ * path resolves against the config that wrote it (`paths` targets against `baseUrl` when set).
+ * `chain` holds only this config's own ancestors, so two parents that share a base both read it.
+ */
+function effectiveOptions(
+	path: string,
+	json: ReadonlyMap<string, Record<string, unknown>>,
+	packages: ReadonlyMap<string, Package>,
+	chain: ReadonlySet<string>
+): TsOptions {
+	const config = json.get(path);
+	if (!config || chain.has(path)) return NO_OPTIONS;
+	const ancestors = new Set(chain).add(path);
+	const dir = dirname(path);
+
+	let inherited = NO_OPTIONS;
+	const parents = Array.isArray(config.extends) ? config.extends : [config.extends];
+	for (const parent of parents) {
+		if (typeof parent !== 'string') continue;
+		const parentPath = extendsPath(dir, parent, json, packages);
+		if (!parentPath) continue;
+		const options = effectiveOptions(parentPath, json, packages, ancestors);
+		inherited = {
+			baseUrl: options.baseUrl ?? inherited.baseUrl,
+			pathsDir: options.rawPaths ? options.pathsDir : inherited.pathsDir,
+			rawPaths: options.rawPaths ?? inherited.rawPaths,
+			files: options.files ?? inherited.files,
+			include: options.include ?? inherited.include,
+			exclude: options.exclude ?? inherited.exclude
+		};
+	}
+
+	const options = (config.compilerOptions ?? {}) as CompilerOptions;
+	const ownPaths = options.paths && typeof options.paths === 'object' ? options.paths : null;
+	return {
+		baseUrl:
+			typeof options.baseUrl === 'string' ? joinPath(dir, options.baseUrl) : inherited.baseUrl,
+		pathsDir: ownPaths ? dir : inherited.pathsDir,
+		rawPaths: ownPaths ?? inherited.rawPaths,
+		files: configPatterns(config.files, dir, false) ?? inherited.files,
+		include: configPatterns(config.include, dir, true) ?? inherited.include,
+		exclude: configPatterns(config.exclude, dir, true) ?? inherited.exclude
+	};
+}
+
+/**
+ * A `files`, `include` or `exclude` list in key space. In `include` and `exclude`, a last
+ * segment with no wildcard and no extension names a folder, so `"src"` takes every file under `src/`.
+ */
+function configPatterns(value: unknown, dir: string, globs: boolean): string[] | null {
+	if (!Array.isArray(value)) return null;
+	return value
+		.filter((p): p is string => typeof p === 'string')
+		.map((p) => {
+			const last = p.slice(p.lastIndexOf('/') + 1);
+			const folder = globs && (last === '.' || last === '..' || !/[*?.]/.test(last));
+			return joinPath(dir, folder ? `${p}/**/*` : p);
+		})
+		.filter((p): p is string => p !== null);
 }
 
 function extendsPath(
 	dir: string,
 	parent: string,
 	json: ReadonlyMap<string, unknown>,
-	packages: ReadonlyMap<string, WorkspacePackage>
+	packages: ReadonlyMap<string, Package>
 ): string | null {
 	const withJson = (p: string) => (json.has(p) ? p : json.has(`${p}.json`) ? `${p}.json` : null);
 	if (parent.startsWith('.')) {
@@ -979,13 +1187,20 @@ function nearestScope<T>(scopes: ReadonlyMap<string, T>, from: string): T | null
 	return null;
 }
 
+/** A path glob: `*` and `?` stay in one segment, and `**` spans any number of folders, none included. */
 function globToRegExp(glob: string): RegExp {
-	const body = glob
-		.split('/')
-		.map((part) =>
-			part === '**' ? '.*' : part.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')
-		)
-		.join('/');
+	const parts = glob.split('/');
+	const body = parts
+		.map((part, i) => {
+			const last = i === parts.length - 1;
+			if (part === '**') return last ? '.*' : '(?:[^/]+/)*';
+			const segment = part
+				.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+				.replace(/\*/g, '[^/]*')
+				.replace(/\?/g, '[^/]');
+			return last ? segment : `${segment}/`;
+		})
+		.join('');
 	return new RegExp(`^${body}$`);
 }
 
