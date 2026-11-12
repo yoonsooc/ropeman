@@ -9,7 +9,7 @@ test.beforeAll(() => {
 	fs.mkdirSync(SMALL_DIR, { recursive: true });
 	fs.writeFileSync(path.join(SMALL_DIR, 'hello.py'), 'def greet(name):\n    return name\n');
 
-	// About 1 MB of skeleton: well over the demo's 250 KB safe size
+	// About 2 MB of request body: well over the demo's 300 KB limit, well under Gemini's window
 	fs.mkdirSync(path.join(LARGE_DIR, 'src'), { recursive: true });
 	for (let i = 0; i < 300; i++) {
 		const body = Array.from(
@@ -47,5 +47,23 @@ test('warns before a demo request larger than its safe size', async ({ page }) =
 	await openAnalyze(page, LARGE_DIR, { language: 'ko', skeletonUnlimited: true });
 
 	await expect(page.getByTestId('payload-size')).toHaveText(/MB$|KB$/);
-	await expect(page.getByTestId('demo-size-warning')).toContainText('250 KB');
+	await expect(page.getByTestId('demo-size-warning')).toContainText('300 KB');
+});
+
+test('warns for BYOK only when the selected model cannot take the request', async ({ page }) => {
+	await openAnalyze(page, LARGE_DIR, { language: 'en', skeletonUnlimited: true });
+	await page.locator('.track-row', { hasText: 'API Key (BYOK)' }).click();
+
+	// Default Gemini model: a 1M-token window takes about 1 MB
+	await expect(page.locator('#analyze-provider-select')).toHaveValue('google');
+	await expect(page.getByTestId('byok-size-warning')).toHaveCount(0);
+
+	await page.locator('#analyze-provider-select').selectOption('openai');
+	await expect(page.getByTestId('byok-size-warning')).toHaveCount(0);
+
+	// A 128K-token OpenAI model cannot
+	await page.locator('#analyze-model-select').selectOption('__custom__');
+	await page.locator('.track-config input[type="text"]').fill('gpt-4o');
+	await expect(page.getByTestId('byok-size-warning')).toContainText('gpt-4o');
+	await expect(page.getByTestId('byok-size-warning')).toContainText('112K');
 });

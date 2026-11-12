@@ -169,6 +169,7 @@ type AnalyzeTranslations = Strings<
 	| 'payloadTokens'
 	| 'demoTooLarge'
 	| 'byokTooLarge'
+	| 'byokWindowUnknown'
 	| 'footerHint'
 >;
 
@@ -653,9 +654,10 @@ const translations: Record<Locale, TranslationSet> = {
 			unlimited: '제한 없음',
 			payloadTokens: '약 {n} 토큰',
 			demoTooLarge:
-				'이번 요청은 {size}입니다. {limit}를 넘으면 무료 데모가 시간 초과로 실패할 수 있습니다. 설정에서 코드 구조 요약 크기를 줄이거나 API 키나 브리지를 쓰세요.',
+				'이번 요청 본문은 {size}입니다. {limit}를 넘으면 무료 데모가 시간 초과로 실패할 수 있습니다. 설정에서 코드 구조 요약 크기를 줄이거나 API 키나 브리지를 쓰세요.',
 			byokTooLarge:
-				'이번 요청은 약 {tokens} 토큰입니다. 컨텍스트 창이 {context} 토큰인 모델은 받지 못할 수 있습니다. 창이 더 큰 모델을 고르거나 설정에서 코드 구조 요약 크기를 줄이세요.',
+				'이번 요청은 약 {tokens} 토큰입니다. {model} 모델이 받을 수 있는 입력(컨텍스트 창에서 응답 몫을 뺀 값)은 약 {limit} 토큰이라 거절되거나 잘릴 수 있습니다. 창이 더 큰 모델을 고르거나 설정에서 코드 구조 요약 크기를 줄이세요.',
+			byokWindowUnknown: '이 모델의 컨텍스트 창은 알려지지 않아 {context} 토큰으로 가정했습니다.',
 			footerHint: '분석을 시작할 방식을 고르세요.'
 		},
 		panel: {
@@ -1224,9 +1226,10 @@ const translations: Record<Locale, TranslationSet> = {
 			unlimited: 'Unlimited',
 			payloadTokens: '~{n} tokens',
 			demoTooLarge:
-				'This request is {size}. Above {limit} the free demo may time out. Lower the code summary size in Settings, or use an API key or the bridge.',
+				'This request body is {size}. Above {limit} the free demo may time out. Lower the code summary size in Settings, or use an API key or the bridge.',
 			byokTooLarge:
-				'This request is about {tokens} tokens. Models with a {context}-token context window may reject it. Choose a model with a larger window, or lower the code summary size in Settings.',
+				'This request is about {tokens} tokens. {model} takes about {limit} tokens of input (its context window minus room for the reply), so it may reject or truncate it. Choose a model with a larger window, or lower the code summary size in Settings.',
+			byokWindowUnknown: "This model's context window is unknown, so {context} tokens is assumed.",
 			footerHint: 'Pick a mode to start the analysis.'
 		},
 		panel: {

@@ -7,6 +7,8 @@ import { webgpuStore } from '$lib/stores/webgpuStore.svelte';
 import { extractSkeleton, formatPayloadPreview } from './skeletonExtractor';
 import { extractSubSkeleton } from './skeletonExtractor';
 import { callAI } from './aiAdapter';
+import type { Prompt } from './requestBudget';
+import type { SkeletonPayload } from '$lib/types/skeleton';
 import {
 	loadCachedResponse,
 	saveCachedResponse,
@@ -134,9 +136,16 @@ function topLevelRequest(): LevelRequest | null {
 	if (skeleton.files.length === 0) return null;
 	return {
 		model: activeModelId(),
-		system: TOP_LEVEL_SYSTEM_PROMPT + getLocaleInstruction(),
-		user: `Analyze the semantic architecture of this project:\n\n${formatPayloadPreview(skeleton)}`,
+		...topLevelPrompt(skeleton),
 		inputPaths: skeleton.files.map((f) => f.path)
+	};
+}
+
+/** The prompts a top-level analysis sends, so the analyze modal can measure them. */
+export function topLevelPrompt(skeleton: SkeletonPayload): Prompt {
+	return {
+		system: TOP_LEVEL_SYSTEM_PROMPT + getLocaleInstruction(),
+		user: `Analyze the semantic architecture of this project:\n\n${formatPayloadPreview(skeleton)}`
 	};
 }
 

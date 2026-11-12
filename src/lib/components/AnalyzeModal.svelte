@@ -13,9 +13,10 @@
 		extractSkeleton,
 		estimatePayloadSize,
 		formatPayloadPreview,
-		SAFE_PAYLOAD_BYTES,
-		BYOK_MIN_CONTEXT_TOKENS
+		formatBytes
 	} from '$lib/services/skeletonExtractor';
+	import { topLevelPrompt } from '$lib/services/semanticAnalysisService';
+	import { demoBudget, byokBudget, estimateTokens } from '$lib/services/requestBudget';
 	import type { AIProviderId } from '$lib/stores/settingsStore.svelte';
 	import WebGPUSetupModal from './WebGPUSetupModal.svelte';
 	import { isModelCached } from '$lib/services/webllmService';
@@ -75,8 +76,11 @@
 	);
 	const payloadSize = $derived(skeleton ? estimatePayloadSize(skeleton) : null);
 	const payloadPreview = $derived(skeleton ? formatPayloadPreview(skeleton) : '');
-	const demoTooLarge = $derived((payloadSize?.bytes ?? 0) > SAFE_PAYLOAD_BYTES.edge);
-	const byokTooLarge = $derived((payloadSize?.bytes ?? 0) > SAFE_PAYLOAD_BYTES.byok);
+	// What each track would actually send: system prompt plus the skeleton in the user prompt
+	const prompt = $derived(skeleton ? topLevelPrompt(skeleton) : null);
+	const promptTokens = $derived(prompt ? estimateTokens(prompt) : null);
+	const demo = $derived(prompt ? demoBudget(prompt) : null);
+	const byok = $derived(prompt ? byokBudget(selectedProvider, selectedModel, prompt) : null);
 
 	function formatTokens(tokens: number): string {
 		return tokens < 1000 ? String(tokens) : `${Math.round(tokens / 1000)}K`;
@@ -251,12 +255,12 @@
 						</button>
 					</div>
 					<p class="track-note">{i18nStore.t('analyze.demoNotice')}</p>
-					{#if payloadSize && demoTooLarge}
+					{#if demo?.over}
 						<p class="track-note payload-warn" data-testid="demo-size-warning">
 							<span class="material-symbols-outlined">warning</span>
 							{i18nStore.t('analyze.demoTooLarge', {
-								size: payloadSize.formatted,
-								limit: `${SAFE_PAYLOAD_BYTES.edge / 1000} KB`
+								size: formatBytes(demo.bytes),
+								limit: `${demo.limit / 1000} KB`
 							})}
 						</p>
 					{/if}
@@ -355,13 +359,19 @@
 								<span class="cfg-status error">{testError || i18nStore.t('analyze.invalid')}</span>
 							{/if}
 							<p class="cfg-note">{i18nStore.t('analyze.byokKeyNotice')}</p>
-							{#if payloadSize && byokTooLarge}
+							{#if byok?.over}
 								<p class="cfg-note payload-warn" data-testid="byok-size-warning">
 									<span class="material-symbols-outlined">warning</span>
 									{i18nStore.t('analyze.byokTooLarge', {
-										tokens: formatTokens(payloadSize.tokens),
-										context: formatTokens(BYOK_MIN_CONTEXT_TOKENS)
+										tokens: formatTokens(byok.tokens),
+										model: selectedModel,
+										limit: formatTokens(byok.limit)
 									})}
+									{#if !byok.known}
+										{i18nStore.t('analyze.byokWindowUnknown', {
+											context: formatTokens(byok.window)
+										})}
+									{/if}
 								</p>
 							{/if}
 							{#if apiKeyValue}
@@ -577,7 +587,7 @@
 								<span class="meta-sep">&middot;</span>
 								<span class="meta-item"
 									>{i18nStore.t('analyze.payloadTokens', {
-										n: formatTokens(payloadSize.tokens)
+										n: formatTokens(promptTokens ?? 0)
 									})}</span
 								>
 								<span class="meta-sep">&middot;</span>

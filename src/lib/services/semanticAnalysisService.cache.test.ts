@@ -28,7 +28,7 @@ vi.mock('./aiAdapter', () => ({
 	callAI: (opts: { system: string; user: string }) => callAI(opts)
 }));
 
-const { analyzeTopLevel, analyzeDrilldown, restoreCachedAnalysis } =
+const { analyzeTopLevel, analyzeDrilldown, restoreCachedAnalysis, topLevelPrompt } =
 	await import('./semanticAnalysisService');
 const { clearSemanticCache, getSemanticCacheSize } = await import('./semanticCacheService');
 const { semanticStore } = await import('$lib/stores/semanticStore.svelte');
@@ -277,5 +277,20 @@ describe('semantic analysis cache', () => {
 		const sent = user.slice(user.indexOf('{'));
 		expect(sent).toBe(formatPayloadPreview(skeleton));
 		expect(new TextEncoder().encode(sent).byteLength).toBe(estimatePayloadSize(skeleton).bytes);
+	});
+
+	it('sends exactly the prompts the analyze modal measures', async () => {
+		callAI.mockResolvedValueOnce(ROOT_RESPONSE);
+		const skeleton = extractSkeleton(
+			projectStore.projectName,
+			projectStore.fileTree,
+			projectStore.astMap
+		);
+		const measured = topLevelPrompt(skeleton);
+
+		await analyzeTopLevel();
+
+		const { system, user } = callAI.mock.calls[0][0];
+		expect({ system, user }).toEqual(measured);
 	});
 });

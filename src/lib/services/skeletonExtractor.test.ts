@@ -309,7 +309,7 @@ describe('estimatePayloadSize', () => {
 		settingsStore.maxSkeletonKB = 250;
 	});
 
-	it('shows a small payload in bytes with an approximate token count', () => {
+	it('shows a small payload in bytes', () => {
 		const payload: SkeletonPayload = {
 			projectName: 'x',
 			totalFiles: 0,
@@ -317,11 +317,9 @@ describe('estimatePayloadSize', () => {
 			files: []
 		};
 
-		const { bytes, tokens, formatted } = estimatePayloadSize(payload);
+		const { bytes, formatted } = estimatePayloadSize(payload);
 
 		expect(formatted).toBe(`${bytes} B`);
-		expect(tokens).toBeGreaterThan(0);
-		expect(tokens).toBeLessThan(bytes);
 	});
 });
 

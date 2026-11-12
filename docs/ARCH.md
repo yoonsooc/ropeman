@@ -36,6 +36,7 @@ src/
 │   │   ├── aiService.ts              # 채팅용 AI 호출 (캐시 + 재시도)
 │   │   ├── semanticAnalysisService.ts # 시맨틱 AI 분석 + JSON 파싱/복구
 │   │   ├── skeletonExtractor.ts      # AST → LLM 전송용 코드 구조 요약 (suffix 매칭)
+│   │   ├── requestBudget.ts          # 보내기 전 크기 검사: 데모 요청 본문 바이트, BYOK 모델별 토큰 한도
 │   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
@@ -92,7 +93,7 @@ src/
 │   │   ├── ai.ts                      # AIErrorType, AIErrorInfo, classifyAIError, getAIErrorInfo
 │   │   └── search.ts                 # 검색 타입
 │   │
-│   ├── data/aiProviders.ts           # 키가 없을 때 쓰는 기본 모델 목록 (modelCatalogStore가 대체)
+│   ├── data/aiProviders.ts           # 키가 없을 때 쓰는 기본 모델 목록 (modelCatalogStore가 대체) + 모델 계열별 컨텍스트 창 표
 │   ├── config.ts                     # DEMO_URL, PROXY_URL 상수
 │   │
 │   └── utils/
@@ -129,7 +130,7 @@ edge-proxy/                       # Cloudflare Workers
 ### Phase 2: AI 의미론적 분석
 
 ```
-AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대략의 토큰 수, 트랙 한도를 넘으면 경고)
+AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대략의 토큰 수, 고른 트랙·모델의 한도를 넘으면 경고)
 → skeletonExtractor.extractSkeleton()    # 원본 코드 제외, 심볼/시그니처/import만 추출 (기본 250KB 제한). Markdown은 frontmatter name·description, H1~H6, 파일 링크만 (ADR-20)
 → formatPayloadPreview()                 # 압축 JSON. 예산, 모달 표시, 프롬프트가 모두 이 문자열을 쓴다
 → aiAdapter.callAI()                     # ★ 단일 진입점
@@ -291,7 +292,8 @@ export const xxxStore = createXxxStore();
 - **AST 파싱**: 14개 언어 tree-sitter WASM (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala)
   - 문법 WASM은 `static/`에 커밋한다. 언어별 파일은 `languageDetector.getGrammarFile()`이 고른다. `.tsx`는 언어는 TypeScript 그대로 두고 JSX를 읽는 `tree-sitter-tsx.wasm`(`tree-sitter-wasms` 0.1.13)으로 파싱한다. `.ts`는 `<T>value` 캐스트를 JSX로 오인하지 않도록 `tree-sitter-typescript.wasm`을 유지한다
 - **코드 구조 요약 크기**: 기본 250KB (50-1000KB 범위, 1KB = 1000바이트). 보내는 압축 JSON 전체(바깥 필드 포함)로 잰다
-  - 경고 기준은 `SAFE_PAYLOAD_BYTES`다. 데모는 250KB(측정 안 함, 모델당 40초 제한), BYOK는 200K 토큰 창에서 출력 16,384토큰을 뺀 값이다. 토큰 수는 1토큰 = 4바이트로 어림한다 (PASEO 측정 4.2)
+  - 경고는 `requestBudget.ts`가 실제로 보낼 프롬프트(시스템 + 사용자, `topLevelPrompt()`)로 잰다. 데모는 POST 본문(JSON 이스케이프 포함)이 300KB를 넘으면 경고한다(측정 안 함, 모델당 40초 제한. 기본 250KB 스켈레톤이 본문으로 약 15% 커지는 만큼 여유를 둠). BYOK는 고른 프로바이더·모델의 컨텍스트 창(`aiProviders.ts` 표, 출처는 주석)에서 출력 예약(Gemini·OpenAI 16,384, Anthropic 4,096)을 뺀 값과 비교한다. 표에 없는 모델은 128K로 가정하고 그렇다고 알린다. 토큰 수는 1토큰 = 4바이트로 어림한다 (PASEO 측정 4.2)
+  - 하위 분석(`extractSubSkeleton`)에는 아직 바이트 예산이 없다 (후속 작업)
 - **정적 분석만**: 런타임 동작 분석 불가
 - **Edge Worker**: Gemini API 지역 제한 → placement hint 필요
 - **WebGPU**: Chrome 113+ / Edge 113+ 필요, ~900MB 모델 다운로드

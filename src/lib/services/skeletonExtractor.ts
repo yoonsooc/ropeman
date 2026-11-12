@@ -14,38 +14,12 @@ import {
 	isPrimaryMarkdown,
 	type PathFilter
 } from '$lib/utils/filePriority';
+import { byteLength } from './requestBudget';
 
 const SKIP_KINDS = new Set(['variable', 'interface', 'type']);
 
 // 기본값 250KB, settingsStore.maxSkeletonKB로 조절 가능
 const DEFAULT_MAX_SKELETON_KB = 250;
-
-/**
- * Bytes of skeleton JSON per model token, for the approximate count shown before analysis.
- * OpenAI's o200k_base tokenizer counted PASEO's 249,195-byte skeleton as 59,996 tokens,
- * 4.2 bytes each (2026-11-12). Gemini and Claude tokenizers differ, so it is a rough guide.
- */
-const BYTES_PER_TOKEN = 4;
-
-/** Output tokens the BYOK proxy asks for (edge-proxy/src/proxy.ts), reserved from the context. */
-const BYOK_OUTPUT_RESERVE_TOKENS = 16_384;
-
-/**
- * The smallest context window among models a BYOK key commonly lists: Claude Haiku 4.5 takes
- * 200K tokens, while Gemini Flash and the Claude 5.5 models take 1M.
- */
-export const BYOK_MIN_CONTEXT_TOKENS = 200_000;
-
-/**
- * Skeleton size above which a track is likely to fail. Bridge has no fixed limit, and WebGPU
- * rejects oversized input itself (WEBGPU_MAX_INPUT_CHARS in aiAdapter.ts).
- */
-export const SAFE_PAYLOAD_BYTES = {
-	// Not measured. The demo proxy gives each Gemini model 40 s (MODEL_TIMEOUT_MS in
-	// edge-proxy/src/demo.ts), and the default budget is the largest size the app ships with.
-	edge: DEFAULT_MAX_SKELETON_KB * 1000,
-	byok: (BYOK_MIN_CONTEXT_TOKENS - BYOK_OUTPUT_RESERVE_TOKENS) * BYTES_PER_TOKEN
-} as const;
 
 // 핵심 디렉토리 (우선 포함)
 const CORE_DIR_PATTERNS = [
@@ -258,11 +232,10 @@ export function extractSubSkeleton(
 /** Size of the string `formatPayloadPreview` returns, which is what the AI receives. */
 export function estimatePayloadSize(payload: SkeletonPayload): {
 	bytes: number;
-	tokens: number;
 	formatted: string;
 } {
 	const bytes = byteLength(formatPayloadPreview(payload));
-	return { bytes, tokens: Math.round(bytes / BYTES_PER_TOKEN), formatted: formatBytes(bytes) };
+	return { bytes, formatted: formatBytes(bytes) };
 }
 
 /**
@@ -271,10 +244,6 @@ export function estimatePayloadSize(payload: SkeletonPayload): {
  */
 export function formatPayloadPreview(payload: SkeletonPayload): string {
 	return JSON.stringify(payload);
-}
-
-function byteLength(text: string): number {
-	return new TextEncoder().encode(text).byteLength;
 }
 
 function collectFilePaths(node: FileNode | null): string[] {
@@ -392,7 +361,7 @@ function inferLanguage(filePath: string): string | null {
 }
 
 // Decimal units, matching maxSkeletonKB (1 KB = 1000 bytes)
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
 	if (bytes < 1000) return `${bytes} B`;
 	const kb = bytes / 1000;
 	if (kb < 1000) return `${kb.toFixed(1)} KB`;
