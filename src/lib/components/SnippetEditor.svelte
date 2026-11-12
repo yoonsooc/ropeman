@@ -124,7 +124,7 @@
 					<option value={lang.id}>{lang.label}</option>
 				{/each}
 			</select>
-			<span class="line-info">{lineCount} {i18nStore.t('snippet.lines')}</span>
+			<span class="line-info">{i18nStore.t('snippet.lines', { n: lineCount })}</span>
 		</div>
 		<div class="editor-wrapper">
 			<div class="line-numbers" aria-hidden="true">

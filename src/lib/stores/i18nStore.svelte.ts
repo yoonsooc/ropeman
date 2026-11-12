@@ -549,7 +549,7 @@ const translations: Record<Locale, TranslationSet> = {
 			divider: '또는 코드 스니펫으로 해 보기',
 			placeholder: '여기에 코드를 붙여넣으세요...',
 			analyze: '분석하기',
-			lines: '줄',
+			lines: '{n}줄',
 			emptyError: '코드를 입력하세요',
 			analyzeFailed: '스니펫을 분석하지 못했습니다: {error}'
 		},
@@ -1121,7 +1121,7 @@ const translations: Record<Locale, TranslationSet> = {
 			divider: 'or try a code snippet',
 			placeholder: 'Paste your code here...',
 			analyze: 'Analyze',
-			lines: 'lines',
+			lines: '{n} {n|line|lines}',
 			emptyError: 'Paste some code first',
 			analyzeFailed: "Couldn't analyze the snippet: {error}"
 		},
