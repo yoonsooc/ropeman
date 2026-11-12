@@ -1,10 +1,11 @@
 import type { FileNode } from '$lib/types/fileTree';
-import type { ASTSymbol, SymbolKind } from '$lib/types/ast';
+import type { ASTRef, ASTSymbol, SymbolKind } from '$lib/types/ast';
 import type {
 	CodeMap,
 	FilePath,
 	FileRecord,
 	ModuleSite,
+	RefSite,
 	SymbolId,
 	SymbolRecord
 } from '$lib/types/codeMap';
@@ -101,18 +102,25 @@ function toEntry(wirePath: string, record: FileRecord, priority: number): Skelet
 }
 
 /**
- * Skeleton v2 for every parsed file, with no reference sites yet. Imports in TS/JS, Svelte,
- * Vue and Python are bound to files, symbols and packages; `configs` holds the text of each
- * file `isResolverConfig` names, keyed like astMap. Other languages' imports stay pending.
+ * Skeleton v2 for every parsed file. `refs` has the parser's reference sites per astMap key,
+ * and `configs` the text of each file `isResolverConfig` names, keyed like astMap. Imports in
+ * TS/JS, Svelte, Vue and Python are bound to files, symbols and packages; reference sites and
+ * other languages' imports stay pending.
  */
 export function buildCodeMap(
 	astMap: ReadonlyMap<string, readonly ASTSymbol[]>,
 	root: string | null,
-	configs: ReadonlyMap<string, string> = new Map()
+	{
+		refs = new Map(),
+		configs = new Map()
+	}: {
+		refs?: ReadonlyMap<string, readonly ASTRef[]>;
+		configs?: ReadonlyMap<string, string>;
+	} = {}
 ): CodeMap {
 	const files = new Map<FilePath, FileRecord>();
 	for (const [key, symbols] of astMap) {
-		const record = fileFromAst(key, symbols);
+		const record = fileFromAst(key, symbols, refs.get(key));
 		files.set(record.path, record);
 	}
 	return resolveImports({ version: 2, root, files }, readResolverConfig(configs)).map;
@@ -122,8 +130,13 @@ export function buildCodeMap(
  * One parsed file as a code map record. Top-level imports become import sites, and an
  * `export … from` the parser reports as an import becomes a re-export site, which the wire
  * never reads. An import nested in a symbol stays a child symbol, as the v1 wire sends it.
+ * Each parser ref becomes a site from the innermost symbol whose lines hold it.
  */
-export function fileFromAst(key: string, astSymbols: readonly ASTSymbol[]): FileRecord {
+export function fileFromAst(
+	key: string,
+	astSymbols: readonly ASTSymbol[],
+	refs: readonly ASTRef[] = []
+): FileRecord {
 	const path = key as FilePath;
 	const ids = new Map<string, number>();
 	const symbols: SymbolRecord[] = [];
@@ -148,8 +161,41 @@ export function fileFromAst(key: string, astSymbols: readonly ASTSymbol[]): File
 		symbols,
 		imports,
 		reexports,
-		refs: []
+		refs: refs.flatMap((ref) => toRefSite(ref, symbols))
 	};
+}
+
+/**
+ * A class base belongs to its class, so the base of a class the outline did not record (one
+ * nested in a function) is dropped rather than pinned on the function around it.
+ */
+function toRefSite(ref: ASTRef, symbols: readonly SymbolRecord[]): RefSite[] {
+	const target = { state: 'pending' } as const;
+	if (ref.kind === 'inherits' || ref.kind === 'implements') {
+		const owner = findOwner(symbols, ref.ownerLine);
+		return owner
+			? [{ kind: ref.kind, line: ref.line, from: owner.id, written: ref.written, target }]
+			: [];
+	}
+	const from = innermostAt(symbols, ref.line)?.id ?? null;
+	return [{ kind: ref.kind, line: ref.line, from, written: ref.written, target }];
+}
+
+/** The deepest symbol whose lines hold `line`; the first of siblings that share it. */
+function innermostAt(symbols: readonly SymbolRecord[], line: number): SymbolRecord | null {
+	const hit = symbols.find(
+		(sym) => sym.lines.start <= line && (sym.lines.end ?? sym.lines.start) >= line
+	);
+	return hit ? (innermostAt(hit.children, line) ?? hit) : null;
+}
+
+function findOwner(symbols: readonly SymbolRecord[], line: number): SymbolRecord | null {
+	for (const sym of symbols) {
+		if (sym.kind === 'class' && sym.lines.start === line) return sym;
+		const inner = findOwner(sym.children, line);
+		if (inner) return inner;
+	}
+	return null;
 }
 
 function toSymbolRecord(

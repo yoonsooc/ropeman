@@ -59,7 +59,7 @@
 
 `src/lib/services/codeMapScore.fixtures.test.ts`가 `?testDir=` 로더와 같은 스캐너로 파일을 읽고 지금 파서와 `buildCodeMap()`으로 코드 지도를 만든 뒤 `baseline.json`과 비교한다. 기록보다 낮아진 값이 있을 때만 실패한다.
 
-2026-11-12 기록 (import 해석기 T1-6 이후). `extract()`는 `isResolverConfig()`가 고른 설정 파일 원문을 `buildCodeMap()`에 넘긴다.
+2026-11-12 기록 (참조 위치 추출 T1-5와 import 해석기 T1-6 이후). `extract()`는 파서가 읽은 `refs`와 `isResolverConfig()`가 고른 설정 파일 원문을 `buildCodeMap()`에 넘긴다.
 
 | 저장소 | `imports_from` precision / recall | `imports` precision / recall |
 | --- | --- | --- |
@@ -69,11 +69,12 @@
 
 - 세 저장소 모두 import `siteRecall`은 1이다. 파서는 최상위 import 문을 시작 줄과 함께 모두 내보낸다. `.svelte` 안의 import도 파일 기준 줄이다.
 - 놓친 `imports` 20개 중 6개는 TS 배럴을 거친 이름이다. 파서가 `export … from` 문을 내보내지 않아서 해석기가 따라갈 재수출 위치가 없다. 같은 이유로 `re_exports`의 `siteRecall`은 0이다. `__init__.py`의 import를 거친 Python 이름은 연결된다.
-- 나머지 14개는 아래 파서 한계 때문이다. `refs`는 아직 비어 있어 `calls`·`dynamic_import`는 0이다.
+- 나머지 14개는 아래 파서 한계 때문이다.
+- `calls`·`dynamic_import`의 `siteRecall`은 1이다. 파서가 위치를 모두 읽지만 대상은 아직 `pending`이라 recall은 0이다.
 
 T1-5와 T1-6이 넘어야 할 파서 한계도 있다. 파서는 interface, type 별칭, 함수가 아닌 `const`(`cart`), Python 모듈 변수(`ROUND`)를 심볼로 내보내지 않는다. 이런 이름을 가리키는 정답(`types.ts#Entity`, `shared/config.ts#AppConfig`, `cart.svelte.ts#cart`, `pricing.py#ROUND` 등)은 파서가 그 심볼을 만들기 전에는 연결할 수 없다.
 
-추출기를 고쳐 점수가 오르면 기준선을 다시 기록하고 같은 PR에 넣는다. 지금 기준선은 import 위치만 지키고 호출·재수출·동적 import와 precision은 지키지 못하므로, 호출 추출(T1-5)과 import 해석기(T1-6) PR은 반드시 기준선을 다시 기록해야 한다. CI에서 `UPDATE_GRAPH_BASELINE`을 켜면 테스트가 실패한다.
+추출기를 고쳐 점수가 오르면 기준선을 다시 기록하고 같은 PR에 넣는다. 참조 대상을 잇는 PR은 `calls`·`dynamic_import`의 recall과 precision을 새로 기록해야 한다. CI에서 `UPDATE_GRAPH_BASELINE`을 켜면 테스트가 실패한다.
 
 ```sh
 UPDATE_GRAPH_BASELINE=1 npx vitest run src/lib/services/codeMapScore.fixtures.test.ts

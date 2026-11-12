@@ -12,7 +12,7 @@ import {
 } from './skeletonExtractor';
 import type { FileRecord, FilePath, SymbolId } from '$lib/types/codeMap';
 import type { FileNode } from '$lib/types/fileTree';
-import type { ASTSymbol } from '$lib/types/ast';
+import type { ASTRef, ASTSymbol } from '$lib/types/ast';
 import type { SkeletonPayload } from '$lib/types/skeleton';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
 
@@ -663,6 +663,84 @@ describe('skeleton v2 code map', () => {
 		expect(JSON.stringify(toWireFile('main.py', resolved))).toBe(
 			JSON.stringify(toWireFile('main.py', record))
 		);
+	});
+
+	it('places each call site in the innermost symbol whose lines hold it', () => {
+		const symbols: ASTSymbol[] = [
+			{
+				name: 'Server',
+				kind: 'class',
+				lineStart: 1,
+				lineEnd: 9,
+				children: [{ name: 'start', kind: 'method', lineStart: 2, lineEnd: 4 }]
+			},
+			{ name: 'boot', kind: 'function', lineStart: 11, lineEnd: 11 },
+			{ name: 'halt', kind: 'function', lineStart: 11, lineEnd: 12 }
+		];
+		const refs: ASTRef[] = [
+			{ kind: 'calls', line: 3, written: 'this.listen' },
+			{ kind: 'calls', line: 6, written: 'config.load' },
+			{ kind: 'calls', line: 11, written: 'start' },
+			{ kind: 'calls', line: 12, written: 'stop' },
+			{ kind: 'dynamic_import', line: 14, written: './late' }
+		];
+
+		const record = fileFromAst('svc.ts', symbols, refs);
+
+		expect(record.refs.map((ref) => [ref.line, ref.from, ref.written])).toEqual([
+			[3, 'svc.ts#Server.start', 'this.listen'],
+			[6, 'svc.ts#Server', 'config.load'],
+			// Two symbols on one line: the first one holds the call
+			[11, 'svc.ts#boot', 'start'],
+			[12, 'svc.ts#halt', 'stop'],
+			[14, null, './late']
+		]);
+		expect(record.refs.every((ref) => ref.target.state === 'pending')).toBe(true);
+	});
+
+	it('gives a class base to the class that starts on its owner line, or drops it', () => {
+		const symbols: ASTSymbol[] = [
+			{ name: 'outer', kind: 'function', lineStart: 1, lineEnd: 5 },
+			{
+				name: 'Shapes',
+				kind: 'class',
+				lineStart: 7,
+				lineEnd: 12,
+				children: [{ name: 'Circle', kind: 'class', lineStart: 8, lineEnd: 10 }]
+			}
+		];
+		const refs: ASTRef[] = [
+			{ kind: 'inherits', line: 2, written: 'Base', ownerLine: 2 },
+			{ kind: 'inherits', line: 8, written: 'Shape', ownerLine: 8 },
+			{ kind: 'implements', line: 9, written: 'Drawable', ownerLine: 8 }
+		];
+
+		const record = fileFromAst('shapes.ts', symbols, refs);
+
+		expect(record.refs.map((ref) => [ref.kind, ref.line, ref.from, ref.written])).toEqual([
+			['inherits', 8, 'shapes.ts#Shapes.Circle', 'Shape'],
+			['implements', 9, 'shapes.ts#Shapes.Circle', 'Drawable']
+		]);
+	});
+
+	it('fills sites per file from the parser refs given to the map', () => {
+		const astMap = makeAstMap();
+		const refMap = new Map<string, ASTRef[]>([
+			['main.py', [{ kind: 'calls', line: 4, written: 'Flask' }]]
+		]);
+
+		const map = buildCodeMap(astMap, null, { refs: refMap });
+
+		expect(map.files.get('main.py' as FilePath)?.refs).toEqual([
+			{
+				kind: 'calls',
+				line: 4,
+				from: 'main.py#create_app',
+				written: 'Flask',
+				target: { state: 'pending' }
+			}
+		]);
+		expect(map.files.get('utils.ts' as FilePath)?.refs).toEqual([]);
 	});
 
 	it('names the file on the wire by the path the request uses', () => {

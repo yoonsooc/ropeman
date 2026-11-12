@@ -705,7 +705,7 @@ describe('buildCodeMap with the resolver', () => {
 		]);
 
 		// Act
-		const map = buildCodeMap(astMap, ROOT, configs);
+		const map = buildCodeMap(astMap, ROOT, { configs });
 
 		// Assert
 		const page = map.files.get('app/src/routes/page.ts' as FilePath) as FileRecord;
