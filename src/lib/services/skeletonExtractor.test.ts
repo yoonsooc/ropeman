@@ -124,6 +124,30 @@ describe('extractSkeleton', () => {
 		expect(goFile!.language).toBe('go');
 	});
 
+	it('names both single-file component languages', () => {
+		const component = { name: 'mount', kind: 'function' as const, lineStart: 2, lineEnd: 4 };
+		const astMap = new Map<string, ASTSymbol[]>([
+			['App.vue', [component]],
+			['App.svelte', [component]]
+		]);
+		const tree: FileNode = {
+			name: 'project',
+			path: '',
+			kind: 'directory',
+			children: [
+				{ name: 'App.vue', path: 'App.vue', kind: 'file' },
+				{ name: 'App.svelte', path: 'App.svelte', kind: 'file' }
+			]
+		};
+
+		const result = extractSkeleton('test', tree, astMap);
+
+		expect(result.files.map((f) => [f.path, f.language]).sort()).toEqual([
+			['App.svelte', 'svelte'],
+			['App.vue', 'vue']
+		]);
+	});
+
 	it('skips files with no symbols', () => {
 		const tree = makeFileTree();
 		const astMap = new Map<string, ASTSymbol[]>();

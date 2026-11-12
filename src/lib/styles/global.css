@@ -70,8 +70,8 @@
 	--track-byok: #eb6e00;
 	--track-bridge: #0b991f;
 	--track-webgpu: #a855f7;
-	/* Edge legend swatches match the strokes semanticGraphBuilder draws, which are the same in
-	   both themes, so the dark block does not redefine them */
+	/* semanticGraphBuilder draws edge strokes and arrowheads with these, and the legend swatches
+	   read them too, so a theme block can redefine them for both */
 	--color-edge-depends-on: #94a3b8;
 	--color-edge-calls: #53ddfc;
 	--color-edge-extends: #ac8aff;
