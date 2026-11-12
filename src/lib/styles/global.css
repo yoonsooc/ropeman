@@ -70,8 +70,9 @@
 	--track-byok: #eb6e00;
 	--track-bridge: #0b991f;
 	--track-webgpu: #a855f7;
-	/* semanticGraphBuilder draws edge strokes and arrowheads with these, and the legend swatches
-	   read them too, so a theme block can redefine them for both */
+	/* graphBuilder and semanticGraphBuilder draw edge strokes and arrowheads with these, and the
+	   legend swatches read them too, so a theme block can redefine them for both */
+	--color-edge-contains: #666666;
 	--color-edge-depends-on: #94a3b8;
 	--color-edge-calls: #53ddfc;
 	--color-edge-extends: #ac8aff;

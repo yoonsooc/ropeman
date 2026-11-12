@@ -362,6 +362,6 @@ describe('toFlowEdges', () => {
 		const edges: GraphEdge[] = [{ id: 'e1', source: 'a', target: 'b', type: 'imports' }];
 
 		const flowEdges = toFlowEdges(edges);
-		expect(flowEdges[0].style).toContain('#3b82f6');
+		expect(flowEdges[0].style).toContain('stroke: var(--color-edge-depends-on)');
 	});
 });
