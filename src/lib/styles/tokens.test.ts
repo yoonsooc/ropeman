@@ -238,7 +238,7 @@ describe('color tokens', () => {
 	it.each<[string, Map<string, string>]>([
 		['light', LIGHT],
 		['dark', DARK]
-	])('each edge legend swatch matches the stroke of its edge type in %s mode', (_mode, theme) => {
+	])('each edge stroke and arrowhead read the legend swatch token in %s mode', (_mode, theme) => {
 		const types: SemanticEdge['type'][] = ['depends_on', 'calls', 'extends', 'uses'];
 		const edges = toSemanticFlowEdges({
 			parentId: null,
@@ -248,9 +248,12 @@ describe('color tokens', () => {
 		});
 
 		const mismatches = types.flatMap((type, i) => {
-			const swatch = theme.get(`--color-edge-${type.replace('_', '-')}`);
-			const stroke = String(edges[i].style).match(/stroke: (#[0-9a-f]+)/i)?.[1];
-			return swatch === stroke ? [] : [`${type}: swatch ${swatch}, stroke ${stroke}`];
+			const swatch = `--color-edge-${type.replace('_', '-')}`;
+			const stroke = String(edges[i].style).match(/stroke: var\((--[\w-]+)\)/)?.[1];
+			const marker = edges[i].markerEnd;
+			const arrowhead = typeof marker === 'object' ? marker.color : undefined;
+			const ok = theme.has(swatch) && stroke === swatch && arrowhead === `var(${swatch})`;
+			return ok ? [] : [`${type}: swatch ${swatch}, stroke ${stroke}, arrowhead ${arrowhead}`];
 		});
 
 		expect(mismatches).toEqual([]);

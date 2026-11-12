@@ -5,11 +5,12 @@ import dagre from '@dagrejs/dagre';
 const SEMANTIC_NODE_WIDTH = 256;
 const SEMANTIC_NODE_HEIGHT = 176;
 
+// The legend swatches read the same tokens, so a theme retunes strokes and legend together
 const EDGE_TYPE_COLORS: Record<string, string> = {
-	depends_on: '#94a3b8',
-	calls: '#53ddfc',
-	extends: '#ac8aff',
-	uses: '#7ad4a0'
+	depends_on: 'var(--color-edge-depends-on)',
+	calls: 'var(--color-edge-calls)',
+	extends: 'var(--color-edge-extends)',
+	uses: 'var(--color-edge-uses)'
 };
 
 export type LayoutDirection = 'LR' | 'TB';
