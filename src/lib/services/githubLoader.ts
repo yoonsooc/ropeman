@@ -1,8 +1,10 @@
 import type { GitHubRepoInfo } from '$lib/utils/githubUrl';
 import type { FileNode } from '$lib/types/fileTree';
-import type { ASTSymbol, ParseSkip } from '$lib/types/ast';
+import type { ASTRef, ASTSymbol, ParseSkip } from '$lib/types/ast';
 import { detectLanguage, isSupported } from '$lib/utils/languageDetector';
 import { parseFile } from '$lib/services/parserService';
+import { collectResolverConfigs } from '$lib/services/importResolver';
+import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import {
 	rankFiles,
@@ -30,6 +32,7 @@ interface GitHubTreeItem {
 interface ParsedFile {
 	filePath: string;
 	symbols: ASTSymbol[];
+	refs: ASTRef[];
 }
 
 interface GitHubTreeResponse {
@@ -202,9 +205,32 @@ export async function loadGitHubRepo(
 	const fileTree = buildFileTree(info.repo, treeData.tree, filter);
 	projectStore.fileTree = fileTree;
 
-	// 4. Download + parse in batches
+	// 4. Download the resolver configs from the whole tree, cut files included, while parsing.
+	// A failed read costs the map its resolution rules, never the load.
+	const configsRead = collectResolverConfigs(
+		treeData.tree
+			.filter(
+				(item) =>
+					item.type === 'blob' &&
+					(item.size ?? 0) <= MAX_FILE_SIZE &&
+					!shouldSkipPath(item.path, filter, true)
+			)
+			.map((item) => `${info.repo}/${item.path}`),
+		async (filePath) => {
+			try {
+				const res = await fetch(buildRawUrl(info, filePath.slice(info.repo.length + 1), ref));
+				return res.ok ? await res.text() : null;
+			} catch {
+				return null;
+			}
+		},
+		BATCH_SIZE
+	).catch(() => new Map<string, string>());
+
+	// 5. Download + parse in batches
 	let done = 0;
-	const astMap = new Map(projectStore.astMap);
+	const astMap = new Map<string, ASTSymbol[]>();
+	const refs = new Map<string, ASTRef[]>();
 	const skipped: ParseSkip[] = [];
 
 	for (let i = 0; i < supportedItems.length; i += BATCH_SIZE) {
@@ -224,8 +250,8 @@ export async function loadGitHubRepo(
 				if (!content) return { path: filePath, reason: 'unreadable' };
 
 				try {
-					const symbols = await parseFile(filePath, content, detectLanguage(item.path)!);
-					return { filePath, symbols };
+					const parsed = await parseFile(filePath, content, detectLanguage(item.path)!);
+					return { filePath, ...parsed };
 				} catch {
 					return { path: filePath, reason: 'parse-failed' };
 				}
@@ -234,7 +260,10 @@ export async function loadGitHubRepo(
 
 		for (const result of results) {
 			if ('reason' in result) skipped.push(result);
-			else astMap.set(result.filePath, result.symbols);
+			else {
+				astMap.set(result.filePath, result.symbols);
+				refs.set(result.filePath, result.refs);
+			}
 		}
 
 		done += batch.length;
@@ -243,6 +272,13 @@ export async function loadGitHubRepo(
 	}
 
 	projectStore.parseSkips = skipped;
+	const parsed = projectStore.astMap;
+	codeMapStore.build({
+		astMap: parsed,
+		root: info.repo,
+		refs,
+		configs: await configsRead
+	});
 	projectStore.isLoading = false;
 	return { cut };
 }

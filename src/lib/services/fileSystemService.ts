@@ -1,8 +1,10 @@
 import type { FileNode } from '$lib/types/fileTree';
 import { detectLanguage } from '$lib/utils/languageDetector';
+import { collectResolverConfigs } from '$lib/services/importResolver';
 import {
 	capFiles,
 	DEFAULT_PATH_FILTER,
+	MAX_FILE_SIZE,
 	isIncludeAncestor,
 	shouldSkipPath,
 	sortFileTree,
@@ -26,10 +28,22 @@ interface FoundFile {
 	parent: FileNode;
 }
 
-/** A loaded project tree and the files the MAX_FILES cap left out of it. */
+/** A loaded project tree, the files the MAX_FILES cap left out of it, and the resolver configs. */
 export interface LoadedTree {
 	tree: FileNode;
 	cut: CutFile[];
+	/** `collectResolverConfigs` over every listed file, cut ones included */
+	configs: Map<string, string>;
+}
+
+/** A config text, or null for a file over MAX_FILE_SIZE or one that cannot be read. */
+async function readConfig(file: () => Promise<File>): Promise<string | null> {
+	try {
+		const opened = await file();
+		return opened.size > MAX_FILE_SIZE ? null : await opened.text();
+	} catch {
+		return null;
+	}
 }
 
 /**
@@ -44,6 +58,13 @@ export async function readDirectoryRecursive(
 	const found: FoundFile[] = [];
 	const root = await walkDirectory(dirHandle, basePath, filter, 0, found);
 	const { kept, cut } = capFiles(found, (file) => file.path);
+	const byPath = new Map(found.map((file) => [file.path, file]));
+	const configs = await collectResolverConfigs(byPath.keys(), (path) => {
+		const { name, parent } = byPath.get(path)!;
+		return readConfig(async () =>
+			(await (parent.handle as FileSystemDirectoryHandle).getFileHandle(name)).getFile()
+		);
+	});
 
 	await Promise.all(
 		kept.map(async ({ path, name, parent }) => {
@@ -64,7 +85,7 @@ export async function readDirectoryRecursive(
 
 	pruneEmptyDirectories(root);
 	sortFileTree(root);
-	return { tree: root, cut };
+	return { tree: root, cut, configs };
 }
 
 /** Remove folders left without files, such as one whose files were all cut by the cap. */
@@ -117,10 +138,10 @@ export async function readFileContent(fileHandle: FileSystemFileHandle): Promise
 	return await file.text();
 }
 
-export function handleFallbackInput(
+export async function handleFallbackInput(
 	files: FileList,
 	filter: PathFilter = DEFAULT_PATH_FILTER
-): LoadedTree {
+): Promise<LoadedTree> {
 	const root: FileNode = {
 		name: extractProjectName(files),
 		path: '',
@@ -136,6 +157,10 @@ export function handleFallbackInput(
 		.map((file) => ({ file, path: file.webkitRelativePath.split('/').slice(1).join('/') }))
 		.filter(({ path }) => !shouldSkipPath(path, filter, true));
 	const { kept, cut } = capFiles(candidates, (candidate) => candidate.path);
+	const byPath = new Map(candidates.map(({ path, file }) => [path, file]));
+	const configs = await collectResolverConfigs(byPath.keys(), (path) =>
+		readConfig(async () => byPath.get(path)!)
+	);
 
 	for (const { file, path } of kept) {
 		const pathParts = path.split('/');
@@ -181,7 +206,7 @@ export function handleFallbackInput(
 	}
 
 	sortFileTree(root);
-	return { tree: root, cut };
+	return { tree: root, cut, configs };
 }
 
 function extractProjectName(files: FileList): string {

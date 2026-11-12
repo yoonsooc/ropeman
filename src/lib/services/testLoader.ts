@@ -1,8 +1,10 @@
 import type { FileNode } from '$lib/types/fileTree';
-import type { ParseSkip } from '$lib/types/ast';
+import type { ASTRef, ParseSkip } from '$lib/types/ast';
 import { isSupported } from '$lib/utils/languageDetector';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { parseFile } from '$lib/services/parserService';
+import { collectResolverConfigs } from '$lib/services/importResolver';
+import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
 
 interface DevFileNode extends FileNode {
 	_absolutePath?: string;
@@ -13,16 +15,14 @@ const BATCH_SIZE = 20;
 // Module-level guard: prevents multiple concurrent loads
 let _loading = false;
 
-function collectSupportedFiles(root: DevFileNode): DevFileNode[] {
+function collectFiles(root: DevFileNode): DevFileNode[] {
 	const result: DevFileNode[] = [];
 	const stack: DevFileNode[] = [root];
 
 	while (stack.length > 0) {
 		const node = stack.pop()!;
 		if (node.kind === 'file') {
-			if (node.language && isSupported(node.language)) {
-				result.push(node);
-			}
+			result.push(node);
 		} else if (node.children) {
 			for (const child of node.children) {
 				stack.push(child as DevFileNode);
@@ -52,13 +52,15 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 		projectStore.fileTree = fileTree;
 
 		// 2. Collect supported files
-		const files = collectSupportedFiles(fileTree);
+		const listed = collectFiles(fileTree);
+		const files = listed.filter((file) => file.language && isSupported(file.language));
 		const total = files.length;
 		projectStore.parsingProgress = { done: 0, total };
 
 		// 3. Parse each file
 		let done = 0;
 		const batchMap = new Map(projectStore.astMap);
+		const refs = new Map<string, ASTRef[]>();
 		let batchCount = 0;
 		const skipped: ParseSkip[] = [];
 
@@ -88,8 +90,9 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 					continue;
 				}
 
-				const symbols = await parseFile(file.path, content, file.language!);
-				batchMap.set(file.path, symbols);
+				const parsed = await parseFile(file.path, content, file.language!);
+				batchMap.set(file.path, parsed.symbols);
+				refs.set(file.path, parsed.refs);
 				batchCount++;
 
 				if (batchCount >= BATCH_SIZE) {
@@ -110,6 +113,14 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 			projectStore.astMap = new Map(batchMap);
 		}
 		projectStore.parseSkips = skipped;
+
+		const parsed = projectStore.astMap;
+		const absolute = new Map(listed.map((file) => [file.path, file._absolutePath]));
+		const configs = await collectResolverConfigs(absolute.keys(), async (path) => {
+			const res = await fetch(`/__dev/read?file=${encodeURIComponent(absolute.get(path) ?? '')}`);
+			return res.ok ? await res.text() : null;
+		});
+		codeMapStore.build({ astMap: parsed, root: fileTree.name, refs, configs });
 	} catch (err) {
 		console.error('[testLoader] Failed to load test project:', err);
 	} finally {

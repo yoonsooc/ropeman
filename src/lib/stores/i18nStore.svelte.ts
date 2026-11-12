@@ -276,6 +276,7 @@ interface CoverageTranslations {
 	levelEmptied: string;
 	levelClean: string;
 	levelUnknown: string;
+	imports: string;
 }
 
 interface TranslationSet {
@@ -888,7 +889,9 @@ const translations: Record<Locale, TranslationSet> = {
 			levelDuplicated: '이미 배정된 파일이라 무시한 항목 {count}개',
 			levelEmptied: '파일이 남지 않아 뺀 그룹 {count}개',
 			levelClean: '모든 파일이 그룹 하나에 들어갔습니다',
-			levelUnknown: '이 단계는 배정 수를 기록하기 전에 분석했습니다'
+			levelUnknown: '이 단계는 배정 수를 기록하기 전에 분석했습니다',
+			imports:
+				'import 문 {total}개 중 {project}개는 프로젝트 파일로, {external}개는 외부 패키지로 이어졌고 {unresolved}개는 대상을 찾지 못했습니다.'
 		},
 		docs: {
 			title: '문서',
@@ -1508,7 +1511,9 @@ const translations: Record<Locale, TranslationSet> = {
 			levelDuplicated: '{count} repeated {count|file|files} ignored',
 			levelEmptied: '{count} empty {count|group|groups} removed',
 			levelClean: 'Every file is in exactly one group',
-			levelUnknown: 'Analyzed before these counts were recorded'
+			levelUnknown: 'Analyzed before these counts were recorded',
+			imports:
+				'Of {total} import statements, {project} lead to project files, {external} to packages, and {unresolved} to nothing found.'
 		},
 		docs: {
 			title: 'Documentation',

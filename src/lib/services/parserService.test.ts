@@ -38,7 +38,8 @@ class MockWorker {
 								lineEnd: 5,
 								children: []
 							}
-						]
+						],
+						refs: [{ kind: 'calls', line: 2, written: 'save' }]
 					}
 				} as MessageEvent);
 			}, 0);
@@ -100,8 +101,9 @@ describe('parserService', () => {
 			// Advance timers to trigger init-done and parse-result
 			await vi.advanceTimersByTimeAsync(10);
 
-			const symbols = await promise;
+			const { symbols, refs } = await promise;
 
+			expect(refs).toEqual([{ kind: 'calls', line: 2, written: 'save' }]);
 			expect(symbols).toHaveLength(1);
 			expect(symbols[0].name).toBe('testFunction');
 			expect(symbols[0].kind).toBe('function');
@@ -110,8 +112,9 @@ describe('parserService', () => {
 		it('outlines markdown on the main thread without starting the worker', async () => {
 			const before = MockWorker.created;
 
-			const symbols = await parseFile('SKILL.md', '# Review\n## Steps', 'markdown');
+			const { symbols, refs } = await parseFile('SKILL.md', '# Review\n## Steps', 'markdown');
 
+			expect(refs).toEqual([]);
 			expect(symbols[0]).toMatchObject({ name: 'Review', kind: 'heading' });
 			expect(MockWorker.created).toBe(before);
 		});
@@ -119,10 +122,14 @@ describe('parserService', () => {
 		it('reads config files with their line parsers without starting the worker', async () => {
 			const before = MockWorker.created;
 
-			const docker = await parseFile('Dockerfile', 'FROM node:20 AS app', 'dockerfile');
-			const terraform = await parseFile('main.tf', 'module "vpc" {\n}', 'terraform');
-			const env = await parseFile('.env.example', 'TOKEN=hunter2', 'dotenv');
-			const make = await parseFile('Makefile', 'all: build', 'makefile');
+			const { symbols: docker } = await parseFile(
+				'Dockerfile',
+				'FROM node:20 AS app',
+				'dockerfile'
+			);
+			const { symbols: terraform } = await parseFile('main.tf', 'module "vpc" {\n}', 'terraform');
+			const { symbols: env } = await parseFile('.env.example', 'TOKEN=hunter2', 'dotenv');
+			const { symbols: make } = await parseFile('Makefile', 'all: build', 'makefile');
 
 			expect(docker).toContainEqual(expect.objectContaining({ name: 'app', kind: 'stage' }));
 			expect(terraform[0]).toMatchObject({ name: 'module.vpc', kind: 'resource' });
@@ -144,9 +151,9 @@ describe('parserService', () => {
 			// After destroy, a new parseFile should create a new worker
 			const promise2 = parseFile('file2.ts', 'code2', 'typescript');
 			await vi.advanceTimersByTimeAsync(10);
-			const result = await promise2;
+			const { symbols } = await promise2;
 
-			expect(result).toHaveLength(1);
+			expect(symbols).toHaveLength(1);
 		});
 	});
 
@@ -172,7 +179,7 @@ describe('parserService', () => {
 				children: [...real, template].map((file) => file.node)
 			};
 
-			const { astMap, skipped } = await parseAllFiles(tree, new Map());
+			const { astMap, skipped } = await parseAllFiles(tree);
 
 			for (const file of real) expect(file.getFile).not.toHaveBeenCalled();
 			expect([...astMap]).toEqual([
@@ -195,11 +202,12 @@ describe('parserService', () => {
 				]
 			};
 
-			const promise = parseAllFiles(tree, new Map());
+			const promise = parseAllFiles(tree);
 			await vi.advanceTimersByTimeAsync(50);
-			const { astMap, skipped } = await promise;
+			const { astMap, refs, skipped } = await promise;
 
 			expect([...astMap.keys()]).toEqual(['src/ok.ts']);
+			expect([...refs]).toEqual([['src/ok.ts', [{ kind: 'calls', line: 2, written: 'save' }]]]);
 			expect(skipped).toEqual(
 				expect.arrayContaining([
 					{ path: 'src/huge.ts', reason: 'file-size' },
@@ -220,7 +228,7 @@ describe('parserService', () => {
 			};
 			const progress: number[] = [];
 
-			await parseAllFiles(tree, new Map(), (p) => progress.push(p.done));
+			await parseAllFiles(tree, (p) => progress.push(p.done));
 
 			expect(progress.at(-1)).toBe(1);
 		});

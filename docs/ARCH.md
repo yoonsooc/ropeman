@@ -28,6 +28,7 @@ src/
 │   │   ├── layoutStore.svelte.ts     # Split Pane 레이아웃 상태
 │   │   ├── onboardingStore.svelte.ts # 온보딩 투어 상태 (Phase 1/2, currentStep, localStorage)
 │   │   ├── chatStore.svelte.ts       # 채팅 히스토리 (Svelte 5 runes)
+│   │   ├── codeMapStore.svelte.ts    # 열린 프로젝트의 코드 지도. 파싱이 끝날 때 한 번 만들고, astMap이 바뀌면 null
 │   │   ├── i18nStore.svelte.ts       # 다국어 지원 (Svelte 5 runes + Help/Onboarding 확장). 언어 값은 settingsStore.language를 읽기만 한다
 │   │   └── themeStore.svelte.ts      # 다크/라이트 테마 (Svelte 5 runes)
 │   │
@@ -45,8 +46,7 @@ src/
 │   │   ├── configParsers.ts          # Dockerfile·Terraform·env 템플릿·Makefile → 구조 심볼 (줄 단위 파서, 값은 읽지 않음)
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
-│   │   ├── parserService.ts          # Web Worker 통신 (parseFile, parseAllFiles → { astMap, skipped })
-│   │   ├── graphBuilder.ts           # FileNode → GraphNode/Edge (fallback, import 관계 없음)
+│   │   ├── parserService.ts          # Web Worker 통신 (parseFile → { symbols, refs }, parseAllFiles → { astMap, refs, skipped })
 │   │   ├── bridgeService.ts          # 로컬 Bridge WebSocket 연결
 │   │   ├── webllmService.ts          # WebLLM Worker 래퍼
 │   │   ├── cacheService.ts           # IndexedDB 채팅 캐시 (Orama)
@@ -132,10 +132,11 @@ edge-proxy/                       # Cloudflare Workers
 사용자 폴더 드롭
 → File System Access API (showDirectoryPicker / webkitdirectory fallback)
 → fileSystemService.readDirectoryRecursive()   # 경로를 전부 모은 뒤 filePriority.capFiles()로 순위를 매기고 MAX_FILES에서 자른다
-→ { tree, cut } 반환. 파일이 모두 잘린 폴더는 트리에서 뺀다
+→ { tree, cut, configs } 반환. 파일이 모두 잘린 폴더는 트리에서 뺀다. configs는 상한 전 목록에서 읽은 해석 설정이다
 → 호출한 컴포넌트가 projectStore.fileTree와 projectStore.cutFiles(잘린 파일과 이유)에 쓴다
 → parserService.parseAllFiles() [Web Worker — tree-sitter WASM. Markdown과 설정 파일은 메인 스레드의 줄 단위 파서]
-→ { astMap, skipped } 반환. 호출한 쪽이 projectStore.astMap과 projectStore.parseSkips(크기 초과, 파서 오류, 열지 못한 파일)에 쓴다
+→ { astMap, refs, skipped } 반환. 호출한 쪽이 projectStore.astMap과 projectStore.parseSkips(크기 초과, 파서 오류, 열지 못한 파일)에 쓴다
+→ codeMapStore.build({ astMap, root, refs, configs })   # 파싱 한 번에 코드 지도 한 번. GitHub·?testDir= 로더는 스스로 부른다
 ```
 
 ### Phase 2: AI 의미론적 분석
@@ -179,8 +180,13 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
   - 알려진 빈틈: Rust 매크로의 인자는 파싱되지 않은 토큰 묶음(token tree)이라 그 안의 호출(`println!("{}", v.len())`의 `v.len`)을 읽지 못한다. 감싼 심볼은 줄로만 고르므로, 한 줄에 함수 둘이 있으면 둘째 함수의 호출도 첫째에 붙는다. 심볼에 열(column)이 없고 v1 전송 형식이 고정이라 열로 고르지 않았다. Python 데코레이터 호출(`@app.route("/x")`)은 함수 심볼이 `def` 줄에서 시작하므로 바깥(모듈)으로 간다. Java 생성자는 개요에 없어서 생성자 안 호출은 클래스에서 나온다.
   - 쿼리가 컴파일되지 않거나 돌다가 실패하면 그 문법의 파일은 참조 없이(`refs: []`) 심볼만 보낸다. 컴파일은 문법마다 한 번만 시도하고, 경고(`console.warn`)도 문법마다 한 번만 남긴다.
   - 같은 파일 안 이름 맞추기는 하지 않았다. 지역 변수가 같은 이름을 가리면 틀리므로 EXTRACTED라 할 수 없고, 다른 파일로 가는 호출과 함께 해석기가 맡는다.
-  - 아직 `parserService`는 `refs`를 버린다. 코드 지도를 화면에 잇는 작업이 파일별 `refs`를 모아 `buildCodeMap`에 넘긴다.
+  - `parserService.parseFile()`은 `{ symbols, refs }`를 돌려주고, 로더는 파일별 `refs`를 모아 `codeMapStore.build()`에 넘긴다. 줄 단위 파서(Markdown, 설정 파일)는 `refs: []`다. 구조화 복제 비용(PASEO 로컬 폴더, 상한 안 1,951개 파일, `v8.serialize` 크기): `refs` 합계 7.3MB, 파일당 중앙값 1.2KB, 최대 309KB. 같은 파일의 심볼은 1.9MB다.
   - 비용(PASEO, Node, 워커 코드 그대로, 5회 교차 실행 중앙값): `.ts` 4,415개 3.96초 → 5.34초(+35%), `.tsx` 870개 0.59초 → 0.78초(+33%). 늘어난 시간의 대부분은 쿼리가 트리를 도는 WASM 시간이다(호출 패턴 하나만 돌려도 약 1.0초). 읽은 위치는 `.ts`에서 404,435개, `.tsx`에서 39,711개다.
+- 앱에서 만들기 (`stores/codeMapStore.svelte.ts`): 로더 다섯 경로(로컬 폴더 선택, webkitdirectory 대체 입력, 스니펫, GitHub, `?testDir=`)가 파싱을 마치고 `projectStore.astMap`을 쓴 뒤 `codeMapStore.build()`를 한 번 부른다. `root`는 astMap 키의 접두어다. 로컬 폴더와 스니펫은 저장소 기준 경로라 `null`, GitHub는 저장소 이름, `?testDir=`는 스캔한 폴더 이름이다.
+  - `codeMapStore.map`은 만든 astMap이 지금의 `projectStore.astMap`과 같은 객체일 때만 지도를 준다. 새 프로젝트(`projectStore.reset()`)나 재파싱이 astMap을 바꾸면 곧바로 `null`이라, 다른 프로젝트의 지도가 남지 않는다. 별도 reset 호출이 없어도 된다. 같은 이유로 `build()`도 넘겨받은 astMap이 지금의 것이 아니면 아무것도 하지 않는다. 설정을 기다리는 사이 사용자가 다른 프로젝트를 열면, 늦게 끝난 로더가 새 프로젝트의 지도를 덮어쓰지 못한다.
+  - 해석 설정(`configs`)은 MAX_FILES 상한 전에 로더가 본 전체 목록에서 `collectResolverConfigs()`(`importResolver.ts`)로 모은다. `isResolverConfig()` 파일을 읽고 `namedConfigs()`가 새 이름을 주지 않을 때까지 목록에 있는 파일만 더 읽는다. MAX_FILE_SIZE보다 큰 파일과 사용자 제외 경로는 읽지 않는다. 상한은 그대로다. GitHub 로더는 파싱과 같은 크기(`BATCH_SIZE` 20)로 나눠 받아서 큰 모노레포에서도 동시 요청이 20개를 넘지 않는다. 설정을 하나도 못 읽어도 로드는 실패하지 않고 설정 없이 지도를 만든다. PASEO에서는 상한과 순위가 해석 설정 40개를 모두 잘랐고, 이렇게 모으면 40개가 다 들어온다.
+  - 비용(PASEO 로컬 폴더, Node, 앱과 같은 함수): `buildCodeMap` 5회 중앙값 73ms(50~139ms). 지도 `files`를 `v8.serialize`하면 23MB다.
+  - AI 요청은 코드 지도를 읽지 않는다. `selectSkeleton`·`selectSubSkeleton`이 astMap에서 바로 만들므로 전송 바이트는 그대로다(`skeletonWire.test.ts` 골든, `importResolver.test.ts`·`skeletonExtractor.test.ts`의 해석 전후 바이트 비교).
 - 워커는 파일마다 트리를 다 쓰면 `tree.delete()`로 WASM 메모리를 돌려준다. 돌려주지 않으면 한 워커가 PASEO `.ts`를 두 번 반 읽는 동안(약 10,000개) 힙이 차서 그 뒤 모든 파일이 실패했다.
 - import 해석 (`importResolver.ts`, 순수 함수): `configs`는 `isResolverConfig()`가 고르는 설정 파일(tsconfig·jsconfig, package.json, pnpm-workspace.yaml, svelte.config)의 원문과, 이 설정들이 `extends`·`references`로 가리키지만 이름으로는 안 골린 파일(`base.json` 등, `namedConfigs()`가 새 이름이 없을 때까지 알려 준다)의 원문을 astMap 키로 담는다. `readResolverConfig()`가 이를 규칙으로 바꾸고 `resolveImports()`가 import 위치의 모듈 대상과 이름별 대상만 바꾼다.
   - TS/JS·Svelte·Vue: 상대 경로(확장자 추가, `/index`, 적힌 `.js`는 같은 이름의 `.ts`가 있으면 `.js`가 있어도 `.ts`, `.d.ts`), SvelteKit `$lib`·`kit.alias`(svelte.config가 없으면 `src/lib`), 가장 가까운 tsconfig의 `paths`·`baseUrl`, 워크스페이스 패키지(`exports`·`main`·`types`, `dist/` 경로는 tsconfig `outDir`→`rootDir`로 소스에 되돌린다), 가장 가까운 package.json의 `imports`(`#x`, 못 찾으면 외부가 아니라 `unresolved`) 순서로 찾는다. 나머지 이름은 외부 패키지다. `exports`·`imports`의 조건은 적힌 순서대로 읽고 `types`·`import`·`require`·`default`·`svelte`·`browser`만 따른다.
@@ -207,7 +213,8 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 
 다이어그램 아래 한 줄 요약(`CoverageSummary.svelte`)이 "파일 N개 중 M개를 AI에 보냄"과 잘림, 건너뜀, 못 읽음 수를 보여 준다. 누르면 상태별 목록, 이유, 경로 검색, 다이어그램 단계별 배정 수가 열린다.
 
-- `coverageService.buildCoverage()`는 순수 함수다. 입력은 `fileTree`, `astMap`, `cutFiles`, `parseSkips`, `selectSkeleton()` 결과, 시맨틱 캐시의 단계들이다. 모든 경로는 프로젝트 이름을 뗀 상대 경로로 맞춘다.
+- `coverageService.buildCoverage()`는 순수 함수다. 입력은 `fileTree`, `astMap`, `cutFiles`, `parseSkips`, `selectSkeleton()` 결과, 시맨틱 캐시의 단계들, 코드 지도다. 모든 경로는 프로젝트 이름을 뗀 상대 경로로 맞춘다.
+- 패널 머리말 아래 한 줄이 코드 지도의 import·재수출 문이 어디로 이어졌는지 센다(`imports`): 프로젝트 파일, 외부 패키지, 대상을 찾지 못함. 해석기가 읽지 않는 언어의 문(`pending`)은 세지 않고, 셀 문이 없거나 지도가 아직 없으면 줄을 감춘다. PASEO 로컬 폴더에서는 7,996개 중 3,504개가 프로젝트 파일, 3,323개가 패키지, 1,169개가 못 찾음이다. 못 찾은 상대 경로 629개 중 612개는 대상 파일이 목록에는 있지만 상한으로 잘려 파싱되지 않은 경우다.
 - 파일 하나에는 이유 하나만 붙는다. 상태는 `COVERAGE_REASONS` 표(`types/coverage.ts`)에서 이유로 정해진다.
   - 이유를 정하는 순서는 로더가 자른 이유, 문법 없음(`unsupported`), 파서가 남긴 이유, 스켈레톤이 뺀 이유(`over-budget`, `excluded-path`, `no-symbols`), 보냄이다.
   - astMap에 없고 기록도 없는 파일은 `unreadable`이다. GitHub 로더는 다운로드 실패와 빈 응답을 `unreadable`, 파서 오류를 `parse-failed`로 `projectStore.parseSkips`에 직접 쓴다.
@@ -346,7 +353,7 @@ export const xxxStore = createXxxStore();
 
 - 색 토큰은 `src/lib/styles/global.css` 맨 위 `:root`(라이트)와 `[data-theme='dark']`(다크)에 있다. 이름은 astryx 색 역할 문법을 따른다. 예: `--color-background-surface`, `--color-text-secondary`, `--color-on-accent`.
 - 상태 색은 쓰이는 표면마다 역할이 따로 있다. 페이지 위 글자는 `--color-text-error`, 진한 채움은 `--color-error`와 그 위 글자 `--color-on-error`, 옅은 채움은 `--color-error-muted`와 그 위 글자 `--color-on-error-muted`다. 점·아이콘은 `--color-icon-*`, 테두리는 `--color-border-*`를 쓴다.
-- 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다. 엣지 범례(`--color-edge-*`)도 범주 색이다. `semanticGraphBuilder.ts`는 캔버스 선과 화살촉을, 파일 그래프의 `graphBuilder.ts`는 선을 `var(--color-edge-*)`로 그린다. 파일 그래프의 import는 `depends-on`, 호출은 `calls`를 쓰고, 범례에 없는 포함 관계는 `--color-edge-contains`를 쓴다. 그래서 테마 블록에서 이 토큰을 다시 정의하면 선과 범례가 함께 바뀐다. 지금은 두 테마가 같은 값이라 `:root`에만 있다. 선, 화살촉, 범례가 같은 토큰을 가리키는지 `tokens.test.ts`가 검사한다.
+- 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다. 엣지 범례(`--color-edge-*`)도 범주 색이다. `semanticGraphBuilder.ts`는 캔버스 선과 화살촉을 `var(--color-edge-*)`로 그린다. 그래서 테마 블록에서 이 토큰을 다시 정의하면 선과 범례가 함께 바뀐다. 지금은 두 테마가 같은 값이라 `:root`에만 있다. 선, 화살촉, 범례가 같은 토큰을 가리키는지 `tokens.test.ts`가 검사한다.
 - 포커스 링은 전역 `:focus-visible` 규칙 하나가 `--focus-outline-*` 토큰으로 그린다. 잘리는 스크롤 컨테이너 안에서는 요소에 `--focus-outline-offset: -2px`를 준다. 컴포넌트에서 `outline: none`을 쓰려면 같은 요소나 감싸는 요소가 링을 대신 그려야 한다.
 - 척도 토큰도 같은 `:root`에 있다. 값은 astryx core를 따른다.
   - 간격 `--spacing-N`은 N × 0.25rem(4px 격자)이다. 1px 선과 48px보다 큰 간격은 숫자로 둔다.
@@ -391,7 +398,7 @@ export const xxxStore = createXxxStore();
       - 잠금 파일(`package-lock.json`, `pnpm-lock.yaml`, `poetry.lock`, `Cargo.lock`, `uv.lock` 등, `languageDetector.isLockfile()`)은 언어를 붙이지 않고 커버리지에 `lockfile`(건너뜀)로 보인다
       - web-tree-sitter 0.25가 내보내지 않는 함수를 import하는 문법은 그 함수를 처음 부를 때 파싱이 죽는다. `tree-sitter-wasms`의 YAML 스캐너는 C++이라 `operator new`·`delete`를 부르고(모든 YAML), Bash 스캐너는 `[[ a == b ]]`에서 `isalpha`를 부른다. `scripts/alias-grammar-imports.mjs`가 이 import 이름을 런타임이 가진 같은 인자의 함수(`malloc`·`free`·`abort`, `iswalpha`)로 바꾼 사본을 `static/`에 쓰고, 테스트가 그 사본이 원본에서 다시 만든 것과 같은지 확인한다
       - 경로 필터는 `.github/workflows`, `.github/actions`, `.gitlab-ci.yml`, `.circleci`를 숨김 폴더여도 기본으로 남기고, 코드 구조 요약의 제외 경로 규칙보다 우선한다. 파일 수 상한 순위에서 YAML·TOML·JSON은 테스트와 같은 띠에 둔다. 매니페스트 폴더가 코드를 밀어내지 않게 하려는 것이다. Bash는 코드와 같은 띠다
-    - 새 종류는 모두 전송 종류다(`ast.ts`의 `CONFIG_SYMBOL_KINDS`). 설정 파일에만 나오므로 기존 파일의 전송 바이트는 그대로이고(`skeletonWire.test.ts`), 심볼이 없는 설정 파일은 `no-symbols`로 빠진다. 전송 언어 이름은 `dockerfile`, `terraform`, `dotenv`, `makefile`이다. 형식마다 자기 용어를 쓰므로 프롬프트 규칙은 더하지 않았다. 파일 그래프(`graphBuilder`)에는 Markdown처럼 그리지 않는다
+    - 새 종류는 모두 전송 종류다(`ast.ts`의 `CONFIG_SYMBOL_KINDS`). 설정 파일에만 나오므로 기존 파일의 전송 바이트는 그대로이고(`skeletonWire.test.ts`), 심볼이 없는 설정 파일은 `no-symbols`로 빠진다. 전송 언어 이름은 `dockerfile`, `terraform`, `dotenv`, `makefile`이다. 형식마다 자기 용어를 쓰므로 프롬프트 규칙은 더하지 않았다.
   - `.svelte`·`.vue`는 전용 문법 없이 `<script>` 블록(`context="module"`, `module`, `setup` 포함)을 TS/JS로 읽는다. `sfcScripts.componentScriptSource()`가 블록 밖의 글자를 공백으로 바꾸고 줄바꿈은 남겨서, 심볼 줄 번호가 원본 파일 줄과 같다. 문법은 블록의 `lang`(`ts`, `tsx`, 없음 = JS) 중 가장 넓은 것을 `getGrammarFile()`로 고른다. 템플릿과 스타일은 읽지 않는다. JSON-LD처럼 코드가 아닌 `type`과 모르는 `lang`(예: `coffee`)의 블록은 건너뛴다
 - **코드 구조 요약 크기**: 기본 250KB (50-1000KB 범위, 1KB = 1000바이트). 보내는 압축 JSON 전체(바깥 필드 포함)로 잰다
   - 경고는 `requestBudget.ts`가 실제로 보낼 프롬프트(시스템 + 사용자, `topLevelPrompt()`)로 잰다. 데모는 POST 본문(JSON 이스케이프 포함)이 300KB를 넘으면 경고한다(측정 안 함, 모델당 40초 제한. 기본 250KB 스켈레톤이 본문으로 약 15% 커지는 만큼 여유를 둠). BYOK는 고른 프로바이더·모델의 컨텍스트 창(`aiProviders.ts` 표, 출처는 주석)에서 출력 예약(Gemini·OpenAI 16,384, Anthropic 4,096)을 뺀 값과 비교한다. 표에 없는 모델은 128K로 가정하고 그렇다고 알린다. 토큰 수는 1토큰 = 4바이트로 어림한다 (PASEO 측정 4.2)

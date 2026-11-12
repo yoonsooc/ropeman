@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+	collectResolverConfigs,
 	isResolverConfig,
 	namedConfigs,
 	readResolverConfig,
@@ -1199,5 +1200,71 @@ describe('specifier edge cases', () => {
 		// Assert
 		expect(target(result, 'main.ts', 0)).toBe('app/src/a$&b.ts');
 		expect(target(result, 'main.ts', 1)).toBe('app/src/c$$d.ts');
+	});
+});
+
+describe('collectResolverConfigs', () => {
+	const reader = (files: Record<string, string | null>) => {
+		const asked: string[] = [];
+		const read = async (path: string) => {
+			asked.push(path);
+			return files[path] ?? null;
+		};
+		return { read, asked };
+	};
+
+	it('reads the configs a loader listed and the files they extend, and nothing else', async () => {
+		const files = {
+			'app/tsconfig.json': '{ "extends": "./configs/base.json" }',
+			'app/configs/base.json': '{ "extends": "./strict.json", "compilerOptions": {} }',
+			'app/configs/strict.json': '{}',
+			'app/packages/a/package.json': '{ "name": "a" }',
+			'app/src/index.ts': 'export {}'
+		};
+		const { read, asked } = reader(files);
+
+		const texts = await collectResolverConfigs(Object.keys(files), read);
+
+		expect([...texts.keys()].sort()).toEqual([
+			'app/configs/base.json',
+			'app/configs/strict.json',
+			'app/packages/a/package.json',
+			'app/tsconfig.json'
+		]);
+		expect(asked).not.toContain('app/src/index.ts');
+	});
+
+	it('keeps at most batchSize reads in flight', async () => {
+		const listed = Array.from({ length: 45 }, (_, i) => `app/packages/p${i}/package.json`);
+		let inFlight = 0;
+		let peak = 0;
+		const read = async () => {
+			peak = Math.max(peak, ++inFlight);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			inFlight--;
+			return '{}';
+		};
+
+		const texts = await collectResolverConfigs(listed, read, 20);
+
+		expect(texts.size).toBe(45);
+		expect(peak).toBe(20);
+	});
+
+	it('never asks for a named config the listing does not have', async () => {
+		const { read, asked } = reader({ 'app/tsconfig.json': '{ "extends": "./missing.json" }' });
+
+		const texts = await collectResolverConfigs(['app/tsconfig.json'], read);
+
+		expect([...texts.keys()]).toEqual(['app/tsconfig.json']);
+		expect(asked).toEqual(['app/tsconfig.json']);
+	});
+
+	it('leaves out a file the reader skips, such as one over the size limit', async () => {
+		const { read } = reader({ 'app/package.json': null, 'app/tsconfig.json': '{}' });
+
+		const texts = await collectResolverConfigs(['app/package.json', 'app/tsconfig.json'], read);
+
+		expect([...texts.keys()]).toEqual(['app/tsconfig.json']);
 	});
 });

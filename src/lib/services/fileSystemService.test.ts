@@ -12,7 +12,7 @@ vi.mock('$lib/utils/languageDetector', async (importOriginal) => ({
 }));
 
 import { handleFallbackInput, readDirectoryRecursive } from './fileSystemService';
-import { MAX_FILES } from '$lib/utils/filePriority';
+import { MAX_FILE_SIZE, MAX_FILES } from '$lib/utils/filePriority';
 import type { FileNode } from '$lib/types/fileTree';
 
 /** Folder layout where folder order would spend the whole file limit on packages/app */
@@ -41,15 +41,15 @@ function topPackages(paths: string[]): Set<string> {
 	return new Set(paths.map((p) => p.split('/').slice(0, 2).join('/')));
 }
 
-type FakeEntry = FakeDir | { kind: 'file'; name: string };
+type FakeEntry = FakeDir | { kind: 'file'; name: string; text: string };
 interface FakeDir {
 	kind: 'directory';
 	name: string;
 	entries: FakeEntry[];
 }
 
-function fakeFileHandle(name: string) {
-	return { kind: 'file', name, getFile: async () => new File([''], name) };
+function fakeFileHandle(name: string, text = '') {
+	return { kind: 'file', name, getFile: async () => new File([text], name) };
 }
 
 /** Directory handle whose `values()` yields entries in insertion order */
@@ -59,18 +59,24 @@ function fakeDirectoryHandle(dir: FakeDir): FileSystemDirectoryHandle {
 		name: dir.name,
 		async *values() {
 			for (const entry of dir.entries) {
-				yield entry.kind === 'directory' ? fakeDirectoryHandle(entry) : fakeFileHandle(entry.name);
+				yield entry.kind === 'directory'
+					? fakeDirectoryHandle(entry)
+					: fakeFileHandle(entry.name, entry.text);
 			}
 		},
 		async getFileHandle(name: string) {
 			const found = dir.entries.find((e) => e.kind === 'file' && e.name === name);
-			if (!found) throw new DOMException('missing', 'NotFoundError');
-			return fakeFileHandle(name);
+			if (!found || found.kind !== 'file') throw new DOMException('missing', 'NotFoundError');
+			return fakeFileHandle(name, found.text);
 		}
 	} as unknown as FileSystemDirectoryHandle;
 }
 
-function fakeFolder(name: string, paths: string[]): FileSystemDirectoryHandle {
+function fakeFolder(
+	name: string,
+	paths: string[],
+	texts: Record<string, string> = {}
+): FileSystemDirectoryHandle {
 	const root: FakeDir = { kind: 'directory', name, entries: [] };
 	for (const path of paths) {
 		const parts = path.split('/');
@@ -83,7 +89,7 @@ function fakeFolder(name: string, paths: string[]): FileSystemDirectoryHandle {
 			}
 			dir = next;
 		}
-		dir.entries.push({ kind: 'file', name: parts[parts.length - 1] });
+		dir.entries.push({ kind: 'file', name: parts[parts.length - 1], text: texts[path] ?? '' });
 	}
 	return fakeDirectoryHandle(root);
 }
@@ -127,6 +133,23 @@ describe('fileSystemService', () => {
 			expect(directoryPaths(tree)).toEqual(['proj', 'src']);
 		});
 
+		it('reads the resolver configs the file limit cut', async () => {
+			// Regression: on PASEO the limit and the ranking dropped every tsconfig and package.json
+			const source = Array.from({ length: MAX_FILES }, (_, i) => `src/f${i}.ts`);
+			const texts = {
+				'tsconfig.json': '{ "extends": "./tsconfig.base.json" }',
+				'tsconfig.base.json': '{ "compilerOptions": { "paths": { "@/*": ["src/*"] } } }',
+				'packages/a/package.json': '{ "name": "a" }'
+			};
+
+			const { cut, configs } = await readDirectoryRecursive(
+				fakeFolder('proj', [...source, ...Object.keys(texts), 'node_modules/x/package.json'], texts)
+			);
+
+			expect(cut.map((c) => c.path)).toEqual(expect.arrayContaining(Object.keys(texts)));
+			expect(Object.fromEntries(configs)).toEqual(texts);
+		});
+
 		it('returns file nodes with handles that read the file, and skips excluded folders', async () => {
 			const { tree, cut } = await readDirectoryRecursive(
 				fakeFolder('proj', ['src/a.ts', 'node_modules/x/index.js', 'README'])
@@ -142,13 +165,15 @@ describe('fileSystemService', () => {
 		});
 	});
 
-	describe('handleFallbackInput', () => {
-		function makeFileList(files: { name: string; path: string; size?: number }[]): FileList {
+	describe('handleFallbackInput', async () => {
+		function makeFileList(
+			files: { name: string; path: string; size?: number; text?: string }[]
+		): FileList {
 			const list = files.map((f) => ({
 				name: f.name,
 				webkitRelativePath: f.path,
 				size: f.size ?? 100,
-				text: () => Promise.resolve(''),
+				text: () => Promise.resolve(f.text ?? ''),
 				arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
 				slice: () => new Blob(),
 				stream: () => new ReadableStream(),
@@ -166,13 +191,13 @@ describe('fileSystemService', () => {
 			} as any;
 		}
 
-		it('returns a directory tree from FileList', () => {
+		it('returns a directory tree from FileList', async () => {
 			const files = makeFileList([
 				{ name: 'index.ts', path: 'myproject/src/index.ts' },
 				{ name: 'utils.ts', path: 'myproject/src/utils.ts' }
 			]);
 
-			const { tree } = handleFallbackInput(files);
+			const { tree } = await handleFallbackInput(files);
 
 			expect(tree.name).toBe('myproject');
 			expect(tree.kind).toBe('directory');
@@ -184,27 +209,39 @@ describe('fileSystemService', () => {
 			expect(srcDir.children!.length).toBe(2);
 		});
 
-		it('extracts project name from first file path', () => {
+		it('reads resolver configs, but not one over the file size limit', async () => {
+			const files = makeFileList([
+				{ name: 'tsconfig.json', path: 'proj/tsconfig.json', text: '{}' },
+				{ name: 'package.json', path: 'proj/package.json', size: MAX_FILE_SIZE + 1, text: '{}' },
+				{ name: 'index.ts', path: 'proj/src/index.ts', text: 'export {}' }
+			]);
+
+			const { configs } = await handleFallbackInput(files);
+
+			expect(Object.fromEntries(configs)).toEqual({ 'tsconfig.json': '{}' });
+		});
+
+		it('extracts project name from first file path', async () => {
 			const files = makeFileList([{ name: 'app.py', path: 'cool-project/app.py' }]);
 
-			const { tree } = handleFallbackInput(files);
+			const { tree } = await handleFallbackInput(files);
 			expect(tree.name).toBe('cool-project');
 		});
 
-		it('skips files in node_modules', () => {
+		it('skips files in node_modules', async () => {
 			const files = makeFileList([
 				{ name: 'main.ts', path: 'proj/main.ts' },
 				{ name: 'lodash.js', path: 'proj/node_modules/lodash/lodash.js' }
 			]);
 
-			const { tree } = handleFallbackInput(files);
+			const { tree } = await handleFallbackInput(files);
 
 			// Should only have main.ts, not node_modules
 			const allNames = (tree.children ?? []).map((c) => c.name);
 			expect(allNames).not.toContain('node_modules');
 		});
 
-		it('keeps agent instruction folders but skips other hidden folders', () => {
+		it('keeps agent instruction folders but skips other hidden folders', async () => {
 			const files = makeFileList([
 				{ name: 'SKILL.md', path: 'repo/.agents/skills/review/SKILL.md' },
 				{ name: 'bug.yml', path: 'repo/.github/ISSUE_TEMPLATE/bug.yml' },
@@ -212,7 +249,7 @@ describe('fileSystemService', () => {
 				{ name: 'index.ts', path: 'repo/src/index.ts' }
 			]);
 
-			const { tree } = handleFallbackInput(files);
+			const { tree } = await handleFallbackInput(files);
 
 			const names = JSON.stringify(tree);
 			expect(names).toContain('SKILL.md');
@@ -225,28 +262,28 @@ describe('fileSystemService', () => {
 			const { createPathFilter } = await import('$lib/utils/filePriority');
 			const files = makeFileList([{ name: 'guide.md', path: 'repo/docs/guide.md' }]);
 
-			expect(JSON.stringify(handleFallbackInput(files).tree)).not.toContain('guide.md');
+			expect(JSON.stringify((await handleFallbackInput(files)).tree)).not.toContain('guide.md');
 			expect(
-				JSON.stringify(handleFallbackInput(files, createPathFilter([], ['docs'])).tree)
+				JSON.stringify((await handleFallbackInput(files, createPathFilter([], ['docs']))).tree)
 			).toContain('guide.md');
 		});
 
-		it('detects language for known extensions', () => {
+		it('detects language for known extensions', async () => {
 			const files = makeFileList([{ name: 'app.ts', path: 'proj/app.ts' }]);
 
-			const { tree } = handleFallbackInput(files);
+			const { tree } = await handleFallbackInput(files);
 			const fileNode = tree.children![0];
 			expect(fileNode.language).toBe('typescript');
 		});
 
-		it('sorts directories first, then alphabetically', () => {
+		it('sorts directories first, then alphabetically', async () => {
 			const files = makeFileList([
 				{ name: 'z.ts', path: 'proj/z.ts' },
 				{ name: 'a.ts', path: 'proj/a.ts' },
 				{ name: 'index.ts', path: 'proj/lib/index.ts' }
 			]);
 
-			const { tree } = handleFallbackInput(files);
+			const { tree } = await handleFallbackInput(files);
 			const names = (tree.children ?? []).map((c) => c.name);
 			// Directory 'lib' should come first
 			expect(names[0]).toBe('lib');
@@ -255,13 +292,13 @@ describe('fileSystemService', () => {
 			expect(names[2]).toBe('z.ts');
 		});
 
-		it('keeps every package past the file limit and records the cut', () => {
+		it('keeps every package past the file limit and records the cut', async () => {
 			const paths = paseoLikePaths();
 			const files = makeFileList(
 				paths.map((p) => ({ name: p.split('/').pop()!, path: `paseo/${p}` }))
 			);
 
-			const { tree, cut } = handleFallbackInput(files);
+			const { tree, cut } = await handleFallbackInput(files);
 
 			const kept = filePaths(tree);
 			expect(kept).toHaveLength(MAX_FILES);
@@ -271,9 +308,9 @@ describe('fileSystemService', () => {
 			expect(cut).toHaveLength(paths.length - MAX_FILES);
 		});
 
-		it('returns project name "project" for empty FileList', () => {
+		it('returns project name "project" for empty FileList', async () => {
 			const files = makeFileList([]);
-			const { tree } = handleFallbackInput(files);
+			const { tree } = await handleFallbackInput(files);
 			expect(tree.name).toBe('project');
 		});
 	});

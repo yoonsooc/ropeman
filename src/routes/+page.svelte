@@ -18,6 +18,7 @@
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import type { GitHubRepoInfo } from '$lib/utils/githubUrl';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
+	import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { authStore } from '$lib/stores/authStore.svelte';
@@ -104,18 +105,19 @@
 				resetAllStores();
 				projectStore.isLoading = true;
 				projectStore.projectName = dirHandle.name;
-				const { tree, cut } = await readDirectoryRecursive(
+				const { tree, cut, configs } = await readDirectoryRecursive(
 					dirHandle,
 					'',
 					createPathFilter(settingsStore.customSkipPatterns, settingsStore.customIncludePatterns)
 				);
 				projectStore.fileTree = tree;
 				projectStore.cutFiles = cut;
-				const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+				const { astMap, refs, skipped } = await parseAllFiles(tree, (progress) => {
 					projectStore.parsingProgress = progress;
 				});
 				projectStore.astMap = astMap;
 				projectStore.parseSkips = skipped;
+				codeMapStore.build({ astMap, root: null, refs, configs });
 				projectStore.isLoading = false;
 			} catch (err: unknown) {
 				if (err instanceof Error && err.name === 'AbortError') return;
@@ -156,7 +158,7 @@
 		if (!input.files || input.files.length === 0) return;
 		try {
 			resetAllStores();
-			const { tree, cut } = handleFallbackInput(
+			const { tree, cut, configs } = await handleFallbackInput(
 				input.files,
 				createPathFilter(settingsStore.customSkipPatterns, settingsStore.customIncludePatterns)
 			);
@@ -164,11 +166,12 @@
 			projectStore.fileTree = tree;
 			projectStore.cutFiles = cut;
 			projectStore.isLoading = true;
-			const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+			const { astMap, refs, skipped } = await parseAllFiles(tree, (progress) => {
 				projectStore.parsingProgress = progress;
 			});
 			projectStore.astMap = astMap;
 			projectStore.parseSkips = skipped;
+			codeMapStore.build({ astMap, root: null, refs, configs });
 			projectStore.isLoading = false;
 		} catch (err) {
 			console.error('Failed to process files:', err);

@@ -16,7 +16,9 @@ vi.mock('$lib/utils/languageDetector', async (importOriginal) => {
 });
 
 vi.mock('$lib/services/parserService', () => ({
-	parseFile: vi.fn().mockResolvedValue([{ name: 'mockSymbol', kind: 'function' }])
+	parseFile: vi
+		.fn()
+		.mockResolvedValue({ symbols: [{ name: 'mockSymbol', kind: 'function' }], refs: [] })
 }));
 
 vi.mock('$lib/stores/projectStore.svelte', () => {
@@ -32,10 +34,17 @@ vi.mock('$lib/stores/projectStore.svelte', () => {
 	return { projectStore: store };
 });
 
+vi.mock('$lib/services/importResolver', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('$lib/services/importResolver')>();
+	return { ...actual, collectResolverConfigs: vi.fn(actual.collectResolverConfigs) };
+});
+
 import { loadGitHubRepo, GitHubLoadError } from './githubLoader';
+import { collectResolverConfigs } from '$lib/services/importResolver';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { parseFile } from '$lib/services/parserService';
-import { MAX_FILES } from '$lib/utils/filePriority';
+import { codeMapStore } from '$lib/stores/codeMapStore.svelte';
+import { MAX_FILE_SIZE, MAX_FILES } from '$lib/utils/filePriority';
 
 const mockTreeResponse = {
 	sha: 'abc123',
@@ -102,6 +111,145 @@ describe('loadGitHubRepo', () => {
 			'https://raw.githubusercontent.com/owner/repo/abc123/src/index.ts',
 			'https://raw.githubusercontent.com/owner/repo/abc123/src/utils.ts'
 		]);
+	});
+
+	it('reads the resolver configs from the whole tree and builds the code map with them', async () => {
+		const blob = (path: string, size = 100) => ({
+			path,
+			mode: '100644',
+			type: 'blob' as const,
+			sha: path,
+			url: '',
+			size
+		});
+		const tree = {
+			...mockTreeResponse,
+			tree: [
+				blob('src/main.ts'),
+				blob('src/store.ts'),
+				blob('tsconfig.json'),
+				blob('pnpm-workspace.yaml'),
+				blob('package.json', MAX_FILE_SIZE + 1),
+				blob('node_modules/x/package.json')
+			]
+		};
+		const raw: Record<string, string> = {
+			'src/main.ts': "import { save } from '@/store'",
+			'src/store.ts': 'export function save() {}',
+			'tsconfig.json': '{ "compilerOptions": { "paths": { "@/*": ["./src/*"] } } }'
+		};
+		const fetchMock = vi.fn(async (url: string) => {
+			if (url.startsWith('https://api.github.com/')) return { ok: true, json: async () => tree };
+			const path = url.replace('https://raw.githubusercontent.com/owner/repo/abc123/', '');
+			return path in raw ? { ok: true, text: async () => raw[path] } : { ok: false, status: 404 };
+		});
+		vi.stubGlobal('fetch', fetchMock);
+		const parse = async (_path: string, content: string) => ({
+			symbols: content.startsWith('import')
+				? [{ name: content, kind: 'import' as const, lineStart: 1, lineEnd: 1 }]
+				: [{ name: 'save', kind: 'function' as const, lineStart: 1, lineEnd: 1 }],
+			refs: []
+		});
+		vi.mocked(parseFile).mockImplementationOnce(parse).mockImplementationOnce(parse);
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+		const fetched = fetchMock.mock.calls.map(([url]) => url.split('/abc123/')[1]).filter(Boolean);
+		expect(fetched.sort()).toEqual([
+			'pnpm-workspace.yaml',
+			'src/main.ts',
+			'src/store.ts',
+			'tsconfig.json'
+		]);
+		const main = codeMapStore.map!.files.get('repo/src/main.ts' as never)!;
+		expect(main.imports[0].module).toMatchObject({
+			state: 'bound',
+			candidates: [{ to: { kind: 'file', path: 'repo/src/store.ts' } }]
+		});
+	});
+
+	describe('resolver configs', () => {
+		const blob = (path: string) => ({
+			path,
+			mode: '100644',
+			type: 'blob' as const,
+			sha: path,
+			url: '',
+			size: 100
+		});
+		const RAW = 'https://raw.githubusercontent.com/owner/repo/abc123/';
+
+		function serve(paths: string[], raw: (path: string) => Promise<unknown>) {
+			const tree = { ...mockTreeResponse, tree: paths.map(blob) };
+			const fetchMock = vi.fn(async (url: string) =>
+				url.startsWith('https://api.github.com/')
+					? { ok: true, json: async () => tree }
+					: raw(url.replace(RAW, ''))
+			);
+			vi.stubGlobal('fetch', fetchMock);
+			return fetchMock;
+		}
+
+		it('keeps at most one batch of config downloads in flight in a large monorepo', async () => {
+			const packages = Array.from({ length: 70 }, (_, i) => `packages/p${i}/package.json`);
+			let inFlight = 0;
+			let peak = 0;
+			serve(['src/index.ts', ...packages], async (path) => {
+				if (!path.endsWith('package.json')) return { ok: true, text: async () => 'x' };
+				peak = Math.max(peak, ++inFlight);
+				await new Promise((resolve) => setTimeout(resolve, 0));
+				inFlight--;
+				return { ok: true, text: async () => '{}' };
+			});
+
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+			expect(peak).toBe(20);
+		});
+
+		it('still builds the map when one config download fails', async () => {
+			serve(['src/index.ts', 'tsconfig.json', 'package.json'], async (path) => {
+				if (path === 'tsconfig.json') throw new TypeError('network');
+				return { ok: true, text: async () => (path === 'package.json' ? '{"name":"a"}' : 'x') };
+			});
+
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+			expect(projectStore.isLoading).toBe(false);
+			expect(codeMapStore.map?.files.has('repo/src/index.ts' as never)).toBe(true);
+		});
+
+		it('builds the map without configs when reading them fails outright', async () => {
+			vi.mocked(collectResolverConfigs).mockRejectedValueOnce(new Error('bad config'));
+			serve(['src/index.ts', 'tsconfig.json'], async () => ({ ok: true, text: async () => 'x' }));
+
+			await expect(loadGitHubRepo({ owner: 'owner', repo: 'repo' })).resolves.toEqual({
+				cut: []
+			});
+			expect(codeMapStore.map?.files.has('repo/src/index.ts' as never)).toBe(true);
+		});
+
+		it("leaves the next project's map alone when this load finishes after it opened", async () => {
+			let releaseConfig!: () => void;
+			const configHeld = new Promise<void>((resolve) => (releaseConfig = resolve));
+			serve(['src/index.ts', 'tsconfig.json'], async (path) => {
+				if (path === 'tsconfig.json') await configHeld;
+				return { ok: true, text: async () => (path === 'tsconfig.json' ? '{}' : 'x') };
+			});
+			const load = loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+			await vi.waitFor(() => expect(projectStore.parsingProgress).toEqual({ done: 1, total: 1 }));
+
+			const next = new Map([
+				['next/lib.ts', [{ name: 'f', kind: 'function' as const, lineStart: 1, lineEnd: 1 }]]
+			]);
+			projectStore.astMap = next;
+			codeMapStore.build({ astMap: next, root: 'next', refs: new Map(), configs: new Map() });
+			releaseConfig();
+			await load;
+
+			expect(codeMapStore.map!.root).toBe('next');
+			expect([...codeMapStore.map!.files.keys()]).toEqual(['next/lib.ts']);
+		});
 	});
 
 	it('throws GitHubLoadError on 404', async () => {
