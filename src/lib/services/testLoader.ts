@@ -1,4 +1,5 @@
 import type { FileNode } from '$lib/types/fileTree';
+import type { ParseSkip } from '$lib/types/ast';
 import { isSupported } from '$lib/utils/languageDetector';
 import { projectStore } from '$lib/stores/projectStore.svelte';
 import { parseFile } from '$lib/services/parserService';
@@ -59,11 +60,13 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 		let done = 0;
 		const batchMap = new Map(projectStore.astMap);
 		let batchCount = 0;
+		const skipped: ParseSkip[] = [];
 
 		for (const file of files) {
 			try {
 				const absPath = file._absolutePath;
 				if (!absPath) {
+					skipped.push({ path: file.path, reason: 'unreadable' });
 					done++;
 					projectStore.parsingProgress = { done, total };
 					continue;
@@ -71,6 +74,7 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 
 				const readRes = await fetch(`/__dev/read?file=${encodeURIComponent(absPath)}`);
 				if (!readRes.ok) {
+					skipped.push({ path: file.path, reason: 'unreadable' });
 					done++;
 					projectStore.parsingProgress = { done, total };
 					continue;
@@ -78,6 +82,7 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 
 				const content = await readRes.text();
 				if (!content) {
+					skipped.push({ path: file.path, reason: 'unreadable' });
 					done++;
 					projectStore.parsingProgress = { done, total };
 					continue;
@@ -93,6 +98,7 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 				}
 			} catch (err) {
 				console.warn(`[testLoader] Failed to parse ${file.path}:`, err);
+				skipped.push({ path: file.path, reason: 'parse-failed' });
 			}
 
 			done++;
@@ -103,6 +109,7 @@ export async function loadTestProject(dirPath: string): Promise<void> {
 		if (batchCount > 0) {
 			projectStore.astMap = new Map(batchMap);
 		}
+		projectStore.parseSkips = skipped;
 	} catch (err) {
 		console.error('[testLoader] Failed to load test project:', err);
 	} finally {

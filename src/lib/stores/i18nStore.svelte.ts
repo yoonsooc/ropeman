@@ -1,5 +1,6 @@
 import type { Locale } from '$lib/utils/locale';
 import { settingsStore } from './settingsStore.svelte';
+import type { CoverageReason, CoverageStatus } from '$lib/types/coverage';
 
 interface LandingTranslations {
 	headline: string;
@@ -252,6 +253,30 @@ interface OnboardingTranslations {
 	step8: OnboardingStepTranslation;
 }
 
+interface CoverageTranslations {
+	summary: string;
+	cut: string;
+	skipped: string;
+	failed: string;
+	toggle: string;
+	title: string;
+	intro: string;
+	filter: string;
+	capped: string;
+	noMatch: string;
+	status: Record<CoverageStatus, string>;
+	reason: Record<CoverageReason, string>;
+	levelsTitle: string;
+	levelRoot: string;
+	levelOverBudget: string;
+	levelLeftOut: string;
+	levelInvented: string;
+	levelDuplicated: string;
+	levelEmptied: string;
+	levelClean: string;
+	levelUnknown: string;
+}
+
 interface TranslationSet {
 	title: string;
 	subtitle: string;
@@ -333,6 +358,7 @@ interface TranslationSet {
 	help: HelpTranslations;
 	onboarding: OnboardingTranslations;
 	docs: DocsTranslations;
+	coverage: CoverageTranslations;
 	analysisInProgress: string;
 	common: Strings<
 		'close' | 'cancel' | 'retry' | 'copy' | 'loading' | 'project' | 'error' | 'beta' | 'symbolCount'
@@ -816,6 +842,47 @@ const translations: Record<Locale, TranslationSet> = {
 				title: '분할 뷰',
 				desc: 'Ctrl+\\ 를 누르면 다이어그램과 코드를 나란히 봅니다. 탭을 드래그해서 나눌 수도 있습니다.'
 			}
+		},
+		coverage: {
+			summary: '파일 {read}개 중 {sent}개를 AI에 보냄',
+			cut: '{count}개 잘림',
+			skipped: '{count}개 건너뜀',
+			failed: '{count}개 읽지 못함',
+			toggle: '분석 범위 보기',
+			title: '분석이 읽은 파일',
+			intro:
+				'프로젝트의 모든 파일과, 각 파일이 AI에 갔는지 아닌지와 그 이유입니다. 지금 설정 기준으로 셉니다.',
+			filter: '경로로 찾기',
+			capped: '{total}개 중 {shown}개를 보여 줍니다. 경로로 찾으면 나머지도 볼 수 있습니다.',
+			noMatch: '맞는 파일이 없습니다.',
+			status: {
+				sent: 'AI에 보냄',
+				'not-sent': '읽었지만 보내지 않음',
+				cut: '파일 수 상한으로 잘림',
+				skipped: '건너뜀',
+				failed: '읽지 못함'
+			},
+			reason: {
+				sent: '보냄',
+				'over-budget': '코드 구조 요약 크기 한도를 넘음',
+				'no-symbols': '함수, 클래스, import가 없음',
+				'file-limit': '파일 {limit}개 상한을 넘음',
+				'excluded-path': '분석에서 빼는 경로 (테스트, 문서, 스크립트)',
+				'file-size': '{size}보다 큼',
+				'total-size': '전체 {size}를 넘음',
+				unsupported: '이 파일 형식을 읽는 파서가 없음',
+				'parse-failed': '파서 오류',
+				unreadable: '파일을 열지 못함'
+			},
+			levelsTitle: '다이어그램 단계별 배정',
+			levelRoot: '최상위',
+			levelOverBudget: '크기 한도로 보내지 않은 파일 {count}개',
+			levelLeftOut: 'AI 답에 없어 미분류로 옮긴 파일 {count}개',
+			levelInvented: '입력에 없는 경로라 버린 항목 {count}개',
+			levelDuplicated: '이미 배정된 파일이라 무시한 항목 {count}개',
+			levelEmptied: '파일이 남지 않아 뺀 그룹 {count}개',
+			levelClean: '모든 파일이 그룹 하나에 들어갔습니다',
+			levelUnknown: '이 단계는 배정 수를 기록하기 전에 분석했습니다'
 		},
 		docs: {
 			title: '문서',
@@ -1389,6 +1456,47 @@ const translations: Record<Locale, TranslationSet> = {
 				title: 'Split View',
 				desc: 'Press Ctrl+\\ to view the diagram and code side by side. You can also drag a tab to split.'
 			}
+		},
+		coverage: {
+			summary: 'Sent {sent} of {read} read {total|file|files}',
+			cut: '{count} cut',
+			skipped: '{count} skipped',
+			failed: '{count} not read',
+			toggle: 'Show analysis coverage',
+			title: 'What the analysis read',
+			intro:
+				'Every file in the project, and whether it went to the AI. Counts follow your current settings.',
+			filter: 'Filter by path',
+			capped: 'Showing {shown} of {total}. Filter by path to see the rest.',
+			noMatch: 'No file matches.',
+			status: {
+				sent: 'Sent to the AI',
+				'not-sent': 'Read, not sent',
+				cut: 'Cut by the file limit',
+				skipped: 'Skipped',
+				failed: 'Not read'
+			},
+			reason: {
+				sent: 'Sent',
+				'over-budget': 'Over the code summary size limit',
+				'no-symbols': 'No functions, classes or imports',
+				'file-limit': 'Past the {limit}-file limit',
+				'excluded-path': 'Path left out of analysis (tests, docs, scripts)',
+				'file-size': 'Larger than {size}',
+				'total-size': 'Past the {size} total',
+				unsupported: 'No parser for this file type',
+				'parse-failed': 'Parser error',
+				unreadable: 'Could not open the file'
+			},
+			levelsTitle: 'Diagram levels',
+			levelRoot: 'Top level',
+			levelOverBudget: '{count} {count|file|files} not sent, over the size limit',
+			levelLeftOut: '{count} {count|file|files} missing from the answer, moved to Unclassified',
+			levelInvented: '{count} made-up {count|path|paths} dropped',
+			levelDuplicated: '{count} repeated {count|file|files} ignored',
+			levelEmptied: '{count} empty {count|group|groups} removed',
+			levelClean: 'Every file is in exactly one group',
+			levelUnknown: 'Analyzed before these counts were recorded'
 		},
 		docs: {
 			title: 'Documentation',

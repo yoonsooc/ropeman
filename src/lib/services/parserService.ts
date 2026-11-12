@@ -1,4 +1,4 @@
-import type { ASTSymbol } from '$lib/types/ast';
+import type { ASTSymbol, ParseSkip, ParseSkipReason } from '$lib/types/ast';
 import type { FileNode } from '$lib/types/fileTree';
 import { isSupported } from '$lib/utils/languageDetector';
 import { extractMarkdownSymbols } from '$lib/services/markdownOutline';
@@ -114,11 +114,17 @@ export interface ParseProgress {
 	total: number;
 }
 
+/** The symbols read per file, and the files given to the parser that it read nothing from. */
+export interface ParseResult {
+	astMap: Map<string, ASTSymbol[]>;
+	skipped: ParseSkip[];
+}
+
 export async function parseAllFiles(
 	fileTree: FileNode,
 	existingAstMap: Map<string, ASTSymbol[]>,
 	onProgress?: (progress: ParseProgress) => void
-): Promise<Map<string, ASTSymbol[]>> {
+): Promise<ParseResult> {
 	const files = collectSupportedFiles(fileTree);
 	const total = files.length;
 
@@ -126,43 +132,44 @@ export async function parseAllFiles(
 
 	let done = 0;
 	let totalParsedSize = 0;
-	const resultMap = new Map(existingAstMap);
+	const astMap = new Map(existingAstMap);
+	const skipped: ParseSkip[] = [];
 
 	for (const file of files) {
-		try {
-			let content: string;
-
-			if (file.handle && 'getFile' in file.handle) {
-				const fileObj = await (file.handle as FileSystemFileHandle).getFile();
-				// Skip files that are too large for the parser
-				if (fileObj.size > MAX_FILE_SIZE) {
-					done++;
-					onProgress?.({ done, total });
-					continue;
-				}
-				// Stop if total parsed size exceeds limit
-				if (totalParsedSize + fileObj.size > MAX_TOTAL_SIZE) {
-					done++;
-					onProgress?.({ done, total });
-					continue;
-				}
-				content = await fileObj.text();
-				totalParsedSize += fileObj.size;
-			} else {
-				continue;
-			}
-
-			const symbols = await parseFile(file.path, content, file.language!);
-			resultMap.set(file.path, symbols);
-		} catch (err) {
-			console.warn(`[parserService] Failed to parse ${file.path}:`, err);
-		}
-
+		const outcome = await parseInto(astMap, file, totalParsedSize);
+		if (typeof outcome === 'number') totalParsedSize += outcome;
+		else skipped.push({ path: file.path, reason: outcome });
 		done++;
 		onProgress?.({ done, total });
 	}
 
-	return resultMap;
+	return { astMap, skipped };
+}
+
+/** Parse one file into `astMap`. Returns the bytes read, or why nothing was read. */
+async function parseInto(
+	astMap: Map<string, ASTSymbol[]>,
+	file: FileNode,
+	parsedSoFar: number
+): Promise<number | ParseSkipReason> {
+	if (!file.handle || !('getFile' in file.handle)) return 'unreadable';
+	let fileObj: File;
+	let content: string;
+	try {
+		fileObj = await (file.handle as FileSystemFileHandle).getFile();
+		if (fileObj.size > MAX_FILE_SIZE) return 'file-size';
+		if (parsedSoFar + fileObj.size > MAX_TOTAL_SIZE) return 'total-size';
+		content = await fileObj.text();
+	} catch {
+		return 'unreadable';
+	}
+	try {
+		astMap.set(file.path, await parseFile(file.path, content, file.language!));
+	} catch (err) {
+		console.warn(`[parserService] Failed to parse ${file.path}:`, err);
+		return 'parse-failed';
+	}
+	return fileObj.size;
 }
 
 function collectSupportedFiles(root: FileNode): FileNode[] {

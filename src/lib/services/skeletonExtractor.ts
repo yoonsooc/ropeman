@@ -4,6 +4,7 @@ import type {
 	SkeletonFile,
 	SkeletonImport,
 	SkeletonPayload,
+	SkeletonSelection,
 	SkeletonSymbol
 } from '$lib/types/skeleton';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
@@ -73,102 +74,127 @@ function filePriority(filePath: string, filter: PathFilter, projectName?: string
 	return 1;
 }
 
+interface SkeletonEntry {
+	file: SkeletonFile;
+	priority: number;
+	symbolCount: number;
+}
+
+/** The file as it would be sent, or null when it has neither symbols nor imports to send. */
+function toEntry(path: string, astSymbols: ASTSymbol[], priority: number): SkeletonEntry | null {
+	const symbols: SkeletonSymbol[] = [];
+	const imports: SkeletonImport[] = [];
+	for (const sym of astSymbols) {
+		if (sym.kind === 'import') {
+			imports.push(parseImport(sym));
+		} else if (!SKIP_KINDS.has(sym.kind)) {
+			symbols.push(toSkeletonSymbol(sym));
+		}
+	}
+	if (symbols.length === 0 && imports.length === 0) return null;
+	return {
+		file: { path, language: inferLanguage(path), symbols, imports },
+		priority,
+		symbolCount: countSymbols(symbols)
+	};
+}
+
+function maxSkeletonBytes(): number {
+	return settingsStore.skeletonUnlimited
+		? Infinity
+		: (settingsStore.maxSkeletonKB ?? DEFAULT_MAX_SKELETON_KB) * 1000;
+}
+
+/**
+ * Take files in rank order while they fit the budget. The envelope is reserved up front at its
+ * largest, and each file after the first pays for its comma, so the whole string stays within
+ * the budget. On 'stop' the first file that does not fit ends the selection; on 'skip' smaller
+ * files after it still get their turn.
+ */
+function fitBudget(
+	ranked: SkeletonEntry[],
+	envelope: SkeletonPayload,
+	onMiss: 'stop' | 'skip'
+): { kept: SkeletonEntry[]; over: SkeletonEntry[] } {
+	const maxBytes = maxSkeletonBytes();
+	let usedBytes = byteLength(formatPayloadPreview(envelope));
+	const kept: SkeletonEntry[] = [];
+	const over: SkeletonEntry[] = [];
+	for (let i = 0; i < ranked.length; i++) {
+		const fileBytes = entryBytes(ranked[i]) + (kept.length > 0 ? 1 : 0);
+		if (usedBytes + fileBytes > maxBytes) {
+			if (onMiss === 'stop') return { kept, over: ranked.slice(i) };
+			over.push(ranked[i]);
+			continue;
+		}
+		usedBytes += fileBytes;
+		kept.push(ranked[i]);
+	}
+	return { kept, over };
+}
+
+const entryBytes = (entry: SkeletonEntry) => byteLength(JSON.stringify(entry.file));
+
+const sumSymbols = (entries: SkeletonEntry[]) =>
+	entries.reduce((sum, entry) => sum + entry.symbolCount, 0);
+
 export function extractSkeleton(
 	projectName: string,
 	fileTree: FileNode | null,
 	astMap: Map<string, ASTSymbol[]>
 ): SkeletonPayload {
-	const files: SkeletonFile[] = [];
-	let totalSymbols = 0;
-	let truncated = false;
+	return selectSkeleton(projectName, fileTree, astMap).payload;
+}
 
-	const filePaths = collectFilePaths(fileTree);
+/** The top-level skeleton, and the parsed files it leaves out with the reason. */
+export function selectSkeleton(
+	projectName: string,
+	fileTree: FileNode | null,
+	astMap: Map<string, ASTSymbol[]>
+): SkeletonSelection {
 	const filter = createPathFilter(
 		settingsStore.customSkipPatterns,
 		settingsStore.customIncludePatterns
 	);
-
-	const fileEntries: {
-		path: string;
-		symbols: SkeletonSymbol[];
-		imports: SkeletonImport[];
-		language: string | null;
-		priority: number;
-		symbolCount: number;
-	}[] = [];
-
-	for (const filePath of filePaths) {
-		const astSymbols = astMap.get(filePath);
-		if (!astSymbols || astSymbols.length === 0) continue;
-
-		const symbols: SkeletonSymbol[] = [];
-		const imports: SkeletonImport[] = [];
-
-		for (const sym of astSymbols) {
-			if (sym.kind === 'import') {
-				imports.push(parseImport(sym));
-			} else if (!SKIP_KINDS.has(sym.kind)) {
-				symbols.push(toSkeletonSymbol(sym));
-			}
-		}
-
-		if (symbols.length === 0 && imports.length === 0) continue;
-
-		const language = inferLanguage(filePath);
-		const priority = filePriority(filePath, filter, projectName);
-		fileEntries.push({
-			path: filePath,
-			symbols,
-			imports,
-			language,
-			priority,
-			symbolCount: countSymbols(symbols)
-		});
+	const omitted: SkeletonSelection['omitted'] = [];
+	const entries: SkeletonEntry[] = [];
+	for (const path of collectFilePaths(fileTree)) {
+		const astSymbols = astMap.get(path);
+		if (!astSymbols) continue;
+		const entry = toEntry(path, astSymbols, filePriority(path, filter, projectName));
+		if (entry) entries.push(entry);
+		else omitted.push({ path, reason: 'no-symbols' });
 	}
 
 	// 우선순위 높은 파일 먼저, 같은 우선순위면 심볼 수 많은 파일 먼저
-	fileEntries.sort((a, b) => b.priority - a.priority || b.symbolCount - a.symbolCount);
+	entries.sort((a, b) => b.priority - a.priority || b.symbolCount - a.symbolCount);
 
-	const totalEntries = fileEntries.length;
-	const maxBytes = settingsStore.skeletonUnlimited
-		? Infinity
-		: (settingsStore.maxSkeletonKB ?? DEFAULT_MAX_SKELETON_KB) * 1000;
-	// The budget covers the whole sent string, so the envelope is reserved at its largest
-	// (truncated name, widest counts) and each file after the first pays for its comma.
-	let usedBytes = byteLength(
-		formatPayloadPreview({
+	const totalEntries = entries.length;
+	const { kept, over } = fitBudget(
+		entries.filter((entry) => entry.priority > 0),
+		{
 			projectName: truncatedName(projectName, totalEntries, totalEntries),
 			totalFiles: totalEntries,
-			totalSymbols: fileEntries.reduce((sum, e) => sum + e.symbolCount, 0),
+			totalSymbols: sumSymbols(entries),
 			files: []
-		})
+		},
+		'stop'
 	);
-
-	for (const entry of fileEntries) {
-		if (entry.priority === 0) continue; // 제외 디렉토리는 스킵
-
-		const file: SkeletonFile = {
-			path: entry.path,
-			language: entry.language,
-			symbols: entry.symbols,
-			imports: entry.imports
-		};
-		const fileBytes = byteLength(JSON.stringify(file)) + (files.length > 0 ? 1 : 0);
-		if (usedBytes + fileBytes > maxBytes) {
-			truncated = true;
-			break;
-		}
-
-		usedBytes += fileBytes;
-		totalSymbols += entry.symbolCount;
-		files.push(file);
+	for (const entry of entries) {
+		if (entry.priority === 0) omitted.push({ path: entry.file.path, reason: 'excluded-path' });
 	}
+	for (const entry of over) omitted.push({ path: entry.file.path, reason: 'over-budget' });
 
 	return {
-		projectName: truncated ? truncatedName(projectName, files.length, totalEntries) : projectName,
-		totalFiles: files.length,
-		totalSymbols,
-		files
+		payload: {
+			projectName:
+				over.length > 0 ? truncatedName(projectName, kept.length, totalEntries) : projectName,
+			totalFiles: kept.length,
+			totalSymbols: sumSymbols(kept),
+			files: kept.map((entry) => entry.file)
+		},
+		omitted,
+		exceedsBudget: false
 	};
 }
 
@@ -181,9 +207,15 @@ export function extractSubSkeleton(
 	fileTree: FileNode | null,
 	astMap: Map<string, ASTSymbol[]>
 ): SkeletonPayload {
-	const files: SkeletonFile[] = [];
-	let totalSymbols = 0;
+	return selectSubSkeleton(filePaths, fileTree, astMap).payload;
+}
 
+/** The drill-down skeleton for one node's files, under the same byte budget as the top level. */
+export function selectSubSkeleton(
+	filePaths: string[],
+	_fileTree: FileNode | null,
+	astMap: Map<string, ASTSymbol[]>
+): SkeletonSelection {
 	// Build a lookup for astMap keys by suffix to handle path prefix mismatches
 	// e.g. AI may return "src/lib/foo.ts" but astMap has "ropeman/src/lib/foo.ts"
 	const astKeysBySuffix = new Map<string, string>();
@@ -196,36 +228,52 @@ export function extractSubSkeleton(
 		}
 	}
 
+	const omitted: SkeletonSelection['omitted'] = [];
+	const entries: SkeletonEntry[] = [];
 	for (const filePath of filePaths) {
 		// Try exact match first, then suffix match
 		const resolvedKey = astMap.has(filePath) ? filePath : astKeysBySuffix.get(filePath);
 		const astSymbols = resolvedKey ? astMap.get(resolvedKey) : undefined;
-		if (!astSymbols || astSymbols.length === 0) continue;
-
-		const symbols: SkeletonSymbol[] = [];
-		const imports: SkeletonImport[] = [];
-
-		for (const sym of astSymbols) {
-			if (sym.kind === 'import') {
-				imports.push(parseImport(sym));
-			} else if (!SKIP_KINDS.has(sym.kind)) {
-				symbols.push(toSkeletonSymbol(sym));
-			}
-		}
-
-		if (symbols.length === 0 && imports.length === 0) continue;
-
-		totalSymbols += countSymbols(symbols);
-
-		const language = inferLanguage(filePath);
-		files.push({ path: filePath, language, symbols, imports });
+		const entry = astSymbols && toEntry(filePath, astSymbols, 1);
+		if (entry) entries.push(entry);
+		else omitted.push({ path: filePath, reason: 'no-symbols' });
 	}
 
+	// Every file here already passed the top-level ranking, so the largest outlines go first and
+	// smaller ones fill what is left. The kept files stay in the node's order, so a request that
+	// fits is sent unchanged.
+	const ranked = [...entries].sort((a, b) => b.symbolCount - a.symbolCount);
+	let { kept, over } = fitBudget(
+		ranked,
+		{
+			projectName: 'sub-skeleton',
+			totalFiles: entries.length,
+			totalSymbols: sumSymbols(entries),
+			files: []
+		},
+		'skip'
+	);
+	// A node whose every file is over the budget would have nothing to send and could never be
+	// drilled into, so it sends its smallest file anyway.
+	const exceedsBudget = kept.length === 0 && over.length > 0;
+	if (exceedsBudget) {
+		const smallest = over.reduce((a, b) => (entryBytes(b) < entryBytes(a) ? b : a));
+		kept = [smallest];
+		over = over.filter((entry) => entry !== smallest);
+	}
+	const keptSet = new Set(kept);
+	const sent = entries.filter((entry) => keptSet.has(entry));
+	for (const entry of over) omitted.push({ path: entry.file.path, reason: 'over-budget' });
+
 	return {
-		projectName: 'sub-skeleton',
-		totalFiles: files.length,
-		totalSymbols,
-		files
+		payload: {
+			projectName: 'sub-skeleton',
+			totalFiles: sent.length,
+			totalSymbols: sumSymbols(sent),
+			files: sent.map((entry) => entry.file)
+		},
+		omitted,
+		exceedsBudget
 	};
 }
 
