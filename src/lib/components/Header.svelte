@@ -74,7 +74,8 @@
 			{/if}
 		</div>
 		{#if projectStore.projectName}
-			<span class="header-project">{projectStore.projectName}</span>
+			<span class="header-project" title={projectStore.projectName}>{projectStore.projectName}</span
+			>
 		{:else}
 			<span class="header-subtitle">{i18nStore.t('subtitle')}</span>
 		{/if}
@@ -272,6 +273,7 @@
 		display: flex;
 		align-items: baseline;
 		gap: var(--spacing-8);
+		min-width: 0;
 	}
 
 	.header-title {
@@ -303,12 +305,17 @@
 		font-size: var(--font-size-base);
 		color: var(--color-text-secondary);
 		font-weight: var(--font-weight-medium);
+		min-width: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
 	}
 
 	.header-right {
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-4);
+		flex-shrink: 0;
 	}
 
 	.header-btn {
