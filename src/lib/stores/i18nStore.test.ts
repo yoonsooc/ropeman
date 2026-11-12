@@ -129,6 +129,41 @@ describe('i18nStore', () => {
 			// Assert
 			expect(text).toBe('파일 3 / {total}개');
 		});
+
+		it('picks the English singular for a count of one and the plural otherwise', () => {
+			// Regression: the en UI showed "1 symbols" and "1 lines"
+			// Arrange
+			settingsStore.language = 'en';
+
+			// Assert
+			expect(i18nStore.t('common.symbolCount', { n: 1 })).toBe('1 symbol');
+			expect(i18nStore.t('common.symbolCount', { n: 0 })).toBe('0 symbols');
+			expect(i18nStore.t('codeViewer.lines', { n: 1 })).toBe('1 line');
+			expect(i18nStore.t('codeViewer.lines', { n: 12 })).toBe('12 lines');
+			expect(i18nStore.t('node.fileMany', { n: 1 })).toBe('1 file');
+			expect(i18nStore.t('settingsUi.cacheEntries', { n: 1 })).toBe('1 entry');
+			expect(i18nStore.t('analysisGroupRunning', { count: 1 })).toBe('1 analysis running');
+			expect(i18nStore.t('analysisGroupRunning', { count: 4 })).toBe('4 analyses running');
+		});
+
+		it('keeps Korean counts in their single form', () => {
+			// Act
+			const text = i18nStore.t('common.symbolCount', { n: 1 });
+
+			// Assert
+			expect(text).toBe('심볼 1개');
+		});
+
+		it('leaves a plural placeholder without a value untouched', () => {
+			// Arrange
+			settingsStore.language = 'en';
+
+			// Act
+			const text = i18nStore.t('common.symbolCount', {});
+
+			// Assert
+			expect(text).toBe('{n} {n|symbol|symbols}');
+		});
 	});
 
 	describe('locale coverage', () => {

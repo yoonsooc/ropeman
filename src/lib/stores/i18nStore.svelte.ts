@@ -435,23 +435,23 @@ const translations: Record<Locale, TranslationSet> = {
 		subtitle: '코드베이스를 시각적으로 탐색하세요',
 		darkMode: '다크모드',
 		lightMode: '라이트모드',
-		chatPlaceholder: '아키텍처에 대해 질문하세요...',
+		chatPlaceholder: '아키텍처를 물어보세요...',
 		chatTitle: 'ROPEMAN ASSISTANT',
 		send: '전송',
 		relatedNodes: '관련 코드 보기',
 		loading: '응답 생성 중...',
 		settings: '설정',
 		openDirectory: '폴더 열기',
-		dropHere: '프로젝트 폴더를 여기에 드롭하세요',
-		dropHint: 'Python, JavaScript, TypeScript 프로젝트 지원',
-		noApiKey: 'Settings에서 Gemini API 키를 입력하세요',
+		dropHere: '프로젝트 폴더를 여기에 놓으세요',
+		dropHint: 'Python, JavaScript, TypeScript 프로젝트를 지원합니다',
+		noApiKey: '설정에서 Gemini API 키를 입력하세요',
 		cacheEnabled: '분석 캐시',
 		cacheEnabledTooltip:
-			'AI 분석 결과를 브라우저에 캐싱합니다. 활성화하면 같은 프로젝트를 다시 열 때 AI 재호출 없이 즉시 복원됩니다.',
+			'AI 분석 결과를 이 브라우저에 저장합니다. 켜 두면 같은 프로젝트를 다시 열 때 AI를 다시 부르지 않고 저장한 결과를 보여 줍니다.',
 		clearCache: '캐시 초기화',
 		showSymbols: '심볼 사이드바',
 		showSymbolsTooltip:
-			'AST 파싱으로 추출된 함수/클래스 심볼 목록을 사이드바에 표시합니다. 파일을 열면 해당 파일의 심볼을 볼 수 있습니다.',
+			'파서가 찾은 함수와 클래스 목록을 사이드바에 보여 줍니다. 파일을 열면 그 파일의 목록이 나옵니다.',
 		codeTheme: '코드 테마',
 		codeFontSize: '코드 폰트 크기',
 		settingsAiConnection: 'AI 연결',
@@ -459,15 +459,15 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsSkeletonLimit: '코드 구조 요약 크기 제한',
 		settingsSkeletonUnlimited: '무제한',
 		settingsSkeletonHint:
-			'AI 분석 시 전송되는 코드 구조 요약(메타데이터)의 최대 크기. 큰 프로젝트에서 API 오류 발생 시 줄이세요. (기본: 250KB)',
+			'AI 분석 한 번에 보내는 코드 구조 요약(심볼, 시그니처, import)의 최대 크기입니다. 큰 프로젝트에서 API 오류가 나면 줄이세요. 기본값은 250KB입니다.',
 		settingsCustomSkipPatterns: '추가 제외 디렉토리',
-		settingsCustomSkipPatternsPlaceholder: '1줄 1개, 예:\ntarget\nthird_party',
+		settingsCustomSkipPatternsPlaceholder: '한 줄에 하나씩. 예:\ntarget\nthird_party',
 		settingsCustomSkipPatternsHint:
-			'기본 제외 목록에 더할 디렉토리. 이름만 쓰면 어느 깊이든, /가 들어가면 프로젝트 루트부터의 경로를 뺍니다. 대형 모노레포나 생성된 코드 디렉토리를 분석 대상에서 빼고 싶을 때 사용합니다.',
+			'기본 제외 목록에 더할 폴더입니다. 이름만 쓰면 어느 깊이에 있든 빼고, /가 들어가면 프로젝트 루트부터의 경로로 봅니다. 생성된 코드나 큰 모노레포 폴더를 뺄 때 쓰세요.',
 		settingsCustomIncludePatterns: '포함할 경로',
-		settingsCustomIncludePatternsPlaceholder: '1줄 1개, 예:\ndocs\n.github/workflows',
+		settingsCustomIncludePatternsPlaceholder: '한 줄에 하나씩. 예:\ndocs\n.github/workflows',
 		settingsCustomIncludePatternsHint:
-			'제외 규칙보다 우선합니다. 이름만 쓰면 어느 깊이든 그 이름의 폴더나 파일을, /가 들어가면 프로젝트 루트부터의 경로를 포함합니다. 에이전트 지침 폴더(.agents, .cursor, .claude/skills, .github/instructions 등)는 기본으로 포함됩니다.',
+			'여기 적은 경로는 제외 규칙에 걸려도 읽습니다. 이름만 쓰면 어느 깊이에 있든 그 이름의 폴더나 파일을, /가 들어가면 프로젝트 루트부터의 경로를 포함합니다. 에이전트 지침 폴더(.agents, .cursor, .claude/skills, .github/instructions 등)는 기본으로 포함합니다.',
 		analysisCompleted: '분석 완료',
 		analysisFailed: '분석 실패',
 		analysisGroupExpand: '분석 목록 펼치기',
@@ -475,20 +475,20 @@ const translations: Record<Locale, TranslationSet> = {
 		analysisCancelLabel: '취소',
 		analysisCancelConfirmTitle: '분석 취소',
 		analysisCancelConfirmMessage:
-			'진행 중인 AI 분석을 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+			'진행 중인 AI 분석을 취소할까요? 지금까지 분석한 내용은 사라집니다.',
 		analysisCancelConfirmMessageSingle:
-			'{label} 분석을 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+			'{label} 분석을 취소할까요? 지금까지 분석한 내용은 사라집니다.',
 		analysisCancelConfirmMessageAll:
-			'진행 중인 {count}개 분석 전부를 취소하시겠습니까? 지금까지의 진행 상황은 버려집니다.',
+			'진행 중인 분석 {count}개를 모두 취소할까요? 지금까지 분석한 내용은 사라집니다.',
 		analysisCancelConfirmOk: '분석 취소',
-		analysisCancelConfirmBack: '계속 진행',
+		analysisCancelConfirmBack: '계속 분석',
 		analysisCancelAll: '전체 취소',
 		analysisGroupRunning: '{count}개 분석 중',
 		analysisInProgress: 'AI 분석 진행 중',
 		dontAskAgain: '다시 묻지 않기',
 		settingsLanguage: '언어',
 		settingsReset: '초기화',
-		settingsAiNotConnected: '미연결',
+		settingsAiNotConnected: '연결 안 됨',
 		apiKeyPlaceholder: 'Gemini API 키 입력',
 		analyzing: '분석 중...',
 		analysisProgress: {
@@ -500,52 +500,53 @@ const translations: Record<Locale, TranslationSet> = {
 		landing: {
 			headline: 'AI로 코드 구조를<br/><span class="headline-accent">시각화하세요</span>',
 			subheadline:
-				'AI 기반 시맨틱 아키텍처 다이어그램. 모두 브라우저에서. 소스 코드 업로드 없이 로컬 폴더를 즉시 로드합니다.',
+				'폴더를 열면 AI가 코드를 역할별로 묶어 아키텍처 다이어그램을 그립니다. 파싱은 브라우저에서 하고, 소스 코드는 업로드하지 않습니다.',
 			cta: '폴더 열기',
 			dragHint: '또는 폴더를 여기로 끌어다 놓으세요',
-			featureAiTitle: 'AI 의미론적 분석',
-			featureAiDesc: 'LLM이 리포지토리를 시맨틱 모듈과 핵심 추상화로 자동 매핑합니다.',
+			featureAiTitle: 'AI 시맨틱 분석',
+			featureAiDesc: 'LLM이 파일을 하는 일에 따라 모듈로 묶고, 주요 추상화에 이름을 붙입니다.',
 			featureDrillTitle: '드릴다운 탐색',
 			featureDrillDesc:
-				'고수준 아키텍처 다이어그램에서 특정 코드 라인까지, 맥락을 잃지 않고 탐색합니다.',
+				'전체 다이어그램에서 파일 하나의 코드까지 내려가 봅니다. 브레드크럼이 지금 위치를 보여 줍니다.',
 			featureBrowserTitle: '네 가지 AI 방식',
 			featureBrowserDesc:
-				'Demo · API Key · Local Bridge · Browser AI — 4가지 분석 방식을 제공합니다. 소스 코드 원문은 어떤 모드에서도 외부로 전송되지 않습니다.',
+				'데모, API 키, 로컬 브리지, 브라우저 AI 중에서 고르세요. 어느 방식이든 AI에는 코드 구조 요약을 보내고, 소스 파일은 브라우저에 남깁니다.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: '불러오기',
 			githubOr: '또는 GitHub 저장소 URL을 입력하세요',
 			mobileFolderHint:
-				'모바일에서는 폴더 열기를 사용할 수 없어요. GitHub 저장소 URL로 분석을 시작하세요.',
+				'모바일 브라우저에서는 로컬 폴더를 열 수 없습니다. 대신 공개 GitHub 저장소 URL을 입력하세요.',
 			mobileGithubLead: 'GitHub 저장소 URL로 분석을 시작하세요',
-			githubInvalidUrl: '유효한 GitHub 저장소 URL을 입력해주세요.',
-			githubNotFound: '저장소를 찾을 수 없습니다. URL을 확인해주세요.',
-			githubRateLimit: 'GitHub API 요청 한도 초과. 잠시 후 다시 시도해주세요.',
+			githubInvalidUrl: 'GitHub 저장소 URL을 입력하세요. 예: https://github.com/owner/repo',
+			githubNotFound: '저장소를 찾을 수 없습니다. URL을 확인하세요.',
+			githubRateLimit: 'GitHub API 요청 한도에 걸렸습니다. 잠시 후 다시 시도하세요.',
 			githubPrivate: '비공개 저장소는 지원하지 않습니다.',
-			githubLoadError: 'GitHub 저장소 로딩에 실패했습니다.',
+			githubLoadError: 'GitHub 저장소를 불러오지 못했습니다.',
 			specLocalFirst: '로컬 분석',
 			specWebgpu: 'WebGPU 가속',
-			specSemantic: '시맨틱 인식',
+			specSemantic: '역할별 묶음',
 			specNoData: '데이터 수집 없음',
 			exampleCta: '분석 예시 보기',
 			heroShotAlt:
 				'huggingface/transformers를 분석한 Ropeman 화면. 도메인별 노드와 연결, 오른쪽에 선택한 노드의 파일과 주요 심볼',
-			heroShotCaption: '실제 분석 결과: huggingface/transformers. 눌러서 직접 탐색해 보세요.',
+			heroShotCaption:
+				'huggingface/transformers를 실제로 분석한 결과입니다. 눌러서 직접 살펴보세요.',
 			heroShotLink: 'huggingface/transformers 분석 예시 열기',
 			dropRegion: '폴더 놓는 곳',
 			loadingTitle: '프로젝트 불러오는 중',
-			parsingLabel: '파일 분석 중',
+			parsingLabel: '파일 파싱 중',
 			explorePromptTitle: '이 도메인은 상세 분석이 없습니다',
 			explorePromptMessage:
-				'이 도메인의 하위 구조는 큐레이션된 스냅샷에 포함되지 않았습니다. 직접 분석하려면 원본 프로젝트를 홈에서 불러오세요.',
+				'예시 스냅샷은 이 도메인까지만 담고 있습니다. 더 들어가려면 홈에서 프로젝트를 불러와 분석하세요.',
 			explorePromptAnalyze: '홈에서 분석하기',
 			explorePromptGithub: 'GitHub에서 보기'
 		},
 		snippet: {
-			divider: '또는 코드 스니펫으로 체험하기',
+			divider: '또는 코드 스니펫으로 해 보기',
 			placeholder: '여기에 코드를 붙여넣으세요...',
 			analyze: '분석하기',
 			lines: '줄',
-			emptyError: '코드를 입력해주세요',
+			emptyError: '코드를 입력하세요',
 			analyzeFailed: '스니펫을 분석하지 못했습니다: {error}'
 		},
 		legend: {
@@ -560,49 +561,49 @@ const translations: Record<Locale, TranslationSet> = {
 			search: '검색',
 			toggleTheme: '테마 전환',
 			toggleView: '사이드바 전환 (파일/시맨틱)',
-			toggleSidebar: '사이드바 토글',
+			toggleSidebar: '사이드바 열고 닫기',
 			exportDiagram: '다이어그램 내보내기',
 			showHelp: '도움말',
-			closeModal: '모달 닫기',
+			closeModal: '창 닫기',
 			closeTab: '탭 닫기',
 			nextPrevTab: '다음/이전 탭',
-			toggleSplit: '분할 뷰 전환',
-			focusPrimary: '주 패인 포커스',
-			focusSecondary: '보조 패인 포커스'
+			toggleSplit: '분할 뷰 켜고 끄기',
+			focusPrimary: '주 창 선택',
+			focusSecondary: '보조 창 선택'
 		},
 		share: {
 			button: '공유하기',
-			confirmTitle: '공유 링크 생성',
-			confirmMessage: '이 분석을 공개 링크로 생성하시겠습니까?',
-			confirmOk: '생성',
+			confirmTitle: '공유 링크 만들기',
+			confirmMessage: '이 분석의 공개 링크를 만들까요? 링크가 있으면 누구나 볼 수 있습니다.',
+			confirmOk: '만들기',
 			confirmCancel: '취소',
-			generating: '공유 링크 생성 중...',
-			successTitle: '공유 링크가 생성되었습니다',
+			generating: '공유 링크 만드는 중...',
+			successTitle: '공유 링크를 만들었습니다',
 			copyLink: '링크 복사',
 			copied: '복사됨!',
 			openNewTab: '새 탭에서 열기',
 			errorTitle: '공유 실패',
-			errorMessage: '공유 링크를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.',
+			errorMessage: '공유 링크를 만들지 못했습니다. 잠시 후 다시 시도하세요.',
 			close: '닫기',
-			tooLarge: '분석 데이터가 너무 큽니다 (1MB 초과). 더 작은 프로젝트로 시도해주세요.'
+			tooLarge: '분석 데이터가 공유 한도(1MB)를 넘습니다. 더 작은 프로젝트로 시도하세요.'
 		},
 		aiError: {
 			tpm: '요청이 모델의 토큰 한도를 초과했습니다. 코드 구조 요약 크기를 줄이거나 다른 모델을 선택하세요.',
-			rateLimit: '요청 빈도 한도 초과. 잠시 후 다시 시도해주세요.',
-			quota: 'API 크레딧이 부족합니다. Provider 대시보드에서 충전하세요.',
-			auth: 'API Key가 유효하지 않습니다. 키를 확인하고 다시 입력하세요.',
-			network: '네트워크 연결을 확인하세요.',
-			demo: '무료 데모를 지금은 쓸 수 없습니다. Explore에서 미리 분석된 예시를 보거나, API 키나 로컬 브리지(Claude Code, Gemini CLI)를 연결해 직접 분석하세요.',
+			rateLimit: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.',
+			quota: 'API 크레딧이 부족합니다. 제공자 대시보드에서 충전하세요.',
+			auth: 'API 키가 유효하지 않습니다. 키를 확인하고 다시 입력하세요.',
+			network: 'AI 서비스에 연결하지 못했습니다. 네트워크 연결을 확인하세요.',
+			demo: '지금은 무료 데모를 쓸 수 없습니다. 갤러리에서 미리 분석한 예시를 보거나, API 키나 로컬 브리지(Claude Code, Gemini CLI)를 연결해 직접 분석하세요.',
 			unknown: 'AI 분석 중 오류가 발생했습니다.',
 			actionSize: '크기 설정',
 			actionModel: '모델 변경',
-			actionKey: 'API Key 확인',
-			actionExplore: 'Explore 보기',
+			actionKey: 'API 키 확인',
+			actionExplore: '갤러리 열기',
 			actionConnect: '다른 AI 연결'
 		},
 		analyze: {
 			demoNotice:
-				'Google Gemini 무료 등급으로 처리됩니다. 무료 등급에서는 Google이 입력을 서비스 개선에 사용할 수 있으니, 공개하기 어려운 코드는 API 키나 로컬 브리지를 쓰세요.',
+				'Google Gemini 무료 등급에서 처리합니다. 무료 등급에서는 Google이 입력을 서비스 개선에 쓸 수 있으니, 공개하기 어려운 코드는 API 키나 로컬 브리지를 쓰세요.',
 			byokKeyNotice:
 				'키는 이 브라우저에만 저장됩니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 브라우저 제약 때문에 Ropeman 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.',
 			title: 'AI 아키텍처 분석',
@@ -623,7 +624,7 @@ const translations: Record<Locale, TranslationSet> = {
 			valid: '유효함',
 			invalid: '유효하지 않음',
 			startWithApiKey: 'API 키로 시작',
-			bridgeDesktopOnly: '데스크톱 전용 — 로컬 CLI 브리지가 필요합니다',
+			bridgeDesktopOnly: '데스크톱 전용. 로컬 브리지가 필요합니다.',
 			connected: '연결됨',
 			disconnected: '연결 안 됨',
 			cliTool: 'CLI 도구',
@@ -635,7 +636,7 @@ const translations: Record<Locale, TranslationSet> = {
 			tokenPlaceholder: '브리지가 시작할 때 출력합니다',
 			startWithBridge: '브리지로 시작',
 			webgpuName: '브라우저 AI',
-			webgpuDesktopOnly: '데스크톱 전용 — WebGPU와 수 GB의 RAM이 필요합니다',
+			webgpuDesktopOnly: '데스크톱 전용. WebGPU와 수 GB의 RAM이 필요합니다.',
 			webgpuUnsupported: 'WebGPU 미지원',
 			modelLoaded: '모델 로드됨',
 			downloading: '다운로드 중... {n}%',
@@ -647,7 +648,7 @@ const translations: Record<Locale, TranslationSet> = {
 			copyJson: 'JSON 복사',
 			limit: '한도: {value}',
 			unlimited: '제한 없음',
-			footerHint: '구조 분석을 시작할 방식을 고르세요.'
+			footerHint: '분석을 시작할 방식을 고르세요.'
 		},
 		panel: {
 			close: '닫기',
@@ -695,36 +696,36 @@ const translations: Record<Locale, TranslationSet> = {
 			usageTitle: '기본 사용법',
 			usageInteraction: '인터랙션',
 			aiModesTitle: 'AI 분석 모드',
-			aiModeDemo: 'Demo',
+			aiModeDemo: '데모',
 			aiModeDemoDesc:
-				'무료 체험 모드입니다. 서버 프록시를 통해 Google Gemini 무료 등급으로 동작하며, 요청 횟수와 프로젝트 크기에 제한이 있습니다. 무료 등급에서는 Google이 입력을 서비스 개선에 사용할 수 있습니다.',
-			aiModeByok: 'API Key (BYOK)',
+				'무료로 써 볼 수 있습니다. 요청은 Ropeman 서버를 거쳐 Google Gemini 무료 등급으로 가고, 요청 횟수와 프로젝트 크기에 제한이 있습니다. 무료 등급에서는 Google이 입력을 서비스 개선에 쓸 수 있습니다.',
+			aiModeByok: 'API 키 (BYOK)',
 			aiModeByokDesc:
-				'자신의 Gemini/Anthropic/OpenAI API 키를 사용합니다. 키는 브라우저에만 저장됩니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 Ropeman 프록시를 거치며 프록시는 키를 저장하지 않습니다.',
-			aiModeBridge: 'Bridge',
+				'내 Gemini, Anthropic, OpenAI API 키를 씁니다. 키는 이 브라우저에만 저장합니다. Gemini 요청은 Google로 바로 가고, Anthropic과 OpenAI 요청은 Ropeman 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.',
+			aiModeBridge: '브리지',
 			aiModeBridgeDesc:
-				'로컬에 설치된 Gemini CLI 또는 Claude CLI를 통해 분석합니다. API 키 없이 CLI 인증을 활용합니다.',
-			aiModeWebgpu: 'WebGPU (실험적)',
+				'내 컴퓨터에 설치한 Gemini CLI나 Claude Code로 분석합니다. CLI에 로그인된 계정을 그대로 쓰므로 API 키를 입력하지 않습니다.',
+			aiModeWebgpu: 'WebGPU (실험 기능)',
 			aiModeWebgpuDesc:
-				'브라우저 내장 AI를 활용합니다. 외부 서버 연결 없이 완전히 로컬에서 동작하지만, 성능은 기기 사양에 따라 달라집니다.',
+				'WebGPU로 브라우저 안에서 모델을 돌립니다. 처음 한 번 모델을 내려받은 뒤에는 서버 없이 분석합니다. 속도는 GPU 성능에 따라 다릅니다.',
 			shortcutsTitle: '키보드 단축키',
 			faqTitle: '자주 묻는 질문',
 			usageSteps: [
-				'폴더 열기 — 프로젝트 디렉토리를 선택하면 AST 파싱이 자동으로 시작됩니다.',
-				'AI 분석 — AI 연결을 설정하면 코드베이스를 의미론적으로 분석하여 다이어그램을 생성합니다.',
-				'드릴다운 — 다이어그램 노드를 더블클릭하면 하위 수준으로 탐색합니다.',
-				'코드 보기 — 파일 탐색기에서 파일을 더블클릭하면 코드 뷰어가 열립니다.'
+				'프로젝트 폴더를 열면 바로 파싱을 시작합니다.',
+				'AI 연결을 설정하면 AI가 코드를 역할별로 묶어 다이어그램을 그립니다.',
+				'다이어그램 노드를 더블클릭하면 그 안으로 들어갑니다(드릴다운).',
+				'파일 탐색기에서 파일을 더블클릭하면 코드 뷰어가 열립니다.'
 			],
 			usageInteractionItems: [
-				'노드 클릭 — 선택 및 상세 정보 확인',
-				'노드 더블클릭 — 드릴다운 탐색',
-				'파일 더블클릭 — 코드 뷰어에서 열기',
-				'탭 드래그 — 분할 뷰로 이동'
+				'노드 클릭: 선택하고 상세 정보 보기',
+				'노드 더블클릭: 드릴다운',
+				'파일 더블클릭: 코드 뷰어에서 열기',
+				'탭 드래그: 화면 나누기'
 			],
 			faqItems: [
 				{
-					q: '제 프로젝트의 원본 소스 코드가 외부 서버로 유출되나요?',
-					a: '안심하셔도 됩니다. 어떠한 경우에도 원본 소스 코드는 외부로 전송되지 않습니다. AI가 맥락을 파악하기 위해 필요한 최소한의 코드 구조 정보(메타데이터)만 활용되며, AI 연동 모드에 따라 다음과 같이 처리됩니다.\n\n• WebGPU 모드 (최고 보안): 100% 기기 내부에서 오프라인으로 처리되며, 어떠한 데이터도 외부로 나가지 않습니다.\n• Demo / API Key 모드: 보안이 적용된 자체 중계 서버를 거쳐 AI 모델 제공사로 안전하게 전달됩니다.\n• Bridge 모드: 로컬에 설치된 CLI 툴을 통해 AI 모델 제공사의 서버로 직접 전송됩니다.',
+					q: '소스 코드 원문이 외부 서버로 나가나요?',
+					a: '아니요. AI에는 코드 구조 요약(심볼, 시그니처, import)을 보내고, 파일 원문은 보내지 않습니다. 요약이 어디로 가는지는 AI 모드에 따라 다릅니다.\n\n• WebGPU: 모델이 기기 안에서 돌기 때문에 아무것도 밖으로 나가지 않습니다.\n• 데모, API 키: 요약이 AI 제공자에게 갑니다. 데모 요청과 Anthropic·OpenAI 키 요청은 Ropeman 프록시를 거치고, Gemini 키 요청은 Google로 바로 갑니다.\n• 브리지: 로컬 CLI가 요약을 그 CLI의 제공자에게 보냅니다.',
 					slug: 'security'
 				},
 				{
@@ -734,32 +735,32 @@ const translations: Record<Locale, TranslationSet> = {
 				},
 				{
 					q: '프로젝트 크기에 제한이 있나요?',
-					a: '파일 수 최대 2,000개, 개별 파일 최대 500KB까지 지원합니다. 대규모 프로젝트는 설정에서 코드 구조 요약 크기를 조절하세요.',
+					a: '파일은 최대 2,000개, 파일 하나는 최대 500KB까지 읽습니다. 큰 프로젝트는 설정에서 코드 구조 요약 크기 제한을 조절하세요.',
 					slug: 'troubleshooting'
 				},
 				{
 					q: 'GitHub URL로 분석할 수 있나요?',
-					a: '네. 랜딩 페이지에서 공개 GitHub 저장소의 URL을 입력하면 로컬에 프로젝트를 다운로드하지 않고도 바로 분석할 수 있습니다. 비공개 저장소는 지원되지 않습니다.',
+					a: '네. 시작 화면에 공개 GitHub 저장소 URL을 넣으면 프로젝트를 내려받지 않고 바로 분석합니다. 비공개 저장소는 지원하지 않습니다.',
 					slug: 'getting-started'
 				},
 				{
 					q: '분석 결과를 공유할 수 있나요?',
-					a: 'AI 분석이 완료된 후 헤더의 Share 버튼을 클릭하면 공개 링크가 생성됩니다. 이 링크를 통해 다른 사람과 분석 결과를 공유할 수 있습니다.',
+					a: '네. AI 분석이 끝나면 헤더의 공유하기 버튼을 눌러 공개 링크를 만드세요. 링크가 있으면 누구나 분석 결과를 볼 수 있습니다.',
 					slug: 'faq'
 				},
 				{
-					q: '특정 디렉토리를 분석에서 제외할 수 있나요?',
-					a: 'Settings → 추가 제외 디렉토리 textarea에 디렉토리 이름을 1줄 1개씩 입력하면 기본 제외 목록에 추가됩니다. Rust의 target, 생성된 코드가 있는 generated, 모노레포의 third_party 같은 대형 디렉토리를 분석 대상에서 빼고 싶을 때 유용합니다.',
+					q: '특정 폴더를 분석에서 뺄 수 있나요?',
+					a: '네. 설정의 추가 제외 디렉토리 칸에 폴더 이름을 한 줄에 하나씩 적으면 기본 제외 목록에 더해집니다. Rust의 target, 생성 코드가 담긴 generated, third_party처럼 큰 폴더를 뺄 때 씁니다.',
 					slug: 'faq'
 				},
 				{
 					q: '진행 중인 분석을 취소하거나 여러 개 동시에 실행할 수 있나요?',
-					a: '우측 하단 pill의 빨간 "취소" 버튼으로 언제든 중단 가능합니다 (확인 다이얼로그 + "다시 묻지 않기"). 여러 영역을 동시에 드릴다운하면 pill이 개별 스택되며, 3개를 초과하면 "N개 분석 중" 그룹 배지로 자동 병합됩니다. 분석은 페이지 이동 간에도 계속 진행되며 pill은 어느 라우트에서든 보입니다.',
+					a: '네. 분석마다 오른쪽 아래에 진행 상태 표시가 생기고, 빨간 "취소" 버튼으로 언제든 멈출 수 있습니다. 처음 한 번은 확인을 묻고, "다시 묻지 않기"를 고를 수 있습니다. 여러 노드를 더블클릭하면 각각 따로 분석하고, 4개 이상이면 "N개 분석 중" 배지 하나로 합쳐집니다. 다른 페이지로 옮겨도 분석은 계속되고 진행 상태 표시도 그대로 보입니다.',
 					slug: 'faq'
 				},
 				{
-					q: '입력한 API 키는 안전하게 보관되나요?',
-					a: 'API 키는 저희 서버에 절대 저장되지 않으며, 오직 사용자 기기의 브라우저 로컬 저장소에만 보관됩니다.\n\n• API Key 모드: 브라우저에 저장된 키는 API 호출 시에만 일회성으로 사용되며, 보안 통신을 통해 AI 모델 제공사로 전달됩니다.\n• Bridge 모드: 별도의 API 키 입력 없이, 로컬에 연동된 CLI 툴의 인증 방식을 그대로 사용합니다.\n• WebGPU 모드: 오프라인으로 동작하므로 API 키 자체가 필요하지 않습니다.\n\n설정 초기화로 언제든 삭제할 수 있습니다.',
+					q: '입력한 API 키는 어디에 저장되나요?',
+					a: 'Ropeman 서버는 API 키를 저장하지 않습니다. 키는 이 브라우저의 로컬 저장소에만 있습니다.\n\n• API 키 모드: AI를 호출할 때마다 요청에 키를 담아 보냅니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 Ropeman 프록시를 거치며 프록시는 키를 저장하지 않습니다.\n• 브리지 모드: 키를 입력하지 않습니다. CLI에 로그인된 계정을 그대로 씁니다.\n• WebGPU 모드: 키가 필요 없습니다.\n\n설정을 초기화하면 저장된 키가 지워집니다.',
 					slug: 'security'
 				}
 			]
@@ -770,40 +771,40 @@ const translations: Record<Locale, TranslationSet> = {
 			next: '다음',
 			done: '완료',
 			restartTour: '투어 다시 보기',
-			skipConfirmText: '투어를 종료하시겠습니까?\n설정에서 언제든 다시 시작할 수 있습니다.',
-			skipConfirmOk: '종료',
+			skipConfirmText: '투어를 끝낼까요?\n설정에서 언제든 다시 볼 수 있습니다.',
+			skipConfirmOk: '끝내기',
 			skipConfirmCancel: '계속하기',
 			step1: {
 				title: '폴더 열기',
-				desc: '프로젝트 폴더를 열어 코드베이스를 로드하세요. Python, JavaScript, TypeScript 등 다양한 언어를 지원합니다.'
+				desc: '프로젝트 폴더를 열어 코드를 불러오세요. Python, JavaScript, TypeScript를 포함해 14개 언어를 지원합니다.'
 			},
 			step2: {
 				title: 'AI 분석',
-				desc: 'AI가 코드 구조를 의미론적으로 분석합니다. 역할과 의존 관계를 자동으로 파악하여 다이어그램을 생성합니다.'
+				desc: 'AI가 코드 구조 요약을 읽고 파일을 역할별로 묶은 뒤, 묶음 사이의 의존 관계를 찾아 다이어그램을 그립니다.'
 			},
 			step3: {
 				title: '설정',
-				desc: 'AI 모드, 테마, 언어 등을 설정할 수 있습니다. API 키 입력이나 분석 옵션도 여기서 관리합니다.'
+				desc: 'AI 모드, 테마, 언어를 정합니다. API 키와 분석 옵션도 여기에 있습니다.'
 			},
 			step4: {
 				title: '시맨틱 트리',
-				desc: 'AI가 분석한 역할 기반 트리입니다. 노드를 클릭하면 관련 파일이 하이라이트됩니다.'
+				desc: 'AI 분석이 파일을 역할별로 묶은 트리입니다. 노드를 클릭하면 그 노드의 파일이 강조됩니다.'
 			},
 			step5: {
 				title: '다이어그램 캔버스',
-				desc: '노드를 클릭하면 선택, 더블클릭하면 하위 레벨로 드릴다운합니다. 드래그로 캔버스를 이동할 수 있습니다.'
+				desc: '노드를 클릭하면 선택하고, 더블클릭하면 그 안으로 들어갑니다. 드래그하면 캔버스가 움직입니다.'
 			},
 			step6: {
 				title: '브레드크럼',
-				desc: '드릴다운 경로를 보여줍니다. 클릭하면 상위 레벨로 바로 이동할 수 있습니다.'
+				desc: '들어온 경로를 보여 줍니다. 단계를 클릭하면 그 단계로 돌아갑니다.'
 			},
 			step7: {
 				title: '파일 탐색기',
-				desc: '파일을 더블클릭하면 해당 파일이 속하는 시맨틱 노드가 다이어그램에서 하이라이트됩니다. 속하는 노드가 없으면 하이라이트가 해제됩니다.'
+				desc: '파일을 더블클릭하면 그 파일이 속한 시맨틱 노드가 다이어그램에서 강조됩니다. 속한 노드가 없으면 강조가 사라집니다.'
 			},
 			step8: {
 				title: '분할 뷰',
-				desc: 'Ctrl+\\ 로 다이어그램과 코드를 동시에 볼 수 있습니다. 탭을 드래그하여 분할할 수도 있습니다.'
+				desc: 'Ctrl+\\ 를 누르면 다이어그램과 코드를 나란히 봅니다. 탭을 드래그해서 나눌 수도 있습니다.'
 			}
 		},
 		docs: {
@@ -849,15 +850,15 @@ const translations: Record<Locale, TranslationSet> = {
 			download: '다운로드',
 			estTime: '예상 시간',
 			vramWarning: '이 모델은 VRAM {size}이 필요합니다. GPU 메모리가 충분한지 확인하세요.',
-			cachedHint: '이 모델은 이미 브라우저에 캐시되어 있습니다. 몇 초면 불러옵니다.',
+			cachedHint: '이 모델은 이미 브라우저에 저장되어 있습니다. 몇 초면 불러옵니다.',
 			downloadHint:
-				'모델은 백그라운드에서 다운로드됩니다. 기다리는 동안 다른 AI 모드를 쓸 수 있습니다. 다운로드가 끝나면 모델은 브라우저(IndexedDB)에 캐시됩니다.',
+				'모델은 백그라운드에서 내려받습니다. 기다리는 동안 다른 AI 모드를 쓸 수 있습니다. 다 받으면 브라우저(IndexedDB)에 저장합니다.',
 			loadModel: '모델 불러오기',
 			downloadSetup: '다운로드 후 설정',
 			downloadingModel: '{model} 다운로드 중...',
 			cancelDownload: '다운로드 취소',
 			starting: '시작하는 중...',
-			ready: '브라우저 AI({model})가 준비되었습니다!',
+			ready: '브라우저 AI({model})가 준비되었습니다.',
 			timeUnder1: '1분 미만',
 			time1to3: '1~3분',
 			time3to6: '3~6분',
@@ -968,18 +969,18 @@ const translations: Record<Locale, TranslationSet> = {
 			home: '홈',
 			heroTitle: '오픈소스 아키텍처 둘러보기',
 			heroDesc:
-				'인기 오픈소스 프로젝트의 AI 생성 아키텍처 다이어그램을 살펴보세요. 직접 분석한 결과를 공개 갤러리로 제공합니다.',
+				'인기 오픈소스 프로젝트를 Ropeman으로 분석한 아키텍처 다이어그램입니다. 프로젝트는 직접 고르고, 스냅샷은 수시로 갱신합니다.',
 			searchPlaceholder: '프로젝트 검색...',
 			searchLabel: '검색',
 			languageLabel: '언어',
 			allLanguages: '모든 언어',
 			empty: '조건에 맞는 프로젝트가 없습니다.',
-			entryTitle: '{title} 아키텍처 | Ropeman Explore',
-			analyzeOwn: '내 프로젝트 분석',
+			entryTitle: '{title} 아키텍처 | Ropeman 갤러리',
+			analyzeOwn: '내 프로젝트 분석하기',
 			loadingEntry: '{title} 아키텍처 불러오는 중...',
-			notAnalyzedTitle: '아직 분석되지 않았습니다',
+			notAnalyzedTitle: '아직 분석하지 않았습니다',
 			notAnalyzedDesc:
-				'{title}의 아키텍처 스냅샷은 곧 추가됩니다. 그동안 홈에서 GitHub URL로 직접 분석해보세요.',
+				'{title}의 스냅샷은 아직 없습니다. 지금 분석하려면 홈에서 GitHub URL을 붙여 넣으세요.',
 			analyzeFromHome: '홈에서 분석하기',
 			viewOnGithub: 'GitHub에서 보기',
 			backToGallery: '갤러리로'
@@ -991,8 +992,8 @@ const translations: Record<Locale, TranslationSet> = {
 			analyzeOwn: '내 프로젝트 분석하기',
 			loading: '공유 데이터 불러오는 중...',
 			notFoundTitle: '링크를 찾을 수 없습니다',
-			notFound: '공유 링크를 찾을 수 없습니다. 만료되었거나 잘못된 링크입니다.',
-			loadFailed: '공유 데이터를 불러오는데 실패했습니다.',
+			notFound: '공유 링크를 찾을 수 없습니다. 만료되었거나 주소가 잘못되었습니다.',
+			loadFailed: '공유 데이터를 불러오지 못했습니다.',
 			goHome: 'Ropeman으로 이동'
 		}
 	},
@@ -1013,11 +1014,11 @@ const translations: Record<Locale, TranslationSet> = {
 		noApiKey: 'Enter your Gemini API key in Settings',
 		cacheEnabled: 'Analysis Cache',
 		cacheEnabledTooltip:
-			'Caches AI analysis results in your browser. When enabled, reopening the same project restores results instantly without re-calling AI.',
+			'Keeps AI analysis results in this browser, so reopening the same project shows them again without a new AI request.',
 		clearCache: 'Clear Cache',
 		showSymbols: 'Symbol Sidebar',
 		showSymbolsTooltip:
-			'Shows function/class symbols extracted by AST parsing in the sidebar. Open a file to see its symbols.',
+			'Lists the functions and classes the parser found in the open file, in the sidebar.',
 		codeTheme: 'Code Theme',
 		codeFontSize: 'Code Font Size',
 		settingsAiConnection: 'AI Connection',
@@ -1025,31 +1026,30 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsSkeletonLimit: 'Code Summary Size Limit',
 		settingsSkeletonUnlimited: 'Unlimited',
 		settingsSkeletonHint:
-			'Max size of the code structure summary (metadata) sent during AI analysis. Reduce for large projects if API errors occur. (Default: 250KB)',
+			'Largest code summary (symbols, signatures, imports) sent to the AI for one analysis. Lower it if a large project gets API errors. Default: 250KB.',
 		settingsCustomSkipPatterns: 'Additional Excluded Directories',
 		settingsCustomSkipPatternsPlaceholder: 'One per line, e.g.:\ntarget\nthird_party',
 		settingsCustomSkipPatternsHint:
-			'Directories to exclude in addition to the built-in list. A bare name matches at any depth; an entry with a slash matches that path from the project root. Useful for large monorepos or generated code directories.',
+			'Folders to skip on top of the built-in list. A bare name matches at any depth. An entry with a slash matches that path from the project root. Use it for generated code or large monorepo folders.',
 		settingsCustomIncludePatterns: 'Included Paths',
 		settingsCustomIncludePatternsPlaceholder: 'One per line, e.g.:\ndocs\n.github/workflows',
 		settingsCustomIncludePatternsHint:
-			'Overrides the exclude rules. A bare name matches a folder or file with that name at any depth; an entry with a slash matches that path from the project root. Agent instruction folders (.agents, .cursor, .claude/skills, .github/instructions and others) are included by default.',
+			'Paths listed here are read even when an exclude rule matches them. A bare name matches a folder or file of that name at any depth. An entry with a slash matches that path from the project root. Agent instruction folders (.agents, .cursor, .claude/skills, .github/instructions and others) are included by default.',
 		analysisCompleted: 'Analysis complete',
 		analysisFailed: 'Analysis failed',
 		analysisGroupExpand: 'Expand analysis list',
 		analysisGroupCollapse: 'Collapse analysis list',
 		analysisCancelLabel: 'Cancel',
 		analysisCancelConfirmTitle: 'Cancel Analysis',
-		analysisCancelConfirmMessage:
-			'Cancel the ongoing AI analysis? All progress so far will be discarded.',
+		analysisCancelConfirmMessage: 'Cancel the running AI analysis? Progress so far will be lost.',
 		analysisCancelConfirmMessageSingle:
-			'Cancel the "{label}" analysis? All progress will be discarded.',
+			'Cancel the "{label}" analysis? Progress so far will be lost.',
 		analysisCancelConfirmMessageAll:
-			'Cancel all {count} running analyses? All progress will be discarded.',
+			'Cancel all {count} running {count|analysis|analyses}? Progress so far will be lost.',
 		analysisCancelConfirmOk: 'Cancel Analysis',
 		analysisCancelConfirmBack: 'Keep Running',
 		analysisCancelAll: 'Cancel All',
-		analysisGroupRunning: '{count} analyses running',
+		analysisGroupRunning: '{count} {count|analysis|analyses} running',
 		analysisInProgress: 'AI Analysis in Progress',
 		dontAskAgain: "Don't ask again",
 		settingsLanguage: 'Language',
@@ -1066,36 +1066,36 @@ const translations: Record<Locale, TranslationSet> = {
 		landing: {
 			headline: 'Visualize code<br/><span class="headline-accent">architecture with AI</span>',
 			subheadline:
-				'AI-powered semantic architecture diagrams. All in your browser. Load local folders instantly without uploading source code.',
+				'Open a folder and the AI groups its code by role into an architecture diagram. Parsing runs in your browser, and the source code is not uploaded.',
 			cta: 'Open Folder',
 			dragHint: 'or drag & drop a folder here',
 			featureAiTitle: 'AI Semantic Analysis',
 			featureAiDesc:
-				'LLMs automatically map your repository into semantic modules and key abstractions.',
+				'An LLM groups your files into modules by what they do and names the main abstractions.',
 			featureDrillTitle: 'Drill-down Navigation',
 			featureDrillDesc:
-				'Navigate from high-level architecture diagrams down to specific lines of code without losing context.',
-			featureBrowserTitle: 'Multi-Track AI',
+				'Go from the top-level diagram down to the code of a single file. The breadcrumb shows where you are.',
+			featureBrowserTitle: 'Four AI modes',
 			featureBrowserDesc:
-				'Demo · API Key · Local Bridge · Browser AI — choose from 4 analysis modes. Source code is never sent externally in any mode.',
+				'Pick Demo, API Key, Local Bridge or Browser AI. Every mode sends the AI a code summary and keeps the source files in your browser.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: 'Load',
 			githubOr: 'or enter a GitHub repository URL',
 			mobileFolderHint:
-				'Folder picking is unavailable on mobile. Enter a GitHub repository URL to analyze.',
+				"Mobile browsers can't open local folders. Enter a public GitHub repository URL instead.",
 			mobileGithubLead: 'Enter a GitHub repository URL to start analysis',
-			githubInvalidUrl: 'Please enter a valid GitHub repository URL.',
-			githubNotFound: 'Repository not found. Please check the URL.',
-			githubRateLimit: 'GitHub API rate limit exceeded. Please try again later.',
+			githubInvalidUrl: 'Enter a GitHub repository URL, like https://github.com/owner/repo.',
+			githubNotFound: 'Repository not found. Check the URL.',
+			githubRateLimit: 'Hit the GitHub API rate limit. Try again later.',
 			githubPrivate: 'Private repositories are not supported.',
-			githubLoadError: 'Failed to load GitHub repository.',
+			githubLoadError: "Couldn't load the GitHub repository.",
 			specLocalFirst: 'Local-First Analysis',
 			specWebgpu: 'WebGPU Accelerated',
-			specSemantic: 'Semantic Recognition',
+			specSemantic: 'Role-based grouping',
 			specNoData: 'Zero Data Collection',
 			exampleCta: 'See an example',
 			heroShotAlt:
-				'Ropeman analysis of huggingface/transformers: domain nodes and their links, with the selected node’s files and key symbols on the right',
+				"Ropeman analysis of huggingface/transformers: domain nodes and their links, with the selected node's files and key symbols on the right",
 			heroShotCaption: 'A real analysis of huggingface/transformers. Click to explore it.',
 			heroShotLink: 'Open the huggingface/transformers example',
 			dropRegion: 'Folder drop area',
@@ -1103,7 +1103,7 @@ const translations: Record<Locale, TranslationSet> = {
 			parsingLabel: 'Parsing files',
 			explorePromptTitle: 'No deep analysis for this domain',
 			explorePromptMessage:
-				"This domain's internal structure isn't part of the curated snapshot. To explore deeper, load the original project from the home page.",
+				'The example snapshot stops at this domain. To go deeper, load the project from the home page and analyze it.',
 			explorePromptAnalyze: 'Analyze from home',
 			explorePromptGithub: 'View on GitHub'
 		},
@@ -1112,8 +1112,8 @@ const translations: Record<Locale, TranslationSet> = {
 			placeholder: 'Paste your code here...',
 			analyze: 'Analyze',
 			lines: 'lines',
-			emptyError: 'Please enter some code',
-			analyzeFailed: 'Failed to analyze snippet: {error}'
+			emptyError: 'Paste some code first',
+			analyzeFailed: "Couldn't analyze the snippet: {error}"
 		},
 		legend: {
 			title: 'Legend',
@@ -1139,26 +1139,26 @@ const translations: Record<Locale, TranslationSet> = {
 		},
 		share: {
 			button: 'Share',
-			confirmTitle: 'Generate Share Link',
-			confirmMessage: 'Generate a public link for this analysis?',
-			confirmOk: 'Generate',
+			confirmTitle: 'Create Share Link',
+			confirmMessage: 'Create a public link to this analysis? Anyone with the link can view it.',
+			confirmOk: 'Create',
 			confirmCancel: 'Cancel',
-			generating: 'Generating share link...',
+			generating: 'Creating share link...',
 			successTitle: 'Share link created',
 			copyLink: 'Copy Link',
 			copied: 'Copied!',
 			openNewTab: 'Open in new tab',
 			errorTitle: 'Share failed',
-			errorMessage: 'Could not generate a share link. Please try again later.',
+			errorMessage: "Couldn't create a share link. Try again later.",
 			close: 'Close',
-			tooLarge: 'Analysis data too large (exceeds 1MB). Try a smaller project.'
+			tooLarge: 'This analysis is over the 1MB share limit. Try a smaller project.'
 		},
 		aiError: {
-			tpm: "The request exceeds the model's token limit. Reduce the code summary size or choose another model.",
-			rateLimit: 'Too many requests. Please try again shortly.',
-			quota: "Not enough API credit. Top up in your provider's dashboard.",
-			auth: 'The API key is not valid. Check the key and enter it again.',
-			network: 'Check your network connection.',
+			tpm: "The request is over the model's token limit. Lower the code summary size or pick another model.",
+			rateLimit: 'Too many requests. Wait a moment and try again.',
+			quota: "Your API credit has run out. Add credit in your provider's dashboard.",
+			auth: "This API key isn't valid. Check it and enter it again.",
+			network: "Couldn't reach the AI service. Check your network connection.",
 			demo: 'The free demo is unavailable right now. Browse pre-analyzed examples in Explore, or connect an API key or the local bridge (Claude Code, Gemini CLI) to analyze your own code.',
 			unknown: 'Something went wrong during AI analysis.',
 			actionSize: 'Size settings',
@@ -1190,7 +1190,7 @@ const translations: Record<Locale, TranslationSet> = {
 			valid: 'Valid',
 			invalid: 'Invalid',
 			startWithApiKey: 'Start with API Key',
-			bridgeDesktopOnly: 'Desktop only — needs a local CLI bridge',
+			bridgeDesktopOnly: 'Desktop only. Needs the local bridge.',
 			connected: 'Connected',
 			disconnected: 'Disconnected',
 			cliTool: 'CLI Tool',
@@ -1202,7 +1202,7 @@ const translations: Record<Locale, TranslationSet> = {
 			tokenPlaceholder: 'Printed by the bridge at startup',
 			startWithBridge: 'Start with Bridge',
 			webgpuName: 'Browser AI',
-			webgpuDesktopOnly: 'Desktop only — needs WebGPU + multi-GB RAM',
+			webgpuDesktopOnly: 'Desktop only. Needs WebGPU and several GB of RAM.',
 			webgpuUnsupported: 'WebGPU not supported',
 			modelLoaded: 'Model loaded',
 			downloading: 'Downloading... {n}%',
@@ -1214,7 +1214,7 @@ const translations: Record<Locale, TranslationSet> = {
 			copyJson: 'Copy JSON',
 			limit: 'Limit: {value}',
 			unlimited: 'Unlimited',
-			footerHint: 'Select a track to begin the structural analysis.'
+			footerHint: 'Pick a mode to start the analysis.'
 		},
 		panel: {
 			close: 'Close',
@@ -1224,7 +1224,7 @@ const translations: Record<Locale, TranslationSet> = {
 		},
 		node: {
 			fileOne: '{n} file',
-			fileMany: '{n} files',
+			fileMany: '{n} {n|file|files}',
 			openInside: 'Open',
 			openCode: 'View code',
 			notInSnapshot: 'This snapshot has no deeper analysis. Click for details',
@@ -1238,7 +1238,7 @@ const translations: Record<Locale, TranslationSet> = {
 			analyze: 'Analyze',
 			analyzeTitle: 'AI semantic analysis',
 			languageToggle: '한, 한국어로 보기',
-			gallery: 'Explore gallery',
+			gallery: 'Explore',
 			home: 'Back to start',
 			homeConfirmTitle: 'Go back to the start page?',
 			homeConfirmMessage:
@@ -1265,34 +1265,34 @@ const translations: Record<Locale, TranslationSet> = {
 			aiModesTitle: 'AI Analysis Modes',
 			aiModeDemo: 'Demo',
 			aiModeDemoDesc:
-				'Free trial mode. Runs on the Google Gemini free tier through a server proxy, with limits on request count and project size. On the free tier Google may use inputs to improve its products.',
+				"Free to try. Requests go through Ropeman's server to the Google Gemini free tier, with limits on request count and project size. Google may use free-tier inputs to improve its products.",
 			aiModeByok: 'API Key (BYOK)',
 			aiModeByokDesc:
-				"Use your own Gemini/Anthropic/OpenAI API key. Keys are stored only in your browser. Gemini requests go straight to Google; Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store keys.",
+				"Use your own Gemini, Anthropic or OpenAI API key. The key is stored only in your browser. Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store keys.",
 			aiModeBridge: 'Bridge',
 			aiModeBridgeDesc:
-				'Analyze through locally installed Gemini CLI or Claude CLI. Uses CLI authentication without requiring API keys.',
+				"Runs the analysis through Gemini CLI or Claude Code on your machine. The CLI uses its own login, so you don't enter an API key.",
 			aiModeWebgpu: 'WebGPU (Experimental)',
 			aiModeWebgpuDesc:
-				'Uses browser-built-in AI. Runs entirely locally without any external server connection, but performance depends on device specs.',
+				'Runs a model inside your browser with WebGPU. After the one-time model download, analysis needs no server. Speed depends on your GPU.',
 			shortcutsTitle: 'Keyboard Shortcuts',
 			faqTitle: 'Frequently Asked Questions',
 			usageSteps: [
-				'Open Folder — Select a project directory to start automatic AST parsing.',
-				'AI Analysis — Configure an AI connection to semantically analyze your codebase and generate diagrams.',
-				'Drill-down — Double-click a diagram node to explore deeper levels.',
-				'View Code — Double-click a file in the explorer to open the code viewer.'
+				'Open a project folder. Parsing starts right away.',
+				'Set up an AI connection, and the AI groups the code by role and draws a diagram.',
+				'Double-click a diagram node to drill down into it.',
+				'Double-click a file in the explorer to open it in the code viewer.'
 			],
 			usageInteractionItems: [
-				'Click node — Select and view details',
-				'Double-click node — Drill-down navigation',
-				'Double-click file — Open in code viewer',
-				'Drag tab — Move to split view'
+				'Click a node: select it and see its details',
+				'Double-click a node: drill down',
+				'Double-click a file: open it in the code viewer',
+				'Drag a tab: split the view'
 			],
 			faqItems: [
 				{
-					q: 'Is my original source code ever sent to an external server?',
-					a: 'Rest assured — your original source code is never transmitted externally under any circumstances. Only minimal code structure information (metadata) is used for AI context, and it is handled securely based on your chosen AI mode.\n\n• WebGPU mode (highest security): Processed 100% offline on your device. No data leaves your machine.\n• Demo / API Key mode: Routed through our secure relay server to the AI model provider.\n• Bridge mode: Sent directly to the AI provider via your locally installed CLI tool.',
+					q: 'Does my source code leave my computer?',
+					a: "No. Ropeman sends the AI a code summary (symbols, signatures and imports), not the files themselves. Where the summary goes depends on the AI mode.\n\n• WebGPU: the model runs on your device, and nothing leaves it.\n• Demo and API Key: the summary goes to the AI provider. Demo requests and Anthropic or OpenAI key requests pass through Ropeman's proxy. Gemini key requests go straight to Google.\n• Bridge: your local CLI sends the summary to its provider.",
 					slug: 'security'
 				},
 				{
@@ -1302,32 +1302,32 @@ const translations: Record<Locale, TranslationSet> = {
 				},
 				{
 					q: 'Are there project size limits?',
-					a: 'Up to 2,000 files and 500KB per individual file. For large projects, adjust the code summary size limit in Settings.',
+					a: 'Up to 2,000 files, and up to 500KB per file. For a large project, adjust the code summary size limit in Settings.',
 					slug: 'troubleshooting'
 				},
 				{
 					q: 'Can I analyze a GitHub repository by URL?',
-					a: 'Yes. Paste a public GitHub repository URL into the input field on the landing page and click Load. Ropeman fetches the file structure and analyzes it just like a local folder. Private repositories are not supported.',
+					a: 'Yes. Paste a public GitHub repository URL into the field on the start page and click Load. Ropeman fetches the files and analyzes them like a local folder. Private repositories are not supported.',
 					slug: 'getting-started'
 				},
 				{
 					q: 'Can I share my analysis results?',
-					a: 'Yes. After AI analysis completes, click the Share button in the header to generate a public link. You can share this link with anyone to let them view the analysis.',
+					a: 'Yes. After the AI analysis finishes, click Share in the header to create a public link. Anyone with the link can view the analysis.',
 					slug: 'faq'
 				},
 				{
-					q: 'Can I exclude specific directories from analysis?',
-					a: "Yes. Go to Settings → Additional Excluded Directories and enter one directory name per line. Your custom patterns are merged with the built-in skip list. Useful for large monorepos or generated-code directories like Rust's target, third_party, or generated.",
+					q: 'Can I exclude specific folders from analysis?',
+					a: "Yes. In Settings, enter one folder name per line under Additional Excluded Directories. Ropeman adds them to the built-in skip list. Typical entries are large or generated folders such as Rust's target, third_party or generated.",
 					slug: 'faq'
 				},
 				{
 					q: 'Can I cancel or run multiple analyses in parallel?',
-					a: 'Yes. The bottom-right pill has a red Cancel button (with a one-time confirm + "Don\'t ask again"). Double-click different nodes to drill down in parallel; each request gets its own pill. Beyond three concurrent analyses, pills collapse into a single "N analyses running" group badge. Analysis continues across in-app route navigation and the pill is visible everywhere.',
+					a: 'Yes. Each analysis shows a status pill in the bottom-right corner with a red Cancel button. It asks once before cancelling, and you can tick "Don\'t ask again". Double-click several nodes to drill down into them in parallel, and each one gets its own pill. With more than three running, the pills collapse into one "N analyses running" badge. Analyses keep running when you move between pages, and the pill stays visible.',
 					slug: 'faq'
 				},
 				{
-					q: 'Are my API keys stored securely?',
-					a: "API keys are never stored on our servers — they are kept only in your browser's local storage on your device.\n\n• API Key mode: Keys are used only at the moment of an API call and securely transmitted to the AI model provider.\n• Bridge mode: No API key input is needed. It inherits the authentication of your locally configured CLI tool.\n• WebGPU mode: Runs offline, so no API key is required at all.\n\nYou can delete keys anytime by resetting settings.",
+					q: 'Where is my API key stored?',
+					a: "Ropeman's servers don't store API keys. The key stays in this browser's local storage.\n\n• API Key mode: the key goes out with each AI request. Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store the key.\n• Bridge mode: you don't enter a key. The CLI uses its own login.\n• WebGPU mode: no key is needed.\n\nReset settings to delete stored keys.",
 					slug: 'security'
 				}
 			]
@@ -1343,27 +1343,27 @@ const translations: Record<Locale, TranslationSet> = {
 			skipConfirmCancel: 'Continue',
 			step1: {
 				title: 'Open Folder',
-				desc: 'Open a project folder to load your codebase. Supports Python, JavaScript, TypeScript, and more.'
+				desc: 'Open a project folder to load its code. Python, JavaScript, TypeScript and 11 other languages are supported.'
 			},
 			step2: {
 				title: 'AI Analysis',
-				desc: 'AI semantically analyzes your code structure, automatically identifying roles and dependencies to generate diagrams.'
+				desc: 'The AI reads the code summary, groups files by role, finds the dependencies between groups and draws the diagram.'
 			},
 			step3: {
 				title: 'Settings',
-				desc: 'Configure AI mode, theme, language, and more. Manage API keys and analysis options here.'
+				desc: 'Set the AI mode, theme and language. API keys and analysis options are here too.'
 			},
 			step4: {
 				title: 'Semantic Tree',
-				desc: 'A role-based tree generated by AI analysis. Click a node to highlight related files.'
+				desc: 'The AI analysis groups files into this tree by role. Click a node to highlight its files.'
 			},
 			step5: {
 				title: 'Diagram Canvas',
-				desc: 'Click a node to select it, double-click to drill down into sub-levels. Drag to pan the canvas.'
+				desc: 'Click a node to select it. Double-click it to drill down. Drag to move the canvas.'
 			},
 			step6: {
 				title: 'Breadcrumb',
-				desc: 'Shows your drill-down path. Click any level to navigate back up instantly.'
+				desc: 'Shows the path you drilled down. Click a level to go back to it.'
 			},
 			step7: {
 				title: 'File Explorer',
@@ -1396,7 +1396,7 @@ const translations: Record<Locale, TranslationSet> = {
 			project: 'Project',
 			error: 'Error',
 			beta: 'Beta',
-			symbolCount: '{n} symbols'
+			symbolCount: '{n} {n|symbol|symbols}'
 		},
 		track: {
 			edge: 'Demo',
@@ -1417,16 +1417,15 @@ const translations: Record<Locale, TranslationSet> = {
 			download: 'Download',
 			estTime: 'Est. Time',
 			vramWarning: 'This model requires {size} VRAM. Make sure your GPU has enough memory.',
-			cachedHint:
-				'This model is already cached in your browser. Loading will take just a few seconds.',
+			cachedHint: 'This model is already cached in your browser. Loading takes a few seconds.',
 			downloadHint:
-				'The model will download in the background. You can use other AI modes while waiting. Once downloaded, the model is cached in your browser (IndexedDB).',
+				'The model downloads in the background, and you can use other AI modes meanwhile. After the download, your browser keeps the model in IndexedDB.',
 			loadModel: 'Load Model',
 			downloadSetup: 'Download & Setup',
 			downloadingModel: 'Downloading {model}...',
 			cancelDownload: 'Cancel download',
 			starting: 'Starting...',
-			ready: 'Browser AI ({model}) is ready!',
+			ready: 'Browser AI ({model}) is ready.',
 			timeUnder1: '< 1 min',
 			time1to3: '1~3 min',
 			time3to6: '3~6 min',
@@ -1464,16 +1463,16 @@ const translations: Record<Locale, TranslationSet> = {
 			semanticEmpty: 'No semantic analysis data'
 		},
 		codeViewer: {
-			empty: 'Select a file from the Explorer or a semantic node to view code',
-			lines: '{n} lines',
+			empty: 'Pick a file in the Explorer or a semantic node to see its code',
+			lines: '{n} {n|line|lines}',
 			symbols: 'Symbols',
 			noProject: 'No project loaded',
-			notAccessible: 'File not accessible',
-			loadFailed: 'Failed to load file: {error}'
+			notAccessible: "Can't read this file",
+			loadFailed: "Couldn't load the file: {error}"
 		},
 		search: {
 			placeholder: 'Search files and symbols...',
-			noResults: 'No results found',
+			noResults: 'No results',
 			file: 'file'
 		},
 		statusBar: {
@@ -1505,17 +1504,17 @@ const translations: Record<Locale, TranslationSet> = {
 			edgeUses: 'uses'
 		},
 		settingsUi: {
-			cacheEntries: '{n} entries',
+			cacheEntries: '{n} {n|entry|entries}',
 			themeDark: 'Dark',
 			themeLight: 'Light'
 		},
 		dropzone: {
 			needsChromium:
-				'Drag & drop directory reading requires a Chromium browser. Please use the "Open Directory" button instead.',
-			folderOnly: 'Please drop a folder, not individual files.',
-			readFailed: 'Failed to read directory: {error}',
-			openFailed: 'Failed to open directory: {error}',
-			processFailed: 'Failed to process files: {error}'
+				'Reading a dropped folder needs a Chromium browser. Use the "Open Directory" button instead.',
+			folderOnly: 'Drop a folder, not single files.',
+			readFailed: "Couldn't read the folder: {error}",
+			openFailed: "Couldn't open the folder: {error}",
+			processFailed: "Couldn't process the files: {error}"
 		},
 		symbolBadge: {
 			static: 'Static',
@@ -1537,7 +1536,7 @@ const translations: Record<Locale, TranslationSet> = {
 			home: 'Home',
 			heroTitle: 'Explore Open-Source Architectures',
 			heroDesc:
-				'AI-generated architecture diagrams of popular open-source projects. Curated and refreshed periodically.',
+				'Architecture diagrams of popular open-source projects, analyzed with Ropeman. We pick the projects and refresh the snapshots from time to time.',
 			searchPlaceholder: 'Search projects...',
 			searchLabel: 'Search',
 			languageLabel: 'Language',
@@ -1548,7 +1547,7 @@ const translations: Record<Locale, TranslationSet> = {
 			loadingEntry: 'Loading {title} architecture...',
 			notAnalyzedTitle: 'Not analyzed yet',
 			notAnalyzedDesc:
-				'The architecture snapshot for {title} will be added soon. You can analyze it yourself by pasting the GitHub URL on the home page.',
+				'There is no snapshot for {title} yet. To analyze it now, paste its GitHub URL on the home page.',
 			analyzeFromHome: 'Analyze from home',
 			viewOnGithub: 'View on GitHub',
 			backToGallery: 'Back to Explore'
@@ -1558,10 +1557,10 @@ const translations: Record<Locale, TranslationSet> = {
 			pageTitleFallback: 'Shared',
 			projectFallback: 'Shared Project',
 			analyzeOwn: 'Analyze your own',
-			loading: 'Loading shared data...',
+			loading: 'Loading shared analysis...',
 			notFoundTitle: 'Link not found',
-			notFound: 'Share link not found. It may have expired or the link is invalid.',
-			loadFailed: 'Failed to load shared data.',
+			notFound: "This share link doesn't exist. It may have expired, or the URL is wrong.",
+			loadFailed: "Couldn't load the shared analysis.",
 			goHome: 'Go to Ropeman'
 		}
 	}
@@ -1586,8 +1585,14 @@ function createI18nStore() {
 				}
 			}
 			if (!params) return value as string;
-			return (value as string).replace(/\{(\w+)\}/g, (match, name: string) =>
-				name in params ? String(params[name]) : match
+			const plural = new Intl.PluralRules(settingsStore.language);
+			return (value as string).replace(
+				/\{(\w+)(?:\|([^|{}]*)\|([^|{}]*))?\}/g,
+				(match, name: string, one?: string, other?: string) => {
+					if (!(name in params)) return match;
+					if (other === undefined) return String(params[name]);
+					return plural.select(Number(params[name])) === 'one' ? one! : other;
+				}
 			);
 		},
 		getProgressMessage(key: keyof AnalysisProgressTranslations): string {

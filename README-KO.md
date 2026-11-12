@@ -1,6 +1,6 @@
 # Ropeman
 
-> AI 기반 시맨틱 코드 아키텍처 시각화 도구 -- Local-First
+> 코드베이스의 아키텍처를 다이어그램으로 봅니다. 파싱은 브라우저에서 하고, AI가 코드를 역할별로 묶습니다.
 
 **배포 URL**: [https://ropeman.dev](https://ropeman.dev)
 
@@ -8,27 +8,29 @@
 
 ## 개요
 
-Ropeman은 임의의 코드베이스를 브라우저에서 분석하여 **AI 기반 의미론적 아키텍처 다이어그램**으로 시각화하는 웹 애플리케이션입니다. 파일 트리가 아닌, 프로젝트의 *역할과 의존 관계*를 다이어그램으로 표현합니다.
+Ropeman은 브라우저에서 코드베이스를 파싱하고, AI에게 파일을 역할별로 묶어 달라고 요청합니다. 메인 캔버스에는 그 묶음과 묶음 사이의 의존 관계가 나오므로, 파일 트리보다 아키텍처를 먼저 보게 됩니다.
 
-폴더를 열면 아키텍처 다이어그램이 생성됩니다. 각 영역을 클릭하면 AI가 하위 구조를 재귀적으로 추가 분석합니다.
+폴더를 열면 다이어그램이 나옵니다. 묶음을 더블클릭하면 그 안으로 드릴다운하고, AI가 그 묶음의 하위 구조를 요청 시점에 분석합니다.
 
-### 핵심 가치
+### 특징
 
-- **Semantic-First** -- 메인 캔버스는 역할 기반 다이어그램 (파일 트리가 아님)
-- **재귀적 드릴다운** -- 영역 클릭 시 AI가 하위 구조를 동적 생성
-- **100% Local-First** -- 소스 코드 원문은 브라우저 밖으로 나가지 않음. 구조 메타데이터만 AI에 전달
-- **Zero Friction** -- URL 접속, 폴더 드롭, 다이어그램 생성. 별도 설치/가입 없이 Demo 모드 사용 가능
+- 메인 캔버스는 역할 다이어그램입니다. 파일 트리는 옆 패널에 있습니다.
+- 드릴다운은 재귀적입니다. 단계마다 묶음 하나를 AI가 새로 분석합니다.
+- 소스 코드는 브라우저에 남습니다. AI가 받는 것은 스켈레톤이라고 부르는 코드 구조 요약뿐입니다. 심볼, 시그니처, import, 그리고 Markdown 파일이면 frontmatter의 name과 description, 제목, 파일 링크가 들어갑니다.
+- 데모 모드는 설치와 가입이 필요 없습니다. 사이트를 열고 폴더를 열면 다이어그램이 나옵니다.
 
 ## 주요 기능
 
-- **AI 의미론적 분석** -- LLM 기반 아키텍처 다이어그램 자동 생성
-- **재귀적 드릴다운** -- 노드 클릭으로 내부 구조 확장
-- **Multi-Track AI** -- 4가지 AI 모드 지원 (아래 참고)
-- **Local-First** -- 브라우저 내 WASM AST 파싱, 코드 스켈레톤만 AI에 전달
-- **Polyglot** -- 14개 언어 지원 (Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala)
-- **코드 뷰어** -- 구문 하이라이팅 + 분할 뷰
-- **시맨틱 캐싱** -- Cache API로 세션 간 분석 결과 유지
-- **검색** -- Orama 기반 전문 검색
+- 스켈레톤을 아키텍처 다이어그램으로 바꾸는 AI 분석
+- 어느 노드든 재귀적으로 드릴다운
+- 네 가지 AI 모드 (아래 설명)
+- 브라우저 안의 WASM AST 파싱. AI에는 스켈레톤만 갑니다
+- 14개 언어: Python, JavaScript, TypeScript, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala
+- 공개 GitHub 저장소를 clone 없이 URL로 불러오기
+- 구문 강조와 분할 뷰를 갖춘 코드 뷰어
+- 코드 스니펫 분석: 코드를 붙여 넣고 바로 분석
+- Cache API에 분석 결과를 저장해 세션이 바뀌어도 유지
+- Orama 기반 전문 검색
 
 ## 기술 스택
 
@@ -54,27 +56,30 @@ npm install
 npm run dev
 ```
 
-[http://localhost:5173](http://localhost:5173)을 Chromium 기반 브라우저(Chrome, Edge 권장)에서 열어주세요. File System Access API를 지원합니다.
+[http://localhost:5173](http://localhost:5173)을 Chrome이나 Edge에서 여세요. 폴더 열기는 File System Access API를 쓰는데, 이 API를 온전히 지원하는 것은 Chromium 계열 브라우저뿐입니다.
 
 ### 스크립트
 
-| 명령어              | 설명                    |
-| ------------------- | ----------------------- |
-| `npm run dev`       | 개발 서버 실행          |
-| `npm run build`     | 프로덕션 빌드           |
-| `npm run test:unit` | 단위 테스트 (Vitest)    |
-| `npm run test:e2e`  | E2E 테스트 (Playwright) |
-| `npm run lint`      | ESLint 실행             |
-| `npm run format`    | Prettier 포맷팅         |
+| 명령어                      | 설명                         |
+| --------------------------- | ---------------------------- |
+| `npm run dev`               | 개발 서버 실행               |
+| `npm run build`             | 프로덕션 빌드                |
+| `npm run test:unit`         | 단위 테스트 (Vitest)         |
+| `npm run test:e2e`          | E2E 테스트 (Playwright)      |
+| `npm run lint`              | ESLint 실행                  |
+| `npm run format`            | Prettier 포맷팅              |
+| `npm run deploy`            | Pages 앱을 Cloudflare에 배포 |
+| `npm run deploy:edge:demo`  | 엣지 데모 Worker 배포        |
+| `npm run deploy:edge:proxy` | 엣지 프록시 Worker 배포      |
 
 ## AI 모드
 
-4가지 AI 트랙을 지원합니다:
+Ropeman에는 AI 모드가 네 가지 있습니다.
 
-1. **Demo** -- 무료, 설정 불필요. Edge Proxy를 통해 AI 분석. 체험용.
-2. **API Key (BYOK)** -- Google Gemini, Anthropic, OpenAI 키를 직접 입력. 키는 브라우저(localStorage)에만 저장되며, 보안 Edge Proxy를 통해 요청.
-3. **Local Bridge** -- 로컬 AI(Claude Code, Gemini CLI 등)와 Bridge 서버를 통해 연결. 소스 코드가 완전히 로컬에 유지됨.
-4. **Browser AI** -- WebGPU 기반 브라우저 내 추론 (web-llm). 완전 오프라인, 실험적.
+1. **데모**는 무료이고 설정이 필요 없습니다. 요청은 Ropeman 엣지 프록시를 거쳐 Google Gemini 무료 등급으로 가며, 프록시가 요청 횟수를 제한합니다. 무료 등급에서는 Google이 입력을 서비스 개선에 쓸 수 있습니다.
+2. **API 키 (BYOK)** 는 내 Google Gemini, Anthropic, OpenAI 키를 씁니다. 키는 브라우저(localStorage)에만 저장합니다. Gemini 요청은 Google로 바로 가고, Anthropic과 OpenAI 요청은 브라우저 제약 때문에 Ropeman 엣지 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.
+3. **로컬 브리지**는 작은 브리지 서버로 내 컴퓨터의 AI CLI(Claude Code, Gemini CLI 등)에 연결합니다. 브리지가 스켈레톤을 CLI에 넘기고, CLI가 그것을 자기 제공자에게 보냅니다. 소스 파일은 내 컴퓨터에 남습니다.
+4. **브라우저 AI**는 web-llm으로 브라우저 안에서 WebGPU 모델을 돌립니다. 처음 한 번 모델을 내려받은 뒤에는 오프라인으로 분석합니다. 실험 기능입니다.
 
 ## 아키텍처
 
@@ -93,11 +98,11 @@ edge-proxy/
 
 ### 데이터 흐름
 
-1. 사용자가 폴더를 드롭 (File System Access API)
-2. Parser Worker (web-tree-sitter WASM)가 파일별 AST 스켈레톤 추출
-3. AI 어댑터가 선택된 AI 트랙으로 스켈레톤 전송
-4. 응답을 시맨틱 노드/엣지로 파싱하여 SvelteFlow로 렌더링
-5. 결과를 Cache API에 캐싱하여 즉시 복원 가능
+1. 사용자가 폴더를 엽니다 (File System Access API).
+2. Parser Worker(web-tree-sitter WASM)가 파일마다 AST 스켈레톤을 뽑습니다.
+3. AI 어댑터가 고른 AI 모드로 스켈레톤을 보냅니다.
+4. 응답을 시맨틱 노드와 엣지로 바꿔 SvelteFlow로 그립니다.
+5. Cache API에 결과를 저장해, 프로젝트를 다시 열면 AI 호출 없이 보여 줍니다.
 
 ## 캐싱
 
@@ -114,17 +119,17 @@ edge-proxy/
 | `Ctrl+K`       | 검색                        |
 | `Ctrl+Shift+D` | 테마 전환                   |
 | `Ctrl+Shift+V` | 사이드바 전환 (파일/시맨틱) |
-| `Ctrl+B`       | 사이드바 토글               |
+| `Ctrl+B`       | 사이드바 열고 닫기          |
 | `Ctrl+W`       | 탭 닫기                     |
-| `Ctrl+\`       | 분할 뷰 토글                |
+| `Ctrl+\`       | 분할 뷰 켜고 끄기           |
 | `Esc`          | 모달 닫기                   |
 
 ## 브라우저 요구사항
 
-- Chromium 기반 브라우저 권장 (Chrome, Edge) -- File System Access API 완전 지원
-- Firefox / Safari -- 드래그 앤 드롭 폴더 업로드로 제한적 사용 가능
-- WebGPU AI 모드는 WebGPU 지원 브라우저 필요
+- Chromium 계열 브라우저(Chrome, Edge)를 권장합니다. File System Access API를 온전히 지원합니다.
+- Firefox와 Safari에서는 폴더를 끌어다 놓는 방법으로만 읽을 수 있습니다.
+- 브라우저 AI 모드는 WebGPU를 지원하는 브라우저가 필요합니다.
 
 ## 라이선스
 
-TBD
+[MIT](LICENSE) © 2026 Yoonsoo Chang
