@@ -25,6 +25,7 @@ import {
 	isPrimaryMarkdown,
 	type PathFilter
 } from '$lib/utils/filePriority';
+import { detectConfigLanguage } from '$lib/utils/languageDetector';
 import { byteLength } from './requestBudget';
 
 const LOCAL_ONLY = new Set<SymbolKind>(LOCAL_ONLY_KINDS);
@@ -482,7 +483,7 @@ function inferLanguage(filePath: string): string | null {
 		case 'mdc':
 			return 'markdown';
 		default:
-			return null;
+			return detectConfigLanguage(filePath);
 	}
 }
 

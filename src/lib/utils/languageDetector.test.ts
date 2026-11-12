@@ -42,6 +42,36 @@ describe('detectLanguage', () => {
 		expect(getGrammarFile('svelte', 'Header.svelte')).toBeNull();
 	});
 
+	it('detects Dockerfile, Terraform, .env and Makefile by name as supported languages without a grammar', () => {
+		const names: [string, string][] = [
+			['Dockerfile', 'dockerfile'],
+			['docker/Dockerfile.agents.example', 'dockerfile'],
+			['services/api.Dockerfile', 'dockerfile'],
+			['Containerfile', 'dockerfile'],
+			['infra/main.tf', 'terraform'],
+			['.env', 'dotenv'],
+			['packages/server/.env.example', 'dotenv'],
+			['Makefile', 'makefile'],
+			['GNUmakefile', 'makefile'],
+			['build/rules.mk', 'makefile']
+		];
+		for (const [path, language] of names) {
+			expect(detectLanguage(path)).toBe(language);
+			expect(isSupported(language)).toBe(true);
+			expect(getGrammarFile(language, path)).toBeNull();
+		}
+	});
+
+	it('keeps code extensions ahead of config names and leaves value files out', () => {
+		expect(detectLanguage('Dockerfile.ts')).toBe('typescript');
+		expect(detectLanguage('src/makefile.py')).toBe('python');
+		// .tfvars and *.env hold values, which may be secrets, and declare no structure
+		expect(detectLanguage('prod.tfvars')).toBeNull();
+		expect(detectLanguage('prod.env')).toBeNull();
+		expect(detectLanguage('Makefile.in')).toBeNull();
+		expect(detectLanguage('.envrc')).toBeNull();
+	});
+
 	it('detects TypeScript from .tsx extension', () => {
 		expect(detectLanguage('Component.tsx')).toBe('typescript');
 	});
@@ -109,7 +139,7 @@ describe('detectLanguage', () => {
 	it('returns null for unknown extensions', () => {
 		expect(detectLanguage('file.xyz')).toBeNull();
 		expect(detectLanguage('file.txt')).toBeNull();
-		expect(detectLanguage('Makefile')).toBeNull();
+		expect(detectLanguage('LICENSE')).toBeNull();
 	});
 
 	it('handles files in nested paths', () => {

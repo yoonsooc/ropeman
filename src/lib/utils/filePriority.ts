@@ -69,7 +69,7 @@ export interface CutFile {
 
 /**
  * Coarse rank for the file limit: code and instruction files, then tests and ordinary docs,
- * then files no grammar can read. The finer `pathPriority` scores are not used here, so a
+ * then files no parser reads. The finer `pathPriority` scores are not used here, so a
  * folder of scripts or skills still gets its turn beside core source.
  */
 function rankBand(path: string): number {
@@ -288,9 +288,13 @@ export function createPathFilter(
 
 export const DEFAULT_PATH_FILTER: PathFilter = createPathFilter();
 
+// `.env` and its variants (`.env.example`) are hidden but declare the keys a service reads; the
+// same names `languageDetector` reads as dotenv, which a test pins
+const DOTENV_NAME = /^\.env(?:\..+)?$/;
+
 function isExcludedSegment(seg: string, prefix: string, filter: PathFilter): boolean {
 	if (filter.skip.has(seg) || filter.skipPaths.includes(prefix)) return true;
-	if (seg.startsWith('.') && seg !== '.env') return true;
+	if (seg.startsWith('.') && !DOTENV_NAME.test(seg)) return true;
 	return seg.endsWith('.egg-info');
 }
 

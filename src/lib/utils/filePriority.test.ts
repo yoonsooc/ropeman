@@ -8,8 +8,10 @@ import {
 	isPathIncluded,
 	isPrimaryMarkdown,
 	rankFiles,
-	capFiles
+	capFiles,
+	DEFAULT_PATH_FILTER
 } from './filePriority';
+import { detectLanguage } from './languageDetector';
 
 describe('pathPriority', () => {
 	describe('GitHub tree paths (no repo prefix)', () => {
@@ -141,6 +143,23 @@ describe('shouldSkipPath', () => {
 
 	it('does not skip .env as hidden', () => {
 		expect(shouldSkipPath('.env/something')).toBe(false);
+	});
+
+	it('keeps exactly the hidden files the parser reads as dotenv', () => {
+		// Regression: `.env.example` was dropped as a hidden file, so its keys never reached the map
+		const hidden = [
+			'.env',
+			'packages/server/.env.example',
+			'.env.production',
+			'.envrc',
+			'.env-sample',
+			'.eslintrc.json'
+		];
+
+		const kept = hidden.filter((path) => !shouldSkipPath(path, DEFAULT_PATH_FILTER, true));
+
+		expect(kept).toEqual(['.env', 'packages/server/.env.example', '.env.production']);
+		expect(kept).toEqual(hidden.filter((path) => detectLanguage(path) === 'dotenv'));
 	});
 
 	it('skips root-level skip directories with trailing slash', () => {
@@ -296,6 +315,24 @@ describe('rankFiles and capFiles', () => {
 		expect(kept.filter((p) => p.startsWith('packages/app/'))).toHaveLength(7);
 		expect(kept.filter((p) => p.startsWith('packages/server/'))).toHaveLength(6);
 		expect(cut).toHaveLength(paths.length - 20);
+	});
+
+	it('ranks config files with code, ahead of files no parser reads', () => {
+		const paths = [
+			'assets/logo.png',
+			'Dockerfile',
+			'infra/main.tf',
+			'.env.example',
+			'Makefile',
+			'src/a.ts'
+		];
+
+		const { kept } = capFiles(paths, (p) => p, 5);
+
+		expect(kept).not.toContain('assets/logo.png');
+		expect(kept).toEqual(
+			expect.arrayContaining(['Dockerfile', 'infra/main.tf', '.env.example', 'Makefile'])
+		);
 	});
 
 	it('reports every file past the limit once, with the file-limit reason', () => {

@@ -111,6 +111,21 @@ describe('parserService', () => {
 			expect(symbols[0]).toMatchObject({ name: 'Review', kind: 'heading' });
 			expect(MockWorker.created).toBe(before);
 		});
+
+		it('reads config files with their line parsers without starting the worker', async () => {
+			const before = MockWorker.created;
+
+			const docker = await parseFile('Dockerfile', 'FROM node:20 AS app', 'dockerfile');
+			const terraform = await parseFile('main.tf', 'module "vpc" {\n}', 'terraform');
+			const env = await parseFile('.env', 'TOKEN=hunter2', 'dotenv');
+			const make = await parseFile('Makefile', 'all: build', 'makefile');
+
+			expect(docker).toContainEqual(expect.objectContaining({ name: 'app', kind: 'stage' }));
+			expect(terraform[0]).toMatchObject({ name: 'module.vpc', kind: 'resource' });
+			expect(env).toEqual([{ name: 'TOKEN', kind: 'env', lineStart: 1, lineEnd: 1 }]);
+			expect(make[0]).toMatchObject({ name: 'all', kind: 'target' });
+			expect(MockWorker.created).toBe(before);
+		});
 	});
 
 	describe('destroy', () => {

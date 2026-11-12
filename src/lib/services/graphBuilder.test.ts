@@ -232,6 +232,26 @@ describe('buildGraph', () => {
 		expect(symbolNodes[0].label).toBe('init');
 	});
 
+	it('keeps config outlines out of the file graph, as it does Markdown outlines', () => {
+		const tree: FileNode = {
+			name: 'project',
+			path: '',
+			kind: 'directory',
+			children: [{ name: 'Makefile', path: 'Makefile', kind: 'file', language: 'makefile' }]
+		};
+		const astMap = new Map<string, ASTSymbol[]>();
+		astMap.set('Makefile', [
+			{ name: 'build', kind: 'target', lineStart: 1, lineEnd: 2 },
+			{ name: 'main.tf', kind: 'resource', lineStart: 3, lineEnd: 3 },
+			{ name: 'API_KEY', kind: 'env', lineStart: 4, lineEnd: 4 },
+			{ name: 'run', kind: 'function', lineStart: 5, lineEnd: 6 }
+		]);
+
+		const result = buildGraph(tree, astMap);
+		const symbolNodes = result.nodes.filter((n) => n.kind !== 'directory' && n.kind !== 'file');
+		expect(symbolNodes.map((n) => n.label)).toEqual(['run']);
+	});
+
 	it('root directory is expanded by default', () => {
 		const tree: FileNode = {
 			name: 'root',

@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { buildCoverage, currentCoverage, type CoverageInput } from './coverageService';
 import { selectSkeleton } from './skeletonExtractor';
+import { CONFIG_PARSERS } from './configParsers';
+import { detectLanguage, type ConfigLanguage } from '$lib/utils/languageDetector';
 import type { ASTSymbol } from '$lib/types/ast';
 import type { FileNode } from '$lib/types/fileTree';
 import type { SemanticLevel, SemanticNode } from '$lib/types/semantic';
@@ -98,6 +100,38 @@ describe('buildCoverage', () => {
 		expect(report.byStatus.cut).toHaveLength(1);
 		expect(report.byStatus.skipped).toHaveLength(3);
 		expect(report.byStatus.failed).toHaveLength(2);
+	});
+
+	it('reads config files like code: sent with symbols, not sent without', () => {
+		// Regression: Dockerfile, .tf, .env and Makefile were all reported as unsupported
+		const sources: Record<string, string> = {
+			'repo/Dockerfile': 'FROM node:20\nEXPOSE 3000',
+			'repo/infra/main.tf': 'resource "aws_s3_bucket" "logs" {\n}',
+			'repo/.env.example': 'DATABASE_URL=',
+			'repo/.env': '# no keys yet',
+			'repo/Makefile': 'build:\n\tnpm run build'
+		};
+		const fileTree = tree('repo', [
+			...Object.keys(sources).map((path) => file(path, detectLanguage(path) ?? undefined)),
+			file('repo/logo.png', detectLanguage('repo/logo.png') ?? undefined)
+		]);
+		const astMap = new Map(
+			Object.entries(sources).map(([path, content]) => [
+				path,
+				CONFIG_PARSERS[detectLanguage(path) as ConfigLanguage](content)
+			])
+		);
+
+		const report = buildCoverage(input({ fileTree, astMap }));
+
+		expect(Object.fromEntries(report.files.map((f) => [f.path, f.reason]))).toEqual({
+			Dockerfile: 'sent',
+			'infra/main.tf': 'sent',
+			'.env.example': 'sent',
+			'.env': 'no-symbols',
+			Makefile: 'sent',
+			'logo.png': 'unsupported'
+		});
 	});
 
 	it('reports files the budget kept out as read but not sent', () => {

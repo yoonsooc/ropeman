@@ -31,6 +31,26 @@ const EXTENSION_MAP: Record<string, string> = {
 	'.mdc': 'markdown'
 };
 
+/** Configuration formats read by line parsers (configParsers.ts) instead of a grammar. */
+export const CONFIG_LANGUAGES = ['dockerfile', 'terraform', 'dotenv', 'makefile'] as const;
+
+export type ConfigLanguage = (typeof CONFIG_LANGUAGES)[number];
+
+// Matched against the file name, after EXTENSION_MAP, so `Dockerfile.ts` stays TypeScript.
+// `.tfvars` is left out: it holds values, which may be secrets, and declares no structure.
+const CONFIG_FILE_NAMES: readonly [RegExp, ConfigLanguage][] = [
+	[/^(?:dockerfile|containerfile)(?:\..+)?$|\.dockerfile$/i, 'dockerfile'],
+	[/\.tf$/, 'terraform'],
+	[/^\.env(?:\..+)?$/, 'dotenv'],
+	[/^(?:gnu)?makefile$|\.mk$/i, 'makefile']
+];
+
+/** The configuration format a file name declares, or null. */
+export function detectConfigLanguage(filePath: string): ConfigLanguage | null {
+	const name = filePath.substring(filePath.lastIndexOf('/') + 1);
+	return CONFIG_FILE_NAMES.find(([pattern]) => pattern.test(name))?.[1] ?? null;
+}
+
 const SUPPORTED_LANGUAGES = new Set([
 	'python',
 	'javascript',
@@ -48,7 +68,8 @@ const SUPPORTED_LANGUAGES = new Set([
 	'scala',
 	'markdown',
 	'svelte',
-	'vue'
+	'vue',
+	...CONFIG_LANGUAGES
 ]);
 
 const GRAMMAR_FILES: Record<string, string> = {
@@ -73,7 +94,7 @@ function extensionOf(filePath: string): string {
 }
 
 export function detectLanguage(filename: string): string | null {
-	return EXTENSION_MAP[extensionOf(filename)] ?? null;
+	return EXTENSION_MAP[extensionOf(filename)] ?? detectConfigLanguage(filename);
 }
 
 export function isSupported(language: string): boolean {
