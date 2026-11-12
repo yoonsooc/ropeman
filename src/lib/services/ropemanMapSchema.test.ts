@@ -384,7 +384,6 @@ describe('parseServerMessage', () => {
 describe('module boundary', () => {
 	const LIB = fileURLToPath(new URL('../', import.meta.url));
 	const TYPES = path.join(LIB, 'types') + path.sep;
-	const SELF = fileURLToPath(new URL('./ropemanMapSchema.ts', import.meta.url));
 
 	function resolveImport(from: string, specifier: string): string {
 		const base = specifier.startsWith('$lib/')
@@ -414,10 +413,15 @@ describe('module boundary', () => {
 		return seen;
 	}
 
-	// T2-4 runs this parser in the bridge and packages/core, which bundle no app runtime.
-	it('imports nothing outside $lib/types, directly or transitively', () => {
-		const outside = [...importGraph(SELF)].filter((f) => f !== SELF && !f.startsWith(TYPES));
+	// T2-4 runs the parser and the verifier in the bridge and packages/core, which bundle no app runtime.
+	it.each(['./ropemanMapSchema.ts', './mapVerifier.ts'])(
+		'%s imports nothing outside $lib/types, directly or transitively',
+		(module) => {
+			const entry = fileURLToPath(new URL(module, import.meta.url));
 
-		expect(outside).toEqual([]);
-	});
+			const outside = [...importGraph(entry)].filter((f) => f !== entry && !f.startsWith(TYPES));
+
+			expect(outside).toEqual([]);
+		}
+	);
 });
