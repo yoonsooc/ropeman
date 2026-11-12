@@ -21,23 +21,34 @@ export type SymbolKind =
 	| ConfigSymbolKind;
 
 /**
- * Kinds read from configuration files (configParsers.ts), named in each format's own terms so
- * the AI reads them without a prompt rule. Images, copied paths, module sources, includes and
- * Make prerequisites are `import` symbols instead.
+ * Kinds read from configuration files (configParsers.ts, configOutline.ts), named in each
+ * format's own terms so the AI reads them without a prompt rule. Images, copied paths, module
+ * sources, includes, Make prerequisites, actions, packages and Compose `depends_on` are
+ * `import` symbols instead.
  */
 export const CONFIG_SYMBOL_KINDS = [
-	// Dockerfile: a FROM build stage, its EXPOSE ports, its ENTRYPOINT and CMD
+	// Dockerfile: a FROM build stage, its EXPOSE ports, its ENTRYPOINT and CMD. Compose ports too
 	'stage',
 	'port',
 	'command',
-	// Terraform: resource, data and module blocks named by address, variable and output blocks
+	// Terraform: resource, data and module blocks named by address, variable and output blocks.
+	// A Kubernetes object is a `resource` named `Kind/name`
 	'resource',
 	'input',
 	'output',
-	// Makefile rule
+	// A task to run by name: a Makefile rule, a package.json script, a pyproject entry point
 	'target',
-	// A key of an env template (.env.example); the value is never read into a symbol
-	'env'
+	// An environment variable name: an env template key, a Compose service's `environment` key.
+	// The value is never read into a symbol
+	'env',
+	// A top-level key of a YAML file or a JSON manifest, a data key of a Kubernetes Secret
+	'key',
+	// A TOML `[table]` header
+	'table',
+	// A GitHub Actions job
+	'job',
+	// A Docker Compose service
+	'service'
 ] as const;
 
 export type ConfigSymbolKind = (typeof CONFIG_SYMBOL_KINDS)[number];

@@ -1,8 +1,9 @@
 /// <reference lib="webworker" />
 
 import type { ASTSymbol, SymbolKind } from '$lib/types/ast';
-import { getGrammarFile } from '$lib/utils/languageDetector';
+import { getGrammarFile, isGrammarConfigLanguage } from '$lib/utils/languageDetector';
 import { extractRefs } from './refQueries';
+import { CONFIG_OUTLINES } from './configOutline';
 import { componentScriptSource, isComponentLanguage } from '$lib/utils/sfcScripts';
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -67,7 +68,9 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 
 			const tree = parserInstance.parse(source.content);
 			try {
-				const symbols = extractSymbols(tree.rootNode, source.language);
+				const symbols = isGrammarConfigLanguage(source.language)
+					? CONFIG_OUTLINES[source.language](tree.rootNode, source.filePath)
+					: extractSymbols(tree.rootNode, source.language);
 				// tree-sitter recovers from any syntax error, so a broken file would otherwise read as
 				// a valid file without definitions
 				if (symbols.length === 0 && tree.rootNode.hasError) {

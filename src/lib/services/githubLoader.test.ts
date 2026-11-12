@@ -461,8 +461,14 @@ describe('loadGitHubRepo', () => {
 			...mockTreeResponse,
 			tree: [
 				{ path: '.github', mode: '040000', type: 'tree' as const, sha: 'd1', url: '' },
-				{ path: '.github/workflows', mode: '040000', type: 'tree' as const, sha: 'd2', url: '' },
-				blob('.github/workflows/build.js'),
+				{
+					path: '.github/ISSUE_TEMPLATE',
+					mode: '040000',
+					type: 'tree' as const,
+					sha: 'd2',
+					url: ''
+				},
+				blob('.github/ISSUE_TEMPLATE/build.js'),
 				{ path: '.github/skills', mode: '040000', type: 'tree' as const, sha: 'd3', url: '' },
 				blob('.github/skills/lint.js'),
 				{ path: '.vscode', mode: '040000', type: 'tree' as const, sha: 'd4', url: '' }

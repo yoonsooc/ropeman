@@ -216,6 +216,9 @@ const GRAPHIFY_MERGES: Record<string, string[]> = {
 	[ID_REPO]: ['ids/src/over.ts#Box.size~2 method']
 };
 
+/** Config languages Graphify 0.9.104 does not parse, so their keys and tables are parser-only */
+const GRAPHIFY_UNPARSED = new Set<string | null>(['json', 'yaml', 'toml']);
+
 /** Every symbol in `symbols` and below, as `id kind` */
 const flatten = (symbols: readonly SymbolRecord[]): string[] =>
 	symbols.flatMap((s) => [`${s.id} ${s.kind}`, ...flatten(s.children)]);
@@ -231,6 +234,7 @@ function idParity(repo: string) {
 	const adapted = readGraphifyGraph(graph, repo).map;
 	const result = { matched: 0, parserOnly: [] as string[], adapterOnly: [] as string[] };
 	for (const [file, record] of parsed.files) {
+		if (GRAPHIFY_UNPARSED.has(record.language)) continue;
 		const lines = sources.get(file.slice(repo.length + 1))!;
 		const ours = new Set(flatten(record.symbols));
 		const walk = (

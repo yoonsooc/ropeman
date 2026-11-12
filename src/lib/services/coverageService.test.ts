@@ -141,6 +141,44 @@ describe('buildCoverage', () => {
 		});
 	});
 
+	it('reads YAML, TOML, JSON manifests and scripts, and names lockfiles and JSON data as skipped', () => {
+		// Regression: workflows, compose files, pyproject.toml and package.json were all unsupported
+		const read = [
+			'repo/.github/workflows/ci.yml',
+			'repo/compose.yaml',
+			'repo/pyproject.toml',
+			'repo/package.json',
+			'repo/tsconfig.app.json',
+			'repo/scripts/deploy.sh'
+		];
+		const unread = [
+			'repo/package-lock.json',
+			'repo/pnpm-lock.yaml',
+			'repo/poetry.lock',
+			'repo/Cargo.lock',
+			'repo/src/i18n/en.json',
+			'repo/logo.png'
+		];
+		const fileTree = tree(
+			'repo',
+			[...read, ...unread].map((path) => file(path, detectLanguage(path) ?? undefined))
+		);
+		const astMap = new Map(read.map((path) => [path, [fn('x')]]));
+
+		const report = buildCoverage(input({ fileTree, astMap }));
+
+		const reasons = Object.fromEntries(report.files.map((f) => [f.path, f.reason]));
+		expect(read.map((path) => reasons[path.slice('repo/'.length)])).not.toContain('unsupported');
+		expect(unread.map((path) => reasons[path.slice('repo/'.length)])).toEqual([
+			'lockfile',
+			'lockfile',
+			'lockfile',
+			'lockfile',
+			'data-file',
+			'unsupported'
+		]);
+	});
+
 	it('reports files the budget kept out as read but not sent', () => {
 		const fileTree = tree('repo', [
 			file('repo/src/a.ts', 'typescript'),

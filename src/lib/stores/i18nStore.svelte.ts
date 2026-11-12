@@ -497,9 +497,9 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsCustomSkipPatternsHint:
 			'기본 제외 목록에 더할 폴더입니다. 이름만 쓰면 어느 깊이에 있든 빼고, /가 들어가면 프로젝트 루트부터의 경로로 봅니다. 생성된 코드나 큰 모노레포 폴더를 뺄 때 쓰세요.',
 		settingsCustomIncludePatterns: '포함할 경로',
-		settingsCustomIncludePatternsPlaceholder: '한 줄에 하나씩. 예:\ndocs\n.github/workflows',
+		settingsCustomIncludePatternsPlaceholder: '한 줄에 하나씩. 예:\ndocs\n.devcontainer',
 		settingsCustomIncludePatternsHint:
-			'여기 적은 경로는 제외 규칙에 걸려도 읽습니다. 이름만 쓰면 어느 깊이에 있든 그 이름의 폴더나 파일을, /가 들어가면 프로젝트 루트부터의 경로를 포함합니다. 에이전트 지침 폴더(.agents, .cursor, .claude/skills, .github/instructions 등)는 기본으로 포함합니다.',
+			'여기 적은 경로는 제외 규칙에 걸려도 읽습니다. 이름만 쓰면 어느 깊이에 있든 그 이름의 폴더나 파일을, /가 들어가면 프로젝트 루트부터의 경로를 포함합니다. 에이전트 지침 폴더(.agents, .cursor, .claude/skills, .github/instructions 등)와 CI 설정(.github/workflows, .gitlab-ci.yml, .circleci)은 기본으로 포함합니다.',
 		analysisCompleted: '분석 완료',
 		analysisFailed: '분석 실패',
 		analysisGroupExpand: '분석 목록 펼치기',
@@ -874,6 +874,9 @@ const translations: Record<Locale, TranslationSet> = {
 				'total-size': '전체 {size}를 넘음',
 				unsupported: '이 파일 형식을 읽는 파서가 없음',
 				'env-values': '실제 값이 든 env 파일이라 분석하지 않음 (.env.example 같은 템플릿만 분석함)',
+				lockfile: '잠금 파일이라 분석하지 않음 (의존성 버전만 고정함)',
+				'data-file':
+					'JSON 데이터 파일이라 분석하지 않음 (package.json, tsconfig.json 같은 설정 파일만 분석함)',
 				'parse-failed': '파서 오류',
 				unreadable: '파일을 열지 못함'
 			},
@@ -1115,9 +1118,9 @@ const translations: Record<Locale, TranslationSet> = {
 		settingsCustomSkipPatternsHint:
 			'Folders to skip on top of the built-in list. A bare name matches at any depth. An entry with a slash matches that path from the project root. Use it for generated code or large monorepo folders.',
 		settingsCustomIncludePatterns: 'Included Paths',
-		settingsCustomIncludePatternsPlaceholder: 'One per line, e.g.:\ndocs\n.github/workflows',
+		settingsCustomIncludePatternsPlaceholder: 'One per line, e.g.:\ndocs\n.devcontainer',
 		settingsCustomIncludePatternsHint:
-			'Paths listed here are read even when an exclude rule matches them. A bare name matches a folder or file of that name at any depth. An entry with a slash matches that path from the project root. Agent instruction folders (.agents, .cursor, .claude/skills, .github/instructions and others) are included by default.',
+			'Paths listed here are read even when an exclude rule matches them. A bare name matches a folder or file of that name at any depth. An entry with a slash matches that path from the project root. Agent instruction folders (.agents, .cursor, .claude/skills, .github/instructions and others) and CI pipelines (.github/workflows, .gitlab-ci.yml, .circleci) are included by default.',
 		analysisCompleted: 'Analysis complete',
 		analysisFailed: 'Analysis failed',
 		analysisGroupExpand: 'Expand analysis list',
@@ -1493,6 +1496,9 @@ const translations: Record<Locale, TranslationSet> = {
 				unsupported: 'No parser for this file type',
 				'env-values':
 					'Env file with real values, not analyzed (only templates like .env.example are)',
+				lockfile: 'Lockfile, not analyzed (it only pins versions)',
+				'data-file':
+					'JSON data file, not analyzed (only manifests like package.json and tsconfig.json are)',
 				'parse-failed': 'Parser error',
 				unreadable: 'Could not open the file'
 			},

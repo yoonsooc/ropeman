@@ -244,7 +244,7 @@ describe('fileSystemService', () => {
 		it('keeps agent instruction folders but skips other hidden folders', async () => {
 			const files = makeFileList([
 				{ name: 'SKILL.md', path: 'repo/.agents/skills/review/SKILL.md' },
-				{ name: 'ci.yml', path: 'repo/.github/workflows/ci.yml' },
+				{ name: 'bug.yml', path: 'repo/.github/ISSUE_TEMPLATE/bug.yml' },
 				{ name: 'a.ts', path: 'repo/.claude/worktrees/x/a.ts' },
 				{ name: 'index.ts', path: 'repo/src/index.ts' }
 			]);
@@ -254,7 +254,7 @@ describe('fileSystemService', () => {
 			const names = JSON.stringify(tree);
 			expect(names).toContain('SKILL.md');
 			expect(names).toContain('index.ts');
-			expect(names).not.toContain('ci.yml');
+			expect(names).not.toContain('bug.yml');
 			expect(names).not.toContain('worktrees');
 		});
 
