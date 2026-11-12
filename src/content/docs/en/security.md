@@ -9,41 +9,44 @@ order: 3
 
 > **Your original source code is never transmitted to any server — under any circumstances.**
 
-Ropeman is **local-first** by design. All file reading and parsing happens in your browser. The only thing that ever travels over the network is a compact **code structure summary** containing function signatures, class outlines, and import relationships — never the body of your functions, never comments, never secrets.
+Ropeman is **local-first** by design. All file reading and parsing happens in your browser. For analysis, the only thing that travels over the network is a compact **code summary**: file paths, the names of functions, classes and methods, and imports (for Markdown files, the frontmatter name and description, headings and links). Function bodies, comments, string literals and variable values are left out.
 
 ## What Actually Leaves the Browser
 
-When you click **Analyze with AI**, this is the pipeline:
+When you start an analysis, this is the pipeline:
 
 1. **File read (local)** — Files are read directly through the browser's File System Access API. Nothing is uploaded.
 2. **AST parsing (local)** — An in-browser parser builds an abstract syntax tree entirely on your machine. There is no upload step.
-3. **Summary extraction (local)** — The parser output is reduced to a minimal structural summary (function names, signatures, class hierarchies, imports). Implementation bodies are dropped. The summary is capped at ~250 KB by default and adjustable in Settings.
+3. **Summary extraction (local)** — The parser output is reduced to the code summary described above. The summary is capped at 250 KB by default, adjustable in **Settings → Code Summary Size Limit**.
 4. **AI inference (varies by mode)** — Only this step involves the network, and only the summary is sent.
 5. **Diagram render (local)** — The AI response is parsed into nodes and edges and rendered in your browser.
 
 ## Data Flow by Mode
 
-| Mode        | Summary goes to...                        | Routes through Ropeman? |
-| ----------- | ----------------------------------------- | ----------------------- |
-| **Demo**    | Edge proxy → hosted LLM API               | Yes (proxy only)        |
-| **API Key** | Edge proxy → your chosen provider         | Yes (proxy only)        |
-| **Bridge**  | `localhost` bridge → local CLI → provider | No                      |
-| **WebGPU**  | Nowhere — inference runs in-browser       | No                      |
+| Mode                            | Summary goes to                                                     | Routes through Ropeman? |
+| ------------------------------- | ------------------------------------------------------------------- | ----------------------- |
+| **Demo**                        | Ropeman demo Worker, then the Google Gemini API                     | Yes                     |
+| **API Key** (Gemini)            | Google Gemini API, straight from your browser                       | No                      |
+| **API Key** (Anthropic, OpenAI) | Ropeman proxy Worker, then Cloudflare AI Gateway, then the provider | Yes                     |
+| **Local Bridge**                | Bridge on `127.0.0.1`, then your CLI, then its provider             | No                      |
+| **WebGPU**                      | Nowhere. Inference runs in the browser                              | No                      |
 
-- **Demo** and **API Key** modes pass through Ropeman's edge proxy. The proxy is a stateless forwarder — it does not log, store, or persist your summary or responses.
-- **Bridge** mode talks only to a `localhost` address. The code structure summary is handed to your locally installed CLI (Claude Code, Gemini CLI, etc.) which makes the provider call on your behalf.
-- **WebGPU** mode is fully offline once the model is cached.
+- **Demo** requests go to Ropeman's demo Worker, which calls the Gemini free tier with Ropeman's own key. It counts requests per IP address in memory to enforce the rate limit and does not store the summary or the response.
+- **API Key** requests with a Gemini key go from your browser to Google, with the key in the request URL. Because of browser restrictions, Anthropic and OpenAI requests go to Ropeman's proxy Worker, which passes them through Cloudflare AI Gateway to the provider. The proxy does not store the summary, the response or your key. When the provider returns an error, the proxy logs that error response.
+- **Local Bridge** mode talks only to `127.0.0.1`. The bridge hands the summary to your Claude Code or Gemini CLI, which makes the provider call with its own login. See [Bridge Setup](/docs/en/bridge-setup).
+- **WebGPU** mode needs the network only to download the model. After that, analysis runs offline.
 
 ## API Key Handling
 
 When you use **API Key (BYOK)** mode:
 
-- Keys are stored only in your browser, keyed per provider.
-- Keys are **never** stored on Ropeman's servers.
-- On each analysis, the key is attached to the outgoing request, forwarded to the provider, and immediately discarded by the proxy.
-- You can wipe all keys at any time via **Settings → Reset Settings**.
+- Keys are stored only in this browser's local storage, one per provider.
+- Ropeman's servers do not store keys.
+- A Gemini key goes from your browser straight to Google and never reaches Ropeman's servers.
+- An Anthropic or OpenAI key travels with each request to Ropeman's proxy, which puts it in the provider's auth header for that one request and keeps nothing.
+- You can wipe all keys at any time with **Settings → Reset**.
 
-For the strictest posture, use **Bridge** (no key needed — the CLI handles auth) or **WebGPU** (no provider at all).
+For the strictest setup, use **Local Bridge**, where the CLI handles its own login and you enter no key, or **WebGPU**, which calls no provider.
 
 ## What Is Cached Locally
 
@@ -57,8 +60,8 @@ All caches live under your browser's origin. Clearing site data removes them, an
 
 ## Privacy Principles
 
-- **No account, no per-project telemetry.** Ropeman tracks only aggregate page-view statistics (cookieless, no fingerprinting). It has no idea which projects you analyze.
-- **No server-side storage of summaries or diagrams.** Everything you see is rebuilt in your browser on each visit.
+- **No account, no per-project telemetry.** Ropeman tracks only aggregate page-view statistics (cookieless, no fingerprinting). It does not record which projects you analyze.
+- **No server-side storage of summaries or diagrams, unless you share.** The demo and proxy Workers do not store request bodies. What remains is Cloudflare's request log for each Worker and any error response a provider returned. When you create a share link, Ropeman stores the diagram, the project name and the file paths for 14 days so the link works.
 - **Auditable.** Ropeman is open source — the parsing pipeline, summary extractor, and edge proxy are all reviewable.
 
 If maximum privacy matters to you, start with [WebGPU mode](/docs/en/ai-modes).

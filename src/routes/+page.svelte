@@ -36,6 +36,7 @@
 		handleFallbackInput
 	} from '$lib/services/fileSystemService';
 	import { parseAllFiles } from '$lib/services/parserService';
+	import CoverageSummary from '$lib/components/CoverageSummary.svelte';
 	import { setBridgeCallbacks } from '$lib/services/bridgeService';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import { createPathFilter } from '$lib/utils/filePriority';
@@ -110,10 +111,11 @@
 				);
 				projectStore.fileTree = tree;
 				projectStore.cutFiles = cut;
-				const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+				const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 					projectStore.parsingProgress = progress;
 				});
 				projectStore.astMap = astMap;
+				projectStore.parseSkips = skipped;
 				projectStore.isLoading = false;
 			} catch (err: unknown) {
 				if (err instanceof Error && err.name === 'AbortError') return;
@@ -162,10 +164,11 @@
 			projectStore.fileTree = tree;
 			projectStore.cutFiles = cut;
 			projectStore.isLoading = true;
-			const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+			const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 				projectStore.parsingProgress = progress;
 			});
 			projectStore.astMap = astMap;
+			projectStore.parseSkips = skipped;
 			projectStore.isLoading = false;
 		} catch (err) {
 			console.error('Failed to process files:', err);
@@ -538,6 +541,7 @@
 						{/if}
 					</div>
 				{/if}
+				<CoverageSummary />
 			</div>
 			{#if hasSemanticSelection}
 				<div class="detail-panel">
@@ -651,7 +655,7 @@
 		height: 100%;
 		background: var(--color-accent-muted);
 		border: 2px dashed var(--color-accent);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		z-index: 20;
 		display: flex;
 		align-items: center;
@@ -660,12 +664,12 @@
 	}
 
 	.split-drop-hint {
-		font-size: 14px;
-		font-weight: 600;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-accent);
 		background: var(--color-background-surface);
-		padding: 8px 16px;
-		border-radius: 8px;
+		padding: var(--spacing-2) var(--spacing-4);
+		border-radius: var(--radius-element);
 		border: 1px solid var(--color-accent);
 	}
 
@@ -673,7 +677,7 @@
 		width: 300px;
 		overflow-y: auto;
 		flex-shrink: 0;
-		animation: panelSlide 0.2s ease;
+		animation: panelSlide var(--duration-fast) var(--ease-standard);
 		background: var(--color-background-surface);
 		border-left: 1px solid var(--color-border);
 	}
@@ -706,11 +710,11 @@
 			background: var(--color-background-body);
 			border-left: none;
 			border-top: 1px solid var(--color-border);
-			border-top-left-radius: 16px;
-			border-top-right-radius: 16px;
+			border-top-left-radius: var(--radius-container);
+			border-top-right-radius: var(--radius-container);
 			box-shadow: 0 -8px 24px var(--color-shadow);
 			padding-bottom: env(safe-area-inset-bottom);
-			animation: bottomSheetSlide 0.2s ease;
+			animation: bottomSheetSlide var(--duration-fast) var(--ease-standard);
 		}
 
 		@keyframes bottomSheetSlide {

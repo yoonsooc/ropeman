@@ -61,10 +61,8 @@
 		background: var(--color-background-body);
 		color: var(--color-text-primary);
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		box-shadow:
-			0 1px 2px var(--color-shadow),
-			0 8px 24px var(--color-shadow);
+		border-radius: var(--radius-container);
+		box-shadow: var(--shadow-high);
 	}
 
 	.confirm-dialog::backdrop {
@@ -72,18 +70,18 @@
 	}
 
 	.confirm-body {
-		padding: 20px;
+		padding: var(--spacing-5);
 	}
 
 	.confirm-title {
-		font-size: 16px;
-		font-weight: 600;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-semibold);
 		line-height: 1.3;
 	}
 
 	.confirm-message {
-		margin-top: 8px;
-		font-size: 14px;
+		margin-top: var(--spacing-2);
+		font-size: var(--font-size-base);
 		line-height: 1.5;
 		color: var(--color-text-secondary);
 	}
@@ -91,7 +89,7 @@
 	.confirm-actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 8px;
-		margin-top: 20px;
+		gap: var(--spacing-2);
+		margin-top: var(--spacing-5);
 	}
 </style>

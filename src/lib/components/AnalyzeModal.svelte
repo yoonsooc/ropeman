@@ -444,7 +444,7 @@
 									class="input"
 									value={bridgePort}
 									oninput={(e) =>
-										(bridgePort = parseInt((e.target as HTMLInputElement).value) || 9876)}
+										(bridgePort = parseInt((e.target as HTMLInputElement).value) || 9800)}
 								/>
 								{#if authStore.bridgeStatus === 'connected'}
 									<button class="btn btn-danger" onclick={disconnectBridge}
@@ -630,24 +630,24 @@
 		width: 420px;
 	}
 	.analyze-card :global(.modal-header) {
-		padding: 20px;
+		padding: var(--spacing-5);
 	}
 	.analyze-card :global(.modal-header h2) {
-		font-size: 14px;
+		font-size: var(--font-size-base);
 		letter-spacing: 0.025em;
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 	.analyze-body {
-		padding: 16px;
-		gap: 12px;
+		padding: var(--spacing-4);
+		gap: var(--spacing-3);
 	}
 	.current-track {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		margin-top: 4px;
+		gap: var(--spacing-1-5);
+		margin-top: var(--spacing-1);
 	}
 	.ct-dot {
 		width: 6px;
@@ -655,19 +655,19 @@
 		border-radius: 50%;
 	}
 	.ct-label {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 	}
 
 	/* Track cards */
 	.track-card {
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		overflow: hidden;
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
 		transition:
-			background-color 0.2s,
-			border-color 0.2s;
+			background-color var(--duration-fast) var(--ease-standard),
+			border-color var(--duration-fast) var(--ease-standard);
 	}
 	.track-card:hover:not(.disabled) {
 		background: var(--color-background-muted);
@@ -682,9 +682,9 @@
 	.track-row {
 		display: flex;
 		align-items: center;
-		gap: 16px;
+		gap: var(--spacing-4);
 		width: 100%;
-		padding: 12px;
+		padding: var(--spacing-3);
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -694,7 +694,7 @@
 	.track-icon {
 		width: 40px;
 		height: 40px;
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -714,19 +714,19 @@
 		flex-direction: column;
 	}
 	.track-name {
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 	}
 	.track-sub {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-secondary);
 		margin-top: 1px;
 	}
 	.expand-arrow {
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
-		transition: transform 0.2s;
+		transition: transform var(--duration-fast) var(--ease-standard);
 		flex-shrink: 0;
 	}
 	.expand-arrow.expanded {
@@ -734,39 +734,39 @@
 	}
 	.start-btn {
 		flex-shrink: 0;
-		padding: 4px 12px;
-		font-size: 12px;
-		font-weight: 700;
+		padding: var(--spacing-1) var(--spacing-3);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		font-family: var(--font-display);
 	}
 	.start-btn.wide {
 		width: 100%;
-		padding: 8px;
-		font-size: 13px;
+		padding: var(--spacing-2);
+		font-size: var(--font-size-base);
 	}
 
 	/* Config sections */
 	.track-config {
-		padding: 10px 14px 14px;
+		padding: var(--spacing-2) var(--spacing-3) var(--spacing-3);
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--spacing-2);
 		background: var(--color-background-muted);
 	}
 	.cfg-status {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 	}
 	.track-note,
 	.cfg-note {
 		margin: 0;
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		line-height: 1.5;
 		color: var(--color-text-secondary);
 		word-break: keep-all;
 	}
 	.track-note {
 		/* lines up with the track name: row padding 12 + icon 40 + gap 16 */
-		padding: 0 12px 12px 68px;
+		padding: 0 var(--spacing-3) var(--spacing-3) 68px;
 	}
 	.cfg-status.success {
 		color: var(--color-text-success);
@@ -775,32 +775,32 @@
 		color: var(--color-text-error);
 	}
 	.cfg-command {
-		padding: 6px 10px;
+		padding: var(--spacing-1-5) var(--spacing-2);
 		background: var(--color-background-body);
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-element);
 	}
 	.cfg-command code {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-success);
 		font-family: 'SF Mono', 'Fira Code', monospace;
 	}
 
 	/* Preview */
 	.preview-section {
-		margin-top: 4px;
-		padding-top: 10px;
+		margin-top: var(--spacing-1);
+		padding-top: var(--spacing-2);
 	}
 	.preview-header {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 	.preview-toggle {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		font-size: 12px;
+		gap: var(--spacing-1-5);
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		cursor: pointer;
 		background: none;
@@ -815,10 +815,10 @@
 		align-items: center;
 		background: none;
 		border: none;
-		padding: 2px;
+		padding: var(--spacing-0-5);
 		cursor: pointer;
 		color: var(--color-text-secondary);
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 	}
 	.copy-json-btn:hover {
 		color: var(--color-text-primary);
@@ -828,8 +828,8 @@
 		font-size: 14px;
 	}
 	.toggle-arrow {
-		font-size: 10px;
-		transition: transform 0.2s;
+		font-size: var(--font-size-xs);
+		transition: transform var(--duration-fast) var(--ease-standard);
 	}
 	.toggle-arrow.expanded {
 		transform: rotate(90deg);
@@ -837,22 +837,22 @@
 	.preview-meta {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		margin-top: 6px;
+		gap: var(--spacing-1-5);
+		margin-top: var(--spacing-1-5);
 		flex-wrap: wrap;
 	}
 	.meta-item {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 	}
 	.meta-sep {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		opacity: 0.4;
 	}
 	.payload-warn {
 		display: flex;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 		align-items: flex-start;
 		color: var(--color-text-primary);
 	}
@@ -864,27 +864,27 @@
 	.preview-json {
 		background: var(--color-background-surface);
 		font-family: 'SF Mono', 'Fira Code', monospace;
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		line-height: 1.5;
-		padding: 10px;
-		border-radius: 8px;
+		padding: var(--spacing-2);
+		border-radius: var(--radius-element);
 		max-height: 200px;
 		overflow: auto;
 		white-space: pre-wrap;
 		word-break: break-all;
-		margin-top: 8px;
+		margin-top: var(--spacing-2);
 		color: var(--color-text-secondary);
 	}
 
 	/* Footer */
 	.analyze-footer {
-		padding: 16px;
+		padding: var(--spacing-4);
 		background: var(--color-background-surface);
 		border-top: 1px solid var(--color-border);
-		border-radius: 0 0 12px 12px;
+		border-radius: 0 0 var(--radius-container) var(--radius-container);
 	}
 	.analyze-footer-hint {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 		font-style: italic;
 		margin: 0;

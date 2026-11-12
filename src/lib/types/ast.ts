@@ -29,3 +29,11 @@ export interface ASTSymbol {
 	parentName?: string;
 	badges?: BadgeKind[];
 }
+
+/** Why the parser read no symbols from a file it was given. */
+export type ParseSkipReason = 'file-size' | 'total-size' | 'parse-failed' | 'unreadable';
+
+export interface ParseSkip {
+	path: string;
+	reason: ParseSkipReason;
+}

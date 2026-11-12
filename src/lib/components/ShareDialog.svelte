@@ -193,22 +193,22 @@
 	}
 
 	.share-card :global(.modal-header h2) {
-		font-size: 14px;
+		font-size: var(--font-size-base);
 		letter-spacing: 0.025em;
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 
 	.share-body {
-		padding: 20px;
+		padding: var(--spacing-5);
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--spacing-4);
 	}
 
 	.share-message {
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		color: var(--color-text-primary);
 		line-height: 1.6;
 		margin: 0;
@@ -217,21 +217,21 @@
 	.share-actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 
 	.share-btn {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 6px 14px;
-		border-radius: 6px;
-		font-size: 12px;
-		font-weight: 600;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-1-5) var(--spacing-3);
+		border-radius: var(--radius-element);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		cursor: pointer;
 		transition:
-			background 0.15s,
-			opacity 0.15s;
+			background var(--duration-fast) var(--ease-standard),
+			opacity var(--duration-fast) var(--ease-standard);
 		border: none;
 	}
 
@@ -277,12 +277,12 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 12px;
-		padding: 20px 0;
+		gap: var(--spacing-3);
+		padding: var(--spacing-5) 0;
 	}
 
 	.share-loading p {
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		color: var(--color-text-secondary);
 		margin: 0;
 	}
@@ -300,26 +300,26 @@
 	}
 
 	.share-success-title {
-		font-size: 13px;
-		font-weight: 600;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-success);
 		margin: 0;
 	}
 
 	.share-url-box {
 		display: flex;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 
 	.share-url-input {
 		flex: 1;
-		padding: 8px 10px;
-		border-radius: 6px;
+		padding: var(--spacing-2) var(--spacing-2);
+		border-radius: var(--radius-element);
 		border: 1px solid var(--color-border);
 		background: var(--color-background-muted);
 		color: var(--color-text-primary);
 		font-family: var(--font-code);
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 	}
 
 	.share-url-input:focus {
@@ -330,8 +330,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 8px;
-		padding: 12px 0;
+		gap: var(--spacing-2);
+		padding: var(--spacing-3) 0;
 	}
 
 	.share-error-icon {
@@ -340,21 +340,21 @@
 	}
 
 	.share-error-title {
-		font-size: 13px;
-		font-weight: 600;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-error);
 		margin: 0;
 	}
 
 	.share-error-message {
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		margin: 0;
 		text-align: center;
 	}
 
 	.share-error-detail {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 		font-family: var(--font-code);
 		margin: 0;

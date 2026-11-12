@@ -285,7 +285,7 @@
 		flex: 1;
 		overflow-y: auto;
 		overflow-x: hidden;
-		padding: 4px 0;
+		padding: var(--spacing-1) 0;
 	}
 
 	.semantic-tree::-webkit-scrollbar {
@@ -298,7 +298,7 @@
 
 	.semantic-tree::-webkit-scrollbar-thumb {
 		background: var(--color-border);
-		border-radius: 3px;
+		border-radius: var(--radius-full);
 	}
 
 	.empty-state {
@@ -309,14 +309,14 @@
 	}
 
 	.empty-text {
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 	}
 
 	.tree-row {
 		display: flex;
 		align-items: center;
-		gap: 2px;
+		gap: var(--spacing-0-5);
 	}
 
 	.tree-chevron {
@@ -331,7 +331,7 @@
 		border: none;
 		cursor: pointer;
 		flex-shrink: 0;
-		transition: transform 0.15s ease;
+		transition: transform var(--duration-fast) var(--ease-standard);
 		padding: 0;
 	}
 
@@ -347,20 +347,20 @@
 	.tree-node {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--spacing-3);
 		flex: 1;
 		min-width: 0;
-		padding: 8px 12px;
-		border-radius: 4px;
-		font-size: 12px;
+		padding: var(--spacing-2) var(--spacing-3);
+		border-radius: var(--radius-inner);
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 		background: none;
 		border: none;
 		cursor: pointer;
 		text-align: left;
 		transition:
-			background-color 0.15s ease,
-			color 0.15s ease;
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.tree-node:hover {
@@ -371,13 +371,13 @@
 	.tree-node.selected {
 		background: var(--color-background-muted);
 		color: var(--color-text-primary);
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 	}
 
 	.node-color {
 		width: 6px;
 		height: 6px;
-		border-radius: 9999px;
+		border-radius: var(--radius-full);
 		flex-shrink: 0;
 	}
 
@@ -391,7 +391,7 @@
 	}
 
 	.node-status {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
@@ -405,7 +405,7 @@
 	}
 
 	.node-count {
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
@@ -415,18 +415,18 @@
 		width: 16px;
 		height: 16px;
 		border: none;
-		border-radius: 3px;
+		border-radius: var(--radius-inner);
 		background: transparent;
 		color: var(--color-text-tertiary);
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		cursor: pointer;
 		padding: 0;
 		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
 		transition:
-			background-color 0.1s ease,
-			color 0.1s ease;
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.tree-node:hover .tree-reanalyze-btn {

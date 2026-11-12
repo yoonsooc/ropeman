@@ -301,7 +301,7 @@
 		inset: 0;
 		z-index: 9999;
 		background: transparent;
-		transition: background 0.3s ease;
+		transition: background var(--duration-medium) var(--ease-standard);
 	}
 
 	/* When no cutout (large elements), overlay itself provides the dim */
@@ -311,16 +311,16 @@
 
 	.tour-cutout {
 		position: fixed;
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		background: transparent;
 		box-shadow: 0 0 0 9999px var(--color-overlay);
 		z-index: 10000;
 		pointer-events: none;
 		transition:
-			top 0.3s ease,
-			left 0.3s ease,
-			width 0.3s ease,
-			height 0.3s ease;
+			top var(--duration-medium) var(--ease-standard),
+			left var(--duration-medium) var(--ease-standard),
+			width var(--duration-medium) var(--ease-standard),
+			height var(--duration-medium) var(--ease-standard);
 	}
 
 	.tour-tooltip {
@@ -328,14 +328,12 @@
 		z-index: 10001;
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		padding: 20px;
-		box-shadow:
-			0 20px 25px -5px var(--color-shadow),
-			0 8px 10px -6px var(--color-shadow);
+		border-radius: var(--radius-container);
+		padding: var(--spacing-5);
+		box-shadow: var(--shadow-med);
 		transition:
-			top 0.3s ease,
-			left 0.3s ease;
+			top var(--duration-medium) var(--ease-standard),
+			left var(--duration-medium) var(--ease-standard);
 	}
 
 	/* Arrow indicators */
@@ -405,8 +403,8 @@
 	.tour-tooltip-header {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		margin-bottom: 8px;
+		gap: var(--spacing-2);
+		margin-bottom: var(--spacing-2);
 	}
 
 	.tour-step-badge {
@@ -415,12 +413,12 @@
 		justify-content: center;
 		min-width: 32px;
 		height: 22px;
-		padding: 0 8px;
-		border-radius: 9999px;
+		padding: 0 var(--spacing-2);
+		border-radius: var(--radius-full);
 		background: var(--color-accent);
 		color: var(--color-on-accent);
-		font-size: 11px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		font-family: var(--font-display);
 		letter-spacing: 0.05em;
 		flex-shrink: 0;
@@ -428,15 +426,15 @@
 
 	.tour-tooltip-title {
 		margin: 0;
-		font-size: 15px;
-		font-weight: 700;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 		font-family: var(--font-display);
 	}
 
 	.tour-tooltip-desc {
-		margin: 0 0 16px;
-		font-size: 13px;
+		margin: 0 0 var(--spacing-4);
+		font-size: var(--font-size-base);
 		line-height: 1.6;
 		color: var(--color-text-secondary);
 	}
@@ -445,26 +443,26 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 
 	.tour-tooltip-nav {
 		display: flex;
-		gap: 6px;
+		gap: var(--spacing-1-5);
 	}
 
 	.tour-btn-prev {
-		padding: 6px 14px;
+		padding: var(--spacing-1-5) var(--spacing-3);
 		border: 1px solid var(--color-border);
-		border-radius: 6px;
-		font-size: 12px;
-		font-weight: 600;
+		border-radius: var(--radius-element);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-secondary);
 		background: transparent;
 		cursor: pointer;
 		transition:
-			background 0.2s,
-			color 0.2s;
+			background var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.tour-btn-prev:hover {
@@ -473,17 +471,17 @@
 	}
 
 	.tour-btn-skip {
-		padding: 6px 14px;
+		padding: var(--spacing-1-5) var(--spacing-3);
 		border: 1px solid var(--color-border);
-		border-radius: 6px;
-		font-size: 12px;
-		font-weight: 600;
+		border-radius: var(--radius-element);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-secondary);
 		background: transparent;
 		cursor: pointer;
 		transition:
-			background 0.2s,
-			color 0.2s;
+			background var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.tour-btn-skip:hover {
@@ -492,15 +490,15 @@
 	}
 
 	.tour-btn-next {
-		padding: 6px 18px;
+		padding: var(--spacing-1-5) var(--spacing-4);
 		border: none;
-		border-radius: 6px;
-		font-size: 12px;
-		font-weight: 700;
+		border-radius: var(--radius-element);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-on-accent);
 		background: var(--color-accent);
 		cursor: pointer;
-		transition: background 0.2s;
+		transition: background var(--duration-fast) var(--ease-standard);
 	}
 
 	.tour-btn-next:hover {
@@ -516,17 +514,15 @@
 		transform: translate(-50%, -50%);
 		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		padding: 24px;
+		border-radius: var(--radius-container);
+		padding: var(--spacing-6);
 		width: 340px;
-		box-shadow:
-			0 20px 25px -5px var(--color-shadow),
-			0 8px 10px -6px var(--color-shadow);
+		box-shadow: var(--shadow-high);
 	}
 
 	.tour-confirm-text {
-		margin: 0 0 20px;
-		font-size: 13px;
+		margin: 0 0 var(--spacing-5);
+		font-size: var(--font-size-base);
 		line-height: 1.7;
 		color: var(--color-text-primary);
 	}
@@ -534,6 +530,6 @@
 	.tour-confirm-actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 8px;
+		gap: var(--spacing-2);
 	}
 </style>

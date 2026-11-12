@@ -12,11 +12,11 @@
 .section-header {
 	display: flex;
 	align-items: center;
-	padding: 8px 12px;
+	padding: var(--spacing-2) var(--spacing-3);
 	cursor: pointer;
 	user-select: none;
-	gap: 8px;
-	transition: background-color var(--transition);
+	gap: var(--spacing-2);
+	transition: background-color var(--duration-fast) var(--ease-standard);
 	position: relative;
 }
 
@@ -39,7 +39,7 @@
 
 .section-chevron {
 	font-size: 10px;
-	transition: transform var(--transition);
+	transition: transform var(--duration-fast) var(--ease-standard);
 	color: var(--color-text-secondary);
 	width: 16px;
 	text-align: center;
@@ -51,20 +51,20 @@
 }
 
 .section-number {
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
 	color: var(--color-text-tertiary);
 	min-width: 20px;
 }
 
 .section-title {
-	font-size: 13px;
-	font-weight: 500;
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-medium);
 	flex: 1;
 }
 
 .section-lines {
-	font-size: 11px;
+	font-size: var(--font-size-sm);
 	color: var(--color-text-tertiary);
 }
 
@@ -72,10 +72,10 @@
 	background: var(--color-syntax-background);
 	color: var(--color-syntax-text);
 	font-family: var(--font-code);
-	font-size: 12px;
+	font-size: var(--font-size-sm);
 	line-height: 1.6;
 	overflow-x: auto;
-	padding: 8px 0;
+	padding: var(--spacing-2) 0;
 }
 
 /* Override Prism theme background to use our custom code background */
@@ -87,7 +87,7 @@
 
 .code-line {
 	display: flex;
-	padding: 0 12px;
+	padding: 0 var(--spacing-3);
 	min-height: 20px;
 }
 
@@ -99,7 +99,7 @@
 	color: var(--color-text-tertiary);
 	min-width: 40px;
 	text-align: right;
-	padding-right: 16px;
+	padding-right: var(--spacing-4);
 	user-select: none;
 	flex-shrink: 0;
 }

@@ -65,34 +65,34 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--color-syntax-background);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		overflow: hidden;
 		font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		line-height: 1.6;
 	}
 
 	.code-header {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 8px 12px;
+		gap: var(--spacing-2);
+		padding: var(--spacing-2) var(--spacing-3);
 		background: var(--color-background-muted);
 		border-bottom: 1px solid var(--color-border);
 	}
 
 	.lang-badge {
-		font-size: 11px;
-		font-weight: 600;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		text-transform: uppercase;
 		color: var(--color-accent);
 		background: var(--color-accent-muted);
-		padding: 2px 8px;
-		border-radius: 4px;
+		padding: var(--spacing-0-5) var(--spacing-2);
+		border-radius: var(--radius-inner);
 	}
 
 	.line-range {
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-syntax-text);
 		opacity: 0.5;
 	}
@@ -100,7 +100,7 @@
 	.code-body {
 		overflow: auto;
 		max-height: 400px;
-		padding: 8px 0;
+		padding: var(--spacing-2) 0;
 	}
 
 	pre {
@@ -114,8 +114,8 @@
 
 	.code-line {
 		display: flex;
-		padding: 0 12px;
-		transition: background-color 0.15s ease;
+		padding: 0 var(--spacing-3);
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.code-line:hover {
@@ -125,7 +125,7 @@
 	.code-line.highlighted {
 		background: var(--color-accent-muted);
 		border-left: 3px solid var(--color-accent);
-		padding-left: 9px;
+		padding-left: var(--spacing-2);
 	}
 
 	.line-number {
@@ -133,7 +133,7 @@
 		width: 40px;
 		min-width: 40px;
 		text-align: right;
-		padding-right: 16px;
+		padding-right: var(--spacing-4);
 		color: var(--color-text-tertiary);
 		user-select: none;
 		flex-shrink: 0;

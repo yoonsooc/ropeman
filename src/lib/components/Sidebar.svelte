@@ -175,8 +175,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 16px;
-		padding: 16px 0;
+		gap: var(--spacing-4);
+		padding: var(--spacing-4) 0;
 		background: var(--color-background-sidebar-icon);
 	}
 
@@ -190,14 +190,14 @@
 		justify-content: center;
 		width: 40px;
 		height: 40px;
-		border-radius: 6px;
+		border-radius: var(--radius-element);
 		color: var(--color-text-tertiary);
 		background: none;
 		border: none;
 		cursor: pointer;
 		transition:
-			background-color 0.15s ease,
-			color 0.15s ease;
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.icon-btn:hover:not(.disabled) {
@@ -238,14 +238,14 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 10px 12px;
+		padding: var(--spacing-2) var(--spacing-3);
 		border-bottom: 1px solid var(--color-border);
 	}
 
 	.panel-title {
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 600;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-secondary);
 	}
 
@@ -255,12 +255,12 @@
 		justify-content: center;
 		width: 24px;
 		height: 24px;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		color: var(--color-text-tertiary);
 		background: none;
 		border: none;
 		cursor: pointer;
-		transition: background-color 0.15s ease;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	.panel-toggle:hover {
@@ -286,7 +286,7 @@
 		padding-bottom: env(safe-area-inset-bottom);
 		padding-left: env(safe-area-inset-left);
 		z-index: 30;
-		animation: slideIn 0.2s ease;
+		animation: slideIn var(--duration-fast) var(--ease-standard);
 	}
 
 	@keyframes slideIn {

@@ -249,7 +249,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 16px;
+		padding: 0 var(--spacing-4);
 		width: 100%;
 		background: var(--color-background-sidebar-icon);
 		flex-shrink: 0;
@@ -262,8 +262,8 @@
 	@media (max-width: 768px) {
 		.header {
 			padding-top: env(safe-area-inset-top);
-			padding-left: max(16px, env(safe-area-inset-left));
-			padding-right: max(16px, env(safe-area-inset-right));
+			padding-left: max(var(--spacing-4), env(safe-area-inset-left));
+			padding-right: max(var(--spacing-4), env(safe-area-inset-right));
 			height: calc(var(--header-height) + env(safe-area-inset-top));
 		}
 	}
@@ -271,12 +271,12 @@
 	.header-left {
 		display: flex;
 		align-items: baseline;
-		gap: 32px;
+		gap: var(--spacing-8);
 	}
 
 	.header-title {
-		font-size: 18px;
-		font-weight: 700;
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-accent);
 		font-family: var(--font-display);
 	}
@@ -284,7 +284,7 @@
 	.home-btn {
 		font: inherit;
 		color: inherit;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 	}
 
 	@media (hover: hover) {
@@ -295,34 +295,34 @@
 	}
 
 	.header-subtitle {
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-secondary);
 	}
 
 	.header-project {
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		color: var(--color-text-secondary);
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 	}
 
 	.header-right {
 		display: flex;
 		align-items: center;
-		gap: 16px;
+		gap: var(--spacing-4);
 	}
 
 	.header-btn {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 4px;
-		border-radius: 4px;
-		font-size: 11px;
-		font-weight: 700;
+		padding: var(--spacing-1);
+		border-radius: var(--radius-inner);
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-secondary);
 		transition:
-			background-color var(--transition),
-			color var(--transition);
+			background-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard);
 	}
 
 	.header-btn :global(svg) {
@@ -343,15 +343,15 @@
 
 	.header-btn.text-btn {
 		width: auto;
-		padding: 4px 12px;
-		gap: 6px;
+		padding: var(--spacing-1) var(--spacing-3);
+		gap: var(--spacing-1-5);
 		background: var(--color-background-muted);
 		border: 1px solid var(--color-border);
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		color: var(--color-accent);
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 	}
 
 	@media (hover: hover) {
@@ -361,23 +361,23 @@
 	}
 
 	.btn-label {
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 	}
 
 	.analyze-btn {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 4px 12px;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-1) var(--spacing-3);
 		background: var(--color-accent);
 		color: var(--color-on-accent);
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		cursor: pointer;
-		transition: opacity 0.2s;
+		transition: opacity var(--duration-fast) var(--ease-standard);
 	}
 
 	@media (hover: hover) {
@@ -394,19 +394,19 @@
 	.share-btn {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 4px 12px;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-1) var(--spacing-3);
 		background: var(--color-background-muted);
 		color: var(--color-accent);
 		border: 1px solid var(--color-border);
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		cursor: pointer;
 		transition:
-			opacity 0.2s,
-			background 0.2s;
+			opacity var(--duration-fast) var(--ease-standard),
+			background var(--duration-fast) var(--ease-standard);
 	}
 
 	@media (hover: hover) {
@@ -434,14 +434,14 @@
 	.track-badge {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 2px 8px;
-		margin-left: 4px;
-		border-radius: 9999px;
+		gap: var(--spacing-1-5);
+		padding: var(--spacing-0-5) var(--spacing-2);
+		margin-left: var(--spacing-1);
+		border-radius: var(--radius-full);
 		background: var(--color-accent-muted);
 		border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
 		cursor: pointer;
-		transition: background 0.2s;
+		transition: background var(--duration-fast) var(--ease-standard);
 	}
 
 	@media (hover: hover) {
@@ -470,8 +470,8 @@
 	}
 
 	.track-label {
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-accent);
 	}
 
@@ -479,8 +479,8 @@
 		width: 0;
 		height: 100%;
 		border-left: 1px solid var(--color-border);
-		margin-left: 8px;
-		padding-left: 16px;
+		margin-left: var(--spacing-2);
+		padding-left: var(--spacing-4);
 	}
 
 	@media (max-width: 768px) {
@@ -498,7 +498,7 @@
 		}
 
 		.header-right {
-			gap: 4px;
+			gap: var(--spacing-1);
 		}
 
 		.header-btn {
@@ -519,8 +519,8 @@
 		}
 
 		.header {
-			padding-left: max(12px, env(safe-area-inset-left));
-			padding-right: max(12px, env(safe-area-inset-right));
+			padding-left: max(var(--spacing-3), env(safe-area-inset-left));
+			padding-right: max(var(--spacing-3), env(safe-area-inset-right));
 		}
 
 		.header-btn,
@@ -531,7 +531,7 @@
 		}
 
 		.analyze-btn {
-			padding: 4px 8px;
+			padding: var(--spacing-1) var(--spacing-2);
 		}
 	}
 </style>

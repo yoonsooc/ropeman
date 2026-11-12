@@ -75,10 +75,11 @@
 			projectStore.fileTree = tree;
 			projectStore.isLoading = true;
 			projectStore.isSnippetMode = true;
-			const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
+			const { astMap, skipped } = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 				projectStore.parsingProgress = progress;
 			});
 			projectStore.astMap = astMap;
+			projectStore.parseSkips = skipped;
 			projectStore.isLoading = false;
 			// Auto-trigger semantic analysis if AI is connected
 			if (authStore.isReady) {
@@ -155,14 +156,14 @@
 
 <style>
 	.snippet-section {
-		margin-top: 48px;
+		margin-top: var(--spacing-12);
 	}
 
 	.snippet-divider {
 		display: flex;
 		align-items: center;
-		gap: 16px;
-		margin-bottom: 24px;
+		gap: var(--spacing-4);
+		margin-bottom: var(--spacing-6);
 	}
 
 	.divider-line {
@@ -173,31 +174,31 @@
 
 	.divider-text {
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 600;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-tertiary);
 		white-space: nowrap;
 	}
 
 	.preset-row {
 		display: flex;
-		gap: 12px;
-		margin-bottom: 20px;
+		gap: var(--spacing-3);
+		margin-bottom: var(--spacing-5);
 		flex-wrap: wrap;
 	}
 
 	.preset-card {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
+		gap: var(--spacing-3);
+		padding: var(--spacing-3) var(--spacing-4);
 		background: var(--color-background-muted);
 		border: 1px solid var(--color-border);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		cursor: pointer;
 		transition:
-			border-color 0.15s ease,
-			background 0.15s ease;
+			border-color var(--duration-fast) var(--ease-standard),
+			background var(--duration-fast) var(--ease-standard);
 		text-align: left;
 	}
 
@@ -221,25 +222,25 @@
 	.preset-info {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--spacing-0-5);
 	}
 
 	.preset-name {
 		font-family: var(--font-body);
-		font-size: 13px;
-		font-weight: 700;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 	}
 
 	.preset-desc {
 		font-family: var(--font-body);
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 	}
 
 	.editor-area {
 		border: 1px solid var(--color-border);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		overflow: hidden;
 		background: var(--color-background-canvas);
 	}
@@ -248,7 +249,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 8px 12px;
+		padding: var(--spacing-2) var(--spacing-3);
 		background: var(--color-background-surface);
 		border-bottom: 1px solid var(--color-border);
 	}
@@ -257,17 +258,17 @@
 		background: var(--color-neutral);
 		color: var(--color-text-primary);
 		border: none;
-		border-radius: 4px;
-		padding: 4px 8px;
+		border-radius: var(--radius-inner);
+		padding: var(--spacing-1) var(--spacing-2);
 		font-family: var(--font-display);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-bold);
 		cursor: pointer;
 	}
 
 	.line-info {
 		font-family: var(--font-code);
-		font-size: 10px;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-tertiary);
 		font-variant-numeric: tabular-nums;
 	}
@@ -282,7 +283,7 @@
 	.line-numbers {
 		display: flex;
 		flex-direction: column;
-		padding: 12px 0;
+		padding: var(--spacing-3) 0;
 		min-width: 40px;
 		text-align: right;
 		user-select: none;
@@ -292,18 +293,18 @@
 
 	.line-numbers span {
 		display: block;
-		padding: 0 8px;
+		padding: 0 var(--spacing-2);
 		font-family: var(--font-code);
-		font-size: 11px;
+		font-size: var(--font-size-sm);
 		line-height: 20px;
 		color: var(--color-text-tertiary);
 	}
 
 	.code-textarea {
 		flex: 1;
-		padding: 12px 16px;
+		padding: var(--spacing-3) var(--spacing-4);
 		font-family: var(--font-code);
-		font-size: 13px;
+		font-size: var(--font-size-base);
 		line-height: 20px;
 		color: var(--color-text-primary);
 		background: transparent;
@@ -321,30 +322,30 @@
 	}
 
 	.error-msg {
-		margin-top: 8px;
+		margin-top: var(--spacing-2);
 		color: var(--color-text-error);
-		font-size: 12px;
+		font-size: var(--font-size-sm);
 	}
 
 	.analyze-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		margin-top: 16px;
-		padding: 12px 24px;
+		gap: var(--spacing-2);
+		margin-top: var(--spacing-4);
+		padding: var(--spacing-3) var(--spacing-6);
 		background: var(--color-accent);
 		color: var(--color-on-accent);
-		border-radius: 8px;
+		border-radius: var(--radius-element);
 		font-family: var(--font-display);
-		font-size: 14px;
-		font-weight: 700;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-bold);
 		cursor: pointer;
 		box-shadow:
 			0 10px 15px -3px var(--color-accent-muted),
 			0 4px 6px -4px var(--color-accent-muted);
 		transition:
-			opacity 0.15s ease,
-			transform 0.15s ease;
+			opacity var(--duration-fast) var(--ease-standard),
+			transform var(--duration-fast) var(--ease-standard);
 	}
 
 	.analyze-btn:hover:not(:disabled) {

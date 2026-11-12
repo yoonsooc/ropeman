@@ -25,12 +25,12 @@
 		background: var(--color-background-inverted);
 		color: var(--color-on-inverted);
 		max-width: 280px;
-		padding: 8px 12px;
-		border-radius: 6px;
-		font-size: 12px;
+		padding: var(--spacing-2) var(--spacing-3);
+		border-radius: var(--radius-element);
+		font-size: var(--font-size-sm);
 		line-height: 1.4;
 		pointer-events: none;
-		box-shadow: 0 2px 8px var(--color-shadow);
+		box-shadow: var(--shadow-low);
 		white-space: pre-wrap;
 		word-wrap: break-word;
 	}

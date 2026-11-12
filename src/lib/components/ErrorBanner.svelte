@@ -35,11 +35,11 @@
 	.error-banner {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 10px 16px;
-		border-radius: 8px;
-		font-size: 13px;
-		animation: slideDown 0.25s ease;
+		gap: var(--spacing-2);
+		padding: var(--spacing-2) var(--spacing-4);
+		border-radius: var(--radius-element);
+		font-size: var(--font-size-base);
+		animation: slideDown var(--duration-medium) var(--ease-standard);
 	}
 
 	@keyframes slideDown {
@@ -81,11 +81,11 @@
 	}
 
 	.banner-dismiss {
-		font-size: 18px;
+		font-size: var(--font-size-lg);
 		opacity: 0.6;
-		padding: 0 4px;
+		padding: 0 var(--spacing-1);
 		flex-shrink: 0;
-		transition: opacity var(--transition);
+		transition: opacity var(--duration-fast) var(--ease-standard);
 	}
 
 	.banner-dismiss:hover {
