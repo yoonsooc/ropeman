@@ -21,7 +21,7 @@ import type {
 	SemanticEdge
 } from '$lib/types/semantic';
 
-const SEMANTIC_COLORS = [
+export const SEMANTIC_COLORS = [
 	'#89b4fa',
 	'#a6e3a1',
 	'#f9e2af',

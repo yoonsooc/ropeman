@@ -5,11 +5,11 @@
 	"description": "WebSocket relay server for Ropeman AI bridge",
 	"type": "module",
 	"bin": {
-		"ropeman-bridge": "./dist/server.js"
+		"ropeman-bridge": "./dist/bridge/src/server.js"
 	},
 	"scripts": {
 		"build": "tsc",
-		"start": "node dist/server.js",
+		"start": "node dist/bridge/src/server.js",
 		"dev": "tsc --watch"
 	},
 	"dependencies": {

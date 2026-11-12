@@ -214,6 +214,27 @@ describe('i18nStore', () => {
 			}
 		});
 
+		it('words every ropeman.json rejection in both languages with its detail filled', () => {
+			const rejections: [string, Record<string, string | number>][] = [
+				['openMap.tooLarge', { limit: 16 }],
+				['openMap.notJson', {}],
+				['openMap.notAMap', {}],
+				['openMap.newerVersion', { version: '2.0' }],
+				['openMap.unsupportedVersion', { version: '0.9' }],
+				['openMap.invalid', { field: 'levels[0].nodes[1].label' }]
+			];
+
+			for (const language of ['ko', 'en'] as const) {
+				settingsStore.language = language;
+				for (const [key, params] of rejections) {
+					const text = i18nStore.t(key, params);
+					expect(text, key).not.toBe(key);
+					expect(text, key).not.toMatch(/\{\w+\}/);
+					if (language === 'ko') expect(text, key).toMatch(/[가-힣]/);
+				}
+			}
+		});
+
 		it('keeps the English Bridge labels the E2E tests and users already know', () => {
 			// Arrange
 			settingsStore.language = 'en';

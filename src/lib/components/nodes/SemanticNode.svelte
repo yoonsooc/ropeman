@@ -70,7 +70,7 @@
 	{/if}
 
 	<div class="node-footer">
-		{#if !isLeaf && isCached}
+		{#if !isLeaf && isCached && data.onReanalyze}
 			<button
 				type="button"
 				class="reanalyze-btn nodrag"

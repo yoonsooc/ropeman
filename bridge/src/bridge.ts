@@ -10,7 +10,8 @@ import {
 	tokenFromRequestUrl,
 	tokensMatch
 } from './auth.js';
-import { type FileContent, type FileReadRejection, readRootedFile } from './fileRead.js';
+import { readRootedFile } from './fileRead.js';
+import type { FileContent, RpcErrorCode } from '../../src/lib/types/ropemanMap.js';
 import { serveViewerFile } from './viewer.js';
 
 /** Loopback only: nothing else on the network can reach the CLI. */
@@ -46,7 +47,7 @@ interface BridgeResponse {
 	type: string;
 	result?: string | FileContent;
 	error?: string;
-	code?: FileReadRejection | 'no-root' | 'busy';
+	code?: RpcErrorCode<'file.read'>;
 }
 
 /** CLI별 인자 및 stdin 전략 */
@@ -227,7 +228,7 @@ export function createBridgeServer(options: BridgeOptions): {
 								reply({ ...response, code: read.reason, error: read.message });
 							}
 						})
-						.catch((err: Error) => reply({ ...response, error: err.message }))
+						.catch((err: Error) => reply({ ...response, code: 'internal', error: err.message }))
 						.finally(() => readsInFlight--);
 					return;
 				}
