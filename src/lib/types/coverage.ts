@@ -14,6 +14,8 @@ export const COVERAGE_REASONS = {
 	'total-size': 'skipped',
 	unsupported: 'skipped',
 	'env-values': 'skipped',
+	lockfile: 'skipped',
+	'data-file': 'skipped',
 	'parse-failed': 'failed',
 	unreadable: 'failed'
 } as const satisfies Record<string, CoverageStatus>;

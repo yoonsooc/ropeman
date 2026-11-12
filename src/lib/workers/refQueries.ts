@@ -52,7 +52,12 @@ const QUERIES: Record<string, string> = {
 	'tree-sitter-kotlin.wasm': '(call_expression . (_) @callee (call_suffix))',
 	'tree-sitter-c_sharp.wasm': `(invocation_expression function: (_) @callee)
 (object_creation_expression type: (_) @callee)`,
-	'tree-sitter-scala.wasm': CALL
+	'tree-sitter-scala.wasm': CALL,
+	// Every command, and the script a shell runs (`bash deploy.sh`); `source` is an import
+	'tree-sitter-bash.wasm': `(command name: (command_name) @callee
+  (#not-match? @callee "^(source|\\.|(ba|da|z)?sh|exec)$"))
+(command name: (command_name) @runner . argument: (_) @callee
+  (#match? @runner "^((ba|da|z)?sh|exec)$") (#not-match? @callee "^-"))`
 };
 
 // Python `class A(B, metaclass=M)`: only positional bases are inherited
