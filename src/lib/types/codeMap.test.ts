@@ -237,10 +237,23 @@ describe('semantic edge evidence', () => {
 });
 
 describe('wire symbol kinds', () => {
-	it('sends the same kinds as v1 did', () => {
+	it('sends the v1 kinds plus the config kinds, which only config files carry', () => {
 		expectTypeOf<SkeletonSymbol['kind']>().toEqualTypeOf<WireSymbolKind>();
 		expectTypeOf<WireSymbolKind>().toEqualTypeOf<
-			'function' | 'class' | 'method' | 'import' | 'frontmatter' | 'heading'
+			| 'function'
+			| 'class'
+			| 'method'
+			| 'import'
+			| 'frontmatter'
+			| 'heading'
+			| 'stage'
+			| 'port'
+			| 'command'
+			| 'resource'
+			| 'input'
+			| 'output'
+			| 'target'
+			| 'env'
 		>();
 	});
 });

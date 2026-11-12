@@ -2,6 +2,7 @@ import type { ASTSymbol, ParseSkip, ParseSkipReason } from '$lib/types/ast';
 import type { FileNode } from '$lib/types/fileTree';
 import { isSupported } from '$lib/utils/languageDetector';
 import { extractMarkdownSymbols } from '$lib/services/markdownOutline';
+import { CONFIG_PARSERS } from '$lib/services/configParsers';
 import { pathPriority, MAX_FILE_SIZE, MAX_TOTAL_SIZE, MAX_FILES } from '$lib/utils/filePriority';
 
 interface ParseRequest {
@@ -12,6 +13,12 @@ interface ParseRequest {
 	resolve: (symbols: ASTSymbol[]) => void;
 	reject: (err: Error) => void;
 }
+
+// Formats with no tree-sitter grammar here; their line parsers are cheap enough for the main thread
+const LINE_PARSERS: Partial<Record<string, (content: string) => ASTSymbol[]>> = {
+	markdown: extractMarkdownSymbols,
+	...CONFIG_PARSERS
+};
 
 let worker: Worker | null = null;
 let initialized = false;
@@ -85,8 +92,8 @@ export async function parseFile(
 	language: string,
 	priority = 0
 ): Promise<ASTSymbol[]> {
-	// Markdown has no tree-sitter grammar here; its outline is cheap enough for the main thread
-	if (language === 'markdown') return extractMarkdownSymbols(content);
+	const lineParser = LINE_PARSERS[language];
+	if (lineParser) return lineParser(content);
 
 	await ensureInitialized();
 

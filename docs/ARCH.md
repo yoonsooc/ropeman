@@ -40,6 +40,7 @@ src/
 │   │   ├── coverageService.ts        # 파일마다 분석에서의 행방(보냄, 안 보냄, 잘림, 건너뜀, 못 읽음)과 단계별 배정 수
 │   │   ├── requestBudget.ts          # 보내기 전 크기 검사: 데모 요청 본문 바이트, BYOK 모델별 토큰 한도
 │   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
+│   │   ├── configParsers.ts          # Dockerfile·Terraform·env 템플릿·Makefile → 구조 심볼 (줄 단위 파서, 값은 읽지 않음)
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
 │   │   ├── parserService.ts          # Web Worker 통신 (parseFile, parseAllFiles → { astMap, skipped })
@@ -102,7 +103,7 @@ src/
 │   ├── config.ts                     # DEMO_URL, PROXY_URL 상수
 │   │
 │   └── utils/
-│       ├── languageDetector.ts       # 확장자 → 언어 매핑 (dev 전용 `?testDir=` 스캐너 `scripts/vite-dev-fs-plugin.js`도 이 표를 쓴다)
+│       ├── languageDetector.ts       # 확장자 → 언어 매핑, 그다음 파일 이름 → 설정 형식 (dev 전용 `?testDir=` 스캐너 `scripts/vite-dev-fs-plugin.js`도 이 표를 쓴다)
 │       ├── sfcScripts.ts             # `.svelte`·`.vue` → `<script>` 본문만 남긴 TS/JS 소스 (파서 워커가 쓴다)
 │       ├── locale.ts                 # UI 언어 결정 (저장된 선택 > 브라우저 언어 ko* > en)
 │       ├── fileIcons.ts              # 파일 유형별 Material Symbols + 색상 매핑
@@ -130,7 +131,7 @@ edge-proxy/                       # Cloudflare Workers
 → fileSystemService.readDirectoryRecursive()   # 경로를 전부 모은 뒤 filePriority.capFiles()로 순위를 매기고 MAX_FILES에서 자른다
 → { tree, cut } 반환. 파일이 모두 잘린 폴더는 트리에서 뺀다
 → 호출한 컴포넌트가 projectStore.fileTree와 projectStore.cutFiles(잘린 파일과 이유)에 쓴다
-→ parserService.parseAllFiles() [Web Worker — tree-sitter WASM]
+→ parserService.parseAllFiles() [Web Worker — tree-sitter WASM. Markdown과 설정 파일은 메인 스레드의 줄 단위 파서]
 → { astMap, skipped } 반환. 호출한 쪽이 projectStore.astMap과 projectStore.parseSkips(크기 초과, 파서 오류, 열지 못한 파일)에 쓴다
 ```
 
@@ -350,13 +351,19 @@ export const xxxStore = createXxxStore();
 - **브라우저 전용**: Chromium 기반 (비-localhost는 fallback input)
 - **파일 제한**: MAX_FILES=2000, MAX_FILE_SIZE=500KB. 값은 `filePriority.ts` 한 곳에 있다.
   - 상한은 순회 순서가 아니라 순위로 건다. 로컬 폴더, fallback input, GitHub가 같은 `rankFiles()`를 쓴다.
-  - 순위는 세 묶음이다. 코드와 지침 파일, 그다음 테스트와 일반 문서, 그다음 문법이 없는 파일 순이다.
+  - 순위는 세 묶음이다. 코드와 지침 파일, 그다음 테스트와 일반 문서, 그다음 읽는 파서가 없는 파일 순이다. 설정 파일 네 형식은 코드와 같은 첫 묶음이다.
   - 묶음 안에서는 폴더마다 차례로 한 파일씩 고른다. 큰 패키지 하나가 상한을 다 써서 다른 패키지가 통째로 빠지는 일을 막는다.
   - 잘린 파일은 이유(`file-limit`, `file-size`, `total-size`)와 함께 `projectStore.cutFiles`에 남는다. 로컬 폴더는 남긴 파일의 핸들만 다시 받는다.
   - `fileSystemService`는 스토어에 쓰지 않고 `{ tree, cut }`을 돌려준다. 스토어 쓰기는 `Dropzone.svelte`와 `+page.svelte`가 한다. 파일이 하나도 남지 않은 폴더는 트리에서 빠진다.
   - `githubLoader.loadGitHubRepo()`도 `cutFiles`에 쓰지 않고 `{ cut }`을 돌려준다. 같은 두 컴포넌트가 받아서 쓴다. 트리와 파싱 진행률은 받는 대로 보여야 해서 로더가 직접 쓴다.
 - **AST 파싱**: 14개 언어 tree-sitter WASM (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala)
   - 문법 WASM은 `static/`에 커밋한다. 언어별 파일은 `languageDetector.getGrammarFile()`이 고른다. `.tsx`는 언어는 TypeScript 그대로 두고 JSX를 읽는 `tree-sitter-tsx.wasm`(`tree-sitter-wasms` 0.1.13)으로 파싱한다. `.ts`는 `<T>value` 캐스트를 JSX로 오인하지 않도록 `tree-sitter-typescript.wasm`을 유지한다
+  - 문법이 없는 설정 파일 네 형식은 `configParsers.ts`의 줄 단위 파서가 읽는다(Understand-Anything의 비코드 파서 방식). `parserService.parseFile()`이 `LINE_PARSERS` 표(Markdown 포함)에서 골라 워커를 띄우지 않고 부른다. 형식은 `languageDetector.detectConfigLanguage()`가 파일 이름으로 정한다. 확장자 표가 먼저라서 `Dockerfile.ts`는 TypeScript다
+    - Dockerfile(`Dockerfile`, `Dockerfile.*`, `*.Dockerfile`, `Containerfile`): FROM부터 다음 FROM까지가 `stage`이고, 자식으로 EXPOSE `port`와 ENTRYPOINT·CMD `command`를 둔다. 베이스 이미지와 COPY·ADD 원본 경로는 `import`다. `COPY --from`과 앞 단계를 가리키는 FROM, `scratch`는 import가 아니다. 이어 쓰기(`\`, `# escape=`), 이어 쓰기 안의 주석, `RUN <<EOF` 본문을 건너뛴다
+    - Terraform(`.tf`): 최상위 resource·data·module은 `resource` 종류에 주소 이름(`aws_s3_bucket.logs`, `data.aws_ami.ubuntu`, `module.vpc`), variable은 `input`, output은 `output`이다. 줄 범위는 짝 맞는 중괄호까지이고, 문자열·`${}` 안·주석·heredoc의 중괄호는 세지 않는다. module의 `source`는 `import`다. provider·locals·terraform 블록과 `.tfvars`(값만 있다)는 읽지 않는다
+    - env 템플릿(`.env.example`, `.env.sample`, `.env.template`, `.env.dist`, `.env.defaults`, 마지막 접미사가 이 다섯이면 `.env.local.example`도): 키마다 `env` 심볼 하나다. 실제 값이 든 env 파일(`.env`, `.env.local`, `.env.production` 등)은 언어를 붙이지 않으므로 로컬 폴더와 GitHub 모두 내용을 열지 않는다. 트리에는 남기고 커버리지에 `env-values`(건너뜀)로 보인다. 값을 보고 키를 가려내는 규칙이 계속 새어서, 비밀값이 들어올 파일을 아예 읽지 않기로 했다. 템플릿에서도 키는 `^[A-Z_][A-Z0-9_]*$`만 읽는다. 붙여 넣은 base64·PEM·JWT 조각은 대소문자가 섞여 있어서다. 소문자 키와 점이 든 키는 잃는다. 값은 따옴표가 닫히는지만 보고 심볼에 넣지 않는다. 여러 줄 값(PEM 키) 안의 줄은 키로 읽지 않는다. 따옴표 없는 값이 다음 줄로 넘친 경우(붙여 넣은 PEM, 줄바꿈된 base64)도 같다. 키 다음 줄이 대문자 `KEY=` 대입이 아니거나, 키보다 깊게 들여 써 있거나, 앞 줄이 `\`로 끝나면 빈 줄이나 주석까지를 그 키의 값으로 본다. 이 규칙은 진짜 키를 놓칠 수는 있어도 값 글자로 키를 만들지는 않는다. `KEY: value` 형식과 값이 `=`로 시작하는 줄(`QQ==`)은 키로 읽지 않는다. `.env*`는 숨김 파일이지만 `filePriority`가 경로 필터에서 남긴다(`languageDetector.isEnvFile()`). `*.env`와 `.envrc`는 읽지 않는다
+    - Makefile(`Makefile`, `makefile`, `GNUmakefile`, `*.mk`): 규칙 대상마다 `target`이고 마지막 레시피 줄까지가 범위다. 선행 조건은 자식 `import`다. 패턴 규칙(`%.o: %.c`)과 정적 패턴 규칙, 여러 대상 규칙을 읽는다. `include`는 파일 `import`다. 변수 대입, `define` 본문, 대상별 변수, `.PHONY` 같은 특수 대상은 규칙이 아니다
+    - 새 종류는 모두 전송 종류다(`ast.ts`의 `CONFIG_SYMBOL_KINDS`). 설정 파일에만 나오므로 기존 파일의 전송 바이트는 그대로이고(`skeletonWire.test.ts`), 심볼이 없는 설정 파일은 `no-symbols`로 빠진다. 전송 언어 이름은 `dockerfile`, `terraform`, `dotenv`, `makefile`이다. 형식마다 자기 용어를 쓰므로 프롬프트 규칙은 더하지 않았다. 파일 그래프(`graphBuilder`)에는 Markdown처럼 그리지 않는다
   - `.svelte`·`.vue`는 전용 문법 없이 `<script>` 블록(`context="module"`, `module`, `setup` 포함)을 TS/JS로 읽는다. `sfcScripts.componentScriptSource()`가 블록 밖의 글자를 공백으로 바꾸고 줄바꿈은 남겨서, 심볼 줄 번호가 원본 파일 줄과 같다. 문법은 블록의 `lang`(`ts`, `tsx`, 없음 = JS) 중 가장 넓은 것을 `getGrammarFile()`로 고른다. 템플릿과 스타일은 읽지 않는다. JSON-LD처럼 코드가 아닌 `type`과 모르는 `lang`(예: `coffee`)의 블록은 건너뛴다
 - **코드 구조 요약 크기**: 기본 250KB (50-1000KB 범위, 1KB = 1000바이트). 보내는 압축 JSON 전체(바깥 필드 포함)로 잰다
   - 경고는 `requestBudget.ts`가 실제로 보낼 프롬프트(시스템 + 사용자, `topLevelPrompt()`)로 잰다. 데모는 POST 본문(JSON 이스케이프 포함)이 300KB를 넘으면 경고한다(측정 안 함, 모델당 40초 제한. 기본 250KB 스켈레톤이 본문으로 약 15% 커지는 만큼 여유를 둠). BYOK는 고른 프로바이더·모델의 컨텍스트 창(`aiProviders.ts` 표, 출처는 주석)에서 출력 예약(Gemini·OpenAI 16,384, Anthropic 4,096)을 뺀 값과 비교한다. 표에 없는 모델은 128K로 가정하고 그렇다고 알린다. 토큰 수는 1토큰 = 4바이트로 어림한다 (PASEO 측정 4.2)

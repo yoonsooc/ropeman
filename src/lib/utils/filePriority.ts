@@ -7,7 +7,7 @@
  * Lower score = higher priority (parsed first).
  */
 
-import { detectLanguage, isSupported } from '$lib/utils/languageDetector';
+import { detectLanguage, isEnvFile, isSupported } from '$lib/utils/languageDetector';
 
 const CORE_DIR_PATTERN = /(^|\/)(src|lib|app|pkg|internal|cmd)\//;
 const LOW_PRIORITY_PATTERN =
@@ -69,7 +69,7 @@ export interface CutFile {
 
 /**
  * Coarse rank for the file limit: code and instruction files, then tests and ordinary docs,
- * then files no grammar can read. The finer `pathPriority` scores are not used here, so a
+ * then files no parser reads. The finer `pathPriority` scores are not used here, so a
  * folder of scripts or skills still gets its turn beside core source.
  */
 function rankBand(path: string): number {
@@ -290,7 +290,7 @@ export const DEFAULT_PATH_FILTER: PathFilter = createPathFilter();
 
 function isExcludedSegment(seg: string, prefix: string, filter: PathFilter): boolean {
 	if (filter.skip.has(seg) || filter.skipPaths.includes(prefix)) return true;
-	if (seg.startsWith('.') && seg !== '.env') return true;
+	if (seg.startsWith('.') && !isEnvFile(seg)) return true;
 	return seg.endsWith('.egg-info');
 }
 
