@@ -5,8 +5,12 @@ import {
 	selectSkeleton,
 	selectSubSkeleton,
 	estimatePayloadSize,
-	formatPayloadPreview
+	formatPayloadPreview,
+	buildCodeMap,
+	fileFromAst,
+	toWireFile
 } from './skeletonExtractor';
+import type { FileRecord, FilePath, SymbolId } from '$lib/types/codeMap';
 import type { FileNode } from '$lib/types/fileTree';
 import type { ASTSymbol } from '$lib/types/ast';
 import type { SkeletonPayload } from '$lib/types/skeleton';
@@ -493,5 +497,108 @@ describe('formatPayloadPreview', () => {
 
 		expect(JSON.parse(preview)).toEqual(payload);
 		expect(preview).not.toMatch(/\n/);
+	});
+});
+
+describe('skeleton v2 code map', () => {
+	it('keeps the line range and every kind the wire drops', () => {
+		const record = fileFromAst('utils.ts', makeAstMap().get('utils.ts')!);
+
+		expect(record.symbols.map((s) => [s.name, s.kind, s.lines])).toEqual([
+			['formatDate', 'function', { start: 3, end: 8 }],
+			['IConfig', 'interface', { start: 10, end: 15 }],
+			['ConfigType', 'type', { start: 17, end: 17 }]
+		]);
+	});
+
+	it('records each import with its line, waiting for a resolver', () => {
+		const record = fileFromAst('lib.go', makeAstMap().get('lib.go')!);
+
+		expect(record.imports).toEqual([
+			{ line: 3, text: 'import "fmt"', target: { state: 'pending' } }
+		]);
+		expect(record.calls).toEqual([]);
+	});
+
+	it('names symbols by file and nesting, numbering duplicates', () => {
+		const record = fileFromAst('svc.ts', [
+			{
+				name: 'Server',
+				kind: 'class',
+				lineStart: 1,
+				lineEnd: 9,
+				children: [
+					{ name: 'start', kind: 'method', lineStart: 2, lineEnd: 4 },
+					{ name: 'start', kind: 'method', lineStart: 5, lineEnd: 8 }
+				]
+			},
+			{ name: 'Stop', kind: 'method', lineStart: 11, lineEnd: 12, parentName: 'Server' }
+		]);
+
+		const ids = (symbols: FileRecord['symbols']): string[] =>
+			symbols.flatMap((s) => [s.id, ...ids(s.children)]);
+		expect(ids(record.symbols)).toEqual([
+			'svc.ts#Server',
+			'svc.ts#Server.start',
+			'svc.ts#Server.start~2',
+			'svc.ts#Server.Stop'
+		]);
+	});
+
+	it('builds a record for every parsed file, empty ones included, in parser order', () => {
+		const astMap = makeAstMap();
+		astMap.set('empty.ts', []);
+
+		const map = buildCodeMap(astMap);
+
+		expect(map.version).toBe(2);
+		expect([...map.files.keys()]).toEqual(['main.py', 'utils.ts', 'lib.go', 'empty.ts']);
+	});
+
+	it('sends the same wire file whatever calls and import targets are filled in', () => {
+		const record = fileFromAst('main.py', makeAstMap().get('main.py')!);
+		const resolved: FileRecord = {
+			...record,
+			imports: record.imports.map((site) => ({
+				...site,
+				target: {
+					state: 'external',
+					module: 'flask',
+					provenance: { source: 'resolver', confidence: 'EXTRACTED' }
+				}
+			})),
+			calls: [
+				{
+					line: 4,
+					caller: 'main.py#create_app' as SymbolId,
+					callee: 'Flask',
+					target: { state: 'unresolved' }
+				}
+			]
+		};
+
+		expect(JSON.stringify(toWireFile('main.py', resolved))).toBe(
+			JSON.stringify(toWireFile('main.py', record))
+		);
+	});
+
+	it('names the file on the wire by the path the request uses', () => {
+		const record = fileFromAst('project/src/a.ts', [
+			{ name: 'run', kind: 'function', lineStart: 1, lineEnd: 2 }
+		]);
+
+		const wire = toWireFile('src/a.ts', record);
+
+		expect(record.path).toBe('project/src/a.ts' as FilePath);
+		expect(wire?.path).toBe('src/a.ts');
+	});
+
+	it('sends nothing for a file of local-only kinds', () => {
+		const record = fileFromAst('types.ts', [
+			{ name: 'Only', kind: 'interface', lineStart: 1, lineEnd: 3 }
+		]);
+
+		expect(toWireFile('types.ts', record)).toBeNull();
+		expect(record.symbols).toHaveLength(1);
 	});
 });
