@@ -154,9 +154,10 @@
 		error = '';
 		try {
 			resetStores();
-			const tree = handleFallbackInput(input.files, currentPathFilter());
+			const { tree, cut } = handleFallbackInput(input.files, currentPathFilter());
 			projectStore.projectName = tree.name;
 			projectStore.fileTree = tree;
+			projectStore.cutFiles = cut;
 			projectStore.isLoading = true;
 			const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 				projectStore.parsingProgress = progress;
@@ -206,8 +207,9 @@
 		projectStore.projectName = dirHandle.name;
 		onload?.();
 
-		const tree = await readDirectoryRecursive(dirHandle, '', currentPathFilter());
+		const { tree, cut } = await readDirectoryRecursive(dirHandle, '', currentPathFilter());
 		projectStore.fileTree = tree;
+		projectStore.cutFiles = cut;
 
 		const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 			projectStore.parsingProgress = progress;

@@ -120,7 +120,8 @@ edge-proxy/                       # Cloudflare Workers
 사용자 폴더 드롭
 → File System Access API (showDirectoryPicker / webkitdirectory fallback)
 → fileSystemService.readDirectoryRecursive()   # 경로를 전부 모은 뒤 filePriority.capFiles()로 순위를 매기고 MAX_FILES에서 자른다
-→ FileNode 트리 생성 (projectStore.fileTree), 잘린 파일과 이유 (projectStore.cutFiles)
+→ { tree, cut } 반환. 파일이 모두 잘린 폴더는 트리에서 뺀다
+→ 호출한 컴포넌트가 projectStore.fileTree와 projectStore.cutFiles(잘린 파일과 이유)에 쓴다
 → parserService.parseAllFiles() [Web Worker — tree-sitter WASM]
 → ASTSymbol[] 맵 생성 (projectStore.astMap)
 ```
@@ -285,6 +286,7 @@ export const xxxStore = createXxxStore();
   - 순위는 세 묶음이다. 코드와 지침 파일, 그다음 테스트와 일반 문서, 그다음 문법이 없는 파일 순이다.
   - 묶음 안에서는 폴더마다 차례로 한 파일씩 고른다. 큰 패키지 하나가 상한을 다 써서 다른 패키지가 통째로 빠지는 일을 막는다.
   - 잘린 파일은 이유(`file-limit`, `file-size`, `total-size`)와 함께 `projectStore.cutFiles`에 남는다. 로컬 폴더는 남긴 파일의 핸들만 다시 받는다.
+  - `fileSystemService`는 스토어에 쓰지 않고 `{ tree, cut }`을 돌려준다. 스토어 쓰기는 `Dropzone.svelte`와 `+page.svelte`가 한다. 파일이 하나도 남지 않은 폴더는 트리에서 빠진다.
 - **AST 파싱**: 14개 언어 tree-sitter WASM (Python, JS, TS, Go, Rust, Java, C, C++, Ruby, PHP, Swift, Kotlin, C#, Scala)
   - 문법 WASM은 `static/`에 커밋한다. 언어별 파일은 `languageDetector.getGrammarFile()`이 고른다. `.tsx`는 언어는 TypeScript 그대로 두고 JSX를 읽는 `tree-sitter-tsx.wasm`(`tree-sitter-wasms` 0.1.13)으로 파싱한다. `.ts`는 `<T>value` 캐스트를 JSX로 오인하지 않도록 `tree-sitter-typescript.wasm`을 유지한다
 - **코드 구조 요약 크기**: 기본 250KB (50-1000KB 범위), 대형 모델 토큰 한도 내 안전 범위
