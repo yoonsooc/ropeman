@@ -40,7 +40,7 @@
 4. 리뷰 보고서 `.spec/reviews/{sprint_id}-review.md`: 대상, C/W/S 개수, 이슈별 증상·원인·수정·결정, 오탐과 스킵한 Suggestion의 이유. 새 안티패턴은 `common_antipatterns.md`로 올리고 링크한다. 2차 리뷰는 같은 파일에 절을 추가한다(삭제 금지). 보고서는 리뷰 시점의 스냅샷이다.
 5. Critical·Warning은 바로 고치고 Suggestion은 판단한다. 스프린트 중 고친 버그는 `.spec/bug-report/`에 기록한다.
 6. 테스트·빌드 재통과 → **커밋 B**(리뷰 수정 + 리뷰 보고서) `review: {요약} ({C}C/{W}W/{S}S)`, 본문은 주요 수정 목록과 `- 리뷰 보고서: .spec/reviews/{sprint_id}-review.md`.
-7. 단위 PR은 검증 통과와 PR CI 통과 후 `gh pr merge --merge`로 병합한다(squash 금지: feat·review 커밋이 main에 보이게). 사용자 승인 단계는 없고 사용자는 병합된 결과를 검토한다.
+7. 단위 PR은 검증을 통과하면 `gh pr merge --auto --merge`로 자동 병합을 건다. main이 앞서 있으면 `gh pr update-branch`로 맞추고, PR CI가 통과하는 순간 GitHub가 병합한다(squash 금지: feat·review 커밋이 main에 보이게). 사용자 승인 단계는 없고 사용자는 병합된 결과를 검토한다.
 
 후속 개발과 수정은 독립 커밋(`feat: ...`, `fix: ...`)으로 잇는다. PRD·Task 상태·changelog 같은 메타데이터는 이 주기에서 건드리지 않는다(리뷰 수정 커밋과 메타데이터 커밋은 분리).
 
