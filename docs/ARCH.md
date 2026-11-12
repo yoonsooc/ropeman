@@ -155,7 +155,7 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 - `coverageService.buildCoverage()`는 순수 함수다. 입력은 `fileTree`, `astMap`, `cutFiles`, `parseSkips`, `selectSkeleton()` 결과, 시맨틱 캐시의 단계들이다. 모든 경로는 프로젝트 이름을 뗀 상대 경로로 맞춘다.
 - 파일 하나에는 이유 하나만 붙는다. 상태는 `COVERAGE_REASONS` 표(`types/coverage.ts`)에서 이유로 정해진다.
   - 이유를 정하는 순서는 로더가 자른 이유, 문법 없음(`unsupported`), 파서가 남긴 이유, 스켈레톤이 뺀 이유(`over-budget`, `excluded-path`, `no-symbols`), 보냄이다.
-  - astMap에 없고 기록도 없는 파일은 `unreadable`이다 (GitHub 다운로드 실패 등).
+  - astMap에 없고 기록도 없는 파일은 `unreadable`이다. GitHub 로더는 다운로드 실패와 빈 응답을 `unreadable`, 파서 오류를 `parse-failed`로 `projectStore.parseSkips`에 직접 쓴다.
 - 수는 지금 설정으로 다시 계산한다. 분석한 뒤 예산을 바꾸면 요약은 새 예산 기준이다.
 - 단계별 배정 수는 `SemanticLevel.assignment`(T0-7)에서 읽는다. 드릴다운 단계의 예산 초과 수는 `selectSubSkeleton()`을 다시 돌려 센다.
 - 세지 않는 것: 로더가 순회하지 않은 폴더(`SKIP_DIRS`, 숨김 파일, 사용자 제외 패턴) 안의 파일, 문법 오류가 있어도 심볼을 돌려준 파일, LLM 출력이 잘리거나 시간이 넘은 경우.
@@ -167,7 +167,7 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 → 캐시 확인 (hasCachedLevel)
   ├─ 캐시 있음: 즉시 드릴다운 (팝업 없이)
   └─ 캐시 없음: DrilldownConfirmModal (skipDrilldownConfirm 설정 존중)
-→ 해당 영역 파일들의 sub-skeleton 추출 (최상위와 같은 바이트 예산. 넘치면 심볼이 많은 파일부터 남기고, 남긴 파일은 노드 순서대로 보낸다)
+→ 해당 영역 파일들의 sub-skeleton 추출 (최상위와 같은 바이트 예산. 넘치면 심볼이 많은 파일부터 담고, 안 들어가는 파일은 건너뛰어 더 작은 파일로 채운다. 남긴 파일은 노드 순서대로 보낸다. 한 파일도 안 들어가면 가장 작은 파일 하나를 예산을 넘겨서라도 보내고 `exceedsBudget`으로 표시한다. 그래야 드릴다운이 막히지 않는다)
 → aiAdapter.callAI() → 하위 역할 분석 (배정 대상은 부모 노드의 filePaths)
 → 하위 SemanticLevel → 캔버스 업데이트 + 브레드크럼 + 탭
 
@@ -317,7 +317,7 @@ export const xxxStore = createXxxStore();
   - 문법 WASM은 `static/`에 커밋한다. 언어별 파일은 `languageDetector.getGrammarFile()`이 고른다. `.tsx`는 언어는 TypeScript 그대로 두고 JSX를 읽는 `tree-sitter-tsx.wasm`(`tree-sitter-wasms` 0.1.13)으로 파싱한다. `.ts`는 `<T>value` 캐스트를 JSX로 오인하지 않도록 `tree-sitter-typescript.wasm`을 유지한다
 - **코드 구조 요약 크기**: 기본 250KB (50-1000KB 범위, 1KB = 1000바이트). 보내는 압축 JSON 전체(바깥 필드 포함)로 잰다
   - 경고는 `requestBudget.ts`가 실제로 보낼 프롬프트(시스템 + 사용자, `topLevelPrompt()`)로 잰다. 데모는 POST 본문(JSON 이스케이프 포함)이 300KB를 넘으면 경고한다(측정 안 함, 모델당 40초 제한. 기본 250KB 스켈레톤이 본문으로 약 15% 커지는 만큼 여유를 둠). BYOK는 고른 프로바이더·모델의 컨텍스트 창(`aiProviders.ts` 표, 출처는 주석)에서 출력 예약(Gemini·OpenAI 16,384, Anthropic 4,096)을 뺀 값과 비교한다. 표에 없는 모델은 128K로 가정하고 그렇다고 알린다. 토큰 수는 1토큰 = 4바이트로 어림한다 (PASEO 측정 4.2)
-  - 하위 분석(`extractSubSkeleton`)도 같은 예산을 쓴다. 예산 안에 들면 보내는 문자열은 예산 도입 전과 같다(캐시 키 유지). 예산으로 빠진 파일은 배정 대상(부모 노드의 filePaths)에는 남으므로 그 단계의 미분류 노드로 간다
+  - 하위 분석(`extractSubSkeleton`)도 같은 예산을 쓴다. 최상위는 첫 초과 파일에서 멈추고, 하위 분석은 초과 파일을 건너뛰며 하나도 안 들어가면 가장 작은 파일 하나를 보낸다. 예산 안에 들면 보내는 문자열은 예산 도입 전과 같다(캐시 키 유지). 예산으로 빠진 파일은 배정 대상(부모 노드의 filePaths)에는 남으므로 그 단계의 미분류 노드로 간다
 - **정적 분석만**: 런타임 동작 분석 불가
 - **Edge Worker**: Gemini API 지역 제한 → placement hint 필요
 - **WebGPU**: Chrome 113+ / Edge 113+ 필요, ~900MB 모델 다운로드

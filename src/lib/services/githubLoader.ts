@@ -1,5 +1,6 @@
 import type { GitHubRepoInfo } from '$lib/utils/githubUrl';
 import type { FileNode } from '$lib/types/fileTree';
+import type { ASTSymbol, ParseSkip } from '$lib/types/ast';
 import { detectLanguage, isSupported } from '$lib/utils/languageDetector';
 import { parseFile } from '$lib/services/parserService';
 import { projectStore } from '$lib/stores/projectStore.svelte';
@@ -24,6 +25,11 @@ interface GitHubTreeItem {
 	sha: string;
 	size?: number;
 	url: string;
+}
+
+interface ParsedFile {
+	filePath: string;
+	symbols: ASTSymbol[];
 }
 
 interface GitHubTreeResponse {
@@ -199,30 +205,36 @@ export async function loadGitHubRepo(
 	// 4. Download + parse in batches
 	let done = 0;
 	const astMap = new Map(projectStore.astMap);
+	const skipped: ParseSkip[] = [];
 
 	for (let i = 0; i < supportedItems.length; i += BATCH_SIZE) {
 		const batch = supportedItems.slice(i, i + BATCH_SIZE);
 
-		const results = await Promise.allSettled(
-			batch.map(async (item) => {
-				const rawUrl = buildRawUrl(info, item.path, ref);
-				const res = await fetch(rawUrl);
-				if (!res.ok) return null;
-
-				const content = await res.text();
-				if (!content) return null;
-
-				const language = detectLanguage(item.path)!;
+		const results = await Promise.all(
+			batch.map(async (item): Promise<ParsedFile | ParseSkip> => {
 				const filePath = `${info.repo}/${item.path}`;
-				const symbols = await parseFile(filePath, content, language);
-				return { filePath, symbols };
+				let content: string;
+				try {
+					const res = await fetch(buildRawUrl(info, item.path, ref));
+					if (!res.ok) return { path: filePath, reason: 'unreadable' };
+					content = await res.text();
+				} catch {
+					return { path: filePath, reason: 'unreadable' };
+				}
+				if (!content) return { path: filePath, reason: 'unreadable' };
+
+				try {
+					const symbols = await parseFile(filePath, content, detectLanguage(item.path)!);
+					return { filePath, symbols };
+				} catch {
+					return { path: filePath, reason: 'parse-failed' };
+				}
 			})
 		);
 
 		for (const result of results) {
-			if (result.status === 'fulfilled' && result.value) {
-				astMap.set(result.value.filePath, result.value.symbols);
-			}
+			if ('reason' in result) skipped.push(result);
+			else astMap.set(result.filePath, result.symbols);
 		}
 
 		done += batch.length;
@@ -230,6 +242,7 @@ export async function loadGitHubRepo(
 		projectStore.astMap = new Map(astMap);
 	}
 
+	projectStore.parseSkips = skipped;
 	projectStore.isLoading = false;
 	return { cut };
 }

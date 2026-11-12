@@ -31,4 +31,6 @@ export type SkeletonOmission = 'over-budget' | 'excluded-path' | 'no-symbols';
 export interface SkeletonSelection {
 	payload: SkeletonPayload;
 	omitted: { path: string; reason: SkeletonOmission }[];
+	/** The payload is larger than the budget, because a drill-down sends one file even when none fits */
+	exceedsBudget: boolean;
 }

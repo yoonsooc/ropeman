@@ -112,7 +112,8 @@ describe('buildCoverage', () => {
 				totalSymbols: 1,
 				files: [{ path: 'repo/src/a.ts', language: 'typescript', symbols: [], imports: [] }]
 			},
-			omitted: [{ path: 'repo/src/b.ts', reason: 'over-budget' }]
+			omitted: [{ path: 'repo/src/b.ts', reason: 'over-budget' }],
+			exceedsBudget: false
 		};
 
 		const report = buildCoverage(input({ fileTree, astMap, skeleton }));
@@ -150,7 +151,8 @@ describe('buildCoverage', () => {
 		};
 		const skeleton: SkeletonSelection = {
 			payload: { projectName: 'repo', totalFiles: 0, totalSymbols: 0, files: [] },
-			omitted: [{ path: 'x.ts', reason: 'over-budget' }]
+			omitted: [{ path: 'x.ts', reason: 'over-budget' }],
+			exceedsBudget: false
 		};
 
 		const report = buildCoverage(

@@ -106,25 +106,34 @@ function maxSkeletonBytes(): number {
 }
 
 /**
- * Take files in rank order until the next one would push the sent string past the budget.
- * The envelope is reserved up front at its largest, and each file after the first pays for
- * its comma, so the whole string stays within the budget.
+ * Take files in rank order while they fit the budget. The envelope is reserved up front at its
+ * largest, and each file after the first pays for its comma, so the whole string stays within
+ * the budget. On 'stop' the first file that does not fit ends the selection; on 'skip' smaller
+ * files after it still get their turn.
  */
 function fitBudget(
 	ranked: SkeletonEntry[],
-	envelope: SkeletonPayload
+	envelope: SkeletonPayload,
+	onMiss: 'stop' | 'skip'
 ): { kept: SkeletonEntry[]; over: SkeletonEntry[] } {
 	const maxBytes = maxSkeletonBytes();
 	let usedBytes = byteLength(formatPayloadPreview(envelope));
 	const kept: SkeletonEntry[] = [];
+	const over: SkeletonEntry[] = [];
 	for (let i = 0; i < ranked.length; i++) {
-		const fileBytes = byteLength(JSON.stringify(ranked[i].file)) + (kept.length > 0 ? 1 : 0);
-		if (usedBytes + fileBytes > maxBytes) return { kept, over: ranked.slice(i) };
+		const fileBytes = entryBytes(ranked[i]) + (kept.length > 0 ? 1 : 0);
+		if (usedBytes + fileBytes > maxBytes) {
+			if (onMiss === 'stop') return { kept, over: ranked.slice(i) };
+			over.push(ranked[i]);
+			continue;
+		}
 		usedBytes += fileBytes;
 		kept.push(ranked[i]);
 	}
-	return { kept, over: [] };
+	return { kept, over };
 }
+
+const entryBytes = (entry: SkeletonEntry) => byteLength(JSON.stringify(entry.file));
 
 const sumSymbols = (entries: SkeletonEntry[]) =>
 	entries.reduce((sum, entry) => sum + entry.symbolCount, 0);
@@ -168,7 +177,8 @@ export function selectSkeleton(
 			totalFiles: totalEntries,
 			totalSymbols: sumSymbols(entries),
 			files: []
-		}
+		},
+		'stop'
 	);
 	for (const entry of entries) {
 		if (entry.priority === 0) omitted.push({ path: entry.file.path, reason: 'excluded-path' });
@@ -183,7 +193,8 @@ export function selectSkeleton(
 			totalSymbols: sumSymbols(kept),
 			files: kept.map((entry) => entry.file)
 		},
-		omitted
+		omitted,
+		exceedsBudget: false
 	};
 }
 
@@ -228,15 +239,28 @@ export function selectSubSkeleton(
 		else omitted.push({ path: filePath, reason: 'no-symbols' });
 	}
 
-	// Every file here already passed the top-level ranking, so the largest outlines go first.
-	// The kept files stay in the node's order, so a request that fits is sent unchanged.
+	// Every file here already passed the top-level ranking, so the largest outlines go first and
+	// smaller ones fill what is left. The kept files stay in the node's order, so a request that
+	// fits is sent unchanged.
 	const ranked = [...entries].sort((a, b) => b.symbolCount - a.symbolCount);
-	const { kept, over } = fitBudget(ranked, {
-		projectName: 'sub-skeleton',
-		totalFiles: entries.length,
-		totalSymbols: sumSymbols(entries),
-		files: []
-	});
+	let { kept, over } = fitBudget(
+		ranked,
+		{
+			projectName: 'sub-skeleton',
+			totalFiles: entries.length,
+			totalSymbols: sumSymbols(entries),
+			files: []
+		},
+		'skip'
+	);
+	// A node whose every file is over the budget would have nothing to send and could never be
+	// drilled into, so it sends its smallest file anyway.
+	const exceedsBudget = kept.length === 0 && over.length > 0;
+	if (exceedsBudget) {
+		const smallest = over.reduce((a, b) => (entryBytes(b) < entryBytes(a) ? b : a));
+		kept = [smallest];
+		over = over.filter((entry) => entry !== smallest);
+	}
 	const keptSet = new Set(kept);
 	const sent = entries.filter((entry) => keptSet.has(entry));
 	for (const entry of over) omitted.push({ path: entry.file.path, reason: 'over-budget' });
@@ -248,7 +272,8 @@ export function selectSubSkeleton(
 			totalSymbols: sumSymbols(sent),
 			files: sent.map((entry) => entry.file)
 		},
-		omitted
+		omitted,
+		exceedsBudget
 	};
 }
 
