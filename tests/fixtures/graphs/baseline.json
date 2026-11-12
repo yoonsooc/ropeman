@@ -18,12 +18,12 @@
 		"dynamic_import": {
 			"precision": null,
 			"recall": 0,
-			"siteRecall": 0
+			"siteRecall": 1
 		},
 		"calls": {
 			"precision": null,
 			"recall": 0,
-			"siteRecall": 0
+			"siteRecall": 1
 		}
 	},
 	"svelte-app": {
@@ -45,7 +45,7 @@
 		"calls": {
 			"precision": null,
 			"recall": 0,
-			"siteRecall": 0
+			"siteRecall": 1
 		}
 	},
 	"py-shop": {
@@ -62,7 +62,7 @@
 		"calls": {
 			"precision": null,
 			"recall": 0,
-			"siteRecall": 0
+			"siteRecall": 1
 		}
 	}
 }
