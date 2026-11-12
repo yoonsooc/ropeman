@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const DIR = '/tmp/ropeman-coverage';
+const BROKEN_DIR = '/tmp/ropeman-coverage-broken';
 
 test.beforeAll(() => {
 	fs.mkdirSync(path.join(DIR, 'src'), { recursive: true });
@@ -19,9 +20,13 @@ test.beforeAll(() => {
 	fs.writeFileSync(path.join(DIR, 'scripts', 'release.py'), 'def release():\n    pass\n');
 	// No parser for this type
 	fs.writeFileSync(path.join(DIR, 'notes.txt'), 'todo\n');
+
+	fs.mkdirSync(path.join(BROKEN_DIR, 'src'), { recursive: true });
+	fs.writeFileSync(path.join(BROKEN_DIR, 'src', 'app.py'), 'def run():\n    pass\n');
+	fs.writeFileSync(path.join(BROKEN_DIR, 'src', 'broken.py'), 'def (:\n  )))) class\n {{{{\n');
 });
 
-async function openProject(page: Page, settings: Record<string, unknown>) {
+async function openProject(page: Page, settings: Record<string, unknown>, dir = DIR) {
 	await page.addInitScript((s) => {
 		localStorage.setItem(
 			'ropeman-onboarding',
@@ -29,7 +34,7 @@ async function openProject(page: Page, settings: Record<string, unknown>) {
 		);
 		localStorage.setItem('ropeman-settings', JSON.stringify(s));
 	}, settings);
-	await page.goto(`/?testDir=${encodeURIComponent(DIR)}`);
+	await page.goto(`/?testDir=${encodeURIComponent(dir)}`);
 	await expect(page.locator('.main-layout')).toBeVisible({ timeout: 60_000 });
 	await expect(page.locator('.loading-overlay')).toBeHidden({ timeout: 120_000 });
 }
@@ -70,4 +75,15 @@ test('sends every read file when the budget is unlimited', async ({ page }) => {
 	await expect(page.getByTestId('coverage-summary')).toHaveText(
 		/파일 11개 중 10개를 AI에 보냄 · 2개 건너뜀/
 	);
+});
+
+test('lists a file whose syntax the parser could not read as a parser error', async ({ page }) => {
+	await openProject(page, { language: 'en' }, BROKEN_DIR);
+
+	await page.getByTestId('coverage-summary').click();
+
+	await expect(page.getByTestId('coverage-group-failed')).toContainText('1');
+	const rows = page.getByTestId('coverage-rows');
+	await expect(rows).toContainText('src/broken.py');
+	await expect(rows).toContainText('Parser error');
 });
