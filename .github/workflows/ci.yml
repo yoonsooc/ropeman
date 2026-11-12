@@ -25,14 +25,12 @@ jobs:
           node-version: 22
           cache: npm
 
+      # npm ci runs the prepare script, which already runs svelte-kit sync
       - name: Install dependencies
         run: npm ci
 
       - name: Lint
         run: npm run lint
-
-      - name: Sync SvelteKit
-        run: npx svelte-kit sync
 
       - name: Type check
         run: npx svelte-check --tsconfig ./tsconfig.json

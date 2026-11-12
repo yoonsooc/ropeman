@@ -4,8 +4,8 @@
 
 | 저장소 | 파일 | 정답 관계 | 담은 경우 |
 | --- | --- | --- | --- |
-| `ts-monorepo/` | 24 (TS 19) | 76 | 워크스페이스 패키지(`@acme/core`), tsconfig `paths`(`@shared/*`, 앱 tsconfig가 base의 paths를 덮어씀), `$lib` 별칭, 배럴 `index.ts`, `export *`, `export { default as … }`, `export type`, default·namespace·type-only import, side-effect import, 동적 `import()`, 순환 import(`store.ts` ↔ `events.ts`), 배럴을 거친 호출, 클래스 인스턴스 메서드 호출, 설치되지 않은 외부 패키지(`lodash-es`), `plugins.ts`와 `plugins/index.ts`가 함께 있는 경로 |
-| `svelte-app/` | 16 (코드 14) | 50 | `.svelte` 컴포넌트가 TS 모듈을 import, 설정 없는 SvelteKit `$lib`, `$lib` 루트 배럴, `cart.svelte` → `cart.svelte.ts`, 컴포넌트 default import, 룬 |
+| `ts-monorepo/` | 24 (TS 19) | 79 | 워크스페이스 패키지(`@acme/core`), tsconfig `paths`(`@shared/*`, 앱 tsconfig가 base의 paths를 덮어씀), `$lib` 별칭, 배럴 `index.ts`, `export *`, `export { default as … }`, `export type`, default·namespace·type-only import, side-effect import, 동적 `import()`, 순환 import(`store.ts` ↔ `events.ts`), 배럴을 거친 호출, `new` 생성자 호출, 클래스 인스턴스 메서드 호출, 설치되지 않은 외부 패키지(`lodash-es`), `plugins.ts`와 `plugins/index.ts`가 함께 있는 경로 |
+| `svelte-app/` | 16 (코드 14) | 51 | `.svelte` 컴포넌트가 TS 모듈을 import, 설정 없는 SvelteKit `$lib`, `$lib` 루트 배럴, `cart.svelte` → `cart.svelte.ts`, 컴포넌트 default import, 룬 |
 | `py-shop/` | 10 (py 9) | 39 | 상대 import(`.`, `..`), 패키지 `__init__.py`를 거친 import, 자기 패키지 절대 import(`from shop import …`), 클래스 호출, `self.repo.save` 같은 속성 메서드 호출, 표준 라이브러리(`json`) |
 
 - 각 저장소는 `?testDir=<절대 경로>`로 앱에서 그대로 열린다. 저장소 안에는 로더가 건너뛰는 이름(`tests`, `fixtures`, `docs`, 점으로 시작하는 이름 등, `scripts/vite-dev-fs-plugin.js`의 `SKIP_PATTERNS`)을 쓰지 않는다.
@@ -38,7 +38,7 @@
 1. 모듈 대상은 문장이 가리키는 파일 그대로다. `import … from '@acme/core'`의 대상은 배럴 `packages/core/src/index.ts`다.
 2. 이름 대상은 재수출을 끝까지 따라간 선언이다. `main.ts`가 배럴에서 가져온 `formatDate`의 대상은 `format.ts#formatDate`다. Python `__init__.py`를 거친 이름도 같다.
 3. namespace import(`import * as math`)의 이름 대상은 그 파일이다.
-4. 호출은 문법상 호출식만 센다. TS `new Logger()`는 호출이 아니고, Python `Order(items)`는 클래스 `Order`를 부르는 호출이다.
+4. 호출은 추출기(`src/lib/workers/refQueries.ts`)와 Graphify가 세는 것을 센다. Graphify 0.9.104도 `new_expression`과 JSX 요소를 호출 노드로 읽는다. 호출식(`f()`, `a.b()`) 외에 생성자 호출도 클래스를 부르는 호출이다. TS `new Logger()`와 Python `Order(items)`는 둘 다 클래스 선언(`logger.ts#Logger`, `models.py#Order`)을 가리킨다. TSX·JSX 컴포넌트 태그(`<Counter />`, `<ui.Button>`)도 그 컴포넌트를 부르는 호출이고, 소문자 HTML 태그(`<div>`)는 호출이 아니다. 지금 픽스처에는 TSX 파일이 없어서 태그 호출 정답은 없다. 내장 클래스(`new Map()`)는 규칙 5에 따라 정답이 없다.
 5. 호출 대상이 저장소 안 선언이거나 외부 패키지에서 이름으로 가져온 것일 때만 정답에 넣는다. 내장 함수와 전역(`listeners.push`, `Array.isArray`, `print`), 룬(`$props`, `$state`), 매개변수나 지역 값으로 받은 함수(`listener(…)`, `fetchFn(…)`)는 정답이 없다. 이런 호출을 무언가에 연결하면 오탐이 된다. `store.ts`의 `this.values.set`은 이름만 보고 `Store.set`에 연결하면 틀리는 함정이다.
 6. `.svelte` 마크업 안의 식(`{priceOf(i)}`, `{@render children()}`)은 범위 밖이다. 파서는 `<script>`만 읽는다.
 7. `.svelte` 컴포넌트의 default import(`import Button from './Button.svelte'`)는 파일 관계(`imports_from`, `re_exports`)만 적는다. 컴포넌트는 심볼이 아니라서 코드 지도에 가리킬 대상이 없다.

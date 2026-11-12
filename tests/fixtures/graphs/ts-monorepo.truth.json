@@ -34,6 +34,7 @@
     { "kind": "imports_from", "from": "apps/web/src/main.ts", "line": 5, "written": "$lib/math", "to": "apps/web/src/lib/math.ts" },
     { "kind": "imports", "from": "apps/web/src/main.ts", "line": 5, "written": "math", "to": "apps/web/src/lib/math.ts" },
     { "kind": "imports_from", "from": "apps/web/src/main.ts", "line": 6, "written": "./polyfills", "to": "apps/web/src/polyfills.ts" },
+    { "kind": "calls", "from": "apps/web/src/main.ts", "line": 8, "written": "Logger", "to": "packages/core/src/logger.ts#Logger" },
     { "kind": "calls", "from": "apps/web/src/main.ts", "line": 11, "written": "readConfig", "to": "shared/config.ts#readConfig" },
     { "kind": "calls", "from": "apps/web/src/main.ts", "line": 12, "written": "createId", "to": "packages/core/src/id.ts#createId" },
     { "kind": "calls", "from": "apps/web/src/main.ts", "line": 13, "written": "log.info", "to": "packages/core/src/logger.ts#Logger.info" },
@@ -59,6 +60,7 @@
     { "kind": "imports_from", "from": "apps/web/src/lib/store.ts", "line": 1, "written": "./events", "to": "apps/web/src/lib/events.ts" },
     { "kind": "imports", "from": "apps/web/src/lib/store.ts", "line": 1, "written": "emit", "to": "apps/web/src/lib/events.ts#emit" },
     { "kind": "calls", "from": "apps/web/src/lib/store.ts", "line": 10, "written": "emit", "to": "apps/web/src/lib/events.ts#emit" },
+    { "kind": "calls", "from": "apps/web/src/lib/store.ts", "line": 15, "written": "Store", "to": "apps/web/src/lib/store.ts#Store" },
 
     { "kind": "imports_from", "from": "apps/web/src/lib/events.ts", "line": 1, "written": "./store", "to": "apps/web/src/lib/store.ts" },
     { "kind": "imports", "from": "apps/web/src/lib/events.ts", "line": 1, "written": "Store", "to": "apps/web/src/lib/store.ts#Store" },
@@ -75,6 +77,7 @@
     { "kind": "imports", "from": "apps/web/src/lib/api/client.ts", "line": 2, "written": "postsRoute", "to": "apps/web/src/lib/api/routes.ts#postsRoute" },
     { "kind": "imports_from", "from": "apps/web/src/lib/api/client.ts", "line": 3, "written": "@acme/core", "to": "packages/core/src/index.ts" },
     { "kind": "imports", "from": "apps/web/src/lib/api/client.ts", "line": 3, "written": "Logger", "to": "packages/core/src/logger.ts#Logger" },
+    { "kind": "calls", "from": "apps/web/src/lib/api/client.ts", "line": 5, "written": "Logger", "to": "packages/core/src/logger.ts#Logger" },
     { "kind": "calls", "from": "apps/web/src/lib/api/client.ts", "line": 8, "written": "userRoute", "to": "apps/web/src/lib/api/routes.ts#userRoute" },
     { "kind": "calls", "from": "apps/web/src/lib/api/client.ts", "line": 9, "written": "log.warn", "to": "packages/core/src/logger.ts#Logger.warn" },
     { "kind": "calls", "from": "apps/web/src/lib/api/client.ts", "line": 14, "written": "postsRoute", "to": "apps/web/src/lib/api/routes.ts#postsRoute" },

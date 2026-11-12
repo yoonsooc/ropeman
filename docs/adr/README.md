@@ -51,3 +51,4 @@
 | [ADR-19](0019-explore-manual-refresh.md)             | 공개 갤러리 — 수동 갱신 + explore KV namespace       | 2026-04-13 |
 | [ADR-20](0020-markdown-outline-and-include-paths.md) | Markdown 개요를 코드 구조 요약에 + 포함 경로 우선    | 2026-11-10 |
 | [ADR-21](0021-skeleton-v2-local-code-map.md)         | 스켈레톤 v2는 로컬 코드 지도, AI 전송 형식은 v1 고정 | 2026-11-12 |
+| [ADR-22](0022-astryx-tokens-without-package.md)      | astryx 토큰과 규칙만 도입, 패키지 미설치             | 2026-11-12 |
