@@ -149,6 +149,13 @@ packages/core/                    # Node 추출 코어 (npm 워크스페이스 �
 │   └── cli.ts                        # `ropeman-extract <폴더> [--out 파일]`
 ├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙, 폴더로 묶은 지도의 검증(`mapVerifier.test.ts`)
 └── vite.config.ts                    # `npm run build:core` → `dist/cli.mjs` 하나와 `dist/wasm/`
+
+scripts/paseo-comparison/         # 실험: 같은 모델·프롬프트에 Ropeman 추출과 graph.json을 넣어 비교 (T1-12)
+├── run.mjs                           # vite로 TS 모듈을 Node에서 연다 (`$lib` 별칭)
+├── inputs.ts                         # 두 입력을 같은 `CodeMap`으로, 커버리지·디스크 확인·두 지도 일치
+├── view.ts                           # 폴더 → 부분과 부분 사이 관계(근거 줄) → 프롬프트
+├── checks.ts                         # 답의 구조 검사, 조정 랜드 지수
+└── experiment.ts                     # `claude -p` 호출, 실행 기록(호출 시각·사전 등록 해시), 요약 (결과는 docs/measurements/)
 ```
 
 ---
@@ -535,4 +542,5 @@ main push → ci job (lint, svelte-check, build, unit, worker tests)
 - 채점: `services/codeMapScore.ts`의 `scoreCodeMap(map, truth)`가 종류마다 precision, recall, siteRecall(대상과 상관없이 그 줄에 위치가 있는 비율)과 놓친 관계를 낸다. 순수 함수이고 입력은 `CodeMap`이라 파서, 해석기, graph.json 어댑터 결과를 같은 방식으로 잰다.
 - 기준선: `codeMapScore.fixtures.test.ts`가 `?testDir=` 로더와 같은 스캐너(`scanDirectory`)로 파일을 읽어 지금 추출기로 코드 지도를 만들고 `baseline.json`보다 낮아진 값이 있으면 실패한다. 점수가 오르면 `UPDATE_GRAPH_BASELINE=1`로 다시 기록해 같은 PR에 넣는다.
 - 저장소 코드는 eslint, prettier, svelte-check에서 뺐다. 포매터가 줄을 옮기면 정답이 틀어진다.
+- PASEO 비교(T1-12): `scripts/paseo-comparison/`이 Ropeman 추출과 Graphify `graph.json`을 같은 프롬프트로 바꿔 모델에 넣고 결과를 결정론 검사로 잰다. 방법과 숫자는 `docs/measurements/2026-11-13-paseo-graphify-comparison.md`에 있다. 검사 함수의 테스트는 `comparison.test.ts`이고 루트 `npm run test:unit`에 들어간다.
 - Graphify 점수: `tests/fixtures/graphify/`에 세 저장소를 Graphify 0.9.104로 읽은 `graph.json`과 손으로 쓴 `hand.graph.json`이 있다. `graphifyAdapter.test.ts`가 어댑터 결과를 같은 정답으로 채점해 기록한 값과 같은지 본다. 만든 방법과 점수는 그 폴더의 `README.md`에 있다.

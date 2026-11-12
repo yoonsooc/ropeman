@@ -11,7 +11,12 @@ export default defineConfig({
 	},
 	test: {
 		// edge-proxy tests run in workerd through edge-proxy/vitest.config.mts
-		include: ['src/**/*.test.ts', 'bridge/test/**/*.test.ts', 'packages/*/test/**/*.test.ts'],
+		include: [
+			'src/**/*.test.ts',
+			'bridge/test/**/*.test.ts',
+			'packages/*/test/**/*.test.ts',
+			'scripts/**/*.test.ts'
+		],
 		globals: true,
 		environment: 'node'
 	}
