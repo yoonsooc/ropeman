@@ -13,7 +13,7 @@
 		browser: BrowserFamily;
 		/** `127.0.0.1:<port>`: where the page tried, or will try, to connect */
 		host: string;
-		/** This page's origin, for the browser's site settings address */
+		/** This page's origin, for the browser's site settings address and serve's allow list */
 		origin: string;
 		/** The page is served by serve itself (local mode) */
 		local?: boolean;
@@ -28,6 +28,8 @@
 	);
 	const SERVE = 'npx @ropeman/bridge serve --root .';
 	const LOCAL = 'npx @ropeman/bridge serve --root . --local';
+	const TOKEN = 'cat ~/.ropeman/bridge-token';
+	const allowThisPage = $derived(`${SERVE} --allow-origin ${origin}`);
 
 	const tone = $derived(
 		state === 'granted' || state === 'unasked' || state === 'unknown' || state === 'safari'
@@ -46,8 +48,8 @@
 			denied: 'block',
 			unanswered: 'help',
 			'serve-down': 'power_off',
-			unreachable: 'wifi_off',
-			refused: 'key_off'
+			refused: 'key_off',
+			unexplained: 'link_off'
 		}[state]
 	);
 
@@ -88,10 +90,10 @@
 				return ['unansweredTitle', 'unansweredBody'];
 			case 'serve-down':
 				return ['serveDownTitle', 'serveDownBody'];
-			case 'unreachable':
-				return ['unreachableTitle', 'unreachableBody'];
 			case 'refused':
 				return local ? ['refusedLocalTitle', 'refusedLocalBody'] : ['refusedTitle', 'refusedBody'];
+			case 'unexplained':
+				return ['unexplainedTitle', 'unexplainedBody'];
 		}
 	});
 	/** `Browser` starts a sentence: "Your browser does not let..." */
@@ -121,19 +123,40 @@
 				<li>{t(step)}</li>
 			{/each}
 		</ol>
+		<p class="guide-hint">{t('stepsMayDiffer')}</p>
 		{#if settingsUrl}
 			<p class="guide-hint">{t('settingsUrl')}</p>
 			<pre class="guide-command"><code>{settingsUrl}</code></pre>
 		{/if}
 	{/if}
 
-	{#if state === 'serve-down' || state === 'unreachable'}
+	{#if state === 'serve-down'}
 		<pre class="guide-command"><code>{SERVE}</code></pre>
 	{/if}
 
 	{#if state === 'refused' && !local}
-		<pre class="guide-command"><code>cat ~/.ropeman/bridge-token</code></pre>
+		<pre class="guide-command"><code>{TOKEN}</code></pre>
 		<p class="guide-hint">{t('refusedHint')}</p>
+		<p class="guide-hint">{t('allowOrigin')}</p>
+		<pre class="guide-command"><code>{allowThisPage}</code></pre>
+	{/if}
+
+	{#if state === 'unexplained'}
+		<ol class="guide-steps">
+			<li>
+				{t('checkServe', params)}
+				<pre class="guide-command"><code>{SERVE}</code></pre>
+			</li>
+			<li>
+				{t('checkToken')}
+				<pre class="guide-command"><code>{TOKEN}</code></pre>
+			</li>
+			<li>{t('checkBlocked', params)}</li>
+			<li>
+				{t('allowOrigin')}
+				<pre class="guide-command"><code>{allowThisPage}</code></pre>
+			</li>
+		</ol>
 	{/if}
 
 	{#if state === 'safari'}
@@ -145,7 +168,7 @@
 			</li>
 			<li>{t('openPrinted', { port })}</li>
 		</ol>
-	{:else if !local && (state === 'denied' || state === 'unanswered' || state === 'unreachable')}
+	{:else if !local && (state === 'denied' || state === 'unanswered' || state === 'unexplained')}
 		<div class="guide-local">
 			<p>{t('localInstead')}</p>
 			<pre class="guide-command"><code>{LOCAL}</code></pre>

@@ -213,7 +213,7 @@ describe('i18nStore', () => {
 				'denied',
 				'unanswered',
 				'serveDown',
-				'unreachable',
+				'unexplained',
 				'refused',
 				'refusedLocal'
 			];

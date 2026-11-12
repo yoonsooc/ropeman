@@ -232,9 +232,10 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		await shot(page, 'en-desktop-connect');
 		await page.getByRole('button', { name: 'Connect' }).click();
 
-		// The page is on localhost, so it reaches serve ungated and can tell the token was wrong
+		// The page is on localhost, so it reaches serve ungated and can tell serve refused it
 		await expect(page.getByTestId('access-guide')).toHaveAttribute('data-state', 'refused');
-		await expect(page.getByRole('alert')).toContainText('serve refused the token');
+		await expect(page.getByRole('alert')).toContainText('serve refused this connection');
+		await expect(page.getByRole('alert')).toContainText(`--allow-origin ${origin}`);
 		await shot(page, 'en-desktop-connect-failed');
 
 		await page.getByLabel('Token', { exact: true }).fill(TOKEN);
@@ -405,6 +406,23 @@ test.describe('Connection guide on ropeman.dev', () => {
 			await context.close();
 		});
 
+		test(`${variant.tag}: the right token from an origin serve does not allow`, async ({
+			browser
+		}) => {
+			const serve = await startServe('https://elsewhere.test');
+			const { page, context } = await open(browser, 'granted');
+
+			await tryConnect(page, serve.port, TOKEN);
+			// serve rejects the origin at the upgrade like a wrong token, so the card names both
+			await expect(guide(page)).toHaveAttribute('data-state', 'refused');
+			await expect(guide(page)).toContainText('cat ~/.ropeman/bridge-token');
+			await expect(guide(page)).toContainText(
+				`npx @ropeman/bridge serve --root . --allow-origin ${PUBLIC_ORIGIN}`
+			);
+			await shot(page, `${variant.tag}-guide-refused-origin`);
+			await context.close();
+		});
+
 		test(`${variant.tag}: denied shows how to allow it again and local mode`, async ({
 			browser
 		}) => {
@@ -420,17 +438,26 @@ test.describe('Connection guide on ropeman.dev', () => {
 			await context.close();
 		});
 
-		test(`${variant.tag}: Firefox gets the honest note, then an unreachable port`, async ({
+		test(`${variant.tag}: Firefox gets the honest note, then a failure it cannot explain`, async ({
 			browser
 		}) => {
 			const { page, context } = await open(browser, 'unsupported', UA.firefox);
 			await expect(guide(page)).toHaveAttribute('data-state', 'unknown');
-			await expect(guide(page)).toContainText('151');
+			await expect(guide(page)).toContainText('Firefox');
 			await shot(page, `${variant.tag}-guide-firefox`);
 
-			await tryConnect(page, await freePort(), TOKEN);
-			await expect(guide(page)).toHaveAttribute('data-state', 'unreachable');
-			await shot(page, `${variant.tag}-guide-unreachable`);
+			const port = await freePort();
+			const probes: string[] = [];
+			page.on('request', (request) => {
+				if (request.url().startsWith(`http://127.0.0.1:${port}`)) probes.push(request.url());
+			});
+			await tryConnect(page, port, TOKEN);
+			await expect(guide(page)).toHaveAttribute('data-state', 'unexplained');
+			await expect(guide(page)).toContainText('cat ~/.ropeman/bridge-token');
+			await expect(guide(page)).toContainText(`--allow-origin ${PUBLIC_ORIGIN}`);
+			// With no permission to read, a probe could raise the prompt again, so the page sends none
+			expect(probes).toEqual([]);
+			await shot(page, `${variant.tag}-guide-unexplained`);
 			await context.close();
 		});
 

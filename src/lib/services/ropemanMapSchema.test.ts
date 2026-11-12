@@ -271,7 +271,7 @@ describe('parseRpcRequest', () => {
 	});
 
 	it('keeps the shape #72 shipped for file.read', () => {
-		// bridgeService and bridge/probe send exactly this
+		// bridgeClient and bridge/probe send exactly this
 		const result = parseRpcRequest('{"id":7,"type":"file.read","path":"../outside.txt"}');
 
 		expect(result).toEqual({

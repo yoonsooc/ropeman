@@ -64,7 +64,7 @@ The map appears when serve accepts the connection. The page keeps the token in m
 When a page on `https://ropeman.dev` reaches `127.0.0.1`, the browser treats it as a local network request. Each browser handles that request differently:
 
 - **Chrome and Edge** ask once, through Chrome's Local Network Access permission (`loopback-network`). Choose **Allow**. While the prompt is open, the page says it is waiting for your answer.
-- **Firefox** is rolling out the same prompt. Mozilla says it starts in version 151. Older versions connect without asking.
+- **Firefox** is starting to ask the same way in recent versions. Versions that do not ask connect right away.
 - **Safari** blocks a secure page from reaching `ws://127.0.0.1` outright. Use [local mode](#use-local-mode).
 
 ### Reset a blocked permission
@@ -134,8 +134,10 @@ When a connection fails, the page says which case it is:
 - **The browser blocked the permission.** [Reset the permission](#reset-a-blocked-permission) and reload the page.
 - **The permission prompt was not answered.** Click **Connect** again and choose **Allow**.
 - **Nothing listens on the port.** serve is not running, or it runs on another port. Start serve, and check that **Port** matches the port in the terminal output.
-- **serve refused the connection.** The token is wrong, and the terminal logs `Rejected connection: missing or wrong token`. Copy the token again with `cat ~/.ropeman/bridge-token`. If you deleted the file or changed `ROPEMAN_BRIDGE_TOKEN`, the token changed.
-- **Nothing answered, and the browser does not say whether it blocked the request.** Firefox and some other browsers report a failure this way. Check that serve runs on that port and that the token matches. If the page still cannot connect, use [local mode](#use-local-mode).
+- **serve refused the connection.** The token is wrong, or serve does not allow the page's address. The terminal running serve says which:
+  - `Rejected connection: missing or wrong token`. Copy the token again with `cat ~/.ropeman/bridge-token`. If you deleted the file or changed `ROPEMAN_BRIDGE_TOKEN`, the token changed.
+  - `Rejected connection from origin "..." (not allowed)`. Restart serve with `--allow-origin` and the page's address, which the card shows, for example `npx @ropeman/bridge serve --root . --allow-origin https://preview.example.com`.
+- **The connection did not go through, and the browser does not say why.** Firefox and Safari have no permission the page can read. The page then does not check the port, because that check could make the browser ask a second time. Check that serve runs on that port, that the token matches, that you did not block the site, and what serve's terminal says. If the page still cannot connect, use [local mode](#use-local-mode).
 
 ### "Port 9800 is already in use"
 

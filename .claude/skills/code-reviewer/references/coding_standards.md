@@ -58,7 +58,7 @@ export const xxxStore = createXxxStore();
 ### 허용 예외
 
 - Worker 인스턴스 관리 (parserService, webllmService)
-- WebSocket 연결 (bridgeService) — 상태는 authStore에 위임
+- WebSocket 연결 (bridgeClient) — 상태는 bridgeStore에 위임
 
 ### Worker 통신 프로토콜
 

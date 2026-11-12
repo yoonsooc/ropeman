@@ -480,11 +480,15 @@ interface TranslationSet {
 		| 'unansweredBody'
 		| 'serveDownTitle'
 		| 'serveDownBody'
-		| 'unreachableTitle'
-		| 'unreachableBody'
 		| 'refusedTitle'
 		| 'refusedBody'
 		| 'refusedHint'
+		| 'allowOrigin'
+		| 'unexplainedTitle'
+		| 'unexplainedBody'
+		| 'checkServe'
+		| 'checkToken'
+		| 'checkBlocked'
 		| 'refusedLocalTitle'
 		| 'refusedLocalBody'
 		| 'stepSiteControls'
@@ -497,6 +501,7 @@ interface TranslationSet {
 		| 'stepFirefoxRemove'
 		| 'stepOtherSettings'
 		| 'stepOtherAllow'
+		| 'stepsMayDiffer'
 		| 'settingsUrl'
 		| 'stopServe'
 		| 'startLocal'
@@ -1195,7 +1200,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'어떤 브라우저는 사이트가 이 기기의 앱에 접근하기 전에 묻습니다. 연결을 눌렀을 때 물으면 허용을 고르세요.',
 			firefoxTitle: 'Firefox가 물으면 허용을 고르세요',
 			firefoxBody:
-				'Firefox는 사이트가 이 기기의 앱에 접근하기 전에 묻는 기능을 차례로 켜고 있습니다(Mozilla는 151 버전부터라고 밝혔습니다). 연결을 눌렀을 때 물으면 허용을 고르세요. 이전 버전은 묻지 않고 연결합니다.',
+				'최근 버전의 Firefox는 사이트가 이 기기의 앱에 접근하기 전에 묻기 시작했습니다. 연결을 눌렀을 때 물으면 허용을 고르세요. 묻지 않는 버전은 바로 연결합니다.',
 			safariTitle: 'Safari에서는 로컬 모드를 쓰세요',
 			safariBody:
 				'Safari는 이 페이지 같은 보안 페이지가 내 컴퓨터의 serve에 접근하지 못하게 막습니다. 대신 serve가 직접 띄우는 뷰어를 여세요.',
@@ -1211,28 +1216,36 @@ const translations: Record<Locale, TranslationSet> = {
 			serveDownTitle: '{port} 포트에서 실행 중인 serve가 없습니다',
 			serveDownBody:
 				'지도를 만들 폴더에서 serve를 실행하고 터미널을 열어 두세요. serve가 다른 포트를 출력했다면 그 번호를 넣으세요.',
-			unreachableTitle: '{port} 포트에서 응답이 없습니다',
-			unreachableBody:
-				'serve가 그 포트에서 실행 중이 아니거나, 브라우저가 이 페이지의 기기 앱 접근을 막았습니다. serve를 실행하고 다시 시도하세요.',
-			refusedTitle: 'serve가 토큰을 받지 않았습니다',
+			refusedTitle: 'serve가 연결을 거부했습니다',
 			refusedBody:
-				'serve는 {port} 포트에서 실행 중이지만 이 연결을 거부했습니다. 토큰이 틀렸을 가능성이 큽니다. 토큰을 다시 복사해 전체 값을 붙여 넣으세요.',
+				'serve는 {port} 포트에서 실행 중이지만 이 페이지의 연결을 거부했습니다. 토큰이 틀렸거나 serve가 이 페이지 주소를 허용하지 않기 때문입니다. 어느 쪽인지는 serve를 실행한 터미널에 나옵니다. "wrong token"이 찍혔다면 토큰을 다시 복사해 전체 값을 붙여 넣으세요.',
 			refusedHint:
 				'serve를 --token이나 ROPEMAN_BRIDGE_TOKEN으로 실행했다면 그 값을 넣으세요. 다른 프로그램이 이 포트를 쓰고 있다면 serve를 --port로 실행하고 그 번호를 넣으세요.',
+			allowOrigin:
+				'터미널에 "not allowed"가 찍혔다면 serve가 이 페이지 주소를 허용하지 않은 것입니다. serve를 멈추고 이렇게 다시 실행하세요.',
+			unexplainedTitle: '연결되지 않았습니다',
+			unexplainedBody:
+				'브라우저가 연결이 닫힌 이유를 알려 주지 않습니다. 아래를 하나씩 확인하세요.',
+			checkServe:
+				'serve가 {port} 포트에서 실행 중인지 확인하세요. 꺼져 있다면 지도를 만들 폴더에서 실행하세요.',
+			checkToken: '토큰 전체를 붙여 넣었는지 확인하세요. 이 명령으로 다시 복사할 수 있습니다.',
+			checkBlocked:
+				'브라우저가 이 사이트의 기기 앱 접근을 물었을 때 차단했다면, 주소 왼쪽 아이콘에서 다시 허용하고 새로 고치세요.',
 			refusedLocalTitle: 'serve가 이 페이지를 받지 않았습니다',
 			refusedLocalBody:
 				'serve는 실행 중이지만 이 페이지 주소에 든 토큰을 받지 않았습니다. serve가 시작할 때 출력한 주소를 다시 여세요.',
-			stepSiteControls: '주소 왼쪽의 사이트 정보 아이콘을 누르세요.',
-			stepSiteSettings: '사이트 설정을 고르세요.',
+			stepSiteControls: '주소 왼쪽의 아이콘을 누르세요.',
+			stepSiteSettings: '이 사이트의 설정을 여세요.',
 			stepAllowLoopback:
-				'Loopback network(이전 버전은 Local network access)를 허용으로 바꾸거나 권한 재설정을 누르세요.',
+				'로컬 네트워크(루프백) 접근 항목을 허용으로 바꾸거나 이 사이트의 권한을 재설정하세요.',
 			stepReload: '이 탭으로 돌아와 새로 고치세요.',
-			stepEdgeLock: '주소 왼쪽의 자물쇠 아이콘을 누르세요.',
-			stepEdgePermissions: '이 사이트에 대한 권한을 고르세요.',
-			stepFirefoxIcon: '주소 왼쪽의 권한 아이콘을 누르세요.',
-			stepFirefoxRemove: '차단된 Device apps and services 권한을 지우세요.',
+			stepEdgeLock: '주소 왼쪽의 아이콘을 누르세요. 자물쇠 모양일 수 있습니다.',
+			stepEdgePermissions: '이 사이트의 권한을 여세요.',
+			stepFirefoxIcon: '주소 왼쪽의 아이콘을 누르세요.',
+			stepFirefoxRemove: '이 기기의 앱과 서비스 접근을 막은 권한을 지우세요.',
 			stepOtherSettings: '주소 왼쪽 아이콘에서 이 사이트의 설정을 여세요.',
 			stepOtherAllow: '루프백이나 로컬 네트워크 접근을 허용하세요.',
+			stepsMayDiffer: '메뉴 이름은 브라우저 버전과 언어에 따라 다를 수 있습니다.',
 			settingsUrl: '또는 주소창에 이 주소를 붙여 넣으세요.',
 			stopServe: 'Ctrl+C로 serve를 멈추세요.',
 			startLocal: '로컬 모드로 다시 실행하세요.',
@@ -1938,7 +1951,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'Some browsers ask before a site reaches apps on this device. If yours asks when you click Connect, choose Allow.',
 			firefoxTitle: 'If Firefox asks, choose Allow',
 			firefoxBody:
-				'Firefox is rolling out a prompt before sites reach apps on this device (Mozilla says from version 151). If it asks when you click Connect, choose Allow. Older versions connect without asking.',
+				'Recent versions of Firefox are starting to ask before a site reaches apps on this device. If it asks when you click Connect, choose Allow. Versions that do not ask connect right away.',
 			safariTitle: 'In Safari, use local mode',
 			safariBody:
 				'Safari blocks secure pages like this one from reaching serve on your machine. Open the viewer from serve itself instead:',
@@ -1954,28 +1967,37 @@ const translations: Record<Locale, TranslationSet> = {
 			serveDownTitle: 'Nothing is running on port {port}',
 			serveDownBody:
 				'Start serve in the folder you want to map and keep the terminal open. If serve printed another port, enter that one.',
-			unreachableTitle: 'Nothing answered on port {port}',
-			unreachableBody:
-				'Either serve is not running there, or the browser blocked this page from reaching apps on this device. Start serve and try again:',
-			refusedTitle: 'serve refused the token',
+			refusedTitle: 'serve refused this connection',
 			refusedBody:
-				'serve is running on port {port} but turned this connection down, so the token is most likely wrong. Copy it again and paste the whole value:',
+				'serve is running on port {port} but turned this page down, because the token is wrong or serve does not allow this page\'s address. The terminal running serve says which. If it says "wrong token", copy the token again and paste the whole value:',
 			refusedHint:
 				'If you started serve with --token or ROPEMAN_BRIDGE_TOKEN, paste that value instead. If another program uses this port, start serve with --port and enter that number.',
+			allowOrigin:
+				'If the terminal says "not allowed", serve does not allow this page\'s address. Stop serve and start it like this:',
+			unexplainedTitle: 'The connection did not go through',
+			unexplainedBody: '{Browser} does not say why the connection closed, so check each of these:',
+			checkServe:
+				'Check that serve is running on port {port}. If not, start it in the folder you want to map:',
+			checkToken: 'Check that you pasted the whole token. Copy it again with:',
+			checkBlocked:
+				'If {browser} asked whether this site may reach apps on this device and you blocked it, allow it again from the icon to the left of the address, then reload.',
 			refusedLocalTitle: 'serve refused this page',
 			refusedLocalBody:
 				"serve is running but did not accept the token in this page's address. Open the address serve printed when it started again.",
-			stepSiteControls: 'Click the site controls icon to the left of the address.',
-			stepSiteSettings: 'Choose Site settings.',
+			stepSiteControls: 'Click the icon to the left of the address.',
+			stepSiteSettings: "Open the site's settings (the entry may be called Site settings).",
 			stepAllowLoopback:
-				'Set Loopback network (Local network access in older versions) to Allow, or click Reset permissions.',
+				"Set the local network entry to Allow, or reset the site's permissions. The entry may be called Loopback network, or Local network access in older versions.",
 			stepReload: 'Come back to this tab and reload it.',
-			stepEdgeLock: 'Click the lock icon to the left of the address.',
-			stepEdgePermissions: 'Choose Permissions for this site.',
-			stepFirefoxIcon: 'Click the permissions icon to the left of the address.',
-			stepFirefoxRemove: 'Remove the blocked Device apps and services permission.',
+			stepEdgeLock: 'Click the icon to the left of the address (it may be a lock).',
+			stepEdgePermissions:
+				"Open the site's permissions (the entry may be called Permissions for this site).",
+			stepFirefoxIcon: 'Click the icon to the left of the address.',
+			stepFirefoxRemove:
+				'Remove the blocked permission to reach apps on this device (the entry may be called Device apps and services).',
 			stepOtherSettings: "Open this site's settings from the icon to the left of the address.",
 			stepOtherAllow: 'Allow loopback or local network access.',
+			stepsMayDiffer: "These menu names may differ in your browser's version or language.",
 			settingsUrl: 'Or paste this into the address bar:',
 			stopServe: 'Stop serve with Ctrl+C.',
 			startLocal: 'Start it again in local mode:',

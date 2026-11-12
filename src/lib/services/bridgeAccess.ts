@@ -1,9 +1,10 @@
 /**
  * Why the Bridge page can or cannot reach `ropeman serve`, for the guide card. A browser reports a
- * refused port, a wrong token and a blocked local-network request alike, as a socket that closes
- * before any message (`bridgeClient`'s `closed`). The page tells them apart with two more facts: the
- * `loopback-network` permission (Chromium only, ADR-23) and whether anything answers plain HTTP on
- * serve's port.
+ * refused port, a wrong token, an origin serve does not allow and a blocked local-network request
+ * alike, as a socket that closes before any message (`bridgeClient`'s `closed`). The page tells some
+ * of them apart with two more facts: the `loopback-network` permission (Chromium only, ADR-23) and
+ * whether anything answers plain HTTP on serve's port. The token and the origin stay together:
+ * serve rejects both at the upgrade, and only its terminal says which.
  */
 
 /** Which browser's menus the guide names. `chromium` is any other Chromium (Brave, Arc, Opera). */
@@ -18,10 +19,12 @@ export type LoopbackPermission = 'granted' | 'prompt' | 'denied' | 'unknown';
  * - `unanswered`: the permission is still undecided, so the prompt was dismissed or never shown;
  *   serve may also be down, which the page cannot check without asking again.
  * - `serve-down`: the page may reach the device and nothing listens on the port.
- * - `unreachable`: nothing answered, and the browser does not say whether it blocked the request.
- * - `refused`: something listens on the port and turned the socket down, most likely the token.
+ * - `refused`: the page may reach the device and something listens on the port and turned the
+ *   socket down: a wrong token, or serve does not allow this page's origin.
+ * - `unexplained`: the browser has no permission to read (Firefox, Safari), so the page cannot
+ *   tell any of these apart without a probe that could prompt a second time.
  */
-export type ClosedCause = 'denied' | 'unanswered' | 'serve-down' | 'unreachable' | 'refused';
+export type ClosedCause = 'denied' | 'unanswered' | 'serve-down' | 'refused' | 'unexplained';
 
 /**
  * What the guide card shows. Before connecting: `unasked`, `granted`, `unknown` (no permission to
@@ -118,20 +121,6 @@ export async function probeServe(
 	}
 }
 
-/**
- * `listening` is null when the page did not probe, because the probe would hit the same block (or
- * the same prompt) as the socket.
- */
-export function classifyClosed(
-	permission: LoopbackPermission,
-	listening: boolean | null
-): ClosedCause {
-	if (permission === 'denied') return 'denied';
-	if (permission === 'prompt' || listening === null) return 'unanswered';
-	if (listening) return 'refused';
-	return permission === 'granted' ? 'serve-down' : 'unreachable';
-}
-
 export interface ExplainEnv {
 	/** A page on 127.0.0.1 or localhost (local mode, a dev server) reaches loopback ungated. */
 	loopbackPage: boolean;
@@ -139,11 +128,23 @@ export interface ExplainEnv {
 	fetch: FetchLike;
 }
 
-/** Why the socket to `host` closed before `hello`; asks the permission again, it may have changed. */
+/**
+ * Why the socket to `host` closed before `hello`; asks the permission again, it may have changed.
+ * Probes the port only once the page may reach the device: under `denied` the probe hits the same
+ * block, and under `prompt` or `unknown` it could raise the prompt again.
+ */
 export async function explainClosed(host: string, env: ExplainEnv): Promise<ClosedCause> {
 	const permission = env.loopbackPage ? 'granted' : await queryLoopbackPermission(env.permissions);
-	const probe = permission === 'granted' || permission === 'unknown';
-	return classifyClosed(permission, probe ? await probeServe(host, env.fetch) : null);
+	switch (permission) {
+		case 'denied':
+			return 'denied';
+		case 'prompt':
+			return 'unanswered';
+		case 'unknown':
+			return 'unexplained';
+		case 'granted':
+			return (await probeServe(host, env.fetch)) ? 'refused' : 'serve-down';
+	}
 }
 
 export interface AccessInput {

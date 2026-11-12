@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	accessState,
 	browserFamily,
-	classifyClosed,
 	explainClosed,
 	probeServe,
 	queryLoopbackPermission,
@@ -153,21 +152,6 @@ describe('probeServe', () => {
 	});
 });
 
-describe('classifyClosed', () => {
-	it.each([
-		['denied', null, 'denied'],
-		['denied', true, 'denied'],
-		['prompt', null, 'unanswered'],
-		['granted', true, 'refused'],
-		['granted', false, 'serve-down'],
-		['unknown', true, 'refused'],
-		['unknown', false, 'unreachable'],
-		['unknown', null, 'unanswered']
-	] as const)('permission %s, listening %s: %s', (permission, listening, cause) => {
-		expect(classifyClosed(permission, listening)).toBe(cause);
-	});
-});
-
 describe('explainClosed', () => {
 	/** A socket the server side closes before hello, as a browser reports every refusal. */
 	function closingSocket(): BridgeSocket {
@@ -238,12 +222,31 @@ describe('explainClosed', () => {
 		expect(fetchFn).not.toHaveBeenCalled();
 	});
 
-	it('in Firefox or Safari, where the query rejects, cannot rule out a block', async () => {
-		const env = { loopbackPage: false, permissions: rejecting };
-		expect(await explainClosed('127.0.0.1:9800', { ...env, fetch: refusesPort })).toBe(
-			'unreachable'
-		);
-		expect(await explainClosed('127.0.0.1:9800', { ...env, fetch: answers })).toBe('refused');
+	it('in Firefox or Safari, where the query rejects, does not probe, which could prompt again', async () => {
+		// Arrange: serve answers, so a probe would have said refused
+		const fetchFn = vi.fn(answers);
+
+		// Act
+		const cause = await explainClosed('127.0.0.1:9800', {
+			loopbackPage: false,
+			permissions: rejecting,
+			fetch: fetchFn
+		});
+
+		// Assert
+		expect(cause).toBe('unexplained');
+		expect(fetchFn).not.toHaveBeenCalled();
+	});
+
+	it('without any permissions API, does not probe either', async () => {
+		const fetchFn = vi.fn(answers);
+		const cause = await explainClosed('127.0.0.1:9800', {
+			loopbackPage: false,
+			permissions: undefined,
+			fetch: fetchFn
+		});
+		expect(cause).toBe('unexplained');
+		expect(fetchFn).not.toHaveBeenCalled();
 	});
 
 	it('on a loopback page skips the permission, which does not gate loopback to loopback', async () => {
@@ -293,6 +296,15 @@ describe('accessState', () => {
 		expect(
 			accessState({ ...base, connection: 'failed', permission: 'denied', cause: 'denied' })
 		).toBe('denied');
+		expect(
+			accessState({
+				...base,
+				browser: 'firefox',
+				connection: 'failed',
+				permission: 'unknown',
+				cause: 'unexplained'
+			})
+		).toBe('unexplained');
 	});
 
 	it('picks the permission back up when the prompt is answered while connecting', () => {
