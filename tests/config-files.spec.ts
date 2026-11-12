@@ -43,7 +43,7 @@ test('sends config file structure to the AI and never opens a real .env', async 
 	await page.getByTestId('coverage-group-skipped').click();
 	const rows = page.getByTestId('coverage-rows');
 	await expect(rows.locator('li', { hasText: '.env' })).toContainText(
-		'Env file with real values, never opened'
+		'Env file with real values, not analyzed'
 	);
 	await page.keyboard.press('Escape');
 

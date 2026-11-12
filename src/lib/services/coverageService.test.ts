@@ -102,7 +102,7 @@ describe('buildCoverage', () => {
 		expect(report.byStatus.failed).toHaveLength(2);
 	});
 
-	it('reads config files like code, and reports real env files as never opened', () => {
+	it('reads config files like code, and reports real env files as not analyzed', () => {
 		// Regression: Dockerfile, .tf, .env and Makefile were all reported as unsupported
 		const sources: Record<string, string> = {
 			'repo/Dockerfile': 'FROM node:20\nEXPOSE 3000',

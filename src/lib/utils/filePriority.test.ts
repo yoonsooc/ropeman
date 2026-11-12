@@ -147,7 +147,7 @@ describe('shouldSkipPath', () => {
 
 	it('keeps every env file on the map and no other hidden file', () => {
 		// Regression: `.env.example` was dropped as a hidden file, so its keys never reached the map.
-		// Real env files stay listed so coverage can say they are never opened
+		// Real env files stay listed so coverage can say they are not analyzed
 		const hidden = [
 			'.env',
 			'packages/server/.env.example',
