@@ -458,6 +458,8 @@ function inferLanguage(filePath: string): string | null {
 			return 'tsx';
 		case 'svelte':
 			return 'svelte';
+		case 'vue':
+			return 'vue';
 		case 'go':
 			return 'go';
 		case 'rs':

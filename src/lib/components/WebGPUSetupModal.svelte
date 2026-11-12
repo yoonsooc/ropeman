@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusTrap } from '$lib/utils/focusTrap';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { webgpuStore, WEBGPU_MODELS } from '$lib/stores/webgpuStore.svelte';
 	import { initModel, cancelDownload } from '$lib/services/webllmService';
@@ -47,7 +48,7 @@
 		onclick={handleBackdropClick}
 		onkeydown={handleKeydown}
 	>
-		<div class="modal-card webgpu-card" role="dialog" aria-modal="true">
+		<div class="modal-card webgpu-card" role="dialog" aria-modal="true" tabindex="-1" use:focusTrap>
 			<div class="modal-header">
 				<h2>{i18nStore.t('webgpuSetup.title')}</h2>
 				<button class="modal-close" onclick={handleCancel}>&#10005;</button>

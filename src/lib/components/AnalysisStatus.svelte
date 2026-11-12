@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusTrap } from '$lib/utils/focusTrap';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
@@ -248,7 +249,13 @@
 		onclick={handleCancelBackdropClick}
 		onkeydown={handleCancelModalKeydown}
 	>
-		<div class="modal-card cancel-confirm-card" role="dialog" aria-modal="true">
+		<div
+			class="modal-card cancel-confirm-card"
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+			use:focusTrap
+		>
 			<div class="cancel-confirm-header">
 				<span class="material-symbols-outlined cancel-confirm-icon">stop_circle</span>
 				<span class="cancel-confirm-title">{i18nStore.t('analysisCancelConfirmTitle')}</span>
@@ -259,8 +266,10 @@
 				{i18nStore.t('dontAskAgain')}
 			</label>
 			<div class="cancel-confirm-actions">
-				<button class="btn btn-secondary cancel-confirm-btn" onclick={closeCancelConfirm}
-					>{i18nStore.t('analysisCancelConfirmBack')}</button
+				<button
+					class="btn btn-secondary cancel-confirm-btn"
+					data-autofocus
+					onclick={closeCancelConfirm}>{i18nStore.t('analysisCancelConfirmBack')}</button
 				>
 				<button class="btn btn-danger cancel-confirm-btn" onclick={confirmCancel}
 					>{i18nStore.t('analysisCancelConfirmOk')}</button

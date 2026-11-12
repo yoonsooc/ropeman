@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusTrap } from '$lib/utils/focusTrap';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
@@ -122,7 +123,7 @@
 		onclick={handleBackdropClick}
 		onkeydown={handleKeydown}
 	>
-		<div class="modal-card share-card" role="dialog" aria-modal="true">
+		<div class="modal-card share-card" role="dialog" aria-modal="true" tabindex="-1" use:focusTrap>
 			<div class="modal-header">
 				<h2>
 					<span class="material-symbols-outlined" style="font-size:18px;">share</span>
