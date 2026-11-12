@@ -103,12 +103,13 @@
 				resetAllStores();
 				projectStore.isLoading = true;
 				projectStore.projectName = dirHandle.name;
-				const tree = await readDirectoryRecursive(
+				const { tree, cut } = await readDirectoryRecursive(
 					dirHandle,
 					'',
 					createPathFilter(settingsStore.customSkipPatterns, settingsStore.customIncludePatterns)
 				);
 				projectStore.fileTree = tree;
+				projectStore.cutFiles = cut;
 				const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 					projectStore.parsingProgress = progress;
 				});
@@ -152,12 +153,13 @@
 		if (!input.files || input.files.length === 0) return;
 		try {
 			resetAllStores();
-			const tree = handleFallbackInput(
+			const { tree, cut } = handleFallbackInput(
 				input.files,
 				createPathFilter(settingsStore.customSkipPatterns, settingsStore.customIncludePatterns)
 			);
 			projectStore.projectName = tree.name;
 			projectStore.fileTree = tree;
+			projectStore.cutFiles = cut;
 			projectStore.isLoading = true;
 			const astMap = await parseAllFiles(tree, projectStore.astMap, (progress) => {
 				projectStore.parsingProgress = progress;

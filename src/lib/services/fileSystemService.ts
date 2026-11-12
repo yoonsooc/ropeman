@@ -6,9 +6,9 @@ import {
 	isIncludeAncestor,
 	shouldSkipPath,
 	sortFileTree,
+	type CutFile,
 	type PathFilter
 } from '$lib/utils/filePriority';
-import { projectStore } from '$lib/stores/projectStore.svelte';
 
 export async function openDirectory(): Promise<FileSystemDirectoryHandle> {
 	if (!('showDirectoryPicker' in window)) {
@@ -26,16 +26,21 @@ interface FoundFile {
 	parent: FileNode;
 }
 
+/** A loaded project tree and the files the MAX_FILES cap left out of it. */
+export interface LoadedTree {
+	tree: FileNode;
+	cut: CutFile[];
+}
+
 /**
  * Read the folder tree, then keep the MAX_FILES highest ranked files. Every path is collected
- * before the cap so folder order cannot decide which packages are kept. The files that do not
- * fit are recorded in `projectStore.cutFiles`.
+ * before the cap so folder order cannot decide which packages are kept.
  */
 export async function readDirectoryRecursive(
 	dirHandle: FileSystemDirectoryHandle,
 	basePath = '',
 	filter: PathFilter = DEFAULT_PATH_FILTER
-): Promise<FileNode> {
+): Promise<LoadedTree> {
 	const found: FoundFile[] = [];
 	const root = await walkDirectory(dirHandle, basePath, filter, 0, found);
 	const { kept, cut } = capFiles(found, (file) => file.path);
@@ -57,9 +62,17 @@ export async function readDirectoryRecursive(
 		})
 	);
 
-	projectStore.cutFiles = cut;
+	pruneEmptyDirectories(root);
 	sortFileTree(root);
-	return root;
+	return { tree: root, cut };
+}
+
+/** Remove folders left without files, such as one whose files were all cut by the cap. */
+function pruneEmptyDirectories(dir: FileNode): boolean {
+	dir.children = dir.children!.filter(
+		(child) => child.kind === 'file' || pruneEmptyDirectories(child)
+	);
+	return dir.children.length > 0;
 }
 
 async function walkDirectory(
@@ -107,7 +120,7 @@ export async function readFileContent(fileHandle: FileSystemFileHandle): Promise
 export function handleFallbackInput(
 	files: FileList,
 	filter: PathFilter = DEFAULT_PATH_FILTER
-): FileNode {
+): LoadedTree {
 	const root: FileNode = {
 		name: extractProjectName(files),
 		path: '',
@@ -123,7 +136,6 @@ export function handleFallbackInput(
 		.map((file) => ({ file, path: file.webkitRelativePath.split('/').slice(1).join('/') }))
 		.filter(({ path }) => !shouldSkipPath(path, filter, true));
 	const { kept, cut } = capFiles(candidates, (candidate) => candidate.path);
-	projectStore.cutFiles = cut;
 
 	for (const { file, path } of kept) {
 		const pathParts = path.split('/');
@@ -169,7 +181,7 @@ export function handleFallbackInput(
 	}
 
 	sortFileTree(root);
-	return root;
+	return { tree: root, cut };
 }
 
 function extractProjectName(files: FileList): string {
