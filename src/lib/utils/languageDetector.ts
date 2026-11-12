@@ -23,6 +23,9 @@ const EXTENSION_MAP: Record<string, string> = {
 	'.scala': 'scala',
 	'.sc': 'scala',
 	'.cs': 'csharp',
+	// Read through their <script> blocks with the TS/JS grammars (sfcScripts.ts)
+	'.svelte': 'svelte',
+	'.vue': 'vue',
 	// Outlined without tree-sitter (markdownOutline.ts); `.mdc` is Cursor's rule format
 	'.md': 'markdown',
 	'.mdc': 'markdown'
@@ -43,7 +46,9 @@ const SUPPORTED_LANGUAGES = new Set([
 	'kotlin',
 	'csharp',
 	'scala',
-	'markdown'
+	'markdown',
+	'svelte',
+	'vue'
 ]);
 
 const GRAMMAR_FILES: Record<string, string> = {
