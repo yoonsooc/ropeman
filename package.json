@@ -7,6 +7,8 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
+		"build:core": "vite build -c packages/core/vite.config.ts",
+		"check:core": "tsc -p packages/core/tsconfig.json",
 		"preview": "npm run build && wrangler dev",
 		"lint": "eslint .",
 		"format": "prettier --write .",

@@ -40,11 +40,20 @@ jobs:
           npm ci --prefix edge-proxy
           edge-proxy/node_modules/.bin/tsc --noEmit -p edge-proxy/tsconfig.json
 
+      - name: Type check core
+        run: npm run check:core
+
       - name: Worker tests
         run: npm test --prefix edge-proxy
 
       - name: Build
         run: npm run build
+
+      # The bundled Node extractor must run on its own, with the .wasm files it copies beside it
+      - name: Build core and extract a fixture
+        run: |
+          npm run build:core
+          node packages/core/dist/cli.mjs tests/fixtures/graphs/ts-monorepo
 
       - name: Unit tests
         run: npm run test:unit

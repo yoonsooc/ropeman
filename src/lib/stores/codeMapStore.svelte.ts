@@ -1,6 +1,6 @@
 import type { ASTRef, ASTSymbol } from '$lib/types/ast';
 import type { CodeMap } from '$lib/types/codeMap';
-import { buildCodeMap } from '$lib/services/skeletonExtractor';
+import { buildCodeMap } from '$lib/services/codeMapBuilder';
 import { projectStore } from './projectStore.svelte';
 
 /** What a loader read in one parse of the open project. */
