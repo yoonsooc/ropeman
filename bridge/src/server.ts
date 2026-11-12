@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
-import { promisify } from 'util';
-import { exec as execCb } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import {
 	type CLIType,
 	TOKEN_ENV,
@@ -10,9 +12,10 @@ import {
 	resolveToken
 } from './auth.js';
 import { HOST, createBridgeServer } from './bridge.js';
+import { CliRunner, KILL_GRACE_MS, detectCLI } from './cli.js';
 import { resolveRoot } from './fileRead.js';
-
-const exec = promisify(execCb);
+import { MapSession } from './mapSession.js';
+import pkg from '../package.json';
 
 const DEFAULT_PORT = 9800;
 
@@ -53,24 +56,17 @@ function log(msg: string): void {
 	console.log(`[${ts}] ${msg}`);
 }
 
-async function detectCLI(): Promise<CLIType | null> {
-	try {
-		await exec('claude --version');
-		return 'claude';
-	} catch {
-		/* not available */
-	}
-	try {
-		await exec('gemini --version');
-		return 'gemini';
-	} catch {
-		/* not available */
-	}
-	return null;
-}
+/** Long enough for `claude -p` on a folder of a large repo (PASEO: see docs/ARCH.md). */
+const NAMING_TIMEOUT_MS = 180_000;
+/** CLI runs at once over every socket, naming and the legacy relay together */
+const CLI_CONCURRENCY = 2;
+const NAMING_MAX_OUTPUT_BYTES = 1_000_000;
+const WATCH_DEBOUNCE_MS = 300;
 
 async function main() {
+	// `ropeman serve …` and `ropeman-bridge …` run the same server
 	const argv = process.argv.slice(2);
+	if (argv[0] === 'serve') argv.shift();
 	const port = parsePort(argv);
 	const root = parseDirFlag(argv, '--root');
 	const viewerDir = parseDirFlag(argv, '--viewer');
@@ -102,16 +98,45 @@ async function main() {
 			? `the ${TOKEN_ENV} value`
 			: `stored in ${defaultTokenFile()}`;
 
-	const { server, clients } = createBridgeServer({
+	const identity = { name: pkg.name, version: pkg.version };
+	// The CLI runs in an empty folder, so even a CLI that reads files starts outside the project
+	const namingDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-naming-'));
+	const runner = new CliRunner(CLI_CONCURRENCY, namingDir);
+	// Runs lead their own process groups, so a crash would leave them; this is the last resort
+	process.on('exit', () => runner.killNow());
+	const session = root
+		? new MapSession({
+				root,
+				wasmDir: fileURLToPath(new URL('./wasm', import.meta.url)),
+				naming: defaultCli
+					? {
+							cli: defaultCli,
+							command: defaultCli,
+							timeoutMs: NAMING_TIMEOUT_MS,
+							maxOutputBytes: NAMING_MAX_OUTPUT_BYTES,
+							runner
+						}
+					: null,
+				server: identity,
+				debounceMs: WATCH_DEBOUNCE_MS,
+				log
+			})
+		: null;
+
+	const bridge = createBridgeServer({
 		port,
 		token,
 		allowedOrigins: parseAllowedOrigins(argv),
 		defaultCli,
 		root,
 		viewerDir,
+		session,
+		runner,
+		server: identity,
 		log
 	});
 
+	const { server } = bridge;
 	server.on('error', (err) => {
 		if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
 			console.error(`Port ${port} is already in use. Try a different port with --port <number>`);
@@ -120,28 +145,31 @@ async function main() {
 		console.error('Server error:', err.message);
 	});
 
-	function shutdown() {
+	let stopping = false;
+	async function shutdown() {
+		if (stopping) return;
+		stopping = true;
 		log('Shutting down...');
-		for (const client of clients) {
-			client.close(1000, 'Server shutting down');
-		}
-		server.close(() => {
-			log('Server stopped');
-			process.exit(0);
-		});
-		// Force exit after 3s
-		setTimeout(() => process.exit(0), 3000);
+		// A CLI that ignores SIGTERM gets SIGKILL after the grace; this cap only covers a stuck close
+		setTimeout(() => process.exit(0), KILL_GRACE_MS + 3_000).unref();
+		await bridge.close();
+		fs.rmSync(namingDir, { recursive: true, force: true });
+		log('Server stopped');
+		process.exit(0);
 	}
 
 	process.on('SIGINT', shutdown);
 	process.on('SIGTERM', shutdown);
+	// Runs no longer share the terminal's process group, so a closed terminal reaches them only here
+	process.on('SIGHUP', shutdown);
 
 	server.listen(port, HOST, () => {
 		log(`Bridge server ready on ws://${HOST}:${port}`);
 		log(
 			`Token: ${tokenSource}. Paste it into the Token field on the Local Bridge card in Ropeman.`
 		);
-		log(`file.read root: ${root ?? 'off (pass --root <dir>)'}`);
+		log(`Map and file.read root: ${root ?? 'off (pass --root <dir>)'}`);
+		session?.start();
 		if (viewerDir) log(`Local mode: open http://${HOST}:${port}/#token=${token}`);
 	});
 }

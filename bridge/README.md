@@ -1,13 +1,15 @@
 # @ropeman/bridge
 
-WebSocket relay server for Ropeman AI bridge connections.
+Local server for Ropeman. `ropeman serve` maps a folder on your machine, sends the map to the Ropeman viewer over a WebSocket, and names the folders you open with your own CLI (Claude Code or Gemini CLI).
 
 ## Usage
 
 ```bash
-npx @ropeman/bridge
-npx @ropeman/bridge --port 9900 --cli claude
+npx @ropeman/bridge serve --root .
+npx @ropeman/bridge serve --root ~/code/project --port 9900 --cli claude
 ```
+
+`ropeman serve` and `ropeman-bridge` are the same program. Without `--root` it only relays the app's chat requests to the CLI.
 
 The bridge listens on `ws://127.0.0.1:9800` unless you pass `--port`. Without `--cli` it checks for `claude`, then `gemini`, and uses the first one it finds.
 
@@ -32,14 +34,14 @@ The token comes from, in order: `--token <value>`, the `ROPEMAN_BRIDGE_TOKEN` en
 
 The file is created on first run and reused afterwards. Delete it to issue a new token. The bridge sets the file to owner-only (`0600`) each time it starts. Windows ignores these permission bits, so there the file is protected by the access rules on your home folder.
 
-| Flag                     | Description                                                      |
-| ------------------------ | ---------------------------------------------------------------- |
-| `--port <number>`        | Port to listen on (default 9800)                                 |
-| `--cli <claude\|gemini>` | CLI to run (default: auto-detect)                                |
-| `--token <value>`        | Use this token instead of the stored one                         |
-| `--allow-origin <url>`   | Also accept connections from this origin                         |
-| `--root <dir>`           | Let `file.read` read files under this directory (off by default) |
-| `--viewer <dir>`         | Serve this directory at `http://127.0.0.1:<port>/` (local mode)  |
+| Flag                     | Description                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `--port <number>`        | Port to listen on (default 9800)                                                       |
+| `--cli <claude\|gemini>` | CLI to run (default: auto-detect)                                                      |
+| `--token <value>`        | Use this token instead of the stored one                                               |
+| `--allow-origin <url>`   | Also accept connections from this origin                                               |
+| `--root <dir>`           | Map this directory, watch it, and let `file.read` read files under it (off by default) |
+| `--viewer <dir>`         | Serve this directory at `http://127.0.0.1:<port>/` (local mode)                        |
 
 ## Local mode
 
@@ -49,44 +51,42 @@ With `--viewer <dir>` the bridge serves that directory's files, except dotfiles 
 
 ## Protocol
 
-Messages use JSON format with `{ type, payload }` structure.
+Messages are JSON. The map RPC (`map.get`, `node.expand`, `file.read`) and its pushes follow the `ropeman.json` schema 1.0; the types are in `src/lib/types/ropemanMap.ts` of the Ropeman repository. Every request is parsed before it runs. A request the parser refuses (an unknown type, a missing field, text that is not JSON) gets `{ "id", "type", "code": "bad-request", "error" }` and the connection stays open.
 
-### Message Types
+The first message on every connection is `{ "type": "hello", "schemaVersion": "1.0", "server": { "name", "version" } }`.
 
-| Type        | Description                   |
-| ----------- | ----------------------------- |
-| `ping`      | Health check (returns `pong`) |
-| `status`    | Server status info            |
-| `analyze`   | Code analysis request         |
-| `chat`      | Chat/conversation message     |
-| `file.read` | Read one file under `--root`  |
+| Request                                     | Answer                                                                                                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ "id", "type": "map.get" }`               | The map of `--root`: every file with where it ended up, the top level grouped by folder, and each level named so far                                    |
+| `{ "id", "type": "node.expand", "nodeId" }` | At once, the node's level grouped by folder (or its named level when it has one). Then one `node.named` push: the named level, or a code and the reason |
+| `{ "id", "type": "file.read", "path" }`     | One file under `--root` (below)                                                                                                                         |
 
-### Request Format
+Pushes: `node.named` (`{ nodeId, level }` or `{ nodeId, code, error }` with code `no-cli`, `naming-failed` or `verification-failed`) and `map.changed` (`{ paths }`, after a file under `--root` changes; ask `map.get` again).
 
-```json
-{ "id": 1, "type": "chat", "message": "explain this code", "cli": "claude" }
-```
+### Naming
 
-`cli` is optional and must be `claude` or `gemini`.
+When a folder is expanded, the bridge sends your CLI the structure of its parts: file paths, declared names such as `function parseArgs`, file counts and import counts between the parts. It sends no file contents, and env files with real values are not in the map at all. The CLI answers with a name, a sentence and up to six key symbols per part. Ropeman's verifier checks the answer against the code (every part named once, key symbols declared in that part's files); an answer that fails is asked again once with the reasons, then the folder names stay and the push says why. `claude` runs with no tools, no MCP servers and no saved session, from an empty temporary folder. Gemini CLI has no flag that turns every tool off: the bridge runs it with `--approval-mode default` (no shell, edit, write or web fetch in headless mode), no MCP servers and no extensions, so only its read and search tools remain, and those see only the empty folder. At most two CLI runs go at once, each for at most 180 seconds; closing the page stops the run it was waiting for. Stopping a run, or the bridge, ends the CLI and every process it started (its process group on macOS and Linux, `taskkill /T` on Windows, which is untested).
+
+### file.read
 
 ```json
 { "id": 2, "type": "file.read", "path": "src/main.ts" }
 ```
 
-`path` is relative to `--root`. The bridge refuses absolute paths, paths that leave the root (`..`, or a symlink that resolves outside it), env files with real values (`.env`, `.env.local`; templates such as `.env.example` are allowed), anything but a regular file (a directory, a FIFO, a device), files over 500,000 bytes, and files with a NUL byte (`binary`). A path that changes to point elsewhere while it is read comes back as `changed`. Each connection may have 8 reads in flight; more come back as `busy`. A refusal comes back as `{ "id": 2, "type": "file.read", "code": "outside-root", "error": "…" }`.
+`path` is relative to `--root`. The bridge refuses absolute paths, paths that leave the root (`..`, or a symlink that resolves outside it), env files with real values (`.env`, `.env.local`; templates such as `.env.example` are allowed), anything but a regular file (a directory, a FIFO, a device), files over 500,000 bytes, and files with a NUL byte (`binary`). A path that changes to point elsewhere while it is read comes back as `changed`. Each connection may have 8 reads in flight; more come back as `busy`. A refusal comes back as `{ "id": 2, "type": "file.read", "code": "outside-root", "error": "…" }`, a file as `{ "id": 2, "type": "file.read", "result": { "path", "content", "sha256", "size" } }`.
 
-### Response Format
+### Chat relay
 
-```json
-{ "id": 1, "type": "chat", "result": "..." }
-{ "id": 2, "type": "file.read", "result": { "path": "src/main.ts", "content": "...", "sha256": "…", "size": 1234 } }
-```
+The Ropeman app's Local Bridge track sends `{ "id": 1, "type": "chat", "message": "…", "cli": "claude" }` and gets `{ "id": 1, "type": "chat", "result": "…" }`. `analyze`, `ping` and `status` are also kept. `cli` is optional and must be `claude` or `gemini`. Relay runs use the same CLI flags, empty working folder and limits as naming: two CLI runs at a time across the server, four waiting per connection (namings and relays together), 120 seconds and 1 MB of output per run, and a closed connection stops its runs. This relay goes away once the viewer uses the map RPC.
 
 ## Development
 
+The bridge bundles the extraction core and the map schema from the Ropeman repository, so it builds from the repository root:
+
 ```bash
-cd bridge
-npm install
-npm run build
-npm start
+npm ci && npm ci --prefix bridge
+npm run check:bridge
+npm run build:bridge          # bridge/dist/server.mjs and bridge/dist/wasm/
+node bridge/dist/server.mjs serve --root .
+node bridge/scripts/smoke.mjs bridge/dist/server.mjs tests/fixtures/graphs/ts-monorepo
 ```

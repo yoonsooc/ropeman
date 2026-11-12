@@ -3,6 +3,7 @@ import { realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ParseSkip } from '$lib/types/ast';
 import type { CodeMap } from '$lib/types/codeMap';
+import type { FileNode } from '$lib/types/fileTree';
 import { createGrammarParser } from '$lib/workers/grammarParser';
 import { parseSources, supportedFiles, type ParseProgress } from '$lib/services/sourceExtraction';
 import { collectResolverConfigs } from '$lib/services/importResolver';
@@ -34,6 +35,8 @@ export interface Extraction {
 	listed: number;
 	/** Supported files the parser read nothing from, with the reason */
 	skipped: ParseSkip[];
+	/** Every folder the walk entered, repo-relative, '' for the root: what a watcher watches */
+	folders: string[];
 }
 
 /** Extract the code map of the folder at `root` the way the browser does, without its file cap. */
@@ -64,5 +67,24 @@ export async function extractDirectory(root: string, options: ExtractOptions): P
 		options.onProgress
 	);
 	const map = buildCodeMap(astMap, null, { refs, configs });
-	return { map, hierarchy: summarizeHierarchy(map), listed: paths.length, skipped };
+	return {
+		map,
+		hierarchy: summarizeHierarchy(map),
+		listed: paths.length,
+		skipped,
+		folders: foldersOf(tree)
+	};
+}
+
+function foldersOf(root: FileNode): string[] {
+	const folders = [''];
+	const visit = (node: FileNode) => {
+		for (const child of node.children ?? []) {
+			if (child.kind !== 'directory') continue;
+			folders.push(child.path);
+			visit(child);
+		}
+	};
+	visit(root);
+	return folders;
 }

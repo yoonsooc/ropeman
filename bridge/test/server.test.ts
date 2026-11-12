@@ -5,8 +5,10 @@ import net from 'net';
 import os from 'os';
 import path from 'path';
 import { createBridgeServer, HOST, type BridgeOptions } from '../src/bridge';
+import { CliRunner } from '../src/cli';
 import { parseAllowedOrigins } from '../src/auth';
 import { resolveRoot } from '../src/fileRead';
+import { MAP_SCHEMA_VERSION } from '../../src/lib/types/ropemanMap';
 
 const TOKEN = 'test-token-0123456789';
 
@@ -73,7 +75,7 @@ async function request(port: number, msg: object): Promise<Record<string, unknow
 			ws.onerror = () => reject(new Error('socket error'));
 			ws.onmessage = (ev) => {
 				const reply = JSON.parse(String(ev.data));
-				if (reply.type === 'status' && reply.result === 'connected') {
+				if (reply.type === 'hello') {
 					ws.send(JSON.stringify({ id: 1, ...msg }));
 				} else if (reply.id === 1) {
 					resolve(reply);
@@ -94,7 +96,7 @@ async function requestAll(port: number, msgs: object[]): Promise<Record<string, 
 			ws.onerror = () => reject(new Error('socket error'));
 			ws.onmessage = (ev) => {
 				const reply = JSON.parse(String(ev.data));
-				if (reply.type === 'status' && reply.result === 'connected') {
+				if (reply.type === 'hello') {
 					msgs.forEach((msg, i) => ws.send(JSON.stringify({ id: i, ...msg })));
 				} else {
 					replies.set(reply.id, reply);
@@ -149,6 +151,9 @@ describe('bridge server', () => {
 			defaultCli: null,
 			root: null,
 			viewerDir: null,
+			session: null,
+			runner: new CliRunner(2, base),
+			server: { name: '@ropeman/bridge', version: 'test' },
 			...overrides
 		}));
 		await new Promise<void>((resolve) => server!.listen(port, HOST, resolve));
@@ -291,6 +296,31 @@ describe('bridge server', () => {
 			expect(served).toBeGreaterThanOrEqual(8);
 			expect(busy + served).toBe(burst.length);
 			expect(after.result).toMatchObject({ path: 'main.ts' });
+		});
+
+		it('greets each socket with the schema version', async () => {
+			// Arrange
+			const port = await start();
+			const ws = new WebSocket(`ws://127.0.0.1:${port}/?token=${TOKEN}`);
+
+			// Act
+			const first = await new Promise<Record<string, unknown>>((resolve) => {
+				ws.onmessage = (ev) => resolve(JSON.parse(String(ev.data)));
+			});
+			ws.close();
+
+			// Assert
+			expect(first).toEqual({
+				type: 'hello',
+				schemaVersion: MAP_SCHEMA_VERSION,
+				server: { name: '@ropeman/bridge', version: 'test' }
+			});
+		});
+
+		it('answers map.get with not-ready when started without a root', async () => {
+			const port = await start();
+			const reply = await request(port, { type: 'map.get' });
+			expect(reply).toMatchObject({ type: 'map.get', code: 'not-ready' });
 		});
 
 		it('refuses file.read when started without a root', async () => {
