@@ -344,7 +344,7 @@ export const xxxStore = createXxxStore();
   - 동작은 `--duration-fast`(125ms)·`--duration-medium`(300ms)과 `--ease-standard`다. 계속 도는 스피너는 토큰을 쓰지 않는다. 동작 줄이기 설정에서는 전역 규칙이 모든 전환과 애니메이션을 즉시 끝낸다.
   - 그래프 노드 내부(`src/lib/components/nodes/`, xyflow 노드·엣지 규칙)는 dagre가 px로 배치하므로 px를 쓴다. 아이콘 글리프 크기는 글자 척도가 아니라서 px로 둔다.
 - `src/lib/styles/tokens.test.ts`가 다섯 가지를 검사한다. 두 모드의 WCAG AA 대비 하한, 정의되지 않은 `var()` 참조, 쓰이지 않는 전역 토큰, 스타일 블록 안의 색 리터럴, 척도 토큰 대신 쓴 px·rem 글자 크기와 반경이다. 새 색이나 크기가 필요하면 토큰을 먼저 추가한다.
-- 값의 출처와 라이선스는 `global.css` 머리 주석과 `LICENSES/astryx-MIT.txt`에 있다.
+- 값의 출처와 라이선스는 `global.css` 머리 주석과 `LICENSES/astryx-MIT.txt`에 있다. 패키지를 쓰지 않고 값을 옮긴 이유와 값마다 고른 안은 [ADR-22](adr/0022-astryx-tokens-without-package.md)에 있다.
 
 ---
 
