@@ -8,7 +8,6 @@ dist/
 
 # Test
 test-results/
-tests/screenshots/
 
 # Environment
 .env

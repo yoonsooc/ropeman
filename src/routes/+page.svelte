@@ -132,7 +132,7 @@
 		const { loadGitHubRepo } = await import('$lib/services/githubLoader');
 		let applied = false;
 		try {
-			await loadGitHubRepo(info, {
+			const { cut } = await loadGitHubRepo(info, {
 				beforeApply: () => {
 					applied = true;
 					resetAllStores();
@@ -140,6 +140,7 @@
 					showNewProject = false;
 				}
 			});
+			projectStore.cutFiles = cut;
 		} catch (err) {
 			if (!applied) throw err;
 			// Failed halfway through downloading: drop the partial tree and go back to the landing page

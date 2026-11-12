@@ -165,7 +165,7 @@ export interface LoadGitHubOptions {
 export async function loadGitHubRepo(
 	info: GitHubRepoInfo,
 	options: LoadGitHubOptions = {}
-): Promise<void> {
+): Promise<{ cut: CutFile[] }> {
 	// 1. Fetch tree
 	const treeUrl = buildTreeUrl(info);
 	const treeRes = await fetch(treeUrl);
@@ -189,7 +189,6 @@ export async function loadGitHubRepo(
 
 	// 2. Collect files to parse + set progress before fileTree (so isParsing is true when Header appears)
 	const { kept: supportedItems, cut } = collectSupportedItems(treeData.tree, filter);
-	projectStore.cutFiles = cut;
 	const total = supportedItems.length;
 	projectStore.parsingProgress = { done: 0, total };
 
@@ -232,4 +231,5 @@ export async function loadGitHubRepo(
 	}
 
 	projectStore.isLoading = false;
+	return { cut };
 }

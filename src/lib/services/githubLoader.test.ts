@@ -22,8 +22,7 @@ vi.mock('$lib/stores/projectStore.svelte', () => {
 		isLoading: false,
 		projectName: '',
 		parsingProgress: { done: 0, total: 0 },
-		githubInfo: null,
-		cutFiles: [] as { path: string; reason: string }[]
+		githubInfo: null
 	};
 	return { projectStore: store };
 });
@@ -50,7 +49,6 @@ describe('loadGitHubRepo', () => {
 		vi.restoreAllMocks();
 		projectStore.fileTree = null;
 		projectStore.astMap = new Map();
-		projectStore.cutFiles = [];
 		projectStore.isLoading = false;
 		projectStore.parsingProgress = { done: 0, total: 0 };
 	});
@@ -479,21 +477,21 @@ describe('loadGitHubRepo beforeApply (New project dialog)', () => {
 			const server = Array.from({ length: 20 }, (_, i) => blob(`packages/server/src/s${i}.ts`));
 			stubRepo([...app, ...server]);
 
-			await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+			const { cut } = await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
 
 			const parsed = [...projectStore.astMap.keys()];
 			expect(parsed).toHaveLength(MAX_FILES);
 			expect(parsed.filter((p) => p.startsWith('repo/packages/server/'))).toHaveLength(20);
-			expect(projectStore.cutFiles).toHaveLength(app.length + server.length - MAX_FILES);
-			expect(projectStore.cutFiles.every((c) => c.reason === 'file-limit')).toBe(true);
+			expect(cut).toHaveLength(app.length + server.length - MAX_FILES);
+			expect(cut.every((c) => c.reason === 'file-limit')).toBe(true);
 		});
 
 		it('records oversized files with the file-size reason', async () => {
 			stubRepo([blob('src/big.ts', 600_000), blob('src/small.ts')]);
 
-			await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+			const { cut } = await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
 
-			expect(projectStore.cutFiles).toEqual([{ path: 'src/big.ts', reason: 'file-size' }]);
+			expect(cut).toEqual([{ path: 'src/big.ts', reason: 'file-size' }]);
 		});
 	});
 });
