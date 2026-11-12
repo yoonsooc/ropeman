@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { toSemanticFlowEdges } from '$lib/services/semanticGraphBuilder';
+import type { SemanticEdge } from '$lib/types/semantic';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const GLOBAL_CSS = readFileSync(join(__dirname, 'global.css'), 'utf8');
@@ -231,5 +233,26 @@ describe('color tokens', () => {
 		);
 
 		expect(offenders).toEqual([]);
+	});
+
+	it.each<[string, Map<string, string>]>([
+		['light', LIGHT],
+		['dark', DARK]
+	])('each edge legend swatch matches the stroke of its edge type in %s mode', (_mode, theme) => {
+		const types: SemanticEdge['type'][] = ['depends_on', 'calls', 'extends', 'uses'];
+		const edges = toSemanticFlowEdges({
+			parentId: null,
+			nodes: [],
+			edges: types.map((type) => ({ id: type, source: 'a', target: 'b', type })),
+			breadcrumbLabel: ''
+		});
+
+		const mismatches = types.flatMap((type, i) => {
+			const swatch = theme.get(`--color-edge-${type.replace('_', '-')}`);
+			const stroke = String(edges[i].style).match(/stroke: (#[0-9a-f]+)/i)?.[1];
+			return swatch === stroke ? [] : [`${type}: swatch ${swatch}, stroke ${stroke}`];
+		});
+
+		expect(mismatches).toEqual([]);
 	});
 });

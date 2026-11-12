@@ -291,7 +291,7 @@ export const xxxStore = createXxxStore();
 
 - 색 토큰은 `src/lib/styles/global.css` 맨 위 `:root`(라이트)와 `[data-theme='dark']`(다크)에 있다. 이름은 astryx 색 역할 문법을 따른다. 예: `--color-background-surface`, `--color-text-secondary`, `--color-on-accent`.
 - 상태 색은 쓰이는 표면마다 역할이 따로 있다. 페이지 위 글자는 `--color-text-error`, 진한 채움은 `--color-error`와 그 위 글자 `--color-on-error`, 옅은 채움은 `--color-error-muted`와 그 위 글자 `--color-on-error-muted`다. 점·아이콘은 `--color-icon-*`, 테두리는 `--color-border-*`를 쓴다.
-- 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다.
+- 노드 종류(`--color-directory` 등)와 AI 트랙(`--track-*`)은 Ropeman 고유 범주 색이라 이름을 유지한다. 엣지 범례(`--color-edge-*`)도 범주 색이다. 캔버스 선 색은 `semanticGraphBuilder.ts`가 두 테마에 같은 값으로 그리므로 범례 토큰도 `:root`에만 두고, 두 값이 같은지 `tokens.test.ts`가 검사한다.
 - 포커스 링은 전역 `:focus-visible` 규칙 하나가 `--focus-outline-*` 토큰으로 그린다. 잘리는 스크롤 컨테이너 안에서는 요소에 `--focus-outline-offset: -2px`를 준다. 컴포넌트에서 `outline: none`을 쓰려면 같은 요소나 감싸는 요소가 링을 대신 그려야 한다.
 - 척도 토큰도 같은 `:root`에 있다. 값은 astryx core를 따른다.
   - 간격 `--spacing-N`은 N × 0.25rem(4px 격자)이다. 1px 선과 48px보다 큰 간격은 숫자로 둔다.
