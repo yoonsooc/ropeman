@@ -339,13 +339,13 @@ describe('readGraphifyGraph on Graphify 0.9.104 output for the ground-truth repo
 				imports: p(1, 0.9, 1),
 				re_exports: p(1, 0.9286, 1),
 				dynamic_import: p(1, 1, 1),
-				calls: p(0.9474, 0.7826, 0.8261)
+				calls: p(1, 0.7308, 0.7692)
 			},
 			'svelte-app': {
 				imports_from: p(1, 0.3, 1),
 				imports: p(1, 0.2941, 1),
 				re_exports: p(1, 1, 1),
-				calls: p(1, 0.2727, 0.2727)
+				calls: p(1, 0.25, 0.25)
 			},
 			'py-shop': {
 				imports_from: p(1, 0.6923, 1),

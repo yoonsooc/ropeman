@@ -28,14 +28,14 @@ done
 
 `graphifyAdapter.test.ts`가 어댑터 결과를 `tests/fixtures/graphs/`의 정답으로 채점한다. 값은 precision / recall / siteRecall이다(정의는 `tests/fixtures/graphs/README.md`).
 
-| 저장소      | `imports_from` | `imports`    | `re_exports` | `dynamic_import` | `calls`            |
-| ----------- | -------------- | ------------ | ------------ | ---------------- | ------------------ |
-| ts-monorepo | 1 / 0.94 / 1   | 1 / 0.9 / 1  | 1 / 0.93 / 1 | 1 / 1 / 1        | 0.95 / 0.78 / 0.83 |
-| svelte-app  | 1 / 0.3 / 1    | 1 / 0.29 / 1 | 1 / 1 / 1    | 정답 없음        | 1 / 0.27 / 0.27    |
-| py-shop     | 1 / 0.69 / 1   | 1 / 0.92 / 1 | 채점 안 함   | 정답 없음        | 1 / 0.86 / 0.93    |
+| 저장소      | `imports_from` | `imports`    | `re_exports` | `dynamic_import` | `calls`         |
+| ----------- | -------------- | ------------ | ------------ | ---------------- | --------------- |
+| ts-monorepo | 1 / 0.94 / 1   | 1 / 0.9 / 1  | 1 / 0.93 / 1 | 1 / 1 / 1        | 1 / 0.73 / 0.77 |
+| svelte-app  | 1 / 0.3 / 1    | 1 / 0.29 / 1 | 1 / 1 / 1    | 정답 없음        | 1 / 0.25 / 0.25 |
+| py-shop     | 1 / 0.69 / 1   | 1 / 0.92 / 1 | 채점 안 함   | 정답 없음        | 1 / 0.86 / 0.93 |
 
 놓친 관계를 graph.json에서 찾아본 결과다.
 
 - svelte-app: Graphify는 `$lib/…` import를 모두 외부 노드 하나(`ref_lib`)로 보낸다. 어댑터는 `ref_lib`를 가리키는 import 관계 14개를 연결 못 한 대상(`unresolved`)으로 둔다. `$lib`에서 가져온 함수의 호출도 Graphify 출력에 없다.
 - py-shop: `__init__.py`의 `from .service import OrderService`는 같은 파일 쌍에 `imports_from`과 `re_exports`를 함께 만든다. 노드 쌍마다 관계가 하나만 남아서 `imports_from` 3개가 사라졌다(`--no-cluster` 출력에는 있다). `if __name__ == '__main__': main()`과 `json.dumps` 호출은 Graphify 추출에 처음부터 없다.
-- ts-monorepo: `store.ts` ↔ `events.ts` 순환 import의 한쪽은 `reverse_import` 표시만 남고 줄이 없다. `formatDate` 안의 두 번째 `pad()` 호출(같은 쌍, 다른 줄)은 `--no-cluster` 출력에도 없다. 같은 쌍의 호출은 한 번만 나온다. `calls`의 오탐 1개는 `new Store()`이고, 정답 규칙은 TS `new`를 호출로 세지 않는다.
+- ts-monorepo: `store.ts` ↔ `events.ts` 순환 import의 한쪽은 `reverse_import` 표시만 남고 줄이 없다. `formatDate` 안의 두 번째 `pad()` 호출(같은 쌍, 다른 줄)은 `--no-cluster` 출력에도 없다. 같은 쌍의 호출은 한 번만 나온다. 배럴을 거친 `new Logger()` 두 곳과 `math.clamp`, `store.set`, `mod.register` 같은 속성 호출도 Graphify 출력에 없다.
