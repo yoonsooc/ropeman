@@ -1,0 +1,530 @@
+{
+	"top/shapes": {
+		"wire": "{\"projectName\":\"fixture\",\"totalFiles\":7,\"totalSymbols\":19,\"files\":[{\"path\":\"fixture/src/py/main.py\",\"language\":\"python\",\"symbols\":[{\"name\":\"create_app\",\"kind\":\"function\",\"badges\":[\"decorator\",\"route\"]},{\"name\":\"handler\",\"kind\":\"function\"},{\"name\":\"handler\",\"kind\":\"function\"},{\"name\":\"App\",\"kind\":\"class\",\"children\":[{\"name\":\"run\",\"kind\":\"method\",\"badges\":[\"generator\"]},{\"name\":\"Inner\",\"kind\":\"class\",\"children\":[{\"name\":\"go\",\"kind\":\"method\"}]}]}],\"imports\":[{\"source\":\"from flask import Flask, request\",\"specifiers\":[]},{\"source\":\"import os\",\"specifiers\":[]}]},{\"path\":\"fixture/src/app.ts\",\"language\":\"typescript\",\"symbols\":[{\"name\":\"main\",\"kind\":\"function\",\"badges\":[\"async\",\"export_default\"]},{\"name\":\"Server\",\"kind\":\"class\",\"badges\":[\"abstract\"],\"children\":[{\"name\":\"start\",\"kind\":\"method\",\"badges\":[\"static\"]},{\"name\":\"start\",\"kind\":\"method\"}]}],\"imports\":[{\"source\":\"\\\"zod\\\";\",\"specifiers\":[\"import { z }\"]},{\"source\":\"import './polyfill';\",\"specifiers\":[]},{\"source\":\"'./lib';\",\"specifiers\":[\"import Default\",\"{ a\",\"b }\"]}]},{\"path\":\"fixture/pkg/lib.go\",\"language\":\"go\",\"symbols\":[{\"name\":\"Handler\",\"kind\":\"class\"},{\"name\":\"ServeHTTP\",\"kind\":\"method\"}],\"imports\":[{\"source\":\"lib\",\"specifiers\":[]},{\"source\":\"import \\\"fmt\\\"\",\"specifiers\":[]}]},{\"path\":\"fixture/src/nested.ts\",\"language\":\"typescript\",\"symbols\":[{\"name\":\"Outer\",\"kind\":\"class\",\"children\":[{\"name\":\"import x from \\\"y\\\"\",\"kind\":\"import\"}]}],\"imports\":[]},{\"path\":\"fixture/src/한글.ts\",\"language\":\"typescript\",\"symbols\":[{\"name\":\"함수_이름\",\"kind\":\"function\",\"badges\":[\"async\"]}],\"imports\":[]},{\"path\":\"fixture/src/only-imports.ts\",\"language\":\"typescript\",\"symbols\":[],\"imports\":[{\"source\":\"import '@scope/side-effect';\",\"specifiers\":[]}]},{\"path\":\"fixture/README.md\",\"language\":\"markdown\",\"symbols\":[{\"name\":\"name: fixture\",\"kind\":\"frontmatter\"},{\"name\":\"Fixture\",\"kind\":\"heading\",\"children\":[{\"name\":\"Usage\",\"kind\":\"heading\"}]}],\"imports\":[{\"source\":\"docs/guide.md\",\"specifiers\":[]}]}]}",
+		"totalFiles": 7,
+		"omitted": [
+			{
+				"path": "fixture/src/types.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "fixture/src/empty.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "fixture/tests/app.test.ts",
+				"reason": "excluded-path"
+			}
+		],
+		"exceedsBudget": false
+	},
+	"sub/shapes": {
+		"wire": "{\"projectName\":\"sub-skeleton\",\"totalFiles\":4,\"totalSymbols\":14,\"files\":[{\"path\":\"src/app.ts\",\"language\":\"typescript\",\"symbols\":[{\"name\":\"main\",\"kind\":\"function\",\"badges\":[\"async\",\"export_default\"]},{\"name\":\"Server\",\"kind\":\"class\",\"badges\":[\"abstract\"],\"children\":[{\"name\":\"start\",\"kind\":\"method\",\"badges\":[\"static\"]},{\"name\":\"start\",\"kind\":\"method\"}]}],\"imports\":[{\"source\":\"\\\"zod\\\";\",\"specifiers\":[\"import { z }\"]},{\"source\":\"import './polyfill';\",\"specifiers\":[]},{\"source\":\"'./lib';\",\"specifiers\":[\"import Default\",\"{ a\",\"b }\"]}]},{\"path\":\"fixture/src/py/main.py\",\"language\":\"python\",\"symbols\":[{\"name\":\"create_app\",\"kind\":\"function\",\"badges\":[\"decorator\",\"route\"]},{\"name\":\"handler\",\"kind\":\"function\"},{\"name\":\"handler\",\"kind\":\"function\"},{\"name\":\"App\",\"kind\":\"class\",\"children\":[{\"name\":\"run\",\"kind\":\"method\",\"badges\":[\"generator\"]},{\"name\":\"Inner\",\"kind\":\"class\",\"children\":[{\"name\":\"go\",\"kind\":\"method\"}]}]}],\"imports\":[{\"source\":\"from flask import Flask, request\",\"specifiers\":[]},{\"source\":\"import os\",\"specifiers\":[]}]},{\"path\":\"pkg/lib.go\",\"language\":\"go\",\"symbols\":[{\"name\":\"Handler\",\"kind\":\"class\"},{\"name\":\"ServeHTTP\",\"kind\":\"method\"}],\"imports\":[{\"source\":\"lib\",\"specifiers\":[]},{\"source\":\"import \\\"fmt\\\"\",\"specifiers\":[]}]},{\"path\":\"src/한글.ts\",\"language\":\"typescript\",\"symbols\":[{\"name\":\"함수_이름\",\"kind\":\"function\",\"badges\":[\"async\"]}],\"imports\":[]}]}",
+		"totalFiles": 4,
+		"omitted": [
+			{
+				"path": "src/missing.ts",
+				"reason": "no-symbols"
+			}
+		],
+		"exceedsBudget": false
+	},
+	"top/all-unlimited": {
+		"bytes": 90751,
+		"sha256": "735ab17e54d8680da703e34d75c899bfa84f66eadf620ba083bf542a643295ad",
+		"totalFiles": 47,
+		"omitted": [
+			{
+				"path": "fixture/src/types.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "fixture/src/empty.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "fixture/tests/app.test.ts",
+				"reason": "excluded-path"
+			}
+		],
+		"exceedsBudget": false
+	},
+	"top/all-50KB": {
+		"bytes": 48335,
+		"sha256": "6f63d2c069e23e8706fadafbd05ad79fbeae38564f699b18bb070514e2797815",
+		"totalFiles": 17,
+		"omitted": [
+			{
+				"path": "fixture/src/types.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "fixture/src/empty.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "fixture/tests/app.test.ts",
+				"reason": "excluded-path"
+			},
+			{
+				"path": "fixture/src/gen/file22.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file21.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file20.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file19.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file18.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file17.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file16.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file15.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file14.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file13.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file12.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file11.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file10.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file9.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file8.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file7.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file6.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file5.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file4.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file3.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file2.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file1.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file0.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/py/main.py",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/app.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/pkg/lib.go",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/nested.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/한글.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/only-imports.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/README.md",
+				"reason": "over-budget"
+			}
+		],
+		"exceedsBudget": false
+	},
+	"top/huge-first-50KB": {
+		"wire": "{\"projectName\":\"fixture (analyzed 0/49 files, core directories prioritized)\",\"totalFiles\":0,\"totalSymbols\":0,\"files\":[]}",
+		"totalFiles": 0,
+		"omitted": [
+			{
+				"path": "fixture/src/types.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "fixture/src/empty.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "fixture/tests/app.test.ts",
+				"reason": "excluded-path"
+			},
+			{
+				"path": "fixture/src/huge.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file39.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file38.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file37.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file36.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file35.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file34.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file33.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file32.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file31.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file30.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file29.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file28.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file27.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file26.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file25.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file24.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file23.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file22.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file21.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file20.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file19.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file18.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file17.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file16.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file15.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file14.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file13.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file12.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file11.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file10.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file9.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file8.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file7.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file6.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file5.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file4.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file3.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file2.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file1.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/gen/file0.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/py/main.py",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/app.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/pkg/lib.go",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/nested.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/한글.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/only-imports.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/README.md",
+				"reason": "over-budget"
+			}
+		],
+		"exceedsBudget": false
+	},
+	"sub/all-50KB": {
+		"bytes": 49972,
+		"sha256": "a6013611535e7b2da97267398c0662414be99b242b42d77611eabc4d63f72685",
+		"totalFiles": 18,
+		"omitted": [
+			{
+				"path": "src/missing.ts",
+				"reason": "no-symbols"
+			},
+			{
+				"path": "src/huge.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file22.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file21.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file20.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file19.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file18.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file17.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file16.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file15.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file14.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file13.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file11.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file10.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file9.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file8.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file7.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file6.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file5.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file4.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file3.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file2.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file1.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/gen/file0.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "fixture/src/py/main.py",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/app.ts",
+				"reason": "over-budget"
+			},
+			{
+				"path": "pkg/lib.go",
+				"reason": "over-budget"
+			},
+			{
+				"path": "src/한글.ts",
+				"reason": "over-budget"
+			}
+		],
+		"exceedsBudget": false
+	},
+	"sub/huge-only-50KB": {
+		"bytes": 80037,
+		"sha256": "fa3669894639e25ddf9c088dc43eab55d8ae69ad72041c8ff36f2b815b0f30a9",
+		"totalFiles": 1,
+		"omitted": [],
+		"exceedsBudget": true
+	}
+}
