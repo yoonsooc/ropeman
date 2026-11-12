@@ -185,7 +185,8 @@
 			resetStores();
 			projectStore.projectName = parsed.repo;
 			const { loadGitHubRepo } = await import('$lib/services/githubLoader');
-			await loadGitHubRepo(parsed);
+			const { cut } = await loadGitHubRepo(parsed);
+			projectStore.cutFiles = cut;
 			onload?.();
 		} catch (err: any) {
 			resetStores();
