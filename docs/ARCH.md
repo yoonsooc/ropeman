@@ -120,6 +120,15 @@ edge-proxy/                       # Cloudflare Workers
 │   └── proxy.ts                      # ropeman-proxy (BYOK pass-through + 모델 목록)
 ├── wrangler.demo.toml                # Demo Worker 배포 설정 (placement hint)
 └── wrangler.proxy.toml               # Proxy Worker 배포 설정
+
+bridge/                           # 로컬 Bridge (`@ropeman/bridge`, npm 패키지)
+├── src/
+│   ├── server.ts                     # CLI 진입점: 플래그 해석, CLI 감지, 토큰, listen
+│   ├── bridge.ts                     # 한 포트에 HTTP(로컬 모드 정적 서빙)와 WebSocket(RPC, `claude -p` 중계)
+│   ├── auth.ts                       # Origin 허용 목록, Host 검사, 토큰
+│   ├── fileRead.ts                   # `file.read`: 루트 안 파일만, 실제 `.env` 거부, 500KB 상한, sha-256
+│   └── viewer.ts                     # `--viewer` 디렉터리 정적 서빙
+└── probe/index.html                  # 브라우저 실측용 시제품 페이지
 ```
 
 ---
@@ -279,13 +288,18 @@ callAI({ system, user, signal }): Promise<string>
 | byok (google)    | fetch(Gemini API)     | —             | 직접 호출 가능 |
 | byok (anthropic) | fetch(PROXY_URL)      | ropeman-proxy | Worker CORS    |
 
-Bridge는 받은 프롬프트로 로컬 CLI를 실행한다. 그래서 연결을 받기 전에 세 가지를 검사한다(`bridge/src/auth.ts`).
+Bridge는 받은 프롬프트로 로컬 CLI를 실행한다. 그래서 연결을 받기 전에 네 가지를 검사한다(`bridge/src/auth.ts`).
 
 - `127.0.0.1`에만 바인딩한다.
+- `Host` 헤더가 `127.0.0.1:{port}`나 `localhost:{port}`여야 한다. 소켓 연결과 모든 HTTP 요청에 똑같이 적용한다. 공격자가 자기 도메인을 127.0.0.1로 돌려도(DNS 리바인딩) Host에는 그 도메인이 실리므로 거부된다.
 - Origin 허용 목록을 확인한다. 기본은 `https://ropeman.dev`과 로컬 개발 서버이고, `--allow-origin`으로 더할 수 있다.
 - 소켓 URL의 `?token=`을 확인한다. 토큰은 `--token`, `ROPEMAN_BRIDGE_TOKEN`, `~/.ropeman/bridge-token` 순서로 정한다. 직접 준 토큰이 16자보다 짧으면 시작하지 않는다. 토큰 파일은 시작할 때마다 0600으로 맞춘다.
 
 클라이언트가 보낸 `cli` 값은 `claude`나 `gemini`일 때만 실행한다. 클라이언트(`bridgeService.ts`)는 `ws://127.0.0.1:{port}/?token=`으로 연결하고, 토큰은 `settingsStore.bridgeToken`에 저장한다.
+
+`file.read`는 `--root`로 준 디렉터리 안의 파일 하나를 읽어 내용, sha-256, 바이트 크기를 돌려준다. `--root`가 없으면 꺼져 있다. 절대 경로, 루트를 벗어나는 경로(`..`이나 루트 밖으로 풀리는 심볼릭 링크), 실제 값이 든 env 파일(앱의 `isEnvValueFile`과 같은 규칙, 대소문자 무시), 500,000바이트를 넘는 파일은 거부하고 이유 코드(`outside-root` 등)를 돌려준다(`bridge/src/fileRead.ts`).
+
+로컬 모드(`--viewer <dir>`)에서는 같은 포트가 그 디렉터리를 `http://127.0.0.1:{port}/`로 서빙하고, 그 출처(`http://127.0.0.1:{port}`, `http://localhost:{port}`)를 Origin 허용 목록에 더한다. 페이지와 소켓이 같은 출처라 혼합 콘텐츠 차단과 로컬 네트워크 권한 창이 없다. 토큰은 주소의 해시(`#token=`)로 넘겨 서버 로그나 Referer에 남지 않게 한다.
 
 ### Edge Proxy 구조
 

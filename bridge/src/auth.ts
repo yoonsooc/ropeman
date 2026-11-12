@@ -40,6 +40,20 @@ export function isOriginAllowed(origin: string | undefined, allowed: Set<string>
 	return origin === undefined || allowed.has(origin);
 }
 
+/** The origins of the bridge's own pages in local mode. */
+export function localOrigins(port: number): string[] {
+	return [`http://127.0.0.1:${port}`, `http://localhost:${port}`];
+}
+
+/**
+ * Blocks DNS rebinding: a page on an attacker's domain that resolves to 127.0.0.1 still sends
+ * its own name as Host, while a page the bridge serves or accepts reaches it by the loopback name.
+ */
+export function isHostAllowed(host: string | undefined, port: number): boolean {
+	const name = host?.toLowerCase();
+	return name === `127.0.0.1:${port}` || name === `localhost:${port}`;
+}
+
 export function tokensMatch(given: string | null, expected: string): boolean {
 	if (!given) return false;
 	const a = Buffer.from(given);
