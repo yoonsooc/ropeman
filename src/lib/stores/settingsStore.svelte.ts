@@ -1,7 +1,6 @@
 import { browserLanguages, detectLocale, parseLocale, type Locale } from '$lib/utils/locale';
 
 export type AIProviderId = 'google' | 'anthropic' | 'openai';
-export type BridgeCliId = 'claude' | 'gemini' | 'auto';
 
 function loadStoredSettings() {
 	if (typeof window === 'undefined') return {};
@@ -30,8 +29,6 @@ function createSettingsStore() {
 	let syntaxTheme = $state<string>(initial.syntaxTheme ?? 'tomorrow');
 	let skipDrilldownConfirm = $state<boolean>(initial.skipDrilldownConfirm ?? false);
 	let showSymbols = $state<boolean>(initial.showSymbols ?? false);
-	let bridgeCli = $state<BridgeCliId>(initial.bridgeCli ?? 'auto');
-	let bridgeToken = $state<string>(initial.bridgeToken ?? '');
 	let codeFontSize = $state<number>(initial.codeFontSize ?? 13);
 	let customSkipPatterns = $state<string[]>(initial.customSkipPatterns ?? []);
 	let customIncludePatterns = $state<string[]>(initial.customIncludePatterns ?? []);
@@ -54,8 +51,6 @@ function createSettingsStore() {
 					syntaxTheme,
 					skipDrilldownConfirm,
 					showSymbols,
-					bridgeCli,
-					bridgeToken,
 					codeFontSize,
 					customSkipPatterns,
 					customIncludePatterns,
@@ -64,6 +59,9 @@ function createSettingsStore() {
 			);
 		}
 	}
+
+	// The removed Local Bridge track kept serve's token here, where any script on the origin reads it
+	if ('bridgeToken' in initial || 'bridgeCli' in initial) persist();
 
 	return {
 		get geminiApiKey() {
@@ -162,22 +160,6 @@ function createSettingsStore() {
 			persist();
 		},
 
-		get bridgeCli() {
-			return bridgeCli;
-		},
-		set bridgeCli(v: BridgeCliId) {
-			bridgeCli = v;
-			persist();
-		},
-
-		get bridgeToken() {
-			return bridgeToken;
-		},
-		set bridgeToken(v: string) {
-			bridgeToken = v.trim();
-			persist();
-		},
-
 		get codeFontSize() {
 			return codeFontSize;
 		},
@@ -237,8 +219,6 @@ function createSettingsStore() {
 			syntaxTheme = 'tomorrow';
 			skipDrilldownConfirm = false;
 			showSymbols = false;
-			bridgeCli = 'auto';
-			bridgeToken = '';
 			codeFontSize = 13;
 			customSkipPatterns = [];
 			customIncludePatterns = [];

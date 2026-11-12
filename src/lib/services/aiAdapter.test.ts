@@ -13,13 +13,8 @@ vi.mock('$lib/stores/settingsStore.svelte', () => ({
 		aiProvider: 'google',
 		geminiApiKey: 'test-key',
 		anthropicApiKey: '',
-		aiModel: 'gemini-2.5-flash',
-		bridgeCli: 'auto'
+		aiModel: 'gemini-2.5-flash'
 	}
-}));
-
-vi.mock('$lib/services/bridgeService', () => ({
-	sendViaBridge: vi.fn()
 }));
 
 vi.mock('$lib/services/webllmService', () => ({
@@ -35,7 +30,6 @@ import { callAI, isTrackReady, getActiveTrack, demoFailureMessage } from './aiAd
 import { demoRequestBody } from './requestBudget';
 import { authStore } from '$lib/stores/authStore.svelte';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
-import { sendViaBridge } from '$lib/services/bridgeService';
 import { generate as webllmGenerate } from '$lib/services/webllmService';
 
 describe('aiAdapter', () => {
@@ -49,23 +43,6 @@ describe('aiAdapter', () => {
 		it('throws when track is none', async () => {
 			(authStore as any).activeTrack = 'none';
 			await expect(callAI({ system: 'sys', user: 'msg' })).rejects.toThrow('AI not connected');
-		});
-
-		it('delegates to bridge when track is bridge', async () => {
-			(authStore as any).activeTrack = 'bridge';
-			(sendViaBridge as ReturnType<typeof vi.fn>).mockResolvedValue('bridge response');
-
-			const result = await callAI({ system: 'sys', user: 'msg' });
-			expect(result).toBe('bridge response');
-			expect(sendViaBridge).toHaveBeenCalledWith('sys\n\nmsg', undefined, undefined);
-		});
-
-		it('passes abort signal to bridge', async () => {
-			(authStore as any).activeTrack = 'bridge';
-			(sendViaBridge as ReturnType<typeof vi.fn>).mockResolvedValue('ok');
-			const controller = new AbortController();
-			await callAI({ system: 'sys', user: 'msg', signal: controller.signal });
-			expect(sendViaBridge).toHaveBeenCalledWith('sys\n\nmsg', undefined, controller.signal);
 		});
 
 		it('delegates to webllm when track is webgpu', async () => {

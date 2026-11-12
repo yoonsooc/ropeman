@@ -70,7 +70,7 @@ function log(msg: string): void {
 
 /** Long enough for `claude -p` on a folder of a large repo (PASEO: see docs/ARCH.md). */
 const NAMING_TIMEOUT_MS = 180_000;
-/** CLI runs at once over every socket, naming and the legacy relay together */
+/** Namings that run the CLI at once, over every socket */
 const CLI_CONCURRENCY = 2;
 const NAMING_MAX_OUTPUT_BYTES = 1_000_000;
 const WATCH_DEBOUNCE_MS = 300;
@@ -140,7 +140,6 @@ async function main() {
 		port,
 		token,
 		allowedOrigins: parseAllowedOrigins(argv),
-		defaultCli,
 		root,
 		viewerDir,
 		session,

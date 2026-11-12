@@ -43,7 +43,8 @@ One concept, one word per language. Use these in i18nStore values, READMEs and d
 | Curated example gallery (`/explore`)               | Explore                                           | 갤러리                           |
 | Free server-backed mode                            | Demo                                              | 데모                             |
 | Bring-your-own-key mode                            | API Key (BYOK) as a label, "API key" in sentences | API 키 (BYOK)                    |
-| Local CLI mode                                     | Local Bridge, short: Bridge                       | 로컬 브리지, short: 브리지       |
+| `ropeman serve` viewer (`/bridge`)                 | Bridge mode, short: Bridge                        | 브리지 모드, short: 브리지       |
+| serve hosting the viewer itself (`--local`)        | local mode                                        | 로컬 모드                        |
 | In-browser model mode                              | WebGPU (card title: Browser AI)                   | WebGPU (card title: 브라우저 AI) |
 | AI vendor (Google, Anthropic, OpenAI)              | provider                                          | 제공자                           |
 | Metadata sent to AI (symbols, signatures, imports) | code summary                                      | 코드 구조 요약                   |

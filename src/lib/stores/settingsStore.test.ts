@@ -174,53 +174,6 @@ describe('settingsStore', () => {
 		});
 	});
 
-	describe('bridgeCli getter/setter', () => {
-		it('defaults to auto', () => {
-			expect(settingsStore.bridgeCli).toBe('auto');
-		});
-
-		it('sets and gets bridgeCli', () => {
-			// Act
-			settingsStore.bridgeCli = 'claude';
-
-			// Assert
-			expect(settingsStore.bridgeCli).toBe('claude');
-		});
-
-		it('persists bridgeCli across setter calls', () => {
-			// Act
-			settingsStore.bridgeCli = 'gemini';
-
-			// Assert — value survives a subsequent read
-			expect(settingsStore.bridgeCli).toBe('gemini');
-		});
-	});
-
-	describe('bridgeToken getter/setter', () => {
-		it('defaults to empty', () => {
-			expect(settingsStore.bridgeToken).toBe('');
-		});
-
-		it('trims a pasted token', () => {
-			// Act — tokens are usually copied from a terminal line with surrounding whitespace
-			settingsStore.bridgeToken = '  abc123\n';
-
-			// Assert
-			expect(settingsStore.bridgeToken).toBe('abc123');
-		});
-
-		it('is cleared by clearAll', () => {
-			// Arrange
-			settingsStore.bridgeToken = 'abc123';
-
-			// Act
-			settingsStore.clearAll();
-
-			// Assert
-			expect(settingsStore.bridgeToken).toBe('');
-		});
-	});
-
 	describe('hasApiKey for openai', () => {
 		it('returns true when openaiApiKey is set and provider is openai', () => {
 			// Arrange
@@ -300,17 +253,6 @@ describe('settingsStore', () => {
 			// Assert
 			expect(settingsStore.openaiApiKey).toBe('');
 		});
-
-		it('resets bridgeCli to auto', () => {
-			// Arrange
-			settingsStore.bridgeCli = 'claude';
-
-			// Act
-			settingsStore.clearAll();
-
-			// Assert
-			expect(settingsStore.bridgeCli).toBe('auto');
-		});
 	});
 
 	describe('language in a browser', () => {
@@ -339,6 +281,29 @@ describe('settingsStore', () => {
 		afterEach(() => {
 			vi.unstubAllGlobals();
 			vi.resetModules();
+		});
+
+		it('drops the serve token the removed Local Bridge track stored, keeping the rest', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			storage.set(
+				STORAGE_KEY,
+				JSON.stringify({
+					geminiApiKey: 'kept',
+					bridgeToken: 'serve-token-0123456789',
+					bridgeCli: 'claude'
+				})
+			);
+
+			// Act
+			const store = await loadStore();
+			const saved = JSON.parse(storage.get(STORAGE_KEY) ?? '{}');
+
+			// Assert
+			expect(saved).not.toHaveProperty('bridgeToken');
+			expect(saved).not.toHaveProperty('bridgeCli');
+			expect(saved.geminiApiKey).toBe('kept');
+			expect(store.geminiApiKey).toBe('kept');
 		});
 
 		it('starts in Korean when the browser prefers ko-KR', async () => {

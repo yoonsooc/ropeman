@@ -139,7 +139,7 @@ const PAIRS: [fg: string, bg: string, floor: number][] = [
 	...['directory', 'file', 'function', 'class', 'method', 'import'].map(
 		(k): [string, string, number] => [`--color-${k}`, '--color-background-body', 3]
 	),
-	...['demo', 'byok', 'bridge', 'webgpu'].map((t): [string, string, number] => [
+	...['demo', 'byok', 'webgpu'].map((t): [string, string, number] => [
 		`--track-${t}`,
 		'--color-background-body',
 		3

@@ -37,14 +37,9 @@ vi.mock('./skeletonExtractor', () => ({
 	formatPayloadPreview: vi.fn(() => 'skeleton preview')
 }));
 
-vi.mock('./bridgeService', () => ({
-	sendViaBridge: vi.fn()
-}));
-
 import { analyzeArchitecture } from './architectureService';
 import { authStore } from '$lib/stores/authStore.svelte';
 import { architectureStore } from '$lib/stores/architectureStore.svelte';
-import { sendViaBridge } from './bridgeService';
 
 describe('architectureService', () => {
 	beforeEach(() => {
@@ -63,22 +58,6 @@ describe('architectureService', () => {
 
 			// Should remain in analyzing state (early return, no reset)
 			expect(architectureStore.isAnalyzing).toBe(true);
-		});
-
-		it('uses bridge track when active', async () => {
-			(authStore as any).activeTrack = 'bridge';
-			(sendViaBridge as ReturnType<typeof vi.fn>).mockResolvedValue(
-				JSON.stringify([
-					{ name: 'Core', nodeIds: ['node:src/main.ts'] },
-					{ name: 'Utils', nodeIds: ['node:src/utils.ts'] }
-				])
-			);
-
-			await analyzeArchitecture();
-
-			expect(sendViaBridge).toHaveBeenCalled();
-			expect(architectureStore.groups.length).toBeGreaterThan(0);
-			expect(architectureStore.enabled).toBe(true);
 		});
 
 		it('calls Gemini API for byok track', async () => {

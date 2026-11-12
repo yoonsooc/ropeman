@@ -10,7 +10,18 @@
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
 	import CodeViewer from '$lib/components/CodeViewer.svelte';
+	import BridgeAccessGuide from '$lib/components/BridgeAccessGuide.svelte';
 	import type { ConnectFailure } from '$lib/services/bridgeClient';
+	import {
+		accessState,
+		browserFamily,
+		explainClosed,
+		watchLoopbackPermission,
+		type AccessState,
+		type BrowserFamily,
+		type ClosedCause,
+		type LoopbackPermission
+	} from '$lib/services/bridgeAccess';
 	import { isLoopbackPage, loadSession, saveSession } from '$lib/services/bridgeSession';
 	import type { RpcErrorCode } from '$lib/types/ropemanMap';
 
@@ -23,6 +34,16 @@
 	let localHost = $state<string | null>(null);
 	/** Off loopback (ropeman.dev) the token lives in memory only, and the form says so */
 	let onLoopback = $state(true);
+	let browser = $state<BrowserFamily>('other');
+	/** null until the first query answers, so the card does not flash the wrong state */
+	let permission = $state<LoopbackPermission | null>(null);
+	/** Why the last attempt closed before hello, once the page has checked */
+	let cause = $state<ClosedCause | null>(null);
+	/** Safari users who still want the form (another WebKit browser, a changed policy) */
+	let showFormAnyway = $state(false);
+	let origin = $state('');
+	let explaining = 0;
+	let stopWatching: (() => void) | null = null;
 
 	const status = $derived(bridgeStore.status);
 	const showingMap = $derived(
@@ -37,9 +58,32 @@
 	const portNumber = $derived(Number(port));
 	const portValid = $derived(Number.isInteger(portNumber) && portNumber > 0 && portNumber < 65536);
 
+	/** After a failed attempt whose socket closed before hello, finds out why. */
+	async function explain() {
+		const mine = ++explaining;
+		const s = bridgeStore.status;
+		if (s.state !== 'failed' || s.failure.reason !== 'closed') return;
+		const found = await explainClosed(s.host, {
+			loopbackPage: onLoopback,
+			permissions: navigator.permissions,
+			fetch: (url, init) => fetch(url, init)
+		});
+		if (mine === explaining && bridgeStore.status.state === 'failed') cause = found;
+	}
+
 	async function connect(host: string, value: string) {
+		cause = null;
+		explaining++;
 		await bridgeStore.connect(host, value);
 		if (bridgeStore.status.state === 'connected') saveSession(location, { host, token: value });
+		await explain();
+	}
+
+	async function reconnect() {
+		cause = null;
+		explaining++;
+		await bridgeStore.reconnect();
+		await explain();
 	}
 
 	function submit(e: SubmitEvent) {
@@ -56,6 +100,14 @@
 			history.replaceState(history.state, '', location.pathname + location.search);
 		}
 		onLoopback = isLoopbackPage(location);
+		origin = location.origin;
+		browser = browserFamily(navigator.userAgent);
+		// Loopback pages reach serve ungated, so only ropeman.dev reads the permission
+		if (!onLoopback) {
+			watchLoopbackPermission(navigator.permissions, (state) => (permission = state)).then(
+				(stop) => (stopWatching = stop)
+			);
+		}
 		const saved = loadSession(location);
 		if (onLoopback && hashToken) {
 			localHost = location.host;
@@ -66,12 +118,36 @@
 		}
 	});
 
-	onDestroy(() => bridgeStore.disconnect());
+	onDestroy(() => {
+		stopWatching?.();
+		bridgeStore.disconnect();
+	});
 
-	function failureText(host: string, failure: ConnectFailure): string {
+	/** The guide card for this moment; null where the page has nothing to add. */
+	const guide = $derived.by((): AccessState | null => {
+		if (status.state === 'failed') return status.failure.reason === 'closed' ? cause : null;
+		if (onLoopback || permission === null) return null;
+		if (status.state !== 'idle' && status.state !== 'connecting') return null;
+		return accessState({
+			browser: showFormAnyway ? 'other' : browser,
+			permission,
+			connection: status.state,
+			cause: null
+		});
+	});
+	const guideHost = $derived(
+		status.state === 'idle' ? `127.0.0.1:${portValid ? portNumber : DEFAULT_PORT}` : status.host
+	);
+	const checking = $derived(
+		status.state === 'failed' && status.failure.reason === 'closed' && cause === null
+	);
+
+	/** A close before hello has its own guide card; these are the other ways a connect fails. */
+	function failureText(
+		host: string,
+		failure: Exclude<ConnectFailure, { reason: 'closed' }>
+	): string {
 		switch (failure.reason) {
-			case 'closed':
-				return i18nStore.t('bridge.failedClosed', { host });
 			case 'newer-server':
 				return i18nStore.t('bridge.failedNewer', { version: failure.version });
 			case 'older-server':
@@ -204,7 +280,7 @@
 					{#if status.state === 'lost'}
 						<div class="bridge-strip warning" role="alert">
 							<span>{i18nStore.t('bridge.lost')}</span>
-							<button class="bridge-cta" onclick={() => bridgeStore.reconnect()}>
+							<button class="bridge-cta" onclick={reconnect}>
 								{i18nStore.t('bridge.reconnect')}
 							</button>
 						</div>
@@ -260,6 +336,9 @@
 							? i18nStore.t('bridge.connecting', { host: status.host })
 							: i18nStore.t('bridge.loadingMap')}
 					</p>
+					{#if guide === 'prompt-pending'}
+						<BridgeAccessGuide state={guide} {browser} host={guideHost} {origin} />
+					{/if}
 					{#if noticeText}
 						<p class="bridge-error" role="alert">{noticeText}</p>
 					{/if}
@@ -268,13 +347,28 @@
 					</button>
 				{:else}
 					<p class="bridge-desc">{i18nStore.t('bridge.desc')}</p>
-					{#if status.state === 'failed'}
+					{#if status.state === 'failed' && status.failure.reason !== 'closed'}
 						<div class="bridge-failure" role="alert">
 							<strong>{i18nStore.t('bridge.failedTitle')}</strong>
 							<p>{failureText(status.host, status.failure)}</p>
 						</div>
+					{:else if checking}
+						<p class="bridge-hint" role="status">{i18nStore.t('bridgeAccess.checking')}</p>
 					{/if}
-					{#if !localHost}
+					{#if guide}
+						<BridgeAccessGuide
+							state={guide}
+							{browser}
+							host={guideHost}
+							{origin}
+							local={localHost !== null}
+						/>
+					{/if}
+					{#if guide === 'safari'}
+						<button class="bridge-cta secondary" onclick={() => (showFormAnyway = true)}>
+							{i18nStore.t('bridgeAccess.connectAnyway')}
+						</button>
+					{:else if !localHost}
 						<p class="bridge-step">{i18nStore.t('bridge.startServe')}</p>
 						<pre class="bridge-command"><code>npx @ropeman/bridge serve --root .</code></pre>
 						<form class="bridge-form" onsubmit={submit}>
@@ -314,7 +408,7 @@
 						<p class="bridge-hint">{i18nStore.t('bridge.copyToken')}</p>
 						<pre class="bridge-command"><code>cat {TOKEN_FILE}</code></pre>
 					{:else if status.state === 'failed'}
-						<button class="bridge-cta" onclick={() => bridgeStore.reconnect()}>
+						<button class="bridge-cta" onclick={reconnect}>
 							{i18nStore.t('bridge.reconnect')}
 						</button>
 					{/if}
@@ -547,6 +641,11 @@
 		border-radius: var(--radius-container);
 		max-height: calc(100% - 2 * var(--spacing-4));
 		overflow-y: auto;
+	}
+
+	/* The card scrolls; without this its pre blocks shrink to nothing once the guide makes it tall */
+	.bridge-card > :global(*) {
+		flex-shrink: 0;
 	}
 
 	.bridge-card h1 {

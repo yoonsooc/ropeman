@@ -81,8 +81,6 @@ interface HelpTranslations {
 	aiModeDemoDesc: string;
 	aiModeByok: string;
 	aiModeByokDesc: string;
-	aiModeBridge: string;
-	aiModeBridgeDesc: string;
 	aiModeWebgpu: string;
 	aiModeWebgpuDesc: string;
 	shortcutsTitle: string;
@@ -145,17 +143,6 @@ type AnalyzeTranslations = Strings<
 	| 'valid'
 	| 'invalid'
 	| 'startWithApiKey'
-	| 'bridgeDesktopOnly'
-	| 'connected'
-	| 'disconnected'
-	| 'cliTool'
-	| 'cliAuto'
-	| 'port'
-	| 'connect'
-	| 'disconnect'
-	| 'token'
-	| 'tokenPlaceholder'
-	| 'startWithBridge'
 	| 'webgpuName'
 	| 'webgpuDesktopOnly'
 	| 'webgpuUnsupported'
@@ -368,17 +355,7 @@ interface TranslationSet {
 	common: Strings<
 		'close' | 'cancel' | 'retry' | 'copy' | 'loading' | 'project' | 'error' | 'beta' | 'symbolCount'
 	>;
-	track: Strings<
-		| 'edge'
-		| 'byok'
-		| 'bridge'
-		| 'bridgeShort'
-		| 'webgpu'
-		| 'none'
-		| 'disconnected'
-		| 'bridgeConnected'
-		| 'bridgeDisconnected'
-	>;
+	track: Strings<'edge' | 'byok' | 'webgpu' | 'none' | 'disconnected'>;
 	webgpuSetup: Strings<
 		| 'title'
 		| 'model'
@@ -481,6 +458,56 @@ interface TranslationSet {
 		| 'invalid'
 		| 'readFailed'
 	>;
+	bridgeAccess: Strings<
+		| 'yourBrowser'
+		| 'checking'
+		| 'connectAnyway'
+		| 'unaskedTitle'
+		| 'unaskedBody'
+		| 'grantedTitle'
+		| 'grantedBody'
+		| 'unknownTitle'
+		| 'unknownBody'
+		| 'firefoxTitle'
+		| 'firefoxBody'
+		| 'safariTitle'
+		| 'safariBody'
+		| 'promptPendingTitle'
+		| 'promptPendingBody'
+		| 'deniedTitle'
+		| 'deniedBody'
+		| 'unansweredTitle'
+		| 'unansweredBody'
+		| 'serveDownTitle'
+		| 'serveDownBody'
+		| 'refusedTitle'
+		| 'refusedBody'
+		| 'refusedHint'
+		| 'allowOrigin'
+		| 'unexplainedTitle'
+		| 'unexplainedBody'
+		| 'checkServe'
+		| 'checkToken'
+		| 'checkBlocked'
+		| 'refusedLocalTitle'
+		| 'refusedLocalBody'
+		| 'stepSiteControls'
+		| 'stepSiteSettings'
+		| 'stepAllowLoopback'
+		| 'stepReload'
+		| 'stepEdgeLock'
+		| 'stepEdgePermissions'
+		| 'stepFirefoxIcon'
+		| 'stepFirefoxRemove'
+		| 'stepOtherSettings'
+		| 'stepOtherAllow'
+		| 'stepsMayDiffer'
+		| 'settingsUrl'
+		| 'stopServe'
+		| 'startLocal'
+		| 'openPrinted'
+		| 'localInstead'
+	>;
 	bridge: Strings<
 		| 'pageTitle'
 		| 'title'
@@ -495,7 +522,6 @@ interface TranslationSet {
 		| 'connecting'
 		| 'cancel'
 		| 'failedTitle'
-		| 'failedClosed'
 		| 'failedNewer'
 		| 'failedOlder'
 		| 'failedBadHello'
@@ -613,7 +639,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'전체 다이어그램에서 파일 하나의 코드까지 내려가 봅니다. 브레드크럼이 지금 위치를 보여 줍니다.',
 			featureBrowserTitle: '네 가지 AI 방식',
 			featureBrowserDesc:
-				'데모, API 키, 로컬 브리지, 브라우저 AI 중에서 고르세요. 어느 방식이든 AI에는 코드 구조 요약을 보내고, 소스 파일은 브라우저에 남깁니다.',
+				'데모, API 키, 브라우저 AI 중에서 고르세요. 어느 방식이든 AI에는 코드 구조 요약을 보내고, 소스 파일은 브라우저에 남깁니다.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: '불러오기',
 			githubOr: '또는 GitHub 저장소 URL을 입력하세요',
@@ -698,7 +724,7 @@ const translations: Record<Locale, TranslationSet> = {
 			quota: 'API 크레딧이 부족합니다. 제공자 대시보드에서 충전하세요.',
 			auth: 'API 키가 유효하지 않습니다. 키를 확인하고 다시 입력하세요.',
 			network: 'AI 서비스에 연결하지 못했습니다. 네트워크 연결을 확인하세요.',
-			demo: '지금은 무료 데모를 쓸 수 없습니다. 갤러리에서 미리 분석한 예시를 보거나, API 키나 로컬 브리지(Claude Code, Gemini CLI)를 연결해 직접 분석하세요.',
+			demo: '지금은 무료 데모를 쓸 수 없습니다. 갤러리에서 미리 분석한 예시를 보거나, API 키를 연결해 직접 분석하세요.',
 			unknown: 'AI 분석 중 오류가 발생했습니다.',
 			actionSize: '크기 설정',
 			actionModel: '모델 변경',
@@ -708,7 +734,7 @@ const translations: Record<Locale, TranslationSet> = {
 		},
 		analyze: {
 			demoNotice:
-				'Google Gemini 무료 등급에서 처리합니다. 무료 등급에서는 Google이 입력을 서비스 개선에 쓸 수 있으니, 공개하기 어려운 코드는 API 키나 로컬 브리지를 쓰세요.',
+				'Google Gemini 무료 등급에서 처리합니다. 무료 등급에서는 Google이 입력을 서비스 개선에 쓸 수 있으니, 공개하기 어려운 코드는 API 키를 쓰세요.',
 			byokKeyNotice:
 				'키는 이 브라우저에만 저장됩니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 브라우저 제약 때문에 Ropeman 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.',
 			title: 'AI 아키텍처 분석',
@@ -729,17 +755,6 @@ const translations: Record<Locale, TranslationSet> = {
 			valid: '유효함',
 			invalid: '유효하지 않음',
 			startWithApiKey: 'API 키로 시작',
-			bridgeDesktopOnly: '데스크톱 전용. 로컬 브리지가 필요합니다.',
-			connected: '연결됨',
-			disconnected: '연결 안 됨',
-			cliTool: 'CLI 도구',
-			cliAuto: '자동 감지',
-			port: '포트',
-			connect: '연결',
-			disconnect: '연결 해제',
-			token: '토큰',
-			tokenPlaceholder: '브리지가 시작할 때 출력합니다',
-			startWithBridge: '브리지로 시작',
 			webgpuName: '브라우저 AI',
 			webgpuDesktopOnly: '데스크톱 전용. WebGPU와 수 GB의 RAM이 필요합니다.',
 			webgpuUnsupported: 'WebGPU 미지원',
@@ -755,7 +770,7 @@ const translations: Record<Locale, TranslationSet> = {
 			unlimited: '제한 없음',
 			payloadTokens: '약 {n} 토큰',
 			demoTooLarge:
-				'이번 요청 본문은 {size}입니다. {limit}를 넘으면 무료 데모가 시간 초과로 실패할 수 있습니다. 설정에서 코드 구조 요약 크기를 줄이거나 API 키나 브리지를 쓰세요.',
+				'이번 요청 본문은 {size}입니다. {limit}를 넘으면 무료 데모가 시간 초과로 실패할 수 있습니다. 설정에서 코드 구조 요약 크기를 줄이거나 API 키를 쓰세요.',
 			byokTooLarge:
 				'이번 요청은 약 {tokens} 토큰입니다. {model} 모델이 받을 수 있는 입력(컨텍스트 창에서 응답 몫을 뺀 값)은 약 {limit} 토큰이라 거절되거나 잘릴 수 있습니다. 창이 더 큰 모델을 고르거나 설정에서 코드 구조 요약 크기를 줄이세요.',
 			byokWindowUnknown: '이 모델의 컨텍스트 창은 알려지지 않아 {context} 토큰으로 가정했습니다.',
@@ -814,9 +829,6 @@ const translations: Record<Locale, TranslationSet> = {
 			aiModeByok: 'API 키 (BYOK)',
 			aiModeByokDesc:
 				'내 Gemini, Anthropic, OpenAI API 키를 씁니다. 키는 이 브라우저에만 저장합니다. Gemini 요청은 Google로 바로 가고, Anthropic과 OpenAI 요청은 Ropeman 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.',
-			aiModeBridge: '브리지',
-			aiModeBridgeDesc:
-				'내 컴퓨터에 설치한 Gemini CLI나 Claude Code로 분석합니다. CLI에 로그인된 계정을 그대로 쓰므로 API 키를 입력하지 않습니다.',
 			aiModeWebgpu: 'WebGPU (실험 기능)',
 			aiModeWebgpuDesc:
 				'WebGPU로 브라우저 안에서 모델을 돌립니다. 처음 한 번 모델을 내려받은 뒤에는 서버 없이 분석합니다. 속도는 GPU 성능에 따라 다릅니다.',
@@ -837,7 +849,7 @@ const translations: Record<Locale, TranslationSet> = {
 			faqItems: [
 				{
 					q: '소스 코드 원문이 외부 서버로 나가나요?',
-					a: '아니요. AI에는 코드 구조 요약(심볼, 시그니처, import)을 보내고, 파일 원문은 보내지 않습니다. 요약이 어디로 가는지는 AI 모드에 따라 다릅니다.\n\n• WebGPU: 모델이 기기 안에서 돌기 때문에 아무것도 밖으로 나가지 않습니다.\n• 데모, API 키: 요약이 AI 제공자에게 갑니다. 데모 요청과 Anthropic·OpenAI 키 요청은 Ropeman 프록시를 거치고, Gemini 키 요청은 Google로 바로 갑니다.\n• 브리지: 로컬 CLI가 요약을 그 CLI의 제공자에게 보냅니다.',
+					a: '아니요. AI에는 코드 구조 요약(심볼, 시그니처, import)을 보내고, 파일 원문은 보내지 않습니다. 요약이 어디로 가는지는 AI 모드에 따라 다릅니다.\n\n• WebGPU: 모델이 기기 안에서 돌기 때문에 아무것도 밖으로 나가지 않습니다.\n• 데모, API 키: 요약이 AI 제공자에게 갑니다. 데모 요청과 Anthropic·OpenAI 키 요청은 Ropeman 프록시를 거치고, Gemini 키 요청은 Google로 바로 갑니다.',
 					slug: 'security'
 				},
 				{
@@ -872,7 +884,7 @@ const translations: Record<Locale, TranslationSet> = {
 				},
 				{
 					q: '입력한 API 키는 어디에 저장되나요?',
-					a: 'Ropeman 서버는 API 키를 저장하지 않습니다. 키는 이 브라우저의 로컬 저장소에만 있습니다.\n\n• API 키 모드: AI를 호출할 때마다 요청에 키를 담아 보냅니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 Ropeman 프록시를 거치며 프록시는 키를 저장하지 않습니다.\n• 브리지 모드: 키를 입력하지 않습니다. CLI에 로그인된 계정을 그대로 씁니다.\n• WebGPU 모드: 키가 필요 없습니다.\n\n설정을 초기화하면 저장된 키가 지워집니다.',
+					a: 'Ropeman 서버는 API 키를 저장하지 않습니다. 키는 이 브라우저의 로컬 저장소에만 있습니다.\n\n• API 키 모드: AI를 호출할 때마다 요청에 키를 담아 보냅니다. Gemini 요청은 Google로 바로 가고, Anthropic·OpenAI 요청은 Ropeman 프록시를 거치며 프록시는 키를 저장하지 않습니다.\n• WebGPU 모드: 키가 필요 없습니다.\n\n설정을 초기화하면 저장된 키가 지워집니다.',
 					slug: 'security'
 				}
 			]
@@ -994,13 +1006,9 @@ const translations: Record<Locale, TranslationSet> = {
 		track: {
 			edge: '데모',
 			byok: 'API 키',
-			bridge: '로컬 브리지',
-			bridgeShort: '브리지',
 			webgpu: 'WebGPU',
 			none: '연결 안 됨',
-			disconnected: '연결 안 됨',
-			bridgeConnected: '브리지 연결됨',
-			bridgeDisconnected: '브리지 연결 끊김'
+			disconnected: '연결 안 됨'
 		},
 		webgpuSetup: {
 			title: '브라우저 AI 설정',
@@ -1177,6 +1185,74 @@ const translations: Record<Locale, TranslationSet> = {
 			invalid: '지도 내용이 형식에 맞지 않습니다. 문제가 있는 곳: {field}',
 			readFailed: '파일을 읽지 못했습니다.'
 		},
+		bridgeAccess: {
+			yourBrowser: '브라우저',
+			checking: '무엇이 잘못됐는지 확인하는 중...',
+			connectAnyway: '그래도 이 페이지에서 연결',
+			unaskedTitle: '브라우저가 한 번 묻습니다',
+			unaskedBody:
+				'연결을 누르면 브라우저가 이 사이트에 이 기기의 앱과 서비스 접근을 허용할지 묻습니다. 허용을 고르세요. 이 페이지는 127.0.0.1의 serve와만 통신합니다.',
+			grantedTitle: '이 기기에 접근할 수 있습니다',
+			grantedBody:
+				'이 브라우저는 이 사이트가 이 기기의 앱에 접근하도록 이미 허용했습니다. 포트와 토큰을 넣고 연결을 누르세요.',
+			unknownTitle: '브라우저가 물으면 허용을 고르세요',
+			unknownBody:
+				'어떤 브라우저는 사이트가 이 기기의 앱에 접근하기 전에 묻습니다. 연결을 눌렀을 때 물으면 허용을 고르세요.',
+			firefoxTitle: 'Firefox가 물으면 허용을 고르세요',
+			firefoxBody:
+				'최근 버전의 Firefox는 사이트가 이 기기의 앱에 접근하기 전에 묻기 시작했습니다. 연결을 눌렀을 때 물으면 허용을 고르세요. 묻지 않는 버전은 바로 연결합니다.',
+			safariTitle: 'Safari에서는 로컬 모드를 쓰세요',
+			safariBody:
+				'Safari는 이 페이지 같은 보안 페이지가 내 컴퓨터의 serve에 접근하지 못하게 막습니다. 대신 serve가 직접 띄우는 뷰어를 여세요.',
+			promptPendingTitle: '답을 기다리고 있습니다',
+			promptPendingBody:
+				'브라우저가 주소창 옆에서 이 사이트에 이 기기의 앱 접근을 허용할지 묻고 있습니다. 허용을 고르면 연결됩니다. 묻는 창을 닫았다면 주소 왼쪽 아이콘을 누르세요.',
+			deniedTitle: '이 기기에 접근하지 못하게 막혀 있습니다',
+			deniedBody:
+				'브라우저가 이 사이트의 기기 앱 접근을 막아서 페이지가 serve와 통신할 수 없습니다. 다시 허용하려면 이렇게 하세요.',
+			unansweredTitle: '브라우저가 연결을 막았습니다',
+			unansweredBody:
+				'이 사이트는 아직 이 기기의 앱에 접근할 수 없습니다. 연결을 다시 누르고 브라우저가 물으면 허용을 고르세요. 묻지 않는다면 serve가 {port} 포트에서 실행 중인지 확인하세요.',
+			serveDownTitle: '{port} 포트에서 실행 중인 serve가 없습니다',
+			serveDownBody:
+				'지도를 만들 폴더에서 serve를 실행하고 터미널을 열어 두세요. serve가 다른 포트를 출력했다면 그 번호를 넣으세요.',
+			refusedTitle: 'serve가 연결을 거부했습니다',
+			refusedBody:
+				'serve는 {port} 포트에서 실행 중이지만 이 페이지의 연결을 거부했습니다. 토큰이 틀렸거나 serve가 이 페이지 주소를 허용하지 않기 때문입니다. 어느 쪽인지는 serve를 실행한 터미널에 나옵니다. "wrong token"이 찍혔다면 토큰을 다시 복사해 전체 값을 붙여 넣으세요.',
+			refusedHint:
+				'serve를 --token이나 ROPEMAN_BRIDGE_TOKEN으로 실행했다면 그 값을 넣으세요. 다른 프로그램이 이 포트를 쓰고 있다면 serve를 --port로 실행하고 그 번호를 넣으세요.',
+			allowOrigin:
+				'터미널에 "not allowed"가 찍혔다면 serve가 이 페이지 주소를 허용하지 않은 것입니다. serve를 멈추고 이렇게 다시 실행하세요.',
+			unexplainedTitle: '연결되지 않았습니다',
+			unexplainedBody:
+				'브라우저가 연결이 닫힌 이유를 알려 주지 않습니다. 아래를 하나씩 확인하세요.',
+			checkServe:
+				'serve가 {port} 포트에서 실행 중인지 확인하세요. 꺼져 있다면 지도를 만들 폴더에서 실행하세요.',
+			checkToken: '토큰 전체를 붙여 넣었는지 확인하세요. 이 명령으로 다시 복사할 수 있습니다.',
+			checkBlocked:
+				'브라우저가 이 사이트의 기기 앱 접근을 물었을 때 차단했다면, 주소 왼쪽 아이콘에서 다시 허용하고 새로 고치세요.',
+			refusedLocalTitle: 'serve가 이 페이지를 받지 않았습니다',
+			refusedLocalBody:
+				'serve는 실행 중이지만 이 페이지 주소에 든 토큰을 받지 않았습니다. serve가 시작할 때 출력한 주소를 다시 여세요.',
+			stepSiteControls: '주소 왼쪽의 아이콘을 누르세요.',
+			stepSiteSettings: '이 사이트의 설정을 여세요.',
+			stepAllowLoopback:
+				'로컬 네트워크(루프백) 접근 항목을 허용으로 바꾸거나 이 사이트의 권한을 재설정하세요.',
+			stepReload: '이 탭으로 돌아와 새로 고치세요.',
+			stepEdgeLock: '주소 왼쪽의 아이콘을 누르세요. 자물쇠 모양일 수 있습니다.',
+			stepEdgePermissions: '이 사이트의 권한을 여세요.',
+			stepFirefoxIcon: '주소 왼쪽의 아이콘을 누르세요.',
+			stepFirefoxRemove: '이 기기의 앱과 서비스 접근을 막은 권한을 지우세요.',
+			stepOtherSettings: '주소 왼쪽 아이콘에서 이 사이트의 설정을 여세요.',
+			stepOtherAllow: '루프백이나 로컬 네트워크 접근을 허용하세요.',
+			stepsMayDiffer: '메뉴 이름은 브라우저 버전과 언어에 따라 다를 수 있습니다.',
+			settingsUrl: '또는 주소창에 이 주소를 붙여 넣으세요.',
+			stopServe: 'Ctrl+C로 serve를 멈추세요.',
+			startLocal: '로컬 모드로 다시 실행하세요.',
+			openPrinted: 'serve가 출력한 http://127.0.0.1:{port}/bridge#token=... 주소를 여세요.',
+			localInstead:
+				'권한이 필요 없는 로컬 모드도 있습니다. Ctrl+C로 serve를 멈추고 이렇게 다시 실행하세요.'
+		},
 		bridge: {
 			pageTitle: '브리지',
 			title: 'ropeman serve에 연결',
@@ -1193,8 +1269,6 @@ const translations: Record<Locale, TranslationSet> = {
 			connecting: '{host}의 serve에 연결하는 중...',
 			cancel: '취소',
 			failedTitle: '연결하지 못했습니다',
-			failedClosed:
-				'{host}에서 serve가 응답하지 않았습니다. serve가 실행 중인지, 포트가 맞는지, 토큰이 토큰 파일 값과 같은지 확인하세요.',
 			failedNewer:
 				'serve가 더 새로운 지도 형식({version})을 씁니다. 이 페이지를 새로 고쳐 새 뷰어를 받으세요.',
 			failedOlder:
@@ -1315,7 +1389,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'Go from the top-level diagram down to the code of a single file. The breadcrumb shows where you are.',
 			featureBrowserTitle: 'Four AI modes',
 			featureBrowserDesc:
-				'Pick Demo, API Key, Local Bridge or Browser AI. Every mode sends the AI a code summary and keeps the source files in your browser.',
+				'Pick Demo, API Key or Browser AI. Every mode sends the AI a code summary and keeps the source files in your browser.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: 'Load',
 			githubOr: 'or enter a GitHub repository URL',
@@ -1399,7 +1473,7 @@ const translations: Record<Locale, TranslationSet> = {
 			quota: "Your API credit has run out. Add credit in your provider's dashboard.",
 			auth: "This API key isn't valid. Check it and enter it again.",
 			network: "Couldn't reach the AI service. Check your network connection.",
-			demo: 'The free demo is unavailable right now. Browse pre-analyzed examples in Explore, or connect an API key or the local bridge (Claude Code, Gemini CLI) to analyze your own code.',
+			demo: 'The free demo is unavailable right now. Browse pre-analyzed examples in Explore, or connect an API key to analyze your own code.',
 			unknown: 'Something went wrong during AI analysis.',
 			actionSize: 'Size settings',
 			actionModel: 'Change model',
@@ -1409,7 +1483,7 @@ const translations: Record<Locale, TranslationSet> = {
 		},
 		analyze: {
 			demoNotice:
-				'Runs on the free tier of Google Gemini, where Google may use inputs to improve its products. For code you would not share, use an API key or the local bridge.',
+				'Runs on the free tier of Google Gemini, where Google may use inputs to improve its products. For code you would not share, use an API key.',
 			byokKeyNotice:
 				"Keys are stored only in this browser. Gemini requests go straight to Google; Anthropic and OpenAI requests pass through Ropeman's proxy because of browser restrictions. The proxy does not store keys.",
 			title: 'AI Architecture Analysis',
@@ -1430,17 +1504,6 @@ const translations: Record<Locale, TranslationSet> = {
 			valid: 'Valid',
 			invalid: 'Invalid',
 			startWithApiKey: 'Start with API Key',
-			bridgeDesktopOnly: 'Desktop only. Needs the local bridge.',
-			connected: 'Connected',
-			disconnected: 'Disconnected',
-			cliTool: 'CLI Tool',
-			cliAuto: 'Auto-detect',
-			port: 'Port',
-			connect: 'Connect',
-			disconnect: 'Disconnect',
-			token: 'Token',
-			tokenPlaceholder: 'Printed by the bridge at startup',
-			startWithBridge: 'Start with Bridge',
 			webgpuName: 'Browser AI',
 			webgpuDesktopOnly: 'Desktop only. Needs WebGPU and several GB of RAM.',
 			webgpuUnsupported: 'WebGPU not supported',
@@ -1456,7 +1519,7 @@ const translations: Record<Locale, TranslationSet> = {
 			unlimited: 'Unlimited',
 			payloadTokens: '~{n} tokens',
 			demoTooLarge:
-				'This request body is {size}. Above {limit} the free demo may time out. Lower the code summary size in Settings, or use an API key or the bridge.',
+				'This request body is {size}. Above {limit} the free demo may time out. Lower the code summary size in Settings, or use an API key.',
 			byokTooLarge:
 				'This request is about {tokens} tokens. {model} takes about {limit} tokens of input (its context window minus room for the reply), so it may reject or truncate it. Choose a model with a larger window, or lower the code summary size in Settings.',
 			byokWindowUnknown: "This model's context window is unknown, so {context} tokens is assumed.",
@@ -1516,9 +1579,6 @@ const translations: Record<Locale, TranslationSet> = {
 			aiModeByok: 'API Key (BYOK)',
 			aiModeByokDesc:
 				"Use your own Gemini, Anthropic or OpenAI API key. The key is stored only in your browser. Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store keys.",
-			aiModeBridge: 'Bridge',
-			aiModeBridgeDesc:
-				"Runs the analysis through Gemini CLI or Claude Code on your machine. The CLI uses its own login, so you don't enter an API key.",
 			aiModeWebgpu: 'WebGPU (Experimental)',
 			aiModeWebgpuDesc:
 				'Runs a model inside your browser with WebGPU. After the one-time model download, analysis needs no server. Speed depends on your GPU.',
@@ -1539,7 +1599,7 @@ const translations: Record<Locale, TranslationSet> = {
 			faqItems: [
 				{
 					q: 'Does my source code leave my computer?',
-					a: "No. Ropeman sends the AI a code summary (symbols, signatures and imports), not the files themselves. Where the summary goes depends on the AI mode.\n\n• WebGPU: the model runs on your device, and nothing leaves it.\n• Demo and API Key: the summary goes to the AI provider. Demo requests and Anthropic or OpenAI key requests pass through Ropeman's proxy. Gemini key requests go straight to Google.\n• Bridge: your local CLI sends the summary to its provider.",
+					a: "No. Ropeman sends the AI a code summary (symbols, signatures and imports), not the files themselves. Where the summary goes depends on the AI mode.\n\n• WebGPU: the model runs on your device, and nothing leaves it.\n• Demo and API Key: the summary goes to the AI provider. Demo requests and Anthropic or OpenAI key requests pass through Ropeman's proxy. Gemini key requests go straight to Google.",
 					slug: 'security'
 				},
 				{
@@ -1574,7 +1634,7 @@ const translations: Record<Locale, TranslationSet> = {
 				},
 				{
 					q: 'Where is my API key stored?',
-					a: "Ropeman's servers don't store API keys. The key stays in this browser's local storage.\n\n• API Key mode: the key goes out with each AI request. Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store the key.\n• Bridge mode: you don't enter a key. The CLI uses its own login.\n• WebGPU mode: no key is needed.\n\nReset settings to delete stored keys.",
+					a: "Ropeman's servers don't store API keys. The key stays in this browser's local storage.\n\n• API Key mode: the key goes out with each AI request. Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's proxy, which does not store the key.\n• WebGPU mode: no key is needed.\n\nReset settings to delete stored keys.",
 					slug: 'security'
 				}
 			]
@@ -1697,13 +1757,9 @@ const translations: Record<Locale, TranslationSet> = {
 		track: {
 			edge: 'Demo',
 			byok: 'API Key',
-			bridge: 'Local Bridge',
-			bridgeShort: 'Bridge',
 			webgpu: 'WebGPU',
 			none: 'Not connected',
-			disconnected: 'Disconnected',
-			bridgeConnected: 'Bridge Connected',
-			bridgeDisconnected: 'Bridge Disconnected'
+			disconnected: 'Disconnected'
 		},
 		webgpuSetup: {
 			title: 'Browser AI Setup',
@@ -1880,6 +1936,75 @@ const translations: Record<Locale, TranslationSet> = {
 			invalid: "The map doesn't match the format. The problem is at {field}.",
 			readFailed: "Couldn't read the file."
 		},
+		bridgeAccess: {
+			yourBrowser: 'your browser',
+			checking: 'Checking what went wrong...',
+			connectAnyway: 'Connect from this page anyway',
+			unaskedTitle: 'Your browser asks once',
+			unaskedBody:
+				'When you click Connect, {browser} asks whether this site may reach apps and services on this device. Choose Allow. The page then talks only to serve on 127.0.0.1.',
+			grantedTitle: 'Access to this device is allowed',
+			grantedBody:
+				'{Browser} already lets this site reach apps on this device. Enter the port and token, then click Connect.',
+			unknownTitle: 'If your browser asks, choose Allow',
+			unknownBody:
+				'Some browsers ask before a site reaches apps on this device. If yours asks when you click Connect, choose Allow.',
+			firefoxTitle: 'If Firefox asks, choose Allow',
+			firefoxBody:
+				'Recent versions of Firefox are starting to ask before a site reaches apps on this device. If it asks when you click Connect, choose Allow. Versions that do not ask connect right away.',
+			safariTitle: 'In Safari, use local mode',
+			safariBody:
+				'Safari blocks secure pages like this one from reaching serve on your machine. Open the viewer from serve itself instead:',
+			promptPendingTitle: 'Waiting for your answer',
+			promptPendingBody:
+				'{Browser} is asking, next to the address bar, whether this site may reach apps on this device. Choose Allow to connect. If you closed the prompt, click the icon to the left of the address.',
+			deniedTitle: 'Access to this device is blocked',
+			deniedBody:
+				'{Browser} does not let this site reach apps on this device, so the page cannot talk to serve. To allow it again:',
+			unansweredTitle: 'The browser did not let the connection through',
+			unansweredBody:
+				'This site may not reach apps on this device yet. Click Connect again and choose Allow when {browser} asks. If it does not ask, check that serve is running on port {port}.',
+			serveDownTitle: 'Nothing is running on port {port}',
+			serveDownBody:
+				'Start serve in the folder you want to map and keep the terminal open. If serve printed another port, enter that one.',
+			refusedTitle: 'serve refused this connection',
+			refusedBody:
+				'serve is running on port {port} but turned this page down, because the token is wrong or serve does not allow this page\'s address. The terminal running serve says which. If it says "wrong token", copy the token again and paste the whole value:',
+			refusedHint:
+				'If you started serve with --token or ROPEMAN_BRIDGE_TOKEN, paste that value instead. If another program uses this port, start serve with --port and enter that number.',
+			allowOrigin:
+				'If the terminal says "not allowed", serve does not allow this page\'s address. Stop serve and start it like this:',
+			unexplainedTitle: 'The connection did not go through',
+			unexplainedBody: '{Browser} does not say why the connection closed, so check each of these:',
+			checkServe:
+				'Check that serve is running on port {port}. If not, start it in the folder you want to map:',
+			checkToken: 'Check that you pasted the whole token. Copy it again with:',
+			checkBlocked:
+				'If {browser} asked whether this site may reach apps on this device and you blocked it, allow it again from the icon to the left of the address, then reload.',
+			refusedLocalTitle: 'serve refused this page',
+			refusedLocalBody:
+				"serve is running but did not accept the token in this page's address. Open the address serve printed when it started again.",
+			stepSiteControls: 'Click the icon to the left of the address.',
+			stepSiteSettings: "Open the site's settings (the entry may be called Site settings).",
+			stepAllowLoopback:
+				"Set the local network entry to Allow, or reset the site's permissions. The entry may be called Loopback network, or Local network access in older versions.",
+			stepReload: 'Come back to this tab and reload it.',
+			stepEdgeLock: 'Click the icon to the left of the address (it may be a lock).',
+			stepEdgePermissions:
+				"Open the site's permissions (the entry may be called Permissions for this site).",
+			stepFirefoxIcon: 'Click the icon to the left of the address.',
+			stepFirefoxRemove:
+				'Remove the blocked permission to reach apps on this device (the entry may be called Device apps and services).',
+			stepOtherSettings: "Open this site's settings from the icon to the left of the address.",
+			stepOtherAllow: 'Allow loopback or local network access.',
+			stepsMayDiffer: "These menu names may differ in your browser's version or language.",
+			settingsUrl: 'Or paste this into the address bar:',
+			stopServe: 'Stop serve with Ctrl+C.',
+			startLocal: 'Start it again in local mode:',
+			openPrinted: 'Open the http://127.0.0.1:{port}/bridge#token=... address it prints.',
+			localInstead:
+				'Or use local mode, which needs no permission. Stop serve with Ctrl+C and start it like this:'
+		},
 		bridge: {
 			pageTitle: 'Bridge',
 			title: 'Connect to ropeman serve',
@@ -1896,8 +2021,6 @@ const translations: Record<Locale, TranslationSet> = {
 			connecting: 'Connecting to serve on {host}...',
 			cancel: 'Cancel',
 			failedTitle: "Couldn't connect",
-			failedClosed:
-				"serve didn't answer on {host}. Check that it is running, that the port matches, and that the token is the one in the token file.",
 			failedNewer:
 				'serve uses a newer map format ({version}). Reload this page to get the newer viewer.',
 			failedOlder: 'serve uses an older map format ({version}). Start the latest serve again.',

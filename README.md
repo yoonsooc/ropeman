@@ -74,14 +74,13 @@ Open [http://localhost:5173](http://localhost:5173) in Chrome or Edge. Folder pi
 
 ## AI Modes
 
-Ropeman has four AI modes:
+Ropeman has three AI modes:
 
 1. **Demo** is free and needs no setup. Requests go through Ropeman's edge proxy, which rate-limits them, to the Google Gemini free tier. Google may use free-tier inputs to improve its products.
 2. **API Key (BYOK)** uses your own Google Gemini, Anthropic or OpenAI key. The key stays in the browser (localStorage). Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's edge proxy because of browser restrictions, and the proxy does not store keys.
-3. **Local Bridge** connects to an AI CLI on your machine (Claude Code or Gemini CLI) through a small bridge server. The bridge hands the skeleton to the CLI, and the CLI sends it to its own provider. Source files stay on your machine.
-4. **Browser AI** runs a model in the browser with WebGPU through web-llm. After the one-time model download, analysis runs offline. This mode is experimental.
+3. **Browser AI** runs a model in the browser with WebGPU through web-llm. After the one-time model download, analysis runs offline. This mode is experimental.
 
-To use Local Bridge, run `npx @ropeman/bridge`. Version 0.2 and later prints a token at startup. Paste it into the Token field on the Local Bridge card in Ropeman, or the bridge refuses the connection. The bridge listens only on `127.0.0.1` and accepts browser connections only from `https://ropeman.dev`, local dev servers and origins you add with `--allow-origin`. [bridge/README.md](bridge/README.md) covers where the token is stored and the other flags.
+**Bridge mode** runs outside these modes, on its own page. `ropeman serve` maps a folder on your machine, and https://ropeman.dev/bridge connects to it over `ws://127.0.0.1:9800`. Click a folder and your local CLI (Claude Code or Gemini CLI) names its parts. Click a file to open its source. To start, run `npx @ropeman/bridge serve --root .` in the project folder, open https://ropeman.dev/bridge, and paste the token from `~/.ropeman/bridge-token`. In Safari, or if the browser blocked the connection, start serve with `--local` and open the address it prints. [bridge/README.md](bridge/README.md) covers the flags, the token and the security checks.
 
 ## Architecture
 

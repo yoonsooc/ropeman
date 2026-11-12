@@ -202,15 +202,32 @@ describe('i18nStore', () => {
 			}
 		});
 
-		it('shows the Bridge settings in Korean for the ko locale', () => {
-			// Regression: the Bridge card labels were hardcoded English in both locales
-			for (const key of [
-				'analyze.cliTool',
-				'analyze.cliAuto',
-				'analyze.token',
-				'analyze.tokenPlaceholder'
-			]) {
-				expect(i18nStore.t(key)).toMatch(/[가-힣]/);
+		it('words every Bridge connection guide card in both languages with the port filled', () => {
+			const cards = [
+				'unasked',
+				'granted',
+				'unknown',
+				'firefox',
+				'safari',
+				'promptPending',
+				'denied',
+				'unanswered',
+				'serveDown',
+				'unexplained',
+				'refused',
+				'refusedLocal'
+			];
+			for (const language of ['ko', 'en'] as const) {
+				settingsStore.language = language;
+				for (const card of cards) {
+					for (const part of ['Title', 'Body']) {
+						const key = `bridgeAccess.${card}${part}`;
+						const text = i18nStore.t(key, { port: 9800, browser: 'Chrome', Browser: 'Chrome' });
+						expect(text, key).not.toBe(key);
+						expect(text, key).not.toMatch(/\{\w+\}/);
+						if (language === 'ko') expect(text, key).toMatch(/[가-힣]/);
+					}
+				}
 			}
 		});
 
@@ -233,15 +250,6 @@ describe('i18nStore', () => {
 					if (language === 'ko') expect(text, key).toMatch(/[가-힣]/);
 				}
 			}
-		});
-
-		it('keeps the English Bridge labels the E2E tests and users already know', () => {
-			// Arrange
-			settingsStore.language = 'en';
-
-			// Assert
-			expect(i18nStore.t('analyze.cliTool')).toBe('CLI Tool');
-			expect(i18nStore.t('analyze.tokenPlaceholder')).toBe('Printed by the bridge at startup');
 		});
 
 		it('links every FAQ answer to a docs page in both languages', () => {

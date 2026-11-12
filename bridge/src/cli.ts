@@ -222,22 +222,22 @@ const NO_MCP_SERVER = 'ropeman-none';
 
 /**
  * Argv and stdin for one headless run, so the answer comes from the prompt alone. claude gets
- * no tools, no MCP servers and no saved session; `json` wraps its answer in an envelope with the
+ * no tools, no MCP servers and no saved session, and wraps its answer in a JSON envelope with the
  * token counts. gemini has no flag that turns every tool off: `--approval-mode default` drops
  * shell, edit, write and web fetch in headless mode, and it starts no MCP server or extension,
  * but its read and search tools stay, limited to the empty working folder.
  */
 export function headlessCommand(
 	cli: CLIType,
-	prompt: string,
-	output: 'json' | 'text'
+	prompt: string
 ): { args: string[]; stdin: string | null } {
 	switch (cli) {
 		case 'claude':
 			return {
 				args: [
 					'-p',
-					...(output === 'json' ? ['--output-format', 'json'] : []),
+					'--output-format',
+					'json',
 					'--no-session-persistence',
 					'--strict-mcp-config',
 					'--tools',

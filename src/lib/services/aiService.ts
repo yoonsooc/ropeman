@@ -64,7 +64,7 @@ export async function sendMessage(
 	if (track === 'none') {
 		return {
 			ok: false,
-			error: 'AI not connected. Please set up an API key or connect the local bridge.',
+			error: 'AI not connected. Please set up an API key.',
 			code: 'NO_TRACK'
 		};
 	}
@@ -73,7 +73,6 @@ export async function sendMessage(
 	if (
 		track === 'webgpu' ||
 		track === 'edge' ||
-		track === 'bridge' ||
 		(track === 'byok' && settingsStore.aiProvider === 'anthropic') ||
 		(track === 'byok' && settingsStore.aiProvider === 'openai')
 	) {

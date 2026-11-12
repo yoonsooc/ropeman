@@ -19,10 +19,6 @@ export const TOKEN_ENV = 'ROPEMAN_BRIDGE_TOKEN';
 
 export const MIN_TOKEN_LENGTH = 16;
 
-export function isCLIType(value: unknown): value is CLIType {
-	return value === 'claude' || value === 'gemini';
-}
-
 /** Collects every `--allow-origin <url>` on top of the defaults. */
 export function parseAllowedOrigins(args: string[]): Set<string> {
 	const origins = new Set(DEFAULT_ALLOWED_ORIGINS);

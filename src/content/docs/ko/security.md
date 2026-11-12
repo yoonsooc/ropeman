@@ -23,18 +23,18 @@ Ropeman의 가장 중요한 설계 원칙은 한 문장으로 요약됩니다. *
 
 ## 모드별 전송 경로
 
-| 모드                          | 요약이 가는 곳                                               | Ropeman 서버 경유 |
-| ----------------------------- | ------------------------------------------------------------ | ----------------- |
-| **데모**                      | Ropeman 데모 Worker를 거쳐 Google Gemini API                 | 예                |
-| **API 키** (Gemini)           | 브라우저에서 Google Gemini API로 바로                        | 아니요            |
-| **API 키** (Anthropic·OpenAI) | Ropeman 프록시 Worker와 Cloudflare AI Gateway를 거쳐 제공자  | 예                |
-| **로컬 브리지**               | `127.0.0.1`의 브리지에서 내 CLI로, CLI에서 그 CLI의 제공자로 | 아니요            |
-| **WebGPU**                    | 어디로도 가지 않습니다. 브라우저 안에서 추론합니다           | 아니요            |
+| 모드                          | 요약이 가는 곳                                              | Ropeman 서버 경유 |
+| ----------------------------- | ----------------------------------------------------------- | ----------------- |
+| **데모**                      | Ropeman 데모 Worker를 거쳐 Google Gemini API                | 예                |
+| **API 키** (Gemini)           | 브라우저에서 Google Gemini API로 바로                       | 아니요            |
+| **API 키** (Anthropic·OpenAI) | Ropeman 프록시 Worker와 Cloudflare AI Gateway를 거쳐 제공자 | 예                |
+| **WebGPU**                    | 어디로도 가지 않습니다. 브라우저 안에서 추론합니다          | 아니요            |
 
 - **데모** 요청은 Ropeman 데모 Worker로 가고, Worker가 Ropeman의 키로 Gemini 무료 등급을 호출합니다. 요청 횟수 제한을 위해 IP 주소별 요청 수를 메모리에서 세고, 요약과 응답은 저장하지 않습니다.
 - **API 키** 모드에서 Gemini 키 요청은 브라우저에서 Google로 바로 가고, 키는 요청 URL에 담깁니다. Anthropic·OpenAI 키 요청은 브라우저 제약 때문에 Ropeman 프록시 Worker로 가고, 프록시가 Cloudflare AI Gateway를 거쳐 제공자에게 넘깁니다. 프록시는 요약, 응답, 키를 저장하지 않습니다. 제공자가 오류를 돌려주면 그 오류 응답은 로그에 남깁니다.
-- **로컬 브리지** 모드는 `127.0.0.1`에만 연결합니다. 브리지가 요약을 내 컴퓨터의 Claude Code나 Gemini CLI에 넘기고, CLI가 자기 로그인으로 제공자를 호출합니다. 자세한 내용은 [브리지 서버 설정](/docs/ko/bridge-setup)을 보세요.
 - **WebGPU** 모드는 모델을 내려받을 때만 네트워크를 씁니다. 그다음 분석은 오프라인에서 돕니다.
+
+[ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드는 이 세 모드와 별개입니다. 브리지 모드에서는 내 컴퓨터의 `ropeman serve`가 내가 연 폴더의 파일 경로, 선언된 심볼 이름, 파일 수와 import 수만 내 Claude Code나 Gemini CLI에 보내고, 파일 내용은 보내지 않습니다. CLI는 자기 로그인으로 제공자를 호출하고, 이 경로에 Ropeman 서버는 없습니다. 자세한 내용은 [브리지 설정](/docs/ko/bridge-setup)을 보세요.
 
 ## API 키 저장 및 처리
 

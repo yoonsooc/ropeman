@@ -1,38 +1,13 @@
 import { settingsStore } from './settingsStore.svelte';
 import { webgpuStore } from './webgpuStore.svelte';
 
-export type AuthTrack = 'none' | 'edge' | 'byok' | 'bridge' | 'webgpu';
-export type BridgeStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+export type AuthTrack = 'none' | 'edge' | 'byok' | 'webgpu';
 
 function createAuthStore() {
-	let bridgeStatus = $state<BridgeStatus>('disconnected');
-	let bridgePort = $state(9800);
-	let bridgeError = $state('');
 	let edgeEnabled = $state(false);
 	let preferredTrack = $state<AuthTrack | null>(null);
 
 	return {
-		get bridgeStatus() {
-			return bridgeStatus;
-		},
-		set bridgeStatus(v: BridgeStatus) {
-			bridgeStatus = v;
-		},
-
-		get bridgePort() {
-			return bridgePort;
-		},
-		set bridgePort(v: number) {
-			bridgePort = v;
-		},
-
-		get bridgeError() {
-			return bridgeError;
-		},
-		set bridgeError(v: string) {
-			bridgeError = v;
-		},
-
 		get edgeEnabled() {
 			return edgeEnabled;
 		},
@@ -41,12 +16,7 @@ function createAuthStore() {
 		},
 
 		get isReady(): boolean {
-			return (
-				edgeEnabled ||
-				settingsStore.hasApiKey ||
-				bridgeStatus === 'connected' ||
-				webgpuStore.isReady
-			);
+			return edgeEnabled || settingsStore.hasApiKey || webgpuStore.isReady;
 		},
 
 		get preferredTrack() {
@@ -61,11 +31,9 @@ function createAuthStore() {
 			if (preferredTrack) {
 				if (preferredTrack === 'edge') return 'edge';
 				if (preferredTrack === 'byok' && settingsStore.hasApiKey) return 'byok';
-				if (preferredTrack === 'bridge' && bridgeStatus === 'connected') return 'bridge';
 				if (preferredTrack === 'webgpu' && webgpuStore.isReady) return 'webgpu';
 				// preferred track not available, fall through to auto
 			}
-			if (bridgeStatus === 'connected') return 'bridge';
 			if (edgeEnabled) return 'edge';
 			if (webgpuStore.isReady) return 'webgpu';
 			if (settingsStore.hasApiKey) return 'byok';

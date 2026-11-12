@@ -20,8 +20,6 @@
 
 	const trackInfo = $derived.by(() => {
 		switch (authStore.activeTrack) {
-			case 'bridge':
-				return { label: i18nStore.t('track.bridge'), color: 'var(--track-bridge)' };
 			case 'edge':
 				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)' };
 			case 'webgpu':

@@ -56,7 +56,8 @@ Ropeman은 임의의 코드베이스를 브라우저에서 분석하여 **AI 기
 
 ## 다음 단계
 
-- 다른 AI 모델을 쓰려면 [AI 모드 가이드](/docs/ko/ai-modes)에서 API 키, 브리지, WebGPU 모드를 살펴보세요.
+- 다른 AI 모델을 쓰려면 [AI 모드 가이드](/docs/ko/ai-modes)에서 API 키와 WebGPU 모드를 살펴보세요.
+- 내 컴퓨터의 폴더 지도를 만들고 내 Claude Code나 Gemini CLI로 이름을 붙이려면 [브리지 설정](/docs/ko/bridge-setup)을 보세요.
 - 보안이 걱정된다면 [보안 및 데이터 흐름](/docs/ko/security) 문서를 먼저 읽어보시기 바랍니다.
 - 단축키를 익히면 탐색이 훨씬 빨라집니다. [키보드 단축키](/docs/ko/keyboard-shortcuts) 참고.
 - 문제가 생겼다면 [자주 묻는 질문](/docs/ko/faq) 또는 [문제 해결](/docs/ko/troubleshooting)을 확인하세요.

@@ -68,7 +68,6 @@
 	--color-import: #64748b;
 	--track-demo: #3b82f6;
 	--track-byok: #eb6e00;
-	--track-bridge: #0b991f;
 	--track-webgpu: #a855f7;
 	/* semanticGraphBuilder draws edge strokes and arrowheads with these, and the legend swatches
 	   read them too, so a theme block can redefine them for both */
@@ -187,7 +186,6 @@
 	--color-import: #8a8a93;
 	--track-demo: #a3a6ff;
 	--track-byok: #fbbf24;
-	--track-bridge: #4ade80;
 	--track-webgpu: #ac8aff;
 
 	--shadow-low:
