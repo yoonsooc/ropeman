@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CodeMap, FilePath, FileRecord } from '../../src/lib/types/codeMap';
 import type { MapLevel } from '../../src/lib/types/ropemanMap';
-import { CliError, runCommand } from '../src/cli';
+import os from 'os';
+import { CliError, CliRunner, headlessCommand } from '../src/cli';
 import {
 	MAX_PARTS,
 	MAX_PROMPT_BYTES,
@@ -197,21 +198,53 @@ describe('nameLevel', () => {
 	});
 });
 
-describe.skipIf(process.platform === 'win32')('runCommand', () => {
+describe('headlessCommand', () => {
+	it('turns off what each CLI lets the bridge turn off', () => {
+		expect(headlessCommand('claude', 'hi', 'json')).toEqual({
+			args: [
+				'-p',
+				'--output-format',
+				'json',
+				'--no-session-persistence',
+				'--strict-mcp-config',
+				'--tools',
+				''
+			],
+			stdin: 'hi'
+		});
+		expect(headlessCommand('claude', 'hi', 'text').args).not.toContain('--output-format');
+		expect(headlessCommand('gemini', 'hi', 'text')).toEqual({
+			args: [
+				'-p',
+				'hi',
+				'--approval-mode',
+				'default',
+				'--allowed-mcp-server-names',
+				'ropeman-none',
+				'-e',
+				'none'
+			],
+			stdin: null
+		});
+	});
+});
+
+describe.skipIf(process.platform === 'win32')('CliRunner', () => {
 	const base = { stdin: null, timeoutMs: 5_000, maxOutputBytes: 1_000 };
+	const runner = new CliRunner(2, os.tmpdir());
 
 	it('stops a run whose output passes the cap', async () => {
-		const run = runCommand({ ...base, command: 'yes', args: [] });
+		const run = runner.run({ ...base, command: 'yes', args: [] });
 		await expect(run).rejects.toMatchObject({ reason: 'too-large' });
 	});
 
 	it('reports a missing program', async () => {
-		const run = runCommand({ ...base, command: 'ropeman-no-such-cli', args: [] });
+		const run = runner.run({ ...base, command: 'ropeman-no-such-cli', args: [] });
 		await expect(run).rejects.toMatchObject({ reason: 'not-found' });
 	});
 
 	it('passes arguments as argv, so shell syntax stays text', async () => {
-		const out = await runCommand({ ...base, command: 'printf', args: ['%s', '$(id) `id`; id'] });
+		const out = await runner.run({ ...base, command: 'printf', args: ['%s', '$(id) `id`; id'] });
 		expect(out).toBe('$(id) `id`; id');
 	});
 });

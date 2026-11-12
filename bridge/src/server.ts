@@ -12,7 +12,7 @@ import {
 	resolveToken
 } from './auth.js';
 import { HOST, createBridgeServer } from './bridge.js';
-import { detectCLI } from './cli.js';
+import { CliRunner, KILL_GRACE_MS, detectCLI } from './cli.js';
 import { resolveRoot } from './fileRead.js';
 import { MapSession } from './mapSession.js';
 import pkg from '../package.json';
@@ -58,7 +58,8 @@ function log(msg: string): void {
 
 /** Long enough for `claude -p` on a folder of a large repo (PASEO: see docs/ARCH.md). */
 const NAMING_TIMEOUT_MS = 180_000;
-const NAMING_CONCURRENCY = 2;
+/** CLI runs at once over every socket, naming and the legacy relay together */
+const CLI_CONCURRENCY = 2;
 const NAMING_MAX_OUTPUT_BYTES = 1_000_000;
 const WATCH_DEBOUNCE_MS = 300;
 
@@ -100,6 +101,9 @@ async function main() {
 	const identity = { name: pkg.name, version: pkg.version };
 	// The CLI runs in an empty folder, so even a CLI that reads files starts outside the project
 	const namingDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-naming-'));
+	const runner = new CliRunner(CLI_CONCURRENCY, namingDir);
+	// Runs lead their own process groups, so a crash would leave them; this is the last resort
+	process.on('exit', () => runner.killNow());
 	const session = root
 		? new MapSession({
 				root,
@@ -109,9 +113,8 @@ async function main() {
 							cli: defaultCli,
 							command: defaultCli,
 							timeoutMs: NAMING_TIMEOUT_MS,
-							concurrency: NAMING_CONCURRENCY,
 							maxOutputBytes: NAMING_MAX_OUTPUT_BYTES,
-							cwd: namingDir
+							runner
 						}
 					: null,
 				server: identity,
@@ -120,7 +123,7 @@ async function main() {
 			})
 		: null;
 
-	const { server, clients } = createBridgeServer({
+	const bridge = createBridgeServer({
 		port,
 		token,
 		allowedOrigins: parseAllowedOrigins(argv),
@@ -128,10 +131,12 @@ async function main() {
 		root,
 		viewerDir,
 		session,
+		runner,
 		server: identity,
 		log
 	});
 
+	const { server } = bridge;
 	server.on('error', (err) => {
 		if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
 			console.error(`Port ${port} is already in use. Try a different port with --port <number>`);
@@ -140,22 +145,23 @@ async function main() {
 		console.error('Server error:', err.message);
 	});
 
-	function shutdown() {
+	let stopping = false;
+	async function shutdown() {
+		if (stopping) return;
+		stopping = true;
 		log('Shutting down...');
-		for (const client of clients) {
-			client.close(1000, 'Server shutting down');
-		}
+		// A CLI that ignores SIGTERM gets SIGKILL after the grace; this cap only covers a stuck close
+		setTimeout(() => process.exit(0), KILL_GRACE_MS + 3_000).unref();
+		await bridge.close();
 		fs.rmSync(namingDir, { recursive: true, force: true });
-		server.close(() => {
-			log('Server stopped');
-			process.exit(0);
-		});
-		// Force exit after 3s
-		setTimeout(() => process.exit(0), 3000);
+		log('Server stopped');
+		process.exit(0);
 	}
 
 	process.on('SIGINT', shutdown);
 	process.on('SIGTERM', shutdown);
+	// Runs no longer share the terminal's process group, so a closed terminal reaches them only here
+	process.on('SIGHUP', shutdown);
 
 	server.listen(port, HOST, () => {
 		log(`Bridge server ready on ws://${HOST}:${port}`);

@@ -1,6 +1,5 @@
 import type { CodeMap, FilePath } from '../../src/lib/types/codeMap.js';
 import type { MapLevel, MapNode } from '../../src/lib/types/ropemanMap.js';
-import type { CLIType } from './auth.js';
 import { CliError } from './cli.js';
 import { isEnvValueFile } from './fileRead.js';
 
@@ -214,33 +213,6 @@ export interface TokenUsage {
 	cacheReadTokens: number;
 	cacheCreationTokens: number;
 	costUsd: number | null;
-}
-
-/**
- * claude runs with no tools, no MCP servers and no saved session, so the answer comes from the
- * prompt alone; its JSON envelope carries the token counts.
- */
-export function namingCommand(
-	cli: CLIType,
-	prompt: string
-): { args: string[]; stdin: string | null } {
-	switch (cli) {
-		case 'claude':
-			return {
-				args: [
-					'-p',
-					'--output-format',
-					'json',
-					'--no-session-persistence',
-					'--strict-mcp-config',
-					'--tools',
-					''
-				],
-				stdin: prompt
-			};
-		case 'gemini':
-			return { args: ['-p', prompt], stdin: null };
-	}
 }
 
 const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);

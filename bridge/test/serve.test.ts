@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import fs from 'fs';
-import type http from 'http';
 import net from 'net';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createBridgeServer, HOST, MAX_NAMINGS_IN_FLIGHT } from '../src/bridge';
+import { CliRunner, KILL_GRACE_MS } from '../src/cli';
 import { resolveRoot } from '../src/fileRead';
 import { MapSession, type NamingOptions } from '../src/mapSession';
 import { parseServerMessage } from '../../src/lib/services/ropemanMapSchema';
@@ -30,6 +30,15 @@ function freePort(): Promise<number> {
 		});
 	});
 }
+
+const alive = (pid: number) => {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch {
+		return false;
+	}
+};
 
 const until = async (check: () => boolean, ms = 5_000) => {
 	const end = Date.now() + ms;
@@ -98,6 +107,15 @@ class Client {
 		return this.wait((m) => 'id' in m && m.id === id);
 	}
 
+	/** A legacy relay message; its answer is outside the RPC schema, so it lands in `unparsed`. */
+	async relay(msg: Record<string, unknown>): Promise<{ result?: string; error?: string }> {
+		const id = this.nextId++;
+		this.ws.send(JSON.stringify({ id, ...msg }));
+		const answer = () => this.unparsed.map((t) => JSON.parse(t)).find((m) => m.id === id);
+		await until(() => answer() !== undefined, 10_000);
+		return answer();
+	}
+
 	named(nodeId: string) {
 		return this.wait((m) => m.type === 'node.named' && m.nodeId === nodeId, 15_000);
 	}
@@ -111,22 +129,29 @@ interface Serve {
 	port: number;
 	root: string;
 	cliDir: string;
+	namingDir: string;
 	calls: () => { args: string[]; stdin: string; cwd: string; pid: number }[];
+	/** The pids a fork step recorded: the fake CLI and the grandchild it started */
+	forks: () => { pid: number; grandchild: number }[];
+	close: () => Promise<void>;
 }
 
 describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
-	let servers: { server: http.Server; clients: Set<{ terminate(): void }> }[] = [];
+	type Bridge = ReturnType<typeof createBridgeServer>;
+	let servers: Bridge[] = [];
 	let bases: string[] = [];
+	const savedPath = process.env.PATH;
 
 	afterEach(async () => {
-		for (const { server, clients } of servers) {
+		for (const { server, clients, close } of servers) {
 			for (const ws of clients) ws.terminate();
 			server.closeAllConnections();
-			await new Promise((resolve) => server.close(resolve));
+			await close();
 		}
 		for (const base of bases) fs.rmSync(base, { recursive: true, force: true });
 		servers = [];
 		bases = [];
+		process.env.PATH = savedPath;
 	});
 
 	async function serve(
@@ -137,11 +162,15 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		const root = resolveRoot(makeProject(base));
 		const cliDir = path.join(base, 'cli');
 		const namingDir = path.join(base, 'naming-cwd');
-		fs.mkdirSync(cliDir);
+		fs.mkdirSync(path.join(cliDir, 'bin'), { recursive: true });
 		fs.mkdirSync(namingDir);
 		fs.writeFileSync(path.join(cliDir, 'plan.json'), JSON.stringify(options.plan ?? []));
+		// The legacy relay runs `claude` from PATH
+		fs.symlinkSync(FAKE_CLI, path.join(cliDir, 'bin', 'claude'));
+		process.env.PATH = `${path.join(cliDir, 'bin')}${path.delimiter}${savedPath}`;
 		process.env.FAKE_CLI_DIR = cliDir;
 		const port = await freePort();
+		const runner = new CliRunner(2, namingDir);
 		const session = new MapSession({
 			root,
 			wasmDir: WASM_DIR,
@@ -152,16 +181,15 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 							cli: 'claude',
 							command: FAKE_CLI,
 							timeoutMs: 10_000,
-							concurrency: 2,
 							maxOutputBytes: 1_000_000,
-							cwd: namingDir,
+							runner,
 							...options.naming
 						},
 			server: SERVER,
 			debounceMs: 50,
 			log: () => {}
 		});
-		const { server, clients } = createBridgeServer({
+		const bridge = createBridgeServer({
 			port,
 			token: TOKEN,
 			allowedOrigins: new Set(),
@@ -169,18 +197,27 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 			root,
 			viewerDir: null,
 			session,
+			runner,
 			server: SERVER
 		});
-		servers.push({ server, clients });
-		await new Promise<void>((resolve) => server.listen(port, HOST, resolve));
-		const calls = () =>
-			fs.existsSync(path.join(cliDir, 'calls'))
+		servers.push(bridge);
+		await new Promise<void>((resolve) => bridge.server.listen(port, HOST, resolve));
+		const records = (sub: string) =>
+			fs.existsSync(path.join(cliDir, sub))
 				? fs
-						.readdirSync(path.join(cliDir, 'calls'))
+						.readdirSync(path.join(cliDir, sub))
 						.sort()
-						.map((f) => JSON.parse(fs.readFileSync(path.join(cliDir, 'calls', f), 'utf8')))
+						.map((f) => JSON.parse(fs.readFileSync(path.join(cliDir, sub, f), 'utf8')))
 				: [];
-		return { port, root, cliDir, calls };
+		return {
+			port,
+			root,
+			cliDir,
+			namingDir,
+			calls: () => records('calls'),
+			forks: () => records('grandchildren'),
+			close: bridge.close
+		};
 	}
 
 	const result = <T>(m: ServerMessage): T => {
@@ -343,26 +380,98 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		client.close();
 	});
 
-	it('kills the CLI when the only socket waiting for it closes', async () => {
-		// Arrange
-		const { port, calls } = await serve({ plan: ['hang'] });
+	it('kills the CLI and what it started when the only socket waiting for it closes', async () => {
+		// Arrange: a CLI that forks a grandchild, like a shell or npm wrapper
+		const { port, forks } = await serve({ plan: ['fork-hang'] });
 		const client = await Client.open(port);
 		await client.request({ type: 'node.expand', nodeId: 'dir:src' });
-		await until(() => calls().length === 1);
-		const { pid } = calls()[0];
+		await until(() => forks().length === 1);
+		const [{ pid, grandchild }] = forks();
+		expect([alive(pid), alive(grandchild)]).toEqual([true, true]);
 
 		// Act
 		client.close();
 
 		// Assert
-		await until(() => {
-			try {
-				process.kill(pid, 0);
-				return false;
-			} catch {
-				return true;
-			}
+		await until(() => !alive(pid) && !alive(grandchild));
+	});
+
+	it('kills the whole tree of a CLI that times out', async () => {
+		// Arrange
+		const { port, forks } = await serve({ plan: ['fork-hang'], naming: { timeoutMs: 500 } });
+		const client = await Client.open(port);
+
+		// Act
+		await client.request({ type: 'node.expand', nodeId: 'dir:src' });
+		const timedOut = await client.named('dir:src');
+
+		// Assert
+		expect(timedOut).toMatchObject({ code: 'naming-failed' });
+		const [{ pid, grandchild }] = forks();
+		await until(() => !alive(pid) && !alive(grandchild));
+		client.close();
+	});
+
+	it('closes only after a CLI tree that ignores SIGTERM is killed', async () => {
+		// Arrange: the CLI and its grandchild both ignore SIGTERM
+		const { port, forks, close } = await serve({ plan: ['fork-stubborn'] });
+		const client = await Client.open(port);
+		await client.request({ type: 'node.expand', nodeId: 'dir:src' });
+		await until(() => forks().length === 1);
+		const [{ pid, grandchild }] = forks();
+
+		// Act
+		const started = Date.now();
+		await close();
+		const waited = Date.now() - started;
+
+		// Assert: close waited for the SIGKILL, and nothing of the tree is left after it
+		expect(waited).toBeGreaterThanOrEqual(KILL_GRACE_MS - 100);
+		await until(() => !alive(pid) && !alive(grandchild), 1_000);
+	});
+
+	it('relays chat with the naming flags from the empty folder, and kills it on close', async () => {
+		// Arrange
+		const { port, calls, forks, namingDir } = await serve({ plan: ['echo', 'fork-hang'] });
+		const client = await Client.open(port);
+
+		// Act
+		const reply = await client.relay({ type: 'chat', message: 'explain main.ts' });
+		client.relay({ type: 'chat', message: 'and this' }).catch(() => {});
+		await until(() => forks().length === 1);
+		const [{ pid, grandchild }] = forks();
+		client.close();
+
+		// Assert
+		expect(reply).toMatchObject({ result: 'got:explain main.ts' });
+		expect(calls()[0]).toMatchObject({
+			args: ['-p', '--no-session-persistence', '--strict-mcp-config', '--tools', ''],
+			stdin: 'explain main.ts',
+			cwd: fs.realpathSync(namingDir)
 		});
+		await until(() => !alive(pid) && !alive(grandchild));
+	});
+
+	it('counts relays against the CLI slots and the per-connection limit', async () => {
+		// Arrange: every run hangs
+		const { port, calls } = await serve({ plan: Array(10).fill('hang') });
+		const client = await Client.open(port);
+
+		// Act: two namings and two relays fill the connection; two CLIs run, two wait for a slot
+		await client.request({ type: 'node.expand', nodeId: 'dir:src' });
+		await client.request({ type: 'node.expand', nodeId: 'dir:tools' });
+		client.relay({ type: 'chat', message: 'one' }).catch(() => {});
+		client.relay({ type: 'chat', message: 'two' }).catch(() => {});
+		const over = await client.relay({ type: 'chat', message: 'three' });
+		const overNaming = await client.request({ type: 'node.expand', nodeId: 'dir:src/app' });
+		await until(() => calls().length === 2);
+		await new Promise((r) => setTimeout(r, 300));
+
+		// Assert
+		expect(over.error).toContain(`At most ${MAX_NAMINGS_IN_FLIGHT}`);
+		expect(overNaming).toMatchObject({ code: 'busy' });
+		expect(calls()).toHaveLength(2);
+		client.close();
 	});
 
 	it('runs one CLI for two sockets expanding the same node and pushes to both', async () => {

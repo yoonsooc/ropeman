@@ -9,7 +9,7 @@ import {
 	tokenFromRequestUrl,
 	tokensMatch
 } from './auth.js';
-import { runCommand } from './cli.js';
+import { type CliRunner, headlessCommand } from './cli.js';
 import { readRootedFile } from './fileRead.js';
 import type { MapSession, Subscriber } from './mapSession.js';
 import { parseRpcRequest } from '../../src/lib/services/ropemanMapSchema';
@@ -26,8 +26,10 @@ import { serveViewerFile } from './viewer.js';
 export const HOST = '127.0.0.1';
 /** Per connection, so one page cannot tie up every libuv thread with reads. */
 const MAX_FILE_READS_IN_FLIGHT = 8;
-/** Per connection: expansions whose names are still being made. */
+/** Per connection: CLI runs it waits for, namings and legacy relays together. */
 export const MAX_NAMINGS_IN_FLIGHT = 4;
+const LEGACY_TIMEOUT_MS = 120_000;
+const LEGACY_MAX_OUTPUT_BYTES = 1_000_000;
 
 export interface BridgeOptions {
 	port: number;
@@ -40,13 +42,16 @@ export interface BridgeOptions {
 	viewerDir: string | null;
 	/** The map of `root`; without one `map.get` and `node.expand` answer `not-ready`. */
 	session: MapSession | null;
+	/** Runs the legacy relay's CLI; the session's naming shares it, and with it the slots */
+	runner: CliRunner;
 	server: { name: string; version: string };
 	log?: (msg: string) => void;
 }
 
 /**
  * The relay the app's Bridge AI track uses (`bridgeService.ts` sends `chat`). It predates the
- * RPC of ADR-24 and stays until the viewer moves to `map.get` and `node.expand` (T2-5).
+ * RPC of ADR-24 and stays until the viewer moves to `map.get` and `node.expand` (T2-5). Its
+ * runs take the naming's flags, slots, per-connection cap and cancellation on close.
  */
 const LEGACY_TYPES = new Set(['analyze', 'chat', 'status', 'ping']);
 
@@ -56,23 +61,6 @@ interface LegacyMessage {
 	payload?: unknown;
 	message?: string;
 	cli?: unknown;
-}
-
-/** CLI별 인자 및 stdin 전략 */
-function buildCLIArgs(cli: CLIType, prompt: string): { args: string[]; stdin: string | null } {
-	switch (cli) {
-		case 'claude':
-			// claude -p: reads prompt from stdin
-			return { args: ['-p'], stdin: prompt };
-		case 'gemini':
-			// gemini -p "prompt": requires value as argument
-			return { args: ['-p', prompt], stdin: null };
-	}
-}
-
-function runCLI(cli: CLIType, prompt: string, timeoutMs = 120000): Promise<string> {
-	const { args, stdin } = buildCLIArgs(cli, prompt);
-	return runCommand({ command: cli, args, stdin, timeoutMs, maxOutputBytes: MAX_MAP_BYTES });
 }
 
 /** The id and type of a message the parser refused, echoed so the client can match the error. */
@@ -104,8 +92,10 @@ function legacyMessage(text: string): LegacyMessage | null {
 export function createBridgeServer(options: BridgeOptions): {
 	server: http.Server;
 	clients: Set<WebSocket>;
+	/** Closes every socket and the server, and resolves once every CLI process tree is gone. */
+	close(): Promise<void>;
 } {
-	const { port, token, defaultCli, root, viewerDir, session } = options;
+	const { port, token, defaultCli, root, viewerDir, session, runner } = options;
 	const log = options.log ?? (() => {});
 	const allowedOrigins = new Set(options.allowedOrigins);
 	if (viewerDir) for (const origin of localOrigins(port)) allowedOrigins.add(origin);
@@ -166,6 +156,9 @@ export function createBridgeServer(options: BridgeOptions): {
 		);
 
 		let readsInFlight = 0;
+		let legacyRuns = 0;
+		const closed = new AbortController();
+		const runsInFlight = () => legacyRuns + (session?.pendingFor(subscriber) ?? 0);
 		const send = (message: ServerMessage | Record<string, unknown>) => {
 			if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
 		};
@@ -192,7 +185,7 @@ export function createBridgeServer(options: BridgeOptions): {
 			'node.expand': (request) => {
 				if (!session) return notReady(request);
 				const { id, nodeId } = request;
-				if (session.pendingFor(subscriber) >= MAX_NAMINGS_IN_FLIGHT) {
+				if (runsInFlight() >= MAX_NAMINGS_IN_FLIGHT) {
 					send({
 						id,
 						type: 'node.expand',
@@ -257,7 +250,28 @@ export function createBridgeServer(options: BridgeOptions): {
 			const text = raw.toString();
 			const legacy = legacyMessage(text);
 			if (legacy) {
-				handleLegacy(legacy, send, { clients, defaultCli, log });
+				if (
+					(legacy.type === 'chat' || legacy.type === 'analyze') &&
+					runsInFlight() >= MAX_NAMINGS_IN_FLIGHT
+				) {
+					send({
+						id: legacy.id,
+						type: legacy.type,
+						error: `At most ${MAX_NAMINGS_IN_FLIGHT} CLI runs at a time per connection.`
+					});
+					return;
+				}
+				const run = handleLegacy(legacy, send, {
+					clients,
+					defaultCli,
+					runner,
+					signal: closed.signal,
+					log
+				});
+				if (run) {
+					legacyRuns++;
+					run.finally(() => legacyRuns--);
+				}
 				return;
 			}
 			const parsed = parseRpcRequest(text);
@@ -275,6 +289,7 @@ export function createBridgeServer(options: BridgeOptions): {
 		ws.on('close', () => {
 			clients.delete(ws);
 			session?.leave(subscriber);
+			closed.abort();
 			log(`Client disconnected (${clients.size} remaining)`);
 		});
 
@@ -282,24 +297,39 @@ export function createBridgeServer(options: BridgeOptions): {
 			log(`Client error: ${err.message}`);
 			clients.delete(ws);
 			session?.leave(subscriber);
+			closed.abort();
 		});
 
 		send({ type: 'hello', schemaVersion: MAP_SCHEMA_VERSION, server: options.server });
 	});
 
-	return { server, clients };
+	const close = async () => {
+		for (const ws of clients) ws.close(1000, 'Server shutting down');
+		const stopped = new Promise<void>((resolve) => server.close(() => resolve()));
+		await runner.close();
+		await stopped;
+	};
+
+	return { server, clients, close };
 }
 
+/** Answers one legacy message; a CLI run returns its promise, which never rejects. */
 function handleLegacy(
 	msg: LegacyMessage,
 	send: (message: Record<string, unknown>) => void,
-	ctx: { clients: Set<WebSocket>; defaultCli: CLIType | null; log: (msg: string) => void }
-): void {
+	ctx: {
+		clients: Set<WebSocket>;
+		defaultCli: CLIType | null;
+		runner: CliRunner;
+		signal: AbortSignal;
+		log: (msg: string) => void;
+	}
+): Promise<void> | null {
 	const response: Record<string, unknown> = { id: msg.id, type: msg.type };
 	switch (msg.type) {
 		case 'ping':
 			send({ ...response, result: 'pong' });
-			return;
+			return null;
 		case 'status':
 			send({
 				...response,
@@ -309,7 +339,7 @@ function handleLegacy(
 					cli: ctx.defaultCli
 				})
 			});
-			return;
+			return null;
 		case 'analyze':
 		case 'chat': {
 			const prompt =
@@ -317,7 +347,7 @@ function handleLegacy(
 				(typeof msg.payload === 'string' ? msg.payload : JSON.stringify(msg.payload));
 			if (msg.cli !== undefined && !isCLIType(msg.cli)) {
 				send({ ...response, error: `Unknown CLI: ${String(msg.cli)}. Use 'claude' or 'gemini'.` });
-				return;
+				return null;
 			}
 			const cliToUse = msg.cli || ctx.defaultCli;
 			if (!cliToUse) {
@@ -325,13 +355,22 @@ function handleLegacy(
 					...response,
 					error: 'No CLI tool available. Install Claude Code or Gemini CLI, or specify --cli flag.'
 				});
-				return;
+				return null;
 			}
 			const startTime = Date.now();
 			ctx.log(
 				`Running ${cliToUse} CLI for [${msg.type}] id=${msg.id ?? '-'} (prompt: ${prompt.length} chars)`
 			);
-			runCLI(cliToUse, prompt)
+			const { args, stdin } = headlessCommand(cliToUse, prompt, 'text');
+			return ctx.runner
+				.run({
+					command: cliToUse,
+					args,
+					stdin,
+					timeoutMs: LEGACY_TIMEOUT_MS,
+					maxOutputBytes: LEGACY_MAX_OUTPUT_BYTES,
+					signal: ctx.signal
+				})
 				.then((result) => {
 					const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 					ctx.log(`CLI done id=${msg.id ?? '-'} (${elapsed}s, response: ${result.length} chars)`);

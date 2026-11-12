@@ -65,7 +65,7 @@ Pushes: `node.named` (`{ nodeId, level }` or `{ nodeId, code, error }` with code
 
 ### Naming
 
-When a folder is expanded, the bridge sends your CLI the structure of its parts: file paths, declared names such as `function parseArgs`, file counts and import counts between the parts. It sends no file contents, and env files with real values are not in the map at all. The CLI answers with a name, a sentence and up to six key symbols per part. Ropeman's verifier checks the answer against the code (every part named once, key symbols declared in that part's files); an answer that fails is asked again once with the reasons, then the folder names stay and the push says why. `claude` runs with no tools, no MCP servers and no saved session, from an empty temporary folder. At most two CLI runs go at once, each for at most 180 seconds; closing the page stops the run it was waiting for.
+When a folder is expanded, the bridge sends your CLI the structure of its parts: file paths, declared names such as `function parseArgs`, file counts and import counts between the parts. It sends no file contents, and env files with real values are not in the map at all. The CLI answers with a name, a sentence and up to six key symbols per part. Ropeman's verifier checks the answer against the code (every part named once, key symbols declared in that part's files); an answer that fails is asked again once with the reasons, then the folder names stay and the push says why. `claude` runs with no tools, no MCP servers and no saved session, from an empty temporary folder. Gemini CLI has no flag that turns every tool off: the bridge runs it with `--approval-mode default` (no shell, edit, write or web fetch in headless mode), no MCP servers and no extensions, so only its read and search tools remain, and those see only the empty folder. At most two CLI runs go at once, each for at most 180 seconds; closing the page stops the run it was waiting for. Stopping a run, or the bridge, ends the CLI and every process it started (its process group on macOS and Linux, `taskkill /T` on Windows, which is untested).
 
 ### file.read
 
@@ -77,7 +77,7 @@ When a folder is expanded, the bridge sends your CLI the structure of its parts:
 
 ### Chat relay
 
-The Ropeman app's Local Bridge track sends `{ "id": 1, "type": "chat", "message": "…", "cli": "claude" }` and gets `{ "id": 1, "type": "chat", "result": "…" }`. `analyze`, `ping` and `status` are also kept. `cli` is optional and must be `claude` or `gemini`. This relay goes away once the viewer uses the map RPC.
+The Ropeman app's Local Bridge track sends `{ "id": 1, "type": "chat", "message": "…", "cli": "claude" }` and gets `{ "id": 1, "type": "chat", "result": "…" }`. `analyze`, `ping` and `status` are also kept. `cli` is optional and must be `claude` or `gemini`. Relay runs use the same CLI flags, empty working folder and limits as naming: two CLI runs at a time across the server, four waiting per connection (namings and relays together), 120 seconds and 1 MB of output per run, and a closed connection stops its runs. This relay goes away once the viewer uses the map RPC.
 
 ## Development
 

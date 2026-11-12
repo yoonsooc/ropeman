@@ -12,12 +12,11 @@ import {
 	type RpcPush
 } from '../../src/lib/types/ropemanMap';
 import type { CLIType } from './auth.js';
-import { CliError, runCommand } from './cli.js';
+import { CliError, type CliRunner, headlessCommand } from './cli.js';
 import { isEnvValueFile } from './fileRead.js';
 import {
 	applyNames,
 	nameLevel,
-	namingCommand,
 	type NamingTarget,
 	type PartNames,
 	type TokenUsage
@@ -34,11 +33,9 @@ export interface NamingOptions {
 	/** The program to spawn; the CLI's own name unless a test points it at a fake */
 	command: string;
 	timeoutMs: number;
-	/** CLI runs at once, over every socket */
-	concurrency: number;
 	maxOutputBytes: number;
-	/** An empty folder to run the CLI in, so it starts outside the project */
-	cwd: string;
+	/** Shared with the legacy relay: its slots cap CLI runs over every socket */
+	runner: CliRunner;
 }
 
 export interface SessionOptions {
@@ -72,39 +69,6 @@ export type ExpandResult =
 	| { ok: true; level: MapLevel }
 	| { ok: false; code: RpcErrorCode<'node.expand'>; error: string };
 
-/** A counting semaphore whose waiters leave the queue when their signal aborts. */
-class Slots {
-	private free: number;
-	private waiting: Array<() => void> = [];
-	constructor(size: number) {
-		this.free = size;
-	}
-	acquire(signal: AbortSignal): Promise<void> {
-		if (signal.aborted) return Promise.reject(new CliError('aborted', 'Cancelled.'));
-		if (this.free > 0) {
-			this.free--;
-			return Promise.resolve();
-		}
-		return new Promise((resolve, reject) => {
-			const grant = () => {
-				signal.removeEventListener('abort', onAbort);
-				resolve();
-			};
-			const onAbort = () => {
-				this.waiting = this.waiting.filter((w) => w !== grant);
-				reject(new CliError('aborted', 'Cancelled while queued.'));
-			};
-			signal.addEventListener('abort', onAbort, { once: true });
-			this.waiting.push(grant);
-		});
-	}
-	release() {
-		const next = this.waiting.shift();
-		if (next) next();
-		else this.free++;
-	}
-}
-
 /** The folder a `dir:` node holds, repo-relative. */
 const folderOfNode = (grouped: GroupedMap, nodeId: string) => grouped.group(nodeId)?.path ?? '';
 
@@ -122,7 +86,6 @@ export class MapSession {
 	/** The last verified names of each node, by node id */
 	private readonly names = new Map<string, PartNames[]>();
 	private readonly jobs = new Map<string, NamingJob>();
-	private readonly slots: Slots;
 	private readonly listeners = new Set<Subscriber>();
 	private readonly watcher: TreeWatcher;
 	private changed = new Set<string>();
@@ -132,7 +95,6 @@ export class MapSession {
 
 	constructor(private readonly options: SessionOptions) {
 		this.project = path.basename(options.root);
-		this.slots = new Slots(options.naming?.concurrency ?? 1);
 		this.watcher = createTreeWatcher(options.root, (p) => this.onFileEvent(p), options.log);
 	}
 
@@ -344,23 +306,17 @@ export class MapSession {
 			for (const subscriber of job.subscribers) subscriber.push(message);
 		};
 		try {
-			await this.slots.acquire(signal);
-		} catch {
-			return;
-		}
-		try {
 			const outcome = await nameLevel(target, {
 				codeMap: snap.extraction.map,
 				run: (prompt) => {
-					const { args, stdin } = namingCommand(naming.cli, prompt);
-					return runCommand({
+					const { args, stdin } = headlessCommand(naming.cli, prompt, 'json');
+					return naming.runner.run({
 						command: naming.command,
 						args,
 						stdin,
 						timeoutMs: naming.timeoutMs,
 						maxOutputBytes: naming.maxOutputBytes,
-						signal,
-						cwd: naming.cwd
+						signal
 					});
 				},
 				verify: (level) => this.problems(snap, nodeId, level)
@@ -382,8 +338,6 @@ export class MapSession {
 				return;
 			}
 			push({ type: 'node.named', nodeId, code: 'naming-failed', error: (err as Error).message });
-		} finally {
-			this.slots.release();
 		}
 	}
 

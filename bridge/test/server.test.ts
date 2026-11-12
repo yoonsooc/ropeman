@@ -5,6 +5,7 @@ import net from 'net';
 import os from 'os';
 import path from 'path';
 import { createBridgeServer, HOST, type BridgeOptions } from '../src/bridge';
+import { CliRunner } from '../src/cli';
 import { parseAllowedOrigins } from '../src/auth';
 import { resolveRoot } from '../src/fileRead';
 import { MAP_SCHEMA_VERSION } from '../../src/lib/types/ropemanMap';
@@ -151,6 +152,7 @@ describe('bridge server', () => {
 			root: null,
 			viewerDir: null,
 			session: null,
+			runner: new CliRunner(2, base),
 			server: { name: '@ropeman/bridge', version: 'test' },
 			...overrides
 		}));

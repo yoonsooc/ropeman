@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { detectCLI } from '../src/cli';
+import { CliRunner, detectCLI } from '../src/cli';
 import { resolveRoot } from '../src/fileRead';
 import { MapSession, type Subscriber } from '../src/mapSession';
 import { buildNamingPrompt } from '../src/naming';
@@ -33,9 +33,8 @@ describe.runIf(process.env.ROPEMAN_SERVE_DIR)('serve naming with the real CLI', 
 				cli,
 				command: cli,
 				timeoutMs: 180_000,
-				concurrency: 1,
 				maxOutputBytes: 1_000_000,
-				cwd
+				runner: new CliRunner(1, cwd)
 			},
 			server: { name: '@ropeman/bridge', version: 'measure' },
 			debounceMs: 300,

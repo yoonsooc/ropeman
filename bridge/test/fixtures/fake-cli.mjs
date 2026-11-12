@@ -2,14 +2,18 @@
 // A stand-in for `claude -p` and `gemini -p`. Each run takes the next step of
 // $FAKE_CLI_DIR/plan.json (then "names" forever) and records its argv, stdin and cwd in
 // $FAKE_CLI_DIR/calls/<n>.json, so a test can check both what it answered and what it was sent.
+// The fork steps start a grandchild and record both pids in grandchildren/<n>.json, so a test
+// can check that stopping the run ends the whole tree.
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const dir = process.env.FAKE_CLI_DIR;
 const args = process.argv.slice(2);
 const claudeStyle = args.includes('--output-format');
+const geminiStyle = args.includes('--approval-mode');
 const stdin = fs.readFileSync(0, 'utf8');
-const prompt = claudeStyle ? stdin : args[args.indexOf('-p') + 1];
+const prompt = geminiStyle ? args[args.indexOf('-p') + 1] : stdin;
 
 const callsDir = path.join(dir, 'calls');
 fs.mkdirSync(callsDir, { recursive: true });
@@ -26,13 +30,28 @@ try {
 }
 const step = plan[n] ?? 'names';
 
-const parts = JSON.parse(prompt.split('\n')[prompt.split('\n').indexOf('Parts:') + 1]);
-const names = parts.map((part) => ({
-	id: part.id,
-	label: `Named ${part.id.slice(part.id.indexOf(':') + 1)}`,
-	description: `What ${part.id} does.`,
-	keySymbols: part.symbols.slice(0, 1).map((s) => s.slice(s.indexOf(' ') + 1))
-}));
+const partNames = () =>
+	JSON.parse(prompt.split('\n')[prompt.split('\n').indexOf('Parts:') + 1]).map((part) => ({
+		id: part.id,
+		label: `Named ${part.id.slice(part.id.indexOf(':') + 1)}`,
+		description: `What ${part.id} does.`,
+		keySymbols: part.symbols.slice(0, 1).map((s) => s.slice(s.indexOf(' ') + 1))
+	}));
+
+/** Starts a grandchild that outlives this process unless its whole group is killed. */
+function fork(stubborn) {
+	const code = `${stubborn ? "process.on('SIGTERM', () => {});" : ''}setInterval(() => {}, 1000);`;
+	// stdio ignored, like a daemon: closing the pipes says nothing about the grandchild
+	const grandchild = spawn(process.execPath, ['-e', code], { stdio: 'ignore' });
+	const forks = path.join(dir, 'grandchildren');
+	fs.mkdirSync(forks, { recursive: true });
+	fs.writeFileSync(
+		path.join(forks, `${String(n).padStart(3, '0')}.json`),
+		JSON.stringify({ pid: process.pid, grandchild: grandchild.pid })
+	);
+	if (stubborn) process.on('SIGTERM', () => {});
+	setInterval(() => {}, 1000);
+}
 
 function answer(text) {
 	if (claudeStyle) {
@@ -56,13 +75,18 @@ function answer(text) {
 
 switch (step) {
 	case 'names':
-		answer('```json\n' + JSON.stringify({ nodes: names }) + '\n```');
+		answer('```json\n' + JSON.stringify({ nodes: partNames() }) + '\n```');
 		break;
 	case 'bad-symbol':
-		answer(JSON.stringify({ nodes: names.map((x) => ({ ...x, keySymbols: ['noSuchSymbol'] })) }));
+		answer(
+			JSON.stringify({ nodes: partNames().map((x) => ({ ...x, keySymbols: ['noSuchSymbol'] })) })
+		);
 		break;
 	case 'drop-one':
-		answer(JSON.stringify({ nodes: names.slice(0, -1) }));
+		answer(JSON.stringify({ nodes: partNames().slice(0, -1) }));
+		break;
+	case 'echo':
+		answer(`got:${prompt}`);
 		break;
 	case 'not-json':
 		answer('I would rather not.');
@@ -73,5 +97,11 @@ switch (step) {
 		break;
 	case 'hang':
 		setInterval(() => {}, 1000);
+		break;
+	case 'fork-hang':
+		fork(false);
+		break;
+	case 'fork-stubborn':
+		fork(true);
 		break;
 }
