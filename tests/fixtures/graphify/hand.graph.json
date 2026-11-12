@@ -1,0 +1,467 @@
+{
+	"directed": false,
+	"multigraph": false,
+	"graph": { "schema_version": 1, "graphify_version": "0.9.104" },
+	"nodes": [
+		{
+			"id": "src_a",
+			"label": "a.ts",
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/a.ts",
+			"source_location": "L1",
+			"community": 0,
+			"community_name": "LLM Named Cluster"
+		},
+		{
+			"id": "src_a_run",
+			"label": "run()",
+			"_callable": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/a.ts",
+			"source_location": "L3",
+			"community": 0,
+			"community_name": "LLM Named Cluster"
+		},
+		{
+			"id": "src_a_store",
+			"label": "Store",
+			"_callable": true,
+			"_callable_class": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/a.ts",
+			"source_location": "L10"
+		},
+		{
+			"id": "src_a_store_save",
+			"label": ".save()",
+			"_callable": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/a.ts",
+			"source_location": "L11"
+		},
+		{
+			"id": "src_a_store_save_2",
+			"label": ".save()",
+			"_callable": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/a.ts",
+			"source_location": "L14"
+		},
+		{
+			"id": "src_a_lost",
+			"label": "lost()",
+			"_callable": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/a.ts",
+			"source_location": "L30"
+		},
+		{
+			"id": "src_b",
+			"label": "b.ts",
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/b.ts",
+			"source_location": "L1"
+		},
+		{
+			"id": "src_b_helper",
+			"label": "helper()",
+			"_callable": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/b.ts",
+			"source_location": "L1"
+		},
+		{
+			"id": "src_b_format",
+			"label": "format()",
+			"_callable": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/b.ts",
+			"source_location": "L5"
+		},
+		{
+			"id": "src_b_base",
+			"label": "Base",
+			"_callable": true,
+			"_callable_class": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "src/b.ts",
+			"source_location": "L9"
+		},
+		{
+			"id": "lib_c",
+			"label": "lib/c.ts",
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "lib/c.ts",
+			"source_location": "L1"
+		},
+		{
+			"id": "pkg_package",
+			"label": "package.json",
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "package.json",
+			"source_location": "L1"
+		},
+		{
+			"id": "ref_zod",
+			"label": "zod",
+			"_origin": "ast",
+			"file_type": "concept",
+			"source_file": "package.json",
+			"source_location": "L5"
+		},
+		{
+			"id": "tools_x",
+			"label": "x.py",
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "tools/x.py",
+			"source_location": "L1"
+		},
+		{
+			"id": "tools_x_go",
+			"label": "go()",
+			"_callable": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "tools/x.py",
+			"source_location": "L2"
+		},
+		{
+			"id": "ghost_g",
+			"label": "g()",
+			"_callable": true,
+			"_origin": "ast",
+			"file_type": "code",
+			"source_file": "ghost.ts",
+			"source_location": "L4"
+		},
+		{
+			"id": "src_shared_types_thing",
+			"label": "src_shared_types_thing",
+			"external": true,
+			"file_type": "concept",
+			"source_file": "",
+			"type": "external"
+		},
+		{
+			"id": "concept_caching",
+			"label": "Caching strategy",
+			"_origin": "semantic",
+			"file_type": "concept",
+			"source_file": "src/a.ts"
+		}
+	],
+	"links": [
+		{
+			"source": "src_a",
+			"target": "src_a_run",
+			"relation": "contains",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"source_file": "src/a.ts",
+			"source_location": "L3"
+		},
+		{
+			"source": "src_a",
+			"target": "src_a_store",
+			"relation": "contains",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "call",
+			"source_file": "src/a.ts",
+			"source_location": "L10"
+		},
+		{
+			"source": "src_a_store",
+			"target": "src_a_store_save",
+			"relation": "method",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"source_file": "src/a.ts",
+			"source_location": "L11"
+		},
+		{
+			"source": "src_a_store",
+			"target": "src_a_store_save_2",
+			"relation": "method",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"source_file": "src/a.ts",
+			"source_location": "L14"
+		},
+		{
+			"source": "src_b",
+			"target": "src_b_helper",
+			"relation": "contains",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"source_file": "src/b.ts",
+			"source_location": "L1"
+		},
+		{
+			"source": "src_b",
+			"target": "src_b_format",
+			"relation": "contains",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"source_file": "src/b.ts",
+			"source_location": "L5"
+		},
+		{
+			"source": "src_b",
+			"target": "src_b_base",
+			"relation": "contains",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"source_file": "src/b.ts",
+			"source_location": "L9"
+		},
+		{
+			"source": "tools_x",
+			"target": "tools_x_go",
+			"relation": "contains",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"source_file": "tools/x.py",
+			"source_location": "L2"
+		},
+
+		{
+			"source": "src_a",
+			"target": "src_b",
+			"relation": "imports_from",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"source_file": "src/a.ts",
+			"source_location": "L1"
+		},
+		{
+			"source": "src_a",
+			"target": "src_b_helper",
+			"relation": "imports",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"source_file": "src/a.ts",
+			"source_location": "L1"
+		},
+		{
+			"source": "src_a",
+			"target": "src_b_format",
+			"relation": "imports",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"type_only": true,
+			"source_file": "src/a.ts",
+			"source_location": "L1"
+		},
+		{
+			"source": "src_a",
+			"target": "src_shared_types_thing",
+			"relation": "imports",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"source_file": "src/a.ts",
+			"source_location": "L2"
+		},
+		{
+			"source": "src_b",
+			"target": "src_a",
+			"relation": "imports_from",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"reverse_import": true,
+			"source_file": "src/b.ts",
+			"source_location": "L2"
+		},
+		{
+			"source": "src_a",
+			"target": "ref_zod",
+			"relation": "imports_from",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"source_file": "src/a.ts",
+			"source_location": "L8"
+		},
+		{
+			"source": "pkg_package",
+			"target": "ref_zod",
+			"relation": "imports",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"source_file": "package.json",
+			"source_location": "L5"
+		},
+		{
+			"source": "src_a_run",
+			"target": "lib_c",
+			"relation": "imports_from",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"deferred": true,
+			"source_file": "src/a.ts",
+			"source_location": "L7"
+		},
+		{
+			"source": "src_a",
+			"target": "lib_c",
+			"relation": "dynamic_import",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"source_file": "src/a.ts"
+		},
+		{
+			"source": "tools_x_go",
+			"target": "src_b",
+			"relation": "imports_from",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "import",
+			"deferred": true,
+			"source_file": "tools/x.py",
+			"source_location": "L3"
+		},
+
+		{
+			"source": "src_a_run",
+			"target": "src_b_helper",
+			"relation": "calls",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "call",
+			"source_file": "src/a.ts",
+			"source_location": "L4",
+			"also_seen": [
+				{ "confidence": "INFERRED", "source_file": "src/a.ts", "source_location": "L6" }
+			]
+		},
+		{
+			"source": "src_a_run",
+			"target": "src_b_format",
+			"relation": "calls",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "call",
+			"source_file": "src/a.ts",
+			"source_location": "L4"
+		},
+		{
+			"source": "src_a_run",
+			"target": "src_a_store_save",
+			"relation": "calls",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "call",
+			"source_file": "src/a.ts",
+			"source_location": "L5"
+		},
+		{
+			"source": "src_a_run",
+			"target": "src_a_store_save_2",
+			"relation": "calls",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "call",
+			"source_file": "src/a.ts",
+			"source_location": "L5"
+		},
+		{
+			"source": "src_a_store_save",
+			"target": "src_b_format",
+			"relation": "calls",
+			"_origin": "ast",
+			"confidence": "AMBIGUOUS",
+			"context": "call",
+			"source_file": "src/a.ts",
+			"source_location": "L12"
+		},
+		{
+			"source": "src_a",
+			"target": "src_b_helper",
+			"relation": "indirect_call",
+			"_origin": "ast",
+			"confidence": "INFERRED",
+			"context": "argument",
+			"source_file": "src/a.ts",
+			"source_location": "L20"
+		},
+		{
+			"source": "src_a_store",
+			"target": "src_b_base",
+			"relation": "inherits",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "type",
+			"source_file": "src/a.ts",
+			"source_location": "L10"
+		},
+		{
+			"source": "src_a",
+			"target": "src_b_base",
+			"relation": "implements",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "type",
+			"source_file": "src/a.ts",
+			"source_location": "L21"
+		},
+		{
+			"source": "src_a_store_save",
+			"target": "src_b_base",
+			"relation": "references",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "parameter_type",
+			"source_file": "src/a.ts",
+			"source_location": "L11"
+		},
+		{
+			"source": "src_a_store",
+			"target": "src_b_base",
+			"relation": "uses",
+			"_origin": "ast",
+			"confidence": "INFERRED",
+			"source_file": "src/a.ts",
+			"source_location": "L10"
+		},
+		{
+			"source": "src_a_run",
+			"target": "ghost_g",
+			"relation": "calls",
+			"_origin": "ast",
+			"confidence": "EXTRACTED",
+			"context": "call",
+			"source_file": "src/a.ts",
+			"source_location": "L25"
+		},
+		{
+			"source": "src_a_run",
+			"target": "concept_caching",
+			"relation": "references",
+			"_origin": "semantic",
+			"confidence": "EXTRACTED",
+			"source_file": "src/a.ts",
+			"source_location": "L3"
+		}
+	],
+	"hyperedges": []
+}

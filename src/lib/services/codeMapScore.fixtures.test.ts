@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { scanDirectory } from '../../../scripts/vite-dev-fs-plugin.js';
 import { isSupported } from '$lib/utils/languageDetector';
 import type { ASTRef, ASTSymbol } from '$lib/types/ast';
-import type { CodeMap } from '$lib/types/codeMap';
+import type { CodeMap, SymbolRecord } from '$lib/types/codeMap';
 import { buildCodeMap } from './skeletonExtractor';
+import { readGraphifyGraph } from './graphifyAdapter';
 import { isResolverConfig, namedConfigs } from './importResolver';
 import {
 	findRegressions,
@@ -36,6 +37,9 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 const GRAPHS = fileURLToPath(new URL('../../../tests/fixtures/graphs', import.meta.url));
 const BASELINE_FILE = path.join(GRAPHS, 'baseline.json');
 const REPOS = ['ts-monorepo', 'svelte-app', 'py-shop'];
+const GRAPHIFY = fileURLToPath(new URL('../../../tests/fixtures/graphify', import.meta.url));
+/** Overloads, accessors, nested functions and same-named methods, for SymbolId parity only */
+const ID_REPO = 'ids';
 
 interface ScannedNode {
 	name: string;
@@ -67,16 +71,15 @@ beforeAll(async () => {
 	await send({ data: { type: 'init' } });
 	posted.pop();
 
+	const parse = async (filePath: string, content: string, language: string) => {
+		await send({ data: { type: 'parse', filePath, content, language } });
+		return posted.pop() as Parsed;
+	};
 	for (const repo of REPOS) {
-		extracted.set(
-			repo,
-			await extract(repo, async (filePath, content, language) => {
-				await send({ data: { type: 'parse', filePath, content, language } });
-				return posted.pop() as Parsed;
-			})
-		);
+		extracted.set(repo, await extract(path.join(GRAPHS, repo), parse));
 		truths.set(repo, JSON.parse(fs.readFileSync(path.join(GRAPHS, `${repo}.truth.json`), 'utf-8')));
 	}
+	extracted.set(ID_REPO, await extract(path.join(GRAPHIFY, ID_REPO), parse));
 	vi.unstubAllGlobals();
 });
 
@@ -85,12 +88,12 @@ interface Parsed {
 	refs: ASTRef[];
 }
 
-/** The code map today's extractor builds from the files the `?testDir=` loader reads. */
+/** The code map today's extractor builds from the files the `?testDir=` loader reads in `dir`. */
 async function extract(
-	repo: string,
+	dir: string,
 	parse: (filePath: string, content: string, language: string) => Promise<Parsed>
 ): Promise<Extracted> {
-	const tree = scanDirectory(path.join(GRAPHS, repo)) as ScannedNode;
+	const tree = scanDirectory(dir) as ScannedNode;
 	const astMap = new Map<string, ASTSymbol[]>();
 	const refMap = new Map<string, ASTRef[]>();
 	const sources = new Map<string, string[]>();
@@ -113,7 +116,7 @@ async function extract(
 			refMap.set(node.path, refs);
 		}
 	}
-	if (astMap.size === 0) throw new Error(`no parseable files read from ${repo}`);
+	if (astMap.size === 0) throw new Error(`no parseable files read from ${dir}`);
 	for (let named = namedConfigs(configs); ; named = namedConfigs(configs)) {
 		const found = named.filter((p) => contents.has(p));
 		if (found.length === 0) break;
@@ -182,5 +185,82 @@ describe("today's extractor against the ground truth", () => {
 		expect(regressions, 'rerun with UPDATE_GRAPH_BASELINE=1 only after an intended change').toEqual(
 			[]
 		);
+	});
+});
+
+/** Where an adapter symbol has no parser id to match, because the parser does not emit it */
+const PARSER_GAPS: {
+	gap: string;
+	holds: (sym: SymbolRecord, parent: SymbolRecord | null, lines: string[]) => boolean;
+}[] = [
+	{ gap: 'a binding that is not an arrow function', holds: (sym) => sym.kind === 'variable' },
+	{
+		gap: 'a TS interface or type alias, which Graphify marks as a class',
+		holds: (sym, _, lines) =>
+			sym.kind === 'class' && /^\s*(export\s+)?(interface|type)\s/.test(lines[sym.lines.start - 1])
+	},
+	{ gap: 'a function inside a function', holds: (_, parent) => parent?.kind === 'function' },
+	{
+		gap: 'a class inside a class',
+		holds: (sym, parent) => sym.kind === 'class' && parent?.kind === 'class'
+	},
+	{
+		gap: 'a decorated Python method',
+		holds: (sym, _, lines) =>
+			sym.kind === 'method' && /^\s*@/.test(lines[sym.lines.start - 2] ?? '')
+	}
+];
+
+/** Parser ids Graphify cannot carry: it keys a node by file and name, so namesakes in one scope merge */
+const GRAPHIFY_MERGES: Record<string, string[]> = {
+	[ID_REPO]: ['ids/src/over.ts#Box.size~2 method']
+};
+
+/** Every symbol in `symbols` and below, as `id kind` */
+const flatten = (symbols: readonly SymbolRecord[]): string[] =>
+	symbols.flatMap((s) => [`${s.id} ${s.kind}`, ...flatten(s.children)]);
+
+/**
+ * The parser's SymbolIds for each file against the ones readGraphifyGraph gives that file from
+ * Graphify 0.9.104's graph.json, as `id kind`. An adapter-only symbol is named with the parser
+ * gap that explains it, or `unexplained`; its children inherit the gap.
+ */
+function idParity(repo: string) {
+	const { map: parsed, sources } = extracted.get(repo)!;
+	const graph = JSON.parse(fs.readFileSync(path.join(GRAPHIFY, `${repo}.graph.json`), 'utf-8'));
+	const adapted = readGraphifyGraph(graph, repo).map;
+	const result = { matched: 0, parserOnly: [] as string[], adapterOnly: [] as string[] };
+	for (const [file, record] of parsed.files) {
+		const lines = sources.get(file.slice(repo.length + 1))!;
+		const ours = new Set(flatten(record.symbols));
+		const walk = (
+			symbols: readonly SymbolRecord[],
+			parent: SymbolRecord | null,
+			inherited: string | null
+		) => {
+			for (const sym of symbols) {
+				const key = `${sym.id} ${sym.kind}`;
+				let gap = inherited;
+				if (ours.delete(key)) result.matched++;
+				else {
+					gap ??= PARSER_GAPS.find((g) => g.holds(sym, parent, lines))?.gap ?? 'unexplained';
+					result.adapterOnly.push(`${key}: ${gap}`);
+				}
+				walk(sym.children, sym, gap);
+			}
+		};
+		walk(adapted.files.get(file)?.symbols ?? [], null, null);
+		result.parserOnly.push(...ours);
+	}
+	return result;
+}
+
+describe('SymbolIds from Graphify graph.json against the parser', () => {
+	it.each([...REPOS, ID_REPO])('match in %s, apart from what one side cannot emit', (repo) => {
+		const { matched, parserOnly, adapterOnly } = idParity(repo);
+
+		expect(matched).toBeGreaterThan(0);
+		expect(parserOnly).toEqual(GRAPHIFY_MERGES[repo] ?? []);
+		expect(adapterOnly.filter((line) => line.endsWith(': unexplained'))).toEqual([]);
 	});
 });
