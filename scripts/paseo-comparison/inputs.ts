@@ -109,7 +109,8 @@ export interface DiskCheck {
 	lineExists: number;
 	/** The line reads as the relation: an import keyword for a file target, else the symbol's name */
 	lineMatches: number;
-	examples: { path: string; line: number; to: string; text: string }[];
+	/** Every sampled relation whose line exists but does not read as the relation */
+	mismatches: { path: string; line: number; to: string; text: string }[];
 }
 
 export const DISK_SAMPLE = 300;
@@ -147,7 +148,7 @@ export async function checkOnDisk(root: string, input: LoadedInput): Promise<Dis
 			sampled: sample.length,
 			lineExists: 0,
 			lineMatches: 0,
-			examples: []
+			mismatches: []
 		};
 		for (const edge of sample) {
 			const text = (await read(edge.path))?.[edge.line - 1];
@@ -156,8 +157,8 @@ export async function checkOnDisk(root: string, input: LoadedInput): Promise<Dis
 			// A ref to a file is an `import()`; a ref to a symbol names it on its line
 			const matches = edge.toName === null ? IMPORT_WORD.test(text) : text.includes(edge.toName);
 			if (matches) check.lineMatches++;
-			else if (check.examples.length < 5)
-				check.examples.push({
+			else
+				check.mismatches.push({
 					path: edge.path,
 					line: edge.line,
 					to: edge.toName ?? edge.toPath,

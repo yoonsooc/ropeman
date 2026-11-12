@@ -153,7 +153,7 @@ scripts/paseo-comparison/         # 실험: 같은 모델·프롬프트에 Ropem
 ├── inputs.ts                         # 두 입력을 같은 `CodeMap`으로, 커버리지·디스크 확인·두 지도 일치
 ├── view.ts                           # 폴더 → 부분과 부분 사이 관계(근거 줄) → 프롬프트
 ├── checks.ts                         # 답의 구조 검사, 조정 랜드 지수
-└── experiment.ts                     # `claude -p` 호출, 실행 기록, 요약 (결과는 docs/measurements/)
+└── experiment.ts                     # `claude -p` 호출, 실행 기록(호출 시각·사전 등록 해시), 요약 (결과는 docs/measurements/)
 ```
 
 ---

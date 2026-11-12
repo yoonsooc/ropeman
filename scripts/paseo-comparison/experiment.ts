@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -20,9 +21,10 @@ import { adjustedRandIndex, checkAnswer, labels, parseAnswer, type CheckResult }
 
 const USAGE = `usage: node scripts/paseo-comparison/run.mjs --repo <dir> --graph <graph.json> --out <dir>
   [--folder <path>]... [--runs 3] [--model claude-sonnet-5-5] [--effort medium]
-  [--skip graphify-out] [--max-calls 24] [--dry-run]
+  [--skip graphify-out] [--max-calls 24] [--prereg <doc.md>] [--dry-run]
 Writes inputs.json, prompts/, runs/ and summary.json under --out. A run whose file exists is
-not repeated, so a rerun after a failure only makes the missing calls.\n`;
+not repeated, so a rerun after a failure only makes the missing calls. Model calls need
+--prereg, the Markdown file whose pre-registration section each run file stamps by hash.\n`;
 
 interface Options {
 	repo: string;
@@ -34,10 +36,11 @@ interface Options {
 	effort: string;
 	skip: string[];
 	maxCalls: number;
+	prereg: string | null;
 	dryRun: boolean;
 }
 
-function readOptions(args: string[]): Options | null {
+export function readOptions(args: string[]): Options | null {
 	const { values } = parseArgs({
 		args,
 		options: {
@@ -50,6 +53,7 @@ function readOptions(args: string[]): Options | null {
 			effort: { type: 'string', default: 'medium' },
 			skip: { type: 'string', multiple: true },
 			'max-calls': { type: 'string', default: '24' },
+			prereg: { type: 'string' },
 			'dry-run': { type: 'boolean', default: false }
 		}
 	});
@@ -64,6 +68,7 @@ function readOptions(args: string[]): Options | null {
 		effort: values.effort!,
 		skip: values.skip ?? ['graphify-out'],
 		maxCalls: Number(values['max-calls']),
+		prereg: values.prereg ?? null,
 		dryRun: values['dry-run']!
 	};
 }
@@ -137,7 +142,56 @@ interface Planned {
 	run: number;
 }
 
+/** Every call the options ask for. Conditions alternate, so a slow stretch of the API does not land on one side */
+export function planRuns(o: Options): Planned[] {
+	const plan: Planned[] = [];
+	for (let run = 1; run <= o.runs; run++)
+		for (const folder of o.folders)
+			for (const condition of CONDITIONS) plan.push({ condition, folder, run });
+	return plan;
+}
+
+/**
+ * The pre-registration section of a Markdown file: from the `## ` heading that names
+ * 사전 등록 up to the next `## ` heading. Null when there is none.
+ */
+export function preregistrationSection(markdown: string): string | null {
+	const lines = markdown.split('\n');
+	const start = lines.findIndex((l) => l.startsWith('## ') && l.includes('사전 등록'));
+	if (start < 0) return null;
+	const end = lines.findIndex((l, i) => i > start && l.startsWith('## '));
+	return lines.slice(start, end < 0 ? undefined : end).join('\n');
+}
+
+interface Preregistration {
+	file: string;
+	/** SHA-256 of the pre-registration section, hex */
+	sha256: string;
+}
+
+export async function readPreregistration(file: string): Promise<Preregistration | null> {
+	const section = preregistrationSection(await readFile(file, 'utf8'));
+	if (section === null) return null;
+	return { file, sha256: createHash('sha256').update(section).digest('hex') };
+}
+
+/** Why the calls still to make may not run, or null when they may */
+export function refuseCalls(
+	todo: number,
+	o: Options,
+	preregistration: Preregistration | null
+): string | null {
+	if (todo > o.maxCalls) return `${todo} calls planned, over --max-calls ${o.maxCalls}`;
+	if (todo > 0 && preregistration === null)
+		return 'model calls need --prereg <doc.md> with a 사전 등록 section';
+	return null;
+}
+
 interface RunRecord extends Planned {
+	/** When the call started, ISO 8601 UTC. Absent in runs made before it was recorded */
+	calledAt?: string;
+	/** The pre-registration the call ran under. Absent in runs made before it was recorded */
+	preregistration?: Preregistration;
 	promptVersion: number;
 	promptChars: number;
 	reply: ModelReply;
@@ -201,25 +255,26 @@ export async function main(args: string[]): Promise<number> {
 	process.stderr.write(`${JSON.stringify(prompts)}\n`);
 	if (o.dryRun) return 0;
 
-	// Conditions alternate, so a slow stretch of the API does not land on one side
-	const plan: Planned[] = [];
-	for (let run = 1; run <= o.runs; run++)
-		for (const folder of o.folders)
-			for (const condition of CONDITIONS) plan.push({ condition, folder, run });
+	const plan = planRuns(o);
 	const runFile = (p: Planned) =>
 		join(o.out, 'runs', `${p.condition}-${slug(p.folder)}-${p.run}.json`);
 	const todo = plan.filter((p) => !existsSync(runFile(p)));
-	if (todo.length > o.maxCalls) {
-		process.stderr.write(`${todo.length} calls planned, over --max-calls ${o.maxCalls}\n`);
+	const preregistration = o.prereg === null ? null : await readPreregistration(o.prereg);
+	const refusal = refuseCalls(todo.length, o, preregistration);
+	if (refusal !== null) {
+		process.stderr.write(`${refusal}\n`);
 		return 1;
 	}
 	for (const p of todo) {
 		const view = views.get(`${p.condition}:${p.folder}`)!;
 		const prompt = renderPrompt(view);
+		const calledAt = new Date().toISOString();
 		const reply = await callModel(prompt, o, cwd);
 		const check = checkAnswer(view, parseAnswer(reply.text));
 		const record: RunRecord = {
 			...p,
+			calledAt,
+			preregistration: preregistration!,
 			promptVersion: PROMPT_VERSION,
 			promptChars: prompt.length,
 			reply,
@@ -233,30 +288,50 @@ export async function main(args: string[]): Promise<number> {
 		);
 	}
 
+	// Checks are redone from each stored reply, so a summary always reflects the current checks
 	const records: RunRecord[] = [];
-	for (const p of plan) records.push(JSON.parse(await readFile(runFile(p), 'utf8')));
-	const summary = summarize(records, views, o);
+	let staleChecks = 0;
+	for (const p of plan) {
+		const stored: RunRecord = JSON.parse(await readFile(runFile(p), 'utf8'));
+		const check = checkAnswer(
+			views.get(`${p.condition}:${p.folder}`)!,
+			parseAnswer(stored.reply.text)
+		);
+		const keys = Object.keys(check) as (keyof CheckResult)[];
+		if (keys.some((k) => check[k] !== stored.check[k])) staleChecks++;
+		records.push({ ...stored, check });
+	}
+	const summary = { ...summarize(records, views, o), staleChecks };
 	await writeFile(join(o.out, 'summary.json'), JSON.stringify(summary, null, 1));
 	process.stdout.write(`${JSON.stringify(summary, null, 1)}\n`);
 	return 0;
 }
 
 function summarize(records: RunRecord[], views: Map<string, FolderView>, o: Options) {
-	const groupsOf = (r: RunRecord) => {
+	/** The reply's grouping, kept to `only` parts when given */
+	const groupsOf = (r: RunRecord, only: Set<string> | null) => {
 		const parsed = parseAnswer(r.reply.text);
-		return parsed.ok ? labels(parsed.groups) : new Map<string, number>();
+		const all = parsed.ok ? labels(parsed.groups) : new Map<string, number>();
+		return only === null ? all : new Map([...all].filter(([part]) => only.has(part)));
 	};
-	const pairs = (a: RunRecord[], b: RunRecord[] | null) => {
+	const pairs = (a: RunRecord[], b: RunRecord[] | null, only: Set<string> | null = null) => {
 		const out: number[] = [];
+		const ari = (x: RunRecord, y: RunRecord) =>
+			adjustedRandIndex(groupsOf(x, only), groupsOf(y, only));
 		if (b === null) {
 			for (let i = 0; i < a.length; i++)
-				for (let j = i + 1; j < a.length; j++)
-					out.push(adjustedRandIndex(groupsOf(a[i]), groupsOf(a[j])));
+				for (let j = i + 1; j < a.length; j++) out.push(ari(a[i], a[j]));
 		} else {
-			for (const x of a) for (const y of b) out.push(adjustedRandIndex(groupsOf(x), groupsOf(y)));
+			for (const x of a) for (const y of b) out.push(ari(x, y));
 		}
 		return out;
 	};
+	const spread = (xs: number[]) => ({
+		values: xs.map((x) => round(x)),
+		mean: round(mean(xs)),
+		min: round(Math.min(...xs)),
+		max: round(Math.max(...xs))
+	});
 	const cells: Record<string, unknown> = {};
 	const agreement: Record<string, unknown> = {};
 	for (const folder of o.folders) {
@@ -295,13 +370,24 @@ function summarize(records: RunRecord[], views: Map<string, FolderView>, o: Opti
 				})
 			};
 		}
-		const cross = pairs(of('ropeman'), of('graphify'));
 		const ropemanParts = new Set(views.get(`ropeman:${folder}`)!.parts.map((p) => p.path));
-		const graphifyParts = views.get(`graphify:${folder}`)!.parts.map((p) => p.path);
+		const common = new Set(
+			views
+				.get(`graphify:${folder}`)!
+				.parts.map((p) => p.path)
+				.filter((p) => ropemanParts.has(p))
+		);
+		const cross = pairs(of('ropeman'), of('graphify'));
 		agreement[folder || '.'] = {
-			commonParts: graphifyParts.filter((p) => ropemanParts.has(p)).length,
+			commonParts: common.size,
 			crossAri: cross.map((x) => round(x)),
-			crossAriMean: round(mean(cross))
+			crossAriMean: round(mean(cross)),
+			// Within and between on the same parts: both conditions' runs, kept to the common parts
+			onCommonParts: {
+				cross: spread(pairs(of('ropeman'), of('graphify'), common)),
+				ropeman: spread(pairs(of('ropeman'), null, common)),
+				graphify: spread(pairs(of('graphify'), null, common))
+			}
 		};
 	}
 	const totals = {

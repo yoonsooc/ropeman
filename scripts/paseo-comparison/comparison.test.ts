@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type {
 	CodeMap,
 	CodeProvenance,
@@ -9,6 +11,13 @@ import type {
 } from '$lib/types/codeMap';
 import { fileEdges, folderView, partOf, renderPrompt } from './view';
 import { adjustedRandIndex, checkAnswer, labels, parseAnswer, type Group } from './checks';
+import {
+	planRuns,
+	preregistrationSection,
+	readOptions,
+	readPreregistration,
+	refuseCalls
+} from './experiment';
 
 const extracted: CodeProvenance = { source: 'graphify', confidence: 'EXTRACTED' };
 const inferred: CodeProvenance = { source: 'graphify', confidence: 'INFERRED' };
@@ -277,5 +286,74 @@ describe('adjustedRandIndex', () => {
 
 	it('is 0 for one group against all singletons', () => {
 		expect(adjustedRandIndex(of([['a', 'b', 'c']]), of([['a'], ['b'], ['c']]))).toBe(0);
+	});
+});
+
+const repo = resolve(__dirname, '../..');
+const DOC = 'docs/measurements/2026-11-13-paseo-graphify-comparison.md';
+
+/** Each `run.mjs` command in the doc's rerun block, as the arguments after the script */
+function documentedRuns(markdown: string): string[][] {
+	const block = markdown.slice(markdown.indexOf('## 4.')).split('```sh')[1].split('```')[0];
+	return block
+		.replace(/\\\n\s*/g, ' ')
+		.split('\n')
+		.filter((line) => line.startsWith('node scripts/paseo-comparison/run.mjs '))
+		.map((line) => line.trim().split(/\s+/).slice(2));
+}
+
+describe('the documented rerun', () => {
+	it('gives flags that pass the call guard for all 30 pre-registered calls', async () => {
+		const options = documentedRuns(readFileSync(resolve(repo, DOC), 'utf8')).map(readOptions);
+		const calls = options.filter((o) => o !== null && !o.dryRun);
+
+		expect(options).toHaveLength(2);
+		expect(options.every((o) => o !== null)).toBe(true);
+		expect(calls).toHaveLength(1);
+		const o = calls[0]!;
+		const prereg = o.prereg === null ? null : await readPreregistration(resolve(repo, o.prereg));
+		expect(planRuns(o)).toHaveLength(30);
+		expect(refuseCalls(planRuns(o).length, o, prereg)).toBeNull();
+	});
+});
+
+describe('refuseCalls', () => {
+	const options = (...extra: string[]) =>
+		readOptions(['--repo', 'r', '--graph', 'g.json', '--out', 'o', ...extra])!;
+	const prereg = { file: 'doc.md', sha256: 'ab' };
+
+	it('refuses more calls than --max-calls, which defaults to 24', () => {
+		expect(refuseCalls(25, options(), prereg)).toMatch(/over --max-calls 24/);
+		expect(refuseCalls(24, options(), prereg)).toBeNull();
+		expect(refuseCalls(30, options('--max-calls', '30'), prereg)).toBeNull();
+	});
+
+	it('refuses model calls without a pre-registration, but not a rerun that makes none', () => {
+		expect(refuseCalls(1, options(), null)).toMatch(/--prereg/);
+		expect(refuseCalls(0, options(), null)).toBeNull();
+	});
+});
+
+describe('preregistrationSection', () => {
+	const doc = (rule: string, result: string) =>
+		`# Title\n\n## 1. Goal\n\ngoal\n\n## 2. 사전 등록\n\n${rule}\n\n## 3. 결과\n\n${result}\n`;
+
+	it('covers the pre-registration up to the next section, so results do not change it', () => {
+		const section = preregistrationSection(doc('rule A', 'result 1'));
+
+		expect(section).toBe('## 2. 사전 등록\n\nrule A\n');
+		expect(preregistrationSection(doc('rule A', 'result 2'))).toBe(section);
+		expect(preregistrationSection(doc('rule B', 'result 1'))).not.toBe(section);
+	});
+
+	it('is null for a file with no pre-registration section', () => {
+		expect(preregistrationSection('# Title\n\n## 1. Goal\n')).toBeNull();
+	});
+
+	it('finds the section in the comparison doc', () => {
+		const section = preregistrationSection(readFileSync(resolve(repo, DOC), 'utf8'));
+
+		expect(section).toContain('### 2-6. 판정 규칙');
+		expect(section).not.toContain('## 3. 결과');
 	});
 });
