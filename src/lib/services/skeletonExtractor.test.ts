@@ -515,9 +515,11 @@ describe('skeleton v2 code map', () => {
 		const record = fileFromAst('lib.go', makeAstMap().get('lib.go')!);
 
 		expect(record.imports).toEqual([
-			{ line: 3, text: 'import "fmt"', target: { state: 'pending' } }
+			{ line: 3, text: 'import "fmt"', module: { state: 'pending' }, specifiers: null }
 		]);
-		expect(record.calls).toEqual([]);
+		expect(record.reexports).toEqual([]);
+		expect(record.refs).toEqual([]);
+		expect(record.lines).toEqual({ start: 1, end: null });
 	});
 
 	it('names symbols by file and nesting, numbering duplicates', () => {
@@ -549,30 +551,62 @@ describe('skeleton v2 code map', () => {
 		const astMap = makeAstMap();
 		astMap.set('empty.ts', []);
 
-		const map = buildCodeMap(astMap);
+		const map = buildCodeMap(astMap, null);
 
 		expect(map.version).toBe(2);
 		expect([...map.files.keys()]).toEqual(['main.py', 'utils.ts', 'lib.go', 'empty.ts']);
 	});
 
-	it('sends the same wire file whatever calls and import targets are filled in', () => {
+	it('sends the same wire file whatever sites and bindings are filled in', () => {
 		const record = fileFromAst('main.py', makeAstMap().get('main.py')!);
+		const flask = { kind: 'external', module: 'flask', name: 'Flask' } as const;
 		const resolved: FileRecord = {
 			...record,
+			lines: { start: 1, end: 12 },
 			imports: record.imports.map((site) => ({
 				...site,
-				target: {
-					state: 'external',
-					module: 'flask',
-					provenance: { source: 'resolver', confidence: 'EXTRACTED' }
-				}
+				module: {
+					state: 'bound',
+					candidates: [
+						{
+							to: { kind: 'external', module: 'flask', name: null },
+							provenance: { source: 'resolver', confidence: 'EXTRACTED' }
+						}
+					]
+				},
+				specifiers: [
+					{
+						kind: 'named',
+						name: 'Flask',
+						local: 'Flask',
+						typeOnly: false,
+						target: {
+							state: 'bound',
+							candidates: [
+								{ to: flask, provenance: { source: 'resolver', confidence: 'EXTRACTED' } }
+							]
+						}
+					}
+				]
 			})),
-			calls: [
+			reexports: [
 				{
+					line: 2,
+					text: "export * from './routes'",
+					module: { state: 'unresolved' },
+					specifiers: []
+				}
+			],
+			refs: [
+				{
+					kind: 'calls',
 					line: 4,
-					caller: 'main.py#create_app' as SymbolId,
-					callee: 'Flask',
-					target: { state: 'unresolved' }
+					from: 'main.py#create_app' as SymbolId,
+					written: 'Flask',
+					target: {
+						state: 'bound',
+						candidates: [{ to: flask, provenance: { source: 'resolver', confidence: 'EXTRACTED' } }]
+					}
 				}
 			]
 		};

@@ -10,12 +10,15 @@ export interface SemanticNode {
 	fileCount: number;
 }
 
+import type { EdgeEvidence } from './codeMap';
+
 export interface SemanticEdge {
 	id: string;
 	source: string;
 	target: string;
 	label?: string; // "authenticates", "reads from"
 	type: 'depends_on' | 'calls' | 'extends' | 'uses';
+	evidence?: EdgeEvidence; // 코드 지도에서 찾은 근거 (T1-8). 이 필드 이전에 캐시·공유된 레벨에는 없다
 }
 
 export interface AssignmentCounts {

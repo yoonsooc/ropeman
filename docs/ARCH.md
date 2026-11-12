@@ -89,7 +89,7 @@ src/
 │   │   ├── ast.ts                    # ASTSymbol
 │   │   ├── semantic.ts               # SemanticNode, SemanticEdge, SemanticLevel
 │   │   ├── skeleton.ts               # SkeletonPayload (AI에 보내는 형식, v1에 고정)
-│   │   ├── codeMap.ts                # 스켈레톤 v2: 줄 범위, import·호출 위치와 대상, 관계 출처. 브라우저에만 둔다 (ADR-21)
+│   │   ├── codeMap.ts                # 스켈레톤 v2: 줄 범위, import·참조 위치와 후보 대상, 관계 출처, 역할 관계의 근거. 브라우저에만 둔다 (ADR-21)
 │   │   ├── graph.ts                  # GraphNode, GraphEdge
 │   │   ├── tab.ts                    # Tab 타입
 │   │   ├── fileTree.ts               # FileNode
@@ -155,14 +155,16 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 파서 출력(`astMap`)을 두 층으로 나눈다 (ADR-21).
 
 - **코드 지도** (`types/codeMap.ts`): 결정론으로 읽은 사실을 모두 담는다. 브라우저에만 두고 AI에 보내지 않는다.
-  - 심볼마다 `id`(`파일#부모.이름`, 같은 이름이 또 나오면 `~2`), 종류(variable·interface·type 포함), 줄 범위 `{ start, end }`. 줄은 1부터 세고 끝 줄을 포함한다. graphify처럼 시작 줄만 주는 입력은 `end: null`이다.
-  - import 위치: 줄, 원문, 대상. 호출 위치: 줄, 감싼 심볼, 적힌 이름, 대상.
-  - 대상 상태는 넷이다. `pending`은 해석기가 아직 안 봤다는 뜻이다. `file`·`symbol`·`external`은 연결됐다는 뜻이고 출처를 함께 적는다. `unresolved`는 해석기가 봤는데 못 찾았다는 뜻이다. 화면의 "연결 못 한 대상"은 `unresolved`만 센다.
+  - 파일마다 파일 전체 줄 범위, 심볼, import 위치, 재수출 위치(`reexports`), 참조 위치(`refs`)를 둔다. 경로(`FilePath`)는 `{root}/{저장소 기준 경로}`이고 `root`는 `CodeMap.root`에 있다.
+  - 심볼마다 `id`(`파일#부모.이름`, 같은 이름이 또 나오면 `~2`), 종류(variable·interface·type 포함), 줄 범위 `{ start, end }`. 줄은 1부터 세고 끝 줄을 포함한다. graphify처럼 시작 줄만 주는 입력은 `end: null`이다. `~n`은 선언 순서에 따라 바뀌므로 저장하는 값의 키로 쓰지 않는다.
+  - import 위치: 줄, 원문, 모듈 대상, 가져온 이름마다의 대상. 참조 위치: 종류(`calls`, `indirect_call`, `references`, `inherits`, `implements`, `dynamic_import`, graphify 이름 그대로), 줄, 감싼 심볼, 적힌 이름, 대상.
+  - 대상(`Binding`) 상태는 셋이다. `pending`은 해석기가 아직 안 봤다는 뜻이다. `bound`는 후보가 하나 이상이고 후보마다 출처가 붙는다. 후보가 여럿이면 모두 INFERRED다. `unresolved`는 해석기가 봤는데 못 찾았다는 뜻이다. 화면의 "연결 못 한 대상"은 `unresolved`만 센다.
   - 출처(`Provenance`)는 `{ source, confidence }`다. 허용 조합은 `PROVENANCE_RULES` 표 하나가 정하고, 표에 없는 조합은 컴파일되지 않는다. 파서(`ast`)는 EXTRACTED만, LLM(`llm`)은 INFERRED만 쓸 수 있다. 해석기와 graphify는 둘 다 쓸 수 있다. 코드 지도에는 LLM 출처가 들어갈 수 없다(`CodeProvenance`).
+  - 역할 사이 관계(`SemanticEdge.evidence`, 선택 필드)는 근거가 된 코드 관계를 `RelationRef`(경로, 줄, 관계 이름, 대상 파일, 신뢰도)로 가리킨다. EXTRACTED는 근거가 하나 이상 있어야 한다.
 - **전송 형식** (`types/skeleton.ts`의 `SkeletonPayload`): v1 그대로 고정한다. `toWireFile()`은 심볼과 import 원문만 읽는다(`WireSource` 타입). 그래서 줄, 호출, 대상, 출처는 요청 바이트와 캐시 키를 바꾸지 못한다.
-- 변환: `fileFromAst()`가 파일 하나를, `buildCodeMap()`이 astMap 전체를 코드 지도로 바꾼다. 지금은 호출 위치가 비어 있고 import 대상은 모두 `pending`이다. `selectSkeleton`·`selectSubSkeleton`은 `fileFromAst()` → `toWireFile()`을 거친다.
+- 변환: `fileFromAst()`가 파일 하나를, `buildCodeMap(astMap, root)`이 astMap 전체를 코드 지도로 바꾼다. 지금은 참조·재수출 위치가 비어 있고 import 대상은 모두 `pending`이다. `selectSkeleton`·`selectSubSkeleton`은 `fileFromAst()` → `toWireFile()`을 거친다.
 - 고정 장치: `skeletonWire.test.ts`가 v2 이전 코드로 찍어 둔 전송 문자열 7종(최상위·드릴다운, 예산 무제한·50KB, 예산을 넘는 파일 하나)과 지금 출력을 비교한다.
-- 채울 작업: T1-5 호출 위치와 같은 파일 안 대상, T1-6 import 대상(상대 경로, tsconfig paths, 워크스페이스), T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
+- 채울 작업: T1-5 참조 위치와 같은 파일 안 대상, T1-6 import 대상(상대 경로, tsconfig paths, 워크스페이스), T1-8 역할 관계의 근거(코드 지도에서 찾고 없으면 점선), T1-10 graph.json을 같은 코드 지도로 읽는 어댑터.
 
 ### 분석 범위 (커버리지)
 

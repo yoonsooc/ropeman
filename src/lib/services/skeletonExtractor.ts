@@ -4,7 +4,7 @@ import type {
 	CodeMap,
 	FilePath,
 	FileRecord,
-	ImportSite,
+	ModuleSite,
 	SymbolId,
 	SymbolRecord
 } from '$lib/types/codeMap';
@@ -99,14 +99,17 @@ function toEntry(wirePath: string, record: FileRecord, priority: number): Skelet
 	return file && { file, priority, symbolCount: countSymbols(file.symbols) };
 }
 
-/** Skeleton v2 for every parsed file, with no call sites and every import target pending. */
-export function buildCodeMap(astMap: ReadonlyMap<string, readonly ASTSymbol[]>): CodeMap {
+/** Skeleton v2 for every parsed file, with no reference sites and every import binding pending. */
+export function buildCodeMap(
+	astMap: ReadonlyMap<string, readonly ASTSymbol[]>,
+	root: string | null
+): CodeMap {
 	const files = new Map<FilePath, FileRecord>();
 	for (const [key, symbols] of astMap) {
 		const record = fileFromAst(key, symbols);
 		files.set(record.path, record);
 	}
-	return { version: 2, files };
+	return { version: 2, root, files };
 }
 
 /**
@@ -117,15 +120,28 @@ export function fileFromAst(key: string, astSymbols: readonly ASTSymbol[]): File
 	const path = key as FilePath;
 	const ids = new Map<string, number>();
 	const symbols: SymbolRecord[] = [];
-	const imports: ImportSite[] = [];
+	const imports: ModuleSite[] = [];
 	for (const sym of astSymbols) {
 		if (sym.kind === 'import') {
-			imports.push({ line: sym.lineStart, text: sym.name, target: { state: 'pending' } });
+			imports.push({
+				line: sym.lineStart,
+				text: sym.name,
+				module: { state: 'pending' },
+				specifiers: null
+			});
 		} else {
 			symbols.push(toSymbolRecord(sym, sym.parentName ?? null, path, ids));
 		}
 	}
-	return { path, language: inferLanguage(key), symbols, imports, calls: [] };
+	return {
+		path,
+		language: inferLanguage(key),
+		lines: { start: 1, end: null },
+		symbols,
+		imports,
+		reexports: [],
+		refs: []
+	};
 }
 
 function toSymbolRecord(
@@ -147,10 +163,10 @@ function toSymbolRecord(
 	};
 }
 
-/** The only parts of a record the AI is sent, so call sites and targets cannot reach the wire. */
+/** The only parts of a record the AI is sent, so reference sites, re-exports and bindings cannot reach the wire. */
 export interface WireSource {
 	symbols: readonly SymbolRecord[];
-	imports: readonly Pick<ImportSite, 'text'>[];
+	imports: readonly Pick<ModuleSite, 'text'>[];
 }
 
 /**
