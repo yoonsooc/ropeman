@@ -172,7 +172,8 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 							...options.naming
 						},
 			server: SERVER,
-			debounceMs: 50,
+			// macOS delivers watch events in batches about 50 ms apart; a shorter debounce splits a burst
+			debounceMs: 150,
 			log: () => {}
 		});
 		const bridge = createBridgeServer({
