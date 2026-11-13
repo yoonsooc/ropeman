@@ -7,9 +7,10 @@ import path from 'path';
  * `work.json`; serve writes `queue.json` (folders the user opened that have no names and no
  * worker to name them), `naming-log.jsonl` (what its workers named) and `serve.json` (which
  * process serves this folder, see `background.ts`); `ropeman serve --detach` writes `serve.log`,
- * the output of the serve it starts; `ropeman inbox` writes `inbox-read.json`, the last log entry
- * the agent has seen. Any other channel to the agent (a
- * Claude Code channel, later) reads and writes the same files.
+ * the output of the serve it starts, and holds `serve.lock` while it checks for a running serve
+ * and starts one (the one file two writers race for); `ropeman inbox` writes `inbox-read.json`,
+ * the last log entry the agent has seen. Any other channel to the agent (a Claude Code channel,
+ * later) reads and writes the same files.
  *
  * A cloned repository can ship any of these files, so every read here treats them as untrusted.
  */
@@ -22,6 +23,7 @@ export const LOG_FILE = 'naming-log.jsonl';
 export const INBOX_READ_FILE = 'inbox-read.json';
 export const SERVE_FILE = 'serve.json';
 export const SERVE_LOG_FILE = 'serve.log';
+export const SERVE_LOCK_FILE = 'serve.lock';
 
 /** The most of `brief.md` a worker prompt carries; the rest is cut and says so. */
 export const MAX_BRIEF_BYTES = 4_000;
@@ -42,9 +44,15 @@ const linkRefused = (name: string) => ({
  * One file of `--out`, which is a real path: only a regular file directly in it, never a link,
  * so the bytes read are the folder's own. At most `maxBytes` of it; `cut` says there was more.
  * null when the file is missing; `refused` says why it was not read. It opens without blocking,
- * so a FIFO is refused instead of stopping serve.
+ * so a FIFO is refused instead of stopping serve. `owned` also refuses, on POSIX, a file another
+ * user owns or others can read, which a file serve wrote itself (mode 0600) never is.
  */
-export function readOutFile(out: string, name: string, maxBytes: number): OutRead {
+export function readOutFile(
+	out: string,
+	name: string,
+	maxBytes: number,
+	{ owned = false } = {}
+): OutRead {
 	const file = path.join(out, name);
 	const { O_RDONLY, O_NOFOLLOW, O_NONBLOCK } = fs.constants;
 	// Windows has no O_NOFOLLOW; a link is refused before the open there
@@ -63,6 +71,9 @@ export function readOutFile(out: string, name: string, maxBytes: number): OutRea
 	try {
 		const stat = fs.fstatSync(fd);
 		if (!stat.isFile()) return { refused: `${name} is not a regular file.` };
+		if (owned && process.getuid && (stat.uid !== process.getuid() || stat.mode & 0o077)) {
+			return { refused: `${name} is not a private file of this user.` };
+		}
 		const bytes = Buffer.alloc(Math.min(stat.size, maxBytes) + 1);
 		let read = 0;
 		for (let n = -1; n !== 0 && read < bytes.length; read += n) {
@@ -87,10 +98,10 @@ function readWhole(out: string, name: string, maxBytes: number): string | null {
  * Writes beside the target and renames, so a reader never sees half a file and a link planted
  * at the target is replaced, not followed. The temporary file is created new for the same reason.
  */
-export function writeAtomic(file: string, text: string): void {
+export function writeAtomic(file: string, text: string, mode = 0o666): void {
 	const tmp = `${file}.${process.pid}.tmp`;
 	fs.rmSync(tmp, { force: true });
-	fs.writeFileSync(tmp, text, { flag: 'wx' });
+	fs.writeFileSync(tmp, text, { flag: 'wx', mode });
 	fs.renameSync(tmp, file);
 }
 

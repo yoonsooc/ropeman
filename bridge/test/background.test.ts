@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { execFile, spawn } from 'child_process';
+import { type ChildProcess, execFile, execFileSync, spawn } from 'child_process';
 import fs from 'fs';
+import http from 'http';
 import net from 'net';
 import os from 'os';
 import path from 'path';
@@ -46,6 +47,18 @@ const until = async (check: () => boolean, ms = 10_000) => {
 	}
 };
 
+/** The serve processes started for `base`: every one carries `--root <base>/project`. */
+function servesOf(base: string): number[] {
+	try {
+		return execFileSync('pgrep', ['-f', `${base}/project`], { encoding: 'utf8' })
+			.split('\n')
+			.filter(Boolean)
+			.map(Number);
+	} catch {
+		return [];
+	}
+}
+
 interface Run {
 	code: number;
 	stdout: string;
@@ -70,16 +83,28 @@ async function mapGet(port: number): Promise<ServerMessage> {
 	}
 }
 
+/** A loopback listener that answers every request with `answer`, as a stranger on a port would. */
+async function listener(answer: (req: http.IncomingMessage, res: http.ServerResponse) => void) {
+	const server = http.createServer(answer);
+	const port = await new Promise<number>((resolve) =>
+		server.listen(0, HOST, () => resolve((server.address() as net.AddressInfo).port))
+	);
+	return { server, port };
+}
+
 describe.skipIf(process.platform === 'win32')('serve in the background', () => {
+	let outDir: string | undefined;
 	let bundle: string;
 	let bases: string[] = [];
+	let listeners: { close(): unknown }[] = [];
+	let children: ChildProcess[] = [];
 
 	// The packaged CLI, built into a folder of this run's: the detached serve is a real process
 	beforeAll(async () => {
 		const cache = path.join(repo, 'node_modules', '.cache');
 		fs.mkdirSync(cache, { recursive: true });
 		// Under node_modules, so the bundle finds `ws`, its one runtime dependency
-		const outDir = fs.mkdtempSync(path.join(cache, 'ropeman-bridge-test-'));
+		outDir = fs.mkdtempSync(path.join(cache, 'ropeman-bridge-test-'));
 		await build({
 			configFile: path.join(repo, 'bridge/vite.config.ts'),
 			logLevel: 'silent',
@@ -88,18 +113,23 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		bundle = path.join(outDir, 'server.mjs');
 	}, 60_000);
 
-	afterAll(() => fs.rmSync(path.dirname(bundle), { recursive: true, force: true }));
+	afterAll(() => {
+		if (outDir) fs.rmSync(outDir, { recursive: true, force: true });
+	});
 
+	// Runs when a test fails before any record exists, too: every serve carries its base path
 	afterEach(async () => {
+		for (const child of children) if (child.exitCode === null) child.kill('SIGKILL');
+		for (const server of listeners) server.close();
 		for (const base of bases) {
-			const record = readRecord(path.join(base, 'project', '.ropeman'));
-			if (record && alive(record.pid)) {
-				process.kill(record.pid, 'SIGKILL');
-				await until(() => !alive(record.pid));
-			}
+			const pids = servesOf(base);
+			for (const pid of pids) process.kill(pid, 'SIGKILL');
+			await until(() => pids.every((pid) => !alive(pid)));
 			fs.rmSync(base, { recursive: true, force: true });
 		}
 		bases = [];
+		listeners = [];
+		children = [];
 	});
 
 	/** A small project, its `.ropeman` folder and a `--viewer` folder for local mode. */
@@ -114,7 +144,7 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		const viewer = path.join(base, 'viewer');
 		fs.mkdirSync(viewer);
 		fs.writeFileSync(path.join(viewer, 'index.html'), '<!doctype html><title>v</title>');
-		return { root, out: path.join(root, '.ropeman'), viewer };
+		return { base, root, out: path.join(root, '.ropeman'), viewer };
 	}
 
 	function ropeman(args: string[]): Promise<Run> {
@@ -138,6 +168,49 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 			...extra
 		]);
 
+	/** `serve` without --detach, as in a terminal; resolves once its output matches `ready`. */
+	async function foreground(p: ReturnType<typeof project>, port: number, ready: RegExp) {
+		const child = spawn(
+			process.execPath,
+			[bundle, 'serve', '--root', p.root, '--out', p.out, '--port', String(port)],
+			{ env, stdio: ['ignore', 'pipe', 'pipe'] }
+		);
+		children.push(child);
+		let output = '';
+		await new Promise<void>((resolve, reject) => {
+			const timer = setTimeout(() => reject(new Error(`no ${ready} in: ${output}`)), 15_000);
+			const take = (d: Buffer) => {
+				output += d;
+				if (ready.test(output)) {
+					clearTimeout(timer);
+					resolve();
+				}
+			};
+			child.stdout!.on('data', take);
+			child.stderr!.on('data', take);
+		});
+		return { child, output: () => output };
+	}
+
+	/** A planted record, valid in every field; mode 0600 unless given. */
+	function plant(out: string, fields: Record<string, unknown>, mode = 0o600) {
+		fs.mkdirSync(out, { recursive: true });
+		const file = path.join(out, SERVE_FILE);
+		fs.writeFileSync(
+			file,
+			JSON.stringify({
+				pid: 1,
+				port: 1,
+				instance: 'planted',
+				secret: 'planted-secret-planted-secret-planted-secret',
+				startedAt: new Date().toISOString(),
+				version: '0.3.0',
+				...fields
+			})
+		);
+		fs.chmodSync(file, mode);
+	}
+
 	const record = (out: string) => readRecord(out) as ServeRecord;
 
 	it('keeps serving after the shell that started it and its process group are killed', async () => {
@@ -158,6 +231,7 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 			],
 			{ env, detached: true, stdio: ['ignore', 'pipe', 'inherit'] }
 		);
+		children.push(shell);
 		let stdout = '';
 		shell.stdout!.on('data', (d) => (stdout += d));
 		await until(() => stdout.includes('launcher exited'));
@@ -171,8 +245,9 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		// Assert
 		expect(stdout).toContain('launcher exited 0');
 		expect(stdout).toContain(`Local mode: open http://${HOST}:${port}/#token=${TOKEN}`);
+		expect(stdout).toContain(`ropeman stop --out ${p.out}`);
 		expect(alive(server.pid)).toBe(true);
-		expect(server).toMatchObject({ port, root: p.root, open: `http://${HOST}:${port}/` });
+		expect(server.port).toBe(port);
 		expect(reply).toMatchObject({ id: 1, type: 'map.get' });
 		expect('result' in reply && reply.result.levels.length).toBeGreaterThan(0);
 		// The token is printed for the agent to give the user, and kept out of the log file
@@ -180,6 +255,8 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		expect(log).toContain(`Local mode at http://${HOST}:${port}/`);
 		expect(log).not.toContain(TOKEN);
 		expect(fs.readFileSync(path.join(p.out, SERVE_FILE), 'utf8')).not.toContain(TOKEN);
+		// The record holds the control secret, so only this user reads it
+		expect(fs.statSync(path.join(p.out, SERVE_FILE)).mode & 0o777).toBe(0o600);
 	}, 30_000);
 
 	it('reuses the serve already running for the same folder', async () => {
@@ -197,7 +274,34 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		expect(again.stdout).toContain(`serve already runs for ${p.out} (pid ${first.pid}`);
 		expect(again.stdout).toContain(`Local mode: open http://${HOST}:${port}/#token=${TOKEN}`);
 		expect(record(p.out)).toEqual(first);
+		// The running serve's log stays
+		expect(fs.readFileSync(path.join(p.out, SERVE_LOG_FILE), 'utf8')).toContain(
+			'Bridge server ready'
+		);
 	}, 30_000);
+
+	it('ends two starts at the same moment with one serve, which both report', async () => {
+		// Arrange
+		const p = project();
+		const [a, b] = [await freePort(), await freePort()];
+
+		// Act
+		const began = Date.now();
+		const runs = await Promise.all([
+			start(p, a, '--viewer', p.viewer),
+			start(p, b, '--viewer', p.viewer)
+		]);
+
+		// Assert
+		const { port } = record(p.out);
+		const address = `Local mode: open http://${HOST}:${port}/#token=${TOKEN}`;
+		expect(runs.map((run) => run.code)).toEqual([0, 0]);
+		expect(runs.filter((run) => run.stdout.includes(address))).toHaveLength(2);
+		expect(servesOf(p.base)).toHaveLength(1);
+		// Not by the loser waiting out its 30 s for a record the winner overwrote
+		expect(Date.now() - began).toBeLessThan(20_000);
+		expect(await mapGet(port)).toMatchObject({ type: 'map.get' });
+	}, 60_000);
 
 	it('replaces a running serve that was started with other options', async () => {
 		// Arrange: started without the viewer, then asked for local mode
@@ -211,9 +315,31 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 
 		// Assert
 		expect(run.code).toBe(0);
+		expect(run.stdout).toContain(`Stopped the serve for ${p.out} that ran with other options`);
+		expect(run.stdout).toContain(`Local mode: open http://${HOST}:${port}/#token=${TOKEN}`);
 		expect(alive(first.pid)).toBe(false);
-		expect(record(p.out)).toMatchObject({ port, open: `http://${HOST}:${port}/` });
+		expect(record(p.out).port).toBe(port);
 		expect(record(p.out).pid).not.toBe(first.pid);
+	}, 30_000);
+
+	it('leaves a serve started in a terminal alone, and is left alone by it', async () => {
+		// Arrange
+		const p = project();
+		const port = await freePort();
+		await start(p, port);
+		const detached = record(p.out);
+
+		// Act: a terminal's serve on another port, then one on the same port
+		const other = await foreground(p, await freePort(), /Another serve runs for/);
+		const clash = await foreground(p, port, /already in use/);
+		await until(() => clash.child.exitCode !== null);
+
+		// Assert
+		expect(other.output()).toContain('Bridge server ready');
+		expect(other.child.exitCode).toBe(null);
+		expect(clash.child.exitCode).toBe(1);
+		expect(alive(detached.pid)).toBe(true);
+		expect(record(p.out)).toEqual(detached);
 	}, 30_000);
 
 	it('stops with ropeman stop, which removes the record and can run again', async () => {
@@ -232,8 +358,27 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		expect(JSON.parse(stopped.stdout)).toEqual({ stopped: true, pid, port });
 		expect(alive(pid)).toBe(false);
 		expect(fs.existsSync(path.join(p.out, SERVE_FILE))).toBe(false);
-		expect(JSON.parse(again.stdout)).toEqual({ stopped: false });
-		expect(fs.readFileSync(path.join(p.out, SERVE_LOG_FILE), 'utf8')).toContain('Server stopped');
+		expect(JSON.parse(again.stdout)).toEqual({ stopped: false, staleRecordRemoved: false });
+		const log = fs.readFileSync(path.join(p.out, SERVE_LOG_FILE), 'utf8');
+		expect(log).toContain('Asked to stop (ropeman stop).');
+		expect(log).toContain('Server stopped');
+	}, 30_000);
+
+	it('removes the record of a serve that was killed and says so', async () => {
+		// Arrange
+		const p = project();
+		await start(p, await freePort());
+		const dead = record(p.out);
+		process.kill(dead.pid, 'SIGKILL');
+		await until(() => !alive(dead.pid));
+
+		// Act
+		const stopped = await ropeman(['stop', '--out', p.out]);
+
+		// Assert
+		expect(stopped.code).toBe(0);
+		expect(JSON.parse(stopped.stdout)).toEqual({ stopped: false, staleRecordRemoved: true });
+		expect(fs.existsSync(path.join(p.out, SERVE_FILE))).toBe(false);
 	}, 30_000);
 
 	it('stops itself after the idle time, not while a page is connected', async () => {
@@ -279,58 +424,91 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		expect(await mapGet(port)).toMatchObject({ type: 'map.get' });
 	}, 30_000);
 
-	it('never signals a recorded pid that no serve of its own answers for', async () => {
-		// Arrange: a record (planted by a cloned repo, or its pid reused) names an unrelated process
+	it('never signals the pid of a planted record whose port answers like 0.3.0 serve', async () => {
+		// Arrange: the review's repro. The pid names an unrelated process, and the port a listener
+		// that sends the instance header 0.3.0 trusted
 		const p = project();
-		fs.mkdirSync(p.out, { recursive: true });
 		const bystander = spawn('/bin/sleep', ['30']);
-		fs.writeFileSync(
-			path.join(p.out, SERVE_FILE),
-			JSON.stringify({
-				pid: bystander.pid,
-				port: await freePort(),
-				instance: 'planted',
-				root: p.root,
-				open: null,
-				idleMinutes: 0,
-				startedAt: new Date().toISOString(),
-				version: '0.3.0'
-			})
+		children.push(bystander);
+		const stranger = await listener((_req, res) =>
+			res.writeHead(200, { 'x-ropeman-instance': 'planted' }).end()
 		);
+		listeners.push(stranger.server);
+		plant(p.out, { pid: bystander.pid, port: stranger.port });
 
 		// Act
 		const stopped = await ropeman(['stop', '--out', p.out]);
 
 		// Assert
-		expect(JSON.parse(stopped.stdout)).toEqual({ stopped: false });
+		expect(stopped.code).toBe(0);
+		expect(JSON.parse(stopped.stdout)).toEqual({ stopped: false, staleRecordRemoved: true });
 		expect(alive(bystander.pid!)).toBe(true);
 		expect(fs.existsSync(path.join(p.out, SERVE_FILE))).toBe(false);
-		bystander.kill('SIGKILL');
+	}, 30_000);
+
+	it('never signals a pid even when a listener knows the planted secret', async () => {
+		// Arrange: a stranger that answers the control requests as serve would
+		const p = project();
+		const bystander = spawn('/bin/sleep', ['30']);
+		children.push(bystander);
+		let port = 0;
+		const stranger = await listener((req, res) => {
+			if (req.method === 'POST') return void res.writeHead(202).end();
+			const status = { instance: 'planted', pid: bystander.pid, port, root: p.root };
+			res
+				.writeHead(200)
+				.end(JSON.stringify({ ...status, entry: null, idleMinutes: 0, version: '' }));
+		});
+		listeners.push(stranger.server);
+		port = stranger.port;
+		plant(p.out, { pid: bystander.pid, port });
+
+		// Act
+		const stopped = await ropeman(['stop', '--out', p.out]);
+
+		// Assert: it reports a serve that did not stop and leaves the process alone
+		expect(stopped.code).toBe(1);
+		expect(stopped.stderr).toContain('still answers');
+		expect(alive(bystander.pid!)).toBe(true);
+	}, 30_000);
+
+	it('ignores a record others can read, as a cloned repository ships it', async () => {
+		// Arrange: git checks files out 0644; the listener answers for the planted secret
+		const p = project();
+		let strangerPort = 0;
+		const stranger = await listener((_req, res) => {
+			const status = { instance: 'planted', pid: 1, port: strangerPort, root: p.root };
+			res
+				.writeHead(200)
+				.end(JSON.stringify({ ...status, entry: null, idleMinutes: 0, version: '' }));
+		});
+		listeners.push(stranger.server);
+		strangerPort = stranger.port;
+		plant(p.out, { port: strangerPort, open: 'http://evil.example/' }, 0o644);
+
+		// Act
+		const port = await freePort();
+		const run = await start(p, port);
+
+		// Assert
+		expect(run.code).toBe(0);
+		expect(run.stdout).not.toContain('already runs');
+		expect(run.stdout).not.toContain('evil.example');
+		expect(record(p.out).port).toBe(port);
+		expect(record(p.out).instance).not.toBe('planted');
 	}, 30_000);
 
 	it('ignores a planted record with a pid of 0 or a port out of range', async () => {
 		// Arrange: process.kill(0) would signal this whole process group
 		const p = project();
-		fs.mkdirSync(p.out, { recursive: true });
-		const planted = {
-			instance: 'x',
-			root: p.root,
-			open: null,
-			idleMinutes: 0,
-			startedAt: '',
-			version: ''
-		};
-		fs.writeFileSync(
-			path.join(p.out, SERVE_FILE),
-			JSON.stringify({ ...planted, pid: 0, port: 70000 })
-		);
+		plant(p.out, { pid: 0, port: 70000 });
 
 		// Act
 		const stopped = await ropeman(['stop', '--out', p.out]);
 		const started = await start(p, await freePort());
 
 		// Assert
-		expect(JSON.parse(stopped.stdout)).toEqual({ stopped: false });
+		expect(JSON.parse(stopped.stdout)).toEqual({ stopped: false, staleRecordRemoved: true });
 		expect(started.code).toBe(0);
 		expect(record(p.out).pid).toBeGreaterThan(0);
 	}, 30_000);
@@ -339,18 +517,34 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		// Arrange
 		const p = project();
 		const holder = net.createServer();
+		listeners.push(holder);
 		const port = await new Promise<number>((resolve) =>
 			holder.listen(0, HOST, () => resolve((holder.address() as net.AddressInfo).port))
 		);
 
 		// Act
 		const run = await start(p, port);
-		holder.close();
 
 		// Assert
 		expect(run.code).toBe(1);
+		expect(run.stderr).toContain('Cannot start: serve exited before it listened.');
 		expect(run.stderr).toContain(`Port ${port} is already in use`);
 		expect(fs.existsSync(path.join(p.out, SERVE_FILE))).toBe(false);
+	}, 30_000);
+
+	it('says it cannot start when serve.log cannot be opened, with no stack trace', async () => {
+		// Arrange
+		const p = project();
+		fs.mkdirSync(path.join(p.out, SERVE_LOG_FILE), { recursive: true });
+
+		// Act
+		const run = await start(p, await freePort());
+
+		// Assert
+		expect(run.code).toBe(1);
+		expect(run.stderr).toMatch(/^Cannot start: .*serve\.log: /);
+		expect(run.stderr).not.toMatch(/\n\s+at /);
+		expect(servesOf(p.base)).toEqual([]);
 	}, 30_000);
 
 	it('replaces a planted serve.log link instead of writing through it', async () => {

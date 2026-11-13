@@ -16,7 +16,7 @@ Ropeman builds the folder hierarchy, symbols and imports of a repository without
 
 ## 1. Check the tool
 
-Run `ropeman --version`. It must print 0.3.0 or later. If the command is not found or the version is older, tell the user to run `npm install -g @ropeman/bridge@0.3.0` (Node 22 or later) and stop.
+Run `ropeman --version`. It must print 0.3.1 or later. If the command is not found or the version is older, tell the user to run `npm install -g @ropeman/bridge@0.3.1` (Node 22 or later) and stop.
 
 ## 2. Choose the output folder
 
@@ -115,7 +115,7 @@ ropeman serve --root REPO --out OUT --local --detach
 
 It starts serve in the background and returns within a few seconds. Run it as an ordinary command, not as a background task: serve keeps running after the command returns, outside your shell and its time limits. It prints `Local mode: open http://127.0.0.1:9800/bridge#token=…`; give the user that address. Exit code 1 means serve did not start, and the output says why. If port 9800 is taken, add `--port 9801`.
 
-- Tell the user that the map server now runs in the background on their machine, that it stops by itself after an hour with no Ropeman page open, and that they can ask you to open the map again at any time.
+- Tell the user that the map server now runs in the background on their machine, that it stops by itself after an hour with no Ropeman page open, and that they can stop it sooner with `ropeman stop --out OUT` (write out the real path) or ask you to. They can also ask you to open the map again at any time.
 - Running the same command again reuses the serve that runs for `OUT` and prints the same address. Run it again when the user wants the map opened again or says the page lost its connection, then ask them to reload the page.
 - Stop serve with `ropeman stop --out OUT` when the user asks you to, or before you delete `OUT`.
 - The address carries a token for this machine. Do not write it into files. serve writes its own output to `OUT/serve.log`, which never holds the token; read that file when the user says something went wrong.

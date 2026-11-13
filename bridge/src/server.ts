@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -14,12 +14,13 @@ import {
 } from './auth.js';
 import {
 	DEFAULT_IDLE_MINUTES,
-	type ServeRecord,
-	launchDetached,
+	DETACHED_CHILD,
+	type Running,
+	type ServeStatus,
 	removeRecord,
 	runStop,
 	runningServe,
-	stopServe,
+	startDetached,
 	writeRecord
 } from './background.js';
 import { HOST, createBridgeServer } from './bridge.js';
@@ -91,9 +92,6 @@ const USAGE = `usage:
   ropeman verify --root <repo> --map <ropeman.json>
   ropeman inbox --out <folder>
   ropeman --version`;
-
-/** Set by `--detach` on the serve it starts: no token in its log, which is a file */
-const DETACHED_CHILD = '--detached-child';
 
 /** `--idle-minutes`: stop after this long with no page open; 0, the default here, never. */
 function parseIdleMinutes(args: string[]): number {
@@ -172,7 +170,10 @@ async function main() {
 		parseDirFlag(argv, '--viewer') ?? (argv.includes('--local') ? bundledViewer() : null);
 	const cliFlag = parseCLIFlag(argv);
 	const idleMinutes = parseIdleMinutes(argv);
-	const detachedChild = argv.includes(DETACHED_CHILD);
+	// The instance id the `--detach` start chose for the serve it starts; null in any other start
+	const detachedChild = argv.includes(DETACHED_CHILD)
+		? (argv[argv.indexOf(DETACHED_CHILD) + 1] ?? null)
+		: null;
 
 	let token: string;
 	try {
@@ -188,25 +189,15 @@ async function main() {
 		: process.env[TOKEN_ENV]
 			? `the ${TOKEN_ENV} value`
 			: `stored in ${defaultTokenFile()}`;
-	const announce = (record: ServeRecord) => {
-		if (record.open) log(`Local mode: open ${record.open}#token=${token}`);
+	// The address is HOST and the port the record names; the page is one the serve itself reported
+	const announce = ({ record, status }: Running) => {
+		if (status.entry)
+			log(`Local mode: open http://${HOST}:${record.port}${status.entry}#token=${token}`);
 		else log(`Open https://ropeman.dev/bridge and paste the token (${tokenSource}).`);
 	};
 
-	// One serve per --out: starting again reuses it, so the agent can run its start command anytime
-	if (out && !detachedChild) {
-		const running = await runningServe(out);
-		if (running && running.root === root && (running.open !== null) === (viewerDir !== null)) {
-			log(`serve already runs for ${out} (pid ${running.pid}, port ${running.port}).`);
-			announce(running);
-			return;
-		}
-		if (running) {
-			await stopServe(out, running);
-			log(`Stopped the serve for ${out} that ran with other options (pid ${running.pid}).`);
-		}
-	}
-
+	// One serve per --out for --detach: starting again reuses it, so the agent can rerun its start
+	// command anytime. A start without --detach (a terminal) runs as before and stops no other serve.
 	if (argv.includes('--detach')) {
 		if (!out) {
 			console.error(
@@ -214,23 +205,37 @@ async function main() {
 			);
 			process.exit(1);
 		}
-		const args = ['serve', ...argv.filter((a) => a !== '--detach'), DETACHED_CHILD];
+		const args = ['serve', ...argv.filter((a) => a !== '--detach')];
 		if (!argv.includes('--idle-minutes')) args.push('--idle-minutes', String(DEFAULT_IDLE_MINUTES));
-		const launched = await launchDetached(out, fileURLToPath(import.meta.url), args);
-		if (!launched.ok) {
-			console.error(`Cannot start serve in the background. Its output:\n${launched.log}`);
+		const result = await startDetached(out, {
+			root,
+			viewer: viewerDir !== null,
+			entry: fileURLToPath(import.meta.url),
+			args
+		});
+		if (result.kind === 'failed') {
+			const output = result.log ? ` Its output:\n${result.log}` : '';
+			console.error(`Cannot start: ${result.message}.${output}`);
 			process.exitCode = 1;
 			return;
 		}
-		const { record } = launched;
-		console.log(launched.log);
-		const idle = record.idleMinutes
-			? `It stops after ${record.idleMinutes} minutes with no page open, or with`
+		const { status } = result.running;
+		if (result.kind === 'reused') {
+			log(`serve already runs for ${out} (pid ${status.pid}, port ${result.running.record.port}).`);
+		} else {
+			console.log(result.log);
+			if (result.replaced) {
+				log(
+					`Stopped the serve for ${out} that ran with other options (pid ${result.replaced.pid}).`
+				);
+			}
+			log(`serve runs in the background (pid ${status.pid}), its output in ${out}/serve.log.`);
+		}
+		const idle = status.idleMinutes
+			? `It stops after ${status.idleMinutes} minutes with no page open and no request, or with`
 			: 'Stop it with';
-		log(
-			`serve runs in the background (pid ${record.pid}), its output in ${out}/serve.log. ${idle}: ropeman stop --out ${out}`
-		);
-		announce(record);
+		log(`${idle}: ropeman stop --out ${out}`);
+		announce(result.running);
 		return;
 	}
 
@@ -250,7 +255,20 @@ async function main() {
 	// The CLI runs in an empty folder, so even a CLI that reads files starts outside the project
 	const namingDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-naming-'));
 	const runner = new CliRunner(CLI_CONCURRENCY, namingDir);
-	const instance = randomUUID();
+	const instance = detachedChild ?? randomUUID();
+	// Only a request carrying it reaches `control`; it is kept in OUT/serve.json (mode 0600)
+	const secret = randomBytes(32).toString('base64url');
+	// The Ropeman viewer opens at /bridge; another --viewer directory (the probe) at its index
+	const entry = viewerDir && fs.existsSync(path.join(viewerDir, 'bridge.html')) ? '/bridge' : '/';
+	const status: ServeStatus = {
+		instance,
+		pid: process.pid,
+		port,
+		root,
+		entry: viewerDir ? entry : null,
+		idleMinutes,
+		version: pkg.version
+	};
 	// Runs lead their own process groups, so a crash would leave them; this is the last resort
 	process.on('exit', () => {
 		runner.killNow();
@@ -285,7 +303,14 @@ async function main() {
 		session,
 		runner,
 		server: identity,
-		instance,
+		control: {
+			secret,
+			status,
+			stop: () => {
+				log('Asked to stop (ropeman stop).');
+				void shutdown();
+			}
+		},
 		log
 	});
 
@@ -319,7 +344,7 @@ async function main() {
 	if (idleMinutes > 0) {
 		const idleMs = idleMinutes * 60_000;
 		let lastUse = Date.now();
-		// A page load or a second start (its check is a request) counts as use, like an open socket
+		// A page load or a second start's check (a request) counts as use, like an open socket
 		const use = () => (lastUse = Date.now());
 		server.on('request', use);
 		server.on('upgrade', use);
@@ -340,23 +365,28 @@ async function main() {
 		log(`Open https://ropeman.dev/bridge and paste the token (${tokenSource}).`);
 		log(`Map and file.read root: ${root ?? 'off (pass --root <dir>)'}`);
 		session?.start();
-		// The Ropeman viewer opens at /bridge; another --viewer directory (the probe) at its index
-		const entry = viewerDir && fs.existsSync(path.join(viewerDir, 'bridge.html')) ? '/bridge' : '/';
-		const record: ServeRecord = {
+		const open = `http://${HOST}:${port}${entry}`;
+		// The detached serve's log is a file; the command that started it prints the token
+		if (viewerDir && !detachedChild) log(`Local mode: open ${open}#token=${token}`);
+		else if (viewerDir) log(`Local mode at ${open}`);
+		else log('Safari, or the browser blocked the connection? Start again with --local.');
+		if (!out) return;
+		const record = {
 			pid: process.pid,
 			port,
 			instance,
-			root,
-			open: viewerDir ? `http://${HOST}:${port}${entry}` : null,
-			idleMinutes,
+			secret,
 			startedAt: new Date().toISOString(),
 			version: pkg.version
 		};
-		// The detached serve's log is a file; the command that started it prints the token
-		if (record.open && !detachedChild) log(`Local mode: open ${record.open}#token=${token}`);
-		else if (record.open) log(`Local mode at ${record.open}`);
-		else log('Safari, or the browser blocked the connection? Start again with --local.');
-		if (out) writeRecord(out, record);
+		// The --detach start checked under its lock; a terminal's serve leaves another one's record
+		if (detachedChild) return writeRecord(out, record);
+		void runningServe(out).then((other) => {
+			if (!other) return writeRecord(out, record);
+			log(
+				`Another serve runs for ${out} (pid ${other.status.pid}, port ${other.record.port}); ropeman stop and serve --detach reach that one, not this one.`
+			);
+		});
 	});
 }
 

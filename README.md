@@ -9,8 +9,8 @@
 ## Use it from your coding agent
 
 ```bash
-npm install -g @ropeman/bridge@0.3.0     # the ropeman command, Node 22 or later
-curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.0/skill/ropeman/SKILL.md
+npm install -g @ropeman/bridge@0.3.1     # the ropeman command, Node 22 or later
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.1/skill/ropeman/SKILL.md
 ```
 
 Then ask your agent to "map this repo". It builds the map, names the top two levels, checks them, starts `ropeman serve` and gives you a `http://127.0.0.1:9800/bridge#token=…` address. Open it in your browser: click a folder to drill down, click a file to read its source.
@@ -93,7 +93,7 @@ Ropeman has three AI modes:
 2. **API Key (BYOK)** uses your own Google Gemini, Anthropic or OpenAI key. The key stays in the browser (localStorage). Gemini requests go straight to Google. Anthropic and OpenAI requests pass through Ropeman's edge proxy because of browser restrictions, and the proxy does not store keys.
 3. **Browser AI** runs a model in the browser with WebGPU through web-llm. After the one-time model download, analysis runs offline. This mode is experimental.
 
-**Bridge mode** runs outside these modes, on its own page. `ropeman serve` maps a folder on your machine, and https://ropeman.dev/bridge connects to it over `ws://127.0.0.1:9800`. Your coding agent names the top levels. A headless `claude` worker names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. serve runs `gemini` only with `--cli gemini`. Click a file to open its source. Your code does not go to Ropeman's servers. To start serve yourself, install it with `npm install -g @ropeman/bridge@0.3.0`, run `ropeman serve --root .` in the project folder, open https://ropeman.dev/bridge, and paste the token from `~/.ropeman/bridge-token`. In Safari, or if the browser blocked the connection, start serve with `--local` and open the address it prints. [bridge/README.md](bridge/README.md) covers the flags, the token and the security checks.
+**Bridge mode** runs outside these modes, on its own page. `ropeman serve` maps a folder on your machine, and https://ropeman.dev/bridge connects to it over `ws://127.0.0.1:9800`. Your coding agent names the top levels. A headless `claude` worker names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. serve runs `gemini` only with `--cli gemini`. Click a file to open its source. Your code does not go to Ropeman's servers. To start serve yourself, install it with `npm install -g @ropeman/bridge@0.3.1`, run `ropeman serve --root .` in the project folder, open https://ropeman.dev/bridge, and paste the token from `~/.ropeman/bridge-token`. In Safari, or if the browser blocked the connection, start serve with `--local` and open the address it prints. [bridge/README.md](bridge/README.md) covers the flags, the token and the security checks.
 
 ## Architecture
 

@@ -9,9 +9,9 @@
 		connectHint?: boolean;
 	} = $props();
 
-	const INSTALL = 'npm install -g @ropeman/bridge@0.3.0';
+	const INSTALL = 'npm install -g @ropeman/bridge@0.3.1';
 	const SKILL_URL =
-		'https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.0/skill/ropeman/SKILL.md';
+		'https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.1/skill/ropeman/SKILL.md';
 	const ADDRESS = 'http://127.0.0.1:9800/bridge#token=…';
 
 	/** Where each agent loads personal skills, as its own docs (host and path) say, checked 2026-11-13 */
