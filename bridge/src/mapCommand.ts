@@ -335,7 +335,9 @@ export function buildNamedMap(input: {
 	const workLevels: WorkLevel[] = slots.flatMap((slot, i) => {
 		const state = states[i];
 		const isQueued = slot.parentId !== null && queued.has(slot.parentId);
-		if (state.kind === 'named' || (slot.depth !== stage && !isQueued)) return [];
+		if (state.kind === 'named') return [];
+		// A refused level is listed wherever it is, so every problem has a level to fix it in
+		if (state.kind === 'grouped' && slot.depth !== stage && !isQueued) return [];
 		return [
 			{
 				level: slot.parentId,
@@ -391,10 +393,7 @@ class UsageError extends Error {}
 
 const MAP_USAGE = 'usage: ropeman map --root <repo> --out <folder> [--depth <n>]';
 const VERIFY_USAGE = 'usage: ropeman verify --root <repo> --map <ropeman.json>';
-const NEXT_USAGE = 'usage: ropeman next --out <folder> [--timeout <seconds>]';
-/** Under the two minutes most agent shells give a command by default */
-export const DEFAULT_NEXT_TIMEOUT_S = 90;
-const NEXT_POLL_MS = 500;
+const QUEUE_USAGE = 'usage: ropeman queue --out <folder>';
 
 function options(args: string[], names: string[], usage: string) {
 	const spec = Object.fromEntries(names.map((name) => [name, { type: 'string' as const }]));
@@ -423,16 +422,23 @@ function rootOf(value: string | undefined, usage: string): string {
  */
 export function outFolder(root: string, value: string | undefined): string {
 	if (!value) throw new UsageError(`--out is required.\n${MAP_USAGE}`);
-	fs.mkdirSync(value, { recursive: true });
-	const out = fs.realpathSync.native(value);
-	const rel = path.relative(root, out);
+	// Decided on the real path before anything is created, so a refused folder is not left behind
+	let existing = path.resolve(value);
+	const missing: string[] = [];
+	while (!fs.existsSync(existing)) {
+		missing.unshift(path.basename(existing));
+		existing = path.dirname(existing);
+	}
+	const target = path.join(fs.realpathSync.native(existing), ...missing);
+	const rel = path.relative(root, target);
 	const inside = rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 	if (inside && (rel === '' || !shouldSkipPath(`${rel.split(path.sep).join('/')}/`))) {
 		throw new UsageError(
 			`--out ${value} is inside the repo; use a hidden folder such as .ropeman, or a folder outside it.`
 		);
 	}
-	return out;
+	fs.mkdirSync(target, { recursive: true });
+	return target;
 }
 
 function extract(root: string, env: CommandEnv): Promise<Extraction> {
@@ -442,6 +448,25 @@ function extract(root: string, env: CommandEnv): Promise<Extraction> {
 		env.err(`Extracted ${extraction.map.files.size} files of ${extraction.listed} in ${seconds}s`);
 		return extraction;
 	});
+}
+
+/**
+ * One part or import per line: indented JSON puts every sample path on its own line, and PASEO's
+ * second stage then runs past the 2,000 lines an agent's file reader shows at once.
+ */
+function workText(work: Work): string {
+	const list = (items: unknown[], indent: string) =>
+		items.length === 0
+			? '[]'
+			: `[\n${items.map((item) => `${indent}${JSON.stringify(item)}`).join(',\n')}\n${indent.slice(1)}]`;
+	const levels = work.levels.map(({ parts, imports, ...head }) => {
+		const fields = Object.entries(head).map(
+			([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`
+		);
+		fields.push(`  "parts": ${list(parts, '   ')}`, `  "imports": ${list(imports, '   ')}`);
+		return ` {\n${fields.join(',\n')}\n }`;
+	});
+	return `{\n "project": ${JSON.stringify(work.project)},\n "stage": ${JSON.stringify(work.stage)},\n "levels": [${levels.length ? `\n${levels.join(',\n')}\n ` : ''}]\n}\n`;
 }
 
 export async function runMap(args: string[], env: CommandEnv): Promise<number> {
@@ -469,7 +494,7 @@ export async function runMap(args: string[], env: CommandEnv): Promise<number> {
 	const mapPath = path.join(out, MAP_FILE);
 	const workPath = path.join(out, WORK_FILE);
 	writeAtomic(mapPath, JSON.stringify(built.map));
-	writeAtomic(workPath, `${JSON.stringify(built.work, null, 1)}\n`);
+	writeAtomic(workPath, workText(built.work));
 	env.out(
 		JSON.stringify(
 			{ ...built.report, files: { map: mapPath, work: workPath, names: namesPath } },
@@ -508,51 +533,32 @@ export async function runVerify(args: string[], env: CommandEnv): Promise<number
 	return result.violations.length === 0 ? 0 : 1;
 }
 
-/** The levels `ropeman.json` names, by the node they expand; re-read only when the file changes. */
-function namedLevelsReader(file: string): () => Set<string> {
-	let seen = -1;
-	let named = new Set<string>();
-	return () => {
-		const mtime = fs.statSync(file, { throwIfNoEntry: false })?.mtimeMs ?? 0;
-		if (mtime === seen) return named;
-		seen = mtime;
-		try {
-			const levels = (JSON.parse(fs.readFileSync(file, 'utf8')) as RopemanMap).levels ?? [];
-			named = new Set(
-				levels.flatMap((l) => (l.naming === 'named' && l.parentId ? [l.parentId] : []))
-			);
-		} catch {
-			named = new Set();
-		}
-		return named;
-	};
+/**
+ * The folders the user opened in the browser that `ropeman.json` holds as a grouped level: the
+ * ones the agent still has to name. An id the map no longer has (a deleted folder) is not pending.
+ */
+export function pendingQueue(out: string): string[] {
+	let grouped: Set<string>;
+	try {
+		const map = JSON.parse(fs.readFileSync(path.join(out, MAP_FILE), 'utf8')) as RopemanMap;
+		grouped = new Set(
+			map.levels.flatMap((l) => (l.naming === 'grouped' && l.parentId ? [l.parentId] : []))
+		);
+	} catch {
+		return [];
+	}
+	return readQueue(out).filter((id) => grouped.has(id));
 }
 
-/**
- * Waits until the browser has queued a folder `ropeman.json` does not name yet and prints the
- * queued ids, or prints none when `--timeout` passes, so an agent can loop on it ("follow in
- * the browser"). It only reads files, so any number of runs may wait at once.
- */
-export async function runNext(args: string[], env: CommandEnv): Promise<number> {
-	const values = options(args, ['out', 'timeout'], NEXT_USAGE);
-	if (!values.out) throw new UsageError(`--out is required.\n${NEXT_USAGE}`);
+/** Prints the queued folders still to name, so the agent checks before each answer. */
+export async function runQueue(args: string[], env: CommandEnv): Promise<number> {
+	const values = options(args, ['out'], QUEUE_USAGE);
+	if (!values.out) throw new UsageError(`--out is required.\n${QUEUE_USAGE}`);
 	if (!fs.statSync(values.out, { throwIfNoEntry: false })?.isDirectory()) {
 		throw new UsageError(`--out ${values.out} is not a folder; run ropeman map first.`);
 	}
-	const seconds = values.timeout === undefined ? DEFAULT_NEXT_TIMEOUT_S : Number(values.timeout);
-	if (!(seconds >= 0))
-		throw new UsageError(`--timeout must be a number of seconds, 0 to check once.\n${NEXT_USAGE}`);
-	const out = values.out;
-	const named = namedLevelsReader(path.join(out, MAP_FILE));
-	const end = Date.now() + seconds * 1000;
-	for (;;) {
-		const pending = readQueue(out).filter((id) => !named().has(id));
-		if (pending.length > 0 || Date.now() >= end) {
-			env.out(JSON.stringify({ queued: pending, timedOut: pending.length === 0 }, null, 1));
-			return 0;
-		}
-		await new Promise((resolve) => setTimeout(resolve, Math.min(NEXT_POLL_MS, end - Date.now())));
-	}
+	env.out(JSON.stringify({ queued: pendingQueue(values.out) }));
+	return 0;
 }
 
 /** Runs a subcommand: 0 passed, 1 problems reported on stdout, 2 bad arguments or a failed read. */

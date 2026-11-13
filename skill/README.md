@@ -46,9 +46,9 @@ The agent runs these commands with fixed arguments:
 | `ropeman map --root <repo> --out <folder>`           | Extracts the repository, applies `names.json`, writes `ropeman.json` (only names that pass the verifier) and `work.json` (what to name next), and prints the coverage and the problems as JSON |
 | `ropeman verify --root <repo> --map <ropeman.json>`  | Checks any `ropeman.json` against the code and prints the violations as JSON                                                                                                                   |
 | `ropeman serve --root <repo> --out <folder> --local` | Serves the map with the viewer at `http://127.0.0.1:9800/bridge#token=…`                                                                                                                       |
-| `ropeman next --out <folder>`                        | Prints the folders you opened in the browser that have no names yet                                                                                                                            |
+| `ropeman queue --out <folder>`                       | Prints the folders you opened in the browser that have no names yet                                                                                                                            |
 
-The agent names the top two stages when it maps the repository. A deeper folder you open in the browser waits on a queue, and the page says so; the agent names it the next time you send it a message, and the open page shows the names. Say "follow the browser" to have the agent name folders as you open them. While it follows, that conversation cannot answer you; interrupt the agent to stop it.
+The agent names the top two stages when it maps the repository. A deeper folder you open in the browser waits on a queue, and the page says so. The agent names it the next time you send it a message, and the open page shows the names.
 
 Every command takes argv only. The agent writes the names to a file and never puts them into a command line. See `bridge/README.md` for the server's security model.
 

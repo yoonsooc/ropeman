@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import {
 	runCommand,
 	runMap,
-	runNext,
+	runQueue,
 	runVerify,
 	type CommandEnv,
 	type MapReport,
@@ -217,6 +217,22 @@ describe('ropeman map', () => {
 		expect(read<RopemanMap>(MAP_FILE).levels.every((l) => l.naming === 'grouped')).toBe(true);
 	});
 
+	it('lists a refused level outside the current stage, so its problem has a place to be fixed', async () => {
+		await map('--depth', '1');
+		writeNames({
+			...nameWork(read<Work>(WORK_FILE)),
+			'dir:src/app': { label: 'App', description: '', keySymbols: [] }
+		});
+
+		const run = await map('--depth', '1');
+
+		expect(run.code).toBe(1);
+		expect(run.report.next).toMatchObject({ stage: null, levels: 1 });
+		expect(read<Work>(WORK_FILE).levels.map((l) => [l.level, l.problems[0]?.code])).toEqual([
+			['dir:src', 'name-missing']
+		]);
+	});
+
 	it('reports a names file that is not one JSON object and still writes the grouped map', async () => {
 		fs.mkdirSync(out);
 		fs.writeFileSync(path.join(out, NAMES_FILE), '["dir:src"]');
@@ -236,6 +252,7 @@ describe('ropeman map', () => {
 
 		expect(listed.code).toBe(2);
 		expect(listed.stderr).toContain('inside the repo');
+		expect(fs.existsSync(path.join(root, 'maps'))).toBe(false);
 		expect(hidden.code).toBe(0);
 		expect(hidden.report.coverage.byReason.sent).toBe(6);
 	});
@@ -311,9 +328,9 @@ const until = async (check: () => boolean, ms = 5_000) => {
 	}
 };
 
-async function next(timeout = '0') {
+async function queue() {
 	const e = env();
-	const code = await runCommand(runNext, ['--out', out, '--timeout', timeout], e);
+	const code = await runCommand(runQueue, ['--out', out], e);
 	return { code, result: JSON.parse(e.stdout.join('\n')) };
 }
 
@@ -351,19 +368,6 @@ describe('serve --out', () => {
 		}
 	});
 
-	it('ropeman next waits for a folder the browser queues and returns it at once', async () => {
-		await map();
-		const started = Date.now();
-		const waiting = next('5');
-		setTimeout(() => writeQueue(out, ['dir:src']), 100);
-
-		const { code, result } = await waiting;
-
-		expect(code).toBe(0);
-		expect(result).toEqual({ queued: ['dir:src'], timedOut: false });
-		expect(Date.now() - started).toBeLessThan(2_000);
-	});
-
 	it('queues a folder opened without names, lists it for the agent, and answers once the agent names it', async () => {
 		await map('--depth', '1');
 		writeNames(nameWork(read<Work>(WORK_FILE)));
@@ -373,20 +377,20 @@ describe('serve --out', () => {
 		const viewer = subscriber();
 
 		try {
-			const idle = await next();
+			const idle = await queue();
 			const expanded = await s.expand('dir:src');
 			s.name('dir:src', viewer);
-			const waiting = await next();
+			const waiting = await queue();
 			const run = await map('--depth', '1');
 			const work = read<Work>(WORK_FILE);
 			writeNames(nameWork(work, read(NAMES_FILE)));
 			await map('--depth', '1');
 			await until(() => viewer.pushes.length === 2);
 
-			expect(idle.result).toEqual({ queued: [], timedOut: true });
+			expect(idle.result).toEqual({ queued: [] });
 			expect(expanded.ok && expanded.level.naming).toBe('grouped');
 			expect(viewer.pushes[0]).toMatchObject({ type: 'node.named', code: 'queued' });
-			expect(waiting.result).toEqual({ queued: ['dir:src'], timedOut: false });
+			expect(waiting.result).toEqual({ queued: ['dir:src'] });
 			expect(run.report.next).toMatchObject({ stage: null, queued: 1, levels: 1 });
 			expect(work.levels.map((l) => [l.level, l.queued])).toEqual([['dir:src', true]]);
 			expect(viewer.pushes[1]).toMatchObject({
@@ -395,7 +399,48 @@ describe('serve --out', () => {
 				level: { naming: 'named' }
 			});
 			expect(read(QUEUE_FILE)).toEqual({ queued: [] });
-			expect((await next()).result).toEqual({ queued: [], timedOut: true });
+			expect((await queue()).result).toEqual({ queued: [] });
+		} finally {
+			s.close();
+		}
+	});
+
+	it('serves names again once the code backs them again after a folder comes and goes', async () => {
+		await map('--depth', '1');
+		writeNames(nameWork(read<Work>(WORK_FILE)));
+		await map('--depth', '1');
+		const extra = path.join(root, 'extra');
+		fs.mkdirSync(extra);
+		fs.writeFileSync(path.join(extra, 'x.ts'), 'export const x = 1;\n');
+		const s = session();
+		const viewer = subscriber();
+		s.join(viewer);
+
+		try {
+			const withExtra = await s.map();
+			fs.rmSync(extra, { recursive: true });
+			await until(() => viewer.pushes.some((m) => m.type === 'map.changed'));
+			const without = await s.map();
+
+			expect(withExtra.levels[0].naming).toBe('grouped');
+			expect(without.levels[0].naming).toBe('named');
+		} finally {
+			s.close();
+		}
+	});
+
+	it('drops a queued folder that no longer exists, and never reports it as pending', async () => {
+		await map('--depth', '1');
+		writeQueue(out, ['dir:src/gone', 'dir:src']);
+		const s = session();
+
+		try {
+			s.start();
+			await until(() => read<{ queued: string[] }>(QUEUE_FILE).queued.length === 1);
+			const pending = await queue();
+
+			expect(read(QUEUE_FILE)).toEqual({ queued: ['dir:src'] });
+			expect(pending.result).toEqual({ queued: ['dir:src'] });
 		} finally {
 			s.close();
 		}

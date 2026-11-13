@@ -12,14 +12,14 @@ import {
 	resolveToken
 } from './auth.js';
 import { HOST, createBridgeServer } from './bridge.js';
-import { CliRunner, KILL_GRACE_MS } from './cli.js';
+import { CliRunner, KILL_GRACE_MS, detectCLI } from './cli.js';
 import { resolveRoot } from './fileRead.js';
 import {
 	type CommandEnv,
 	outFolder,
 	runCommand,
 	runMap,
-	runNext,
+	runQueue,
 	runVerify
 } from './mapCommand.js';
 import { MapSession } from './mapSession.js';
@@ -75,7 +75,7 @@ const USAGE = `usage:
   ropeman serve [--root <repo>] [--out <folder>] [--local] [--port <n>] [--cli claude|gemini]
   ropeman map --root <repo> --out <folder> [--depth <n>]
   ropeman verify --root <repo> --map <ropeman.json>
-  ropeman next --out <folder> [--timeout <seconds>]
+  ropeman queue --out <folder>
   ropeman --version`;
 
 /** `--out`: the folder shared with the agent (`ropeman map --out`), created if missing. */
@@ -92,6 +92,17 @@ function parseOutFlag(args: string[], root: string | null): string | null {
 		console.error(`Cannot start: ${(err as Error).message}`);
 		process.exit(1);
 	}
+}
+
+/**
+ * Who names a folder the user opens without names: the headless CLI, or (null) the user's agent
+ * through the queue in `--out`, or nobody. `--cli` always wins. Without it, plain serve uses the
+ * first CLI it finds; with `--out` (the skill) the agent the user talks to names it (ADR-25).
+ */
+async function namingCli(flag: CLIType | null, out: string | null): Promise<CLIType | null> {
+	if (flag) return flag;
+	if (out) return null;
+	return detectCLI();
 }
 
 function log(msg: string): void {
@@ -116,7 +127,7 @@ async function main() {
 		out: (text) => process.stdout.write(`${text}\n`),
 		err: (text) => process.stderr.write(`${text}\n`)
 	};
-	const commands = { map: runMap, verify: runVerify, next: runNext };
+	const commands = { map: runMap, verify: runVerify, queue: runQueue };
 	if (Object.hasOwn(commands, argv[0] ?? '')) {
 		const command = commands[argv[0] as keyof typeof commands];
 		// exitCode, not exit(): exit() can cut a report still flushing to a pipe
@@ -133,11 +144,14 @@ async function main() {
 	const viewerDir =
 		parseDirFlag(argv, '--viewer') ?? (argv.includes('--local') ? bundledViewer() : null);
 	// Headless naming starts a CLI with none of the conversation's context, so it is opt-in
-	const defaultCli: CLIType | null = parseCLIFlag(argv);
+	const defaultCli = await namingCli(parseCLIFlag(argv), out);
 
-	if (defaultCli) log(`Naming opened folders with: ${defaultCli} (--cli)`);
+	if (defaultCli) log(`Naming opened folders with: ${defaultCli}`);
 	else if (out) log(`Opened folders without names go on the queue in ${out} for your agent`);
-	else log('No naming: opened folders keep folder names (pass --out <folder> or --cli).');
+	else {
+		log('Warning: No CLI tool detected. Install Claude Code (claude) or Gemini CLI (gemini).');
+		log('You can also specify --cli <claude|gemini> flag, or --out <folder> for your agent.');
+	}
 
 	let token: string;
 	try {

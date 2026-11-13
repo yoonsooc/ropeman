@@ -1,6 +1,6 @@
 # @ropeman/bridge
 
-Local server for Ropeman. `ropeman serve` maps a folder on your machine and sends the map to the Ropeman viewer over a WebSocket. The coding agent you talk to names the map: it runs the Ropeman skill (`skill/ropeman/` in the Ropeman repository), which uses the `ropeman map`, `verify` and `next` commands below.
+Local server for Ropeman. `ropeman serve` maps a folder on your machine and sends the map to the Ropeman viewer over a WebSocket. Folders get names one of two ways. The coding agent you talk to names them through the Ropeman skill (`skill/ropeman/` in the Ropeman repository), which uses the `ropeman map`, `verify` and `queue` commands below. Or serve names a folder when you open it, by running your CLI (Claude Code or Gemini CLI) headless.
 
 ## Usage
 
@@ -13,9 +13,9 @@ ropeman serve --root ~/code/project --port 9900 --cli claude
 
 `ropeman serve` and `ropeman-bridge` are the same program. Without `--root` it has no map: `map.get` and `node.expand` answer `not-ready` and `file.read` is off.
 
-The bridge listens on `ws://127.0.0.1:9800` unless you pass `--port`. A folder you open that has no names yet goes on the queue in `--out` for your agent (see Map files). With `--cli claude` or `--cli gemini` the bridge instead starts that CLI headless to name it; this runs only when you pass the flag, because a new CLI run does not know your conversation.
+The bridge listens on `ws://127.0.0.1:9800` unless you pass `--port`. With `--out` (the skill's folder) a folder you open that has no names yet goes on the queue there for your agent (see Map files). Without `--out` the bridge checks for `claude`, then `gemini`, and names the folder with the first one it finds. `--cli claude` or `--cli gemini` picks the CLI and names headless in either mode.
 
-On startup the bridge prints where its token is: `~/.ropeman/bridge-token` unless you set one with `--token` or `ROPEMAN_BRIDGE_TOKEN`. It does not print the token itself, so the value stays out of terminal logs. Open https://ropeman.dev/bridge and paste the token from that file (`cat ~/.ropeman/bridge-token`) into the Token field. If you changed the port, enter the same number in the Port field. The page shows the map, opens a folder when you click it (its children right away, the CLI's names when they pass the checks), and opens a file's source when you click the file.
+On startup the bridge prints where its token is: `~/.ropeman/bridge-token` unless you set one with `--token` or `ROPEMAN_BRIDGE_TOKEN`. It does not print the token itself, so the value stays out of terminal logs. Open https://ropeman.dev/bridge and paste the token from that file (`cat ~/.ropeman/bridge-token`) into the Token field. If you changed the port, enter the same number in the Port field. The page shows the map, opens a folder when you click it (its children right away, then their names once they pass the checks), and opens a file's source when you click the file.
 
 Chrome and Edge ask once whether ropeman.dev may reach apps on this device; choose Allow. Firefox is rolling out the same prompt (Mozilla says from version 151). Safari blocks a secure page from reaching `ws://127.0.0.1` outright. When a connection fails, the page says which of these happened (permission blocked, nothing on the port, or the bridge refused the token) and how to fix it, including how to reset a blocked permission. If the browser cannot connect, start the bridge with `--local` and open the `http://127.0.0.1:<port>/bridge#token=…` address it prints instead (see Local mode).
 
@@ -41,7 +41,7 @@ The file is created on first run and reused afterwards. Delete it to issue a new
 | Flag                     | Description                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------- |
 | `--port <number>`        | Port to listen on (default 9800)                                                       |
-| `--cli <claude\|gemini>` | Name opened folders with this CLI, headless (off by default)                           |
+| `--cli <claude\|gemini>` | Name opened folders with this CLI, headless (default: auto-detect without `--out`)     |
 | `--token <value>`        | Use this token instead of the stored one                                               |
 | `--allow-origin <url>`   | Also accept connections from this origin                                               |
 | `--root <dir>`           | Map this directory, watch it, and let `file.read` read files under it (off by default) |
@@ -60,18 +60,18 @@ With `--viewer <dir>` the bridge serves that directory's files, except dotfiles 
 ```bash
 ropeman map --root <repo> --out <folder> [--depth <n>]
 ropeman verify --root <repo> --map <ropeman.json>
-ropeman next --out <folder> [--timeout <seconds>]
+ropeman queue --out <folder>
 ```
 
 The folder (`--out`) holds four files, each with one writer: the agent writes `names.json`, `ropeman map` writes `ropeman.json` and `work.json`, and serve writes `queue.json`.
 
-`ropeman map` extracts the repository and reads `<folder>/names.json`, an object keyed by node id whose values are `{ "label", "description", "keySymbols" }`, the fields serve asks its CLI for. A level gets names only when every one of its parts has an entry and the verifier passes the result. Every other level stays grouped, so the `ropeman.json` it writes always verifies. It also writes `work.json`, the parts to name next: the shallowest stage with no names yet (stage 1 is the top level, stage 2 the folders inside it, up to `--depth`, default 2) and every folder in `queue.json` (`"queued": true`). Each part lists its file count, up to 12 paths and up to 24 declared names, never file contents. The report on stdout is JSON: `done`, `coverage` (files listed, in the map, by reason), `stages`, `problems` (each with a `code`, the `level`, the `nodeId` and a message) and `next`. The codes are the verifier's (`key-symbol-unknown`, `file-unassigned`, …) plus `names-unreadable`, `node-unknown`, `name-missing`, `name-invalid` and `map-invalid`. Exit code 0 means no problems, 1 problems, 2 bad arguments.
+`ropeman map` extracts the repository and reads `<folder>/names.json`, an object keyed by node id whose values are `{ "label", "description", "keySymbols" }`, the fields serve asks its CLI for. A level gets names only when every one of its parts has an entry and the verifier passes the result. Every other level stays grouped, so the `ropeman.json` it writes always verifies. It also writes `work.json`, the parts to name next: the shallowest stage with no names yet (stage 1 is the top level, stage 2 the folders inside it, up to `--depth`, default 2) , every folder in `queue.json` (`"queued": true`), and every level whose names were refused. Each part lists its file count, up to 12 paths and up to 24 declared names, never file contents. The report on stdout is JSON: `done`, `coverage` (files listed, in the map, by reason), `stages`, `problems` (each with a `code`, the `level`, the `nodeId` and a message) and `next`. The codes are the verifier's (`key-symbol-unknown`, `file-unassigned`, …) plus `names-unreadable`, `node-unknown`, `name-missing`, `name-invalid` and `map-invalid`. Exit code 0 means no problems, 1 problems, 2 bad arguments.
 
 `--out` may be outside the repository. Inside it, the folder must be one the walk skips, such as `.ropeman`, or the map would list its own files. Each run starts from the files on disk and replaces `ropeman.json` and `work.json` through a rename, so a run can be repeated or interrupted.
 
 `ropeman verify` checks any `ropeman.json` against a fresh extraction and prints `{ "ok", "violations", "unverifiedEdges", "checked" }`, or `{ "ok": false, "failure" }` with the parser's code when the file is not a map it reads.
 
-`ropeman next` waits until `queue.json` holds a folder that `ropeman.json` does not name yet, then prints `{ "queued": [...], "timedOut": false }`. After `--timeout` seconds (default 90) it prints `{ "queued": [], "timedOut": true }`; `--timeout 0` checks once. An agent loops on it to name folders while the user opens them.
+`ropeman queue` prints `{ "queued": [...] }`, the folders in `queue.json` that `ropeman.json` still holds without names. serve drops a queued folder once it has names or no longer exists.
 
 `ropeman serve --out <folder>` serves the named levels of `<folder>/ropeman.json`, the top level included, and reads the file again each time `ropeman map` replaces it. A queued folder that gets names is pushed to the pages waiting for it as `node.named`; other changed levels arrive as `map.changed` with no paths. A level whose names no longer pass on the current code (a key symbol was removed, a folder was added) goes back to grouped. An `--out` inside `--root` must be a folder the walk skips, as for `ropeman map`.
 
@@ -89,9 +89,9 @@ The first message on every connection is `{ "type": "hello", "schemaVersion": "1
 
 Pushes: `node.named` (`{ nodeId, level }` or `{ nodeId, code, error }` with code `queued`, `no-cli`, `naming-failed` or `verification-failed`) and `map.changed` (`{ paths }`, after a file under `--root` changes; ask `map.get` again).
 
-### Naming with `--cli`
+### Naming with a CLI
 
-Without `--cli`, `node.named` for a folder without names is `{ nodeId, code: "queued", error }`, and the named level follows once your agent names it. With `--cli`, when a folder is expanded, the bridge sends your CLI the structure of its parts: file paths, declared names such as `function parseArgs`, file counts and import counts between the parts. It sends no file contents, and env files with real values are not in the map at all. The CLI answers with a name, a sentence and up to six key symbols per part. Ropeman's verifier checks the answer against the code (every part named once, key symbols declared in that part's files); an answer that fails is asked again once with the reasons, then the folder names stay and the push says why. `claude` runs with no tools, no MCP servers and no saved session, from an empty temporary folder. Gemini CLI has no flag that turns every tool off: the bridge runs it with `--approval-mode default` (no shell, edit, write or web fetch in headless mode), no MCP servers and no extensions, so only its read and search tools remain, and those see only the empty folder. At most two CLI runs go at once, each for at most 180 seconds; closing the page stops the run it was waiting for. Stopping a run, or the bridge, ends the CLI and every process it started (its process group on macOS and Linux, `taskkill /T` on Windows, which is untested).
+With `--out` and no `--cli`, `node.named` for a folder without names is `{ nodeId, code: "queued", error }`, and the named level follows once your agent names it. Otherwise, when a folder is expanded, the bridge sends your CLI the structure of its parts: file paths, declared names such as `function parseArgs`, file counts and import counts between the parts. It sends no file contents, and env files with real values are not in the map at all. The CLI answers with a name, a sentence and up to six key symbols per part. Ropeman's verifier checks the answer against the code (every part named once, key symbols declared in that part's files); an answer that fails is asked again once with the reasons, then the folder names stay and the push says why. `claude` runs with no tools, no MCP servers and no saved session, from an empty temporary folder. Gemini CLI has no flag that turns every tool off: the bridge runs it with `--approval-mode default` (no shell, edit, write or web fetch in headless mode), no MCP servers and no extensions, so only its read and search tools remain, and those see only the empty folder. At most two CLI runs go at once, each for at most 180 seconds; closing the page stops the run it was waiting for. Stopping a run, or the bridge, ends the CLI and every process it started (its process group on macOS and Linux, `taskkill /T` on Windows, which is untested).
 
 ### file.read
 

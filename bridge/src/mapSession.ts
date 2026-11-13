@@ -68,6 +68,8 @@ interface Snapshot {
 	generatedAt: string;
 	/** Named levels verified against this extraction, by the node they expand */
 	named: Map<string, MapLevel>;
+	/** Levels whose kept names failed on this extraction; the next extraction checks them again */
+	refused: Set<string>;
 }
 
 interface NamingJob {
@@ -100,6 +102,8 @@ export class MapSession {
 	private readonly names = new Map<string, PartNames[]>();
 	/** Queued node ids, oldest first, with the sockets waiting for their names */
 	private readonly queue = new Map<string, Set<Subscriber>>();
+	/** The levels `--out/ropeman.json` named when it was last read */
+	private fromFile = new Set<string>();
 	private outWatcher: fs.FSWatcher | null = null;
 	private outDebounce: NodeJS.Timeout | undefined;
 	private readonly jobs = new Map<string, NamingJob>();
@@ -124,7 +128,8 @@ export class MapSession {
 		const out = this.options.out;
 		if (out) {
 			this.outWatcher = fs.watch(out, (_event, file) => {
-				if (file !== MAP_FILE) return;
+				// Some platforms report no file name; reading the map again is then the safe guess
+				if (file && file !== MAP_FILE) return;
 				clearTimeout(this.outDebounce);
 				this.outDebounce = setTimeout(() => this.onNamesWritten(), this.options.debounceMs);
 			});
@@ -136,9 +141,7 @@ export class MapSession {
 		this.ready().then(
 			(snap) => {
 				if (!out) return;
-				const named = [...this.queue.keys()].filter((id) => this.namedLevel(snap, id));
-				for (const id of named) this.queue.delete(id);
-				if (named.length > 0) writeQueue(out, [...this.queue.keys()]);
+				this.settleQueue(snap);
 				if (this.names.size === 0) return;
 				const kept = [...this.names.keys()].filter((id) => this.namedLevel(snap, id)).length;
 				this.options.log(`Serving the names of ${kept} of ${this.names.size} levels from ${out}`);
@@ -165,9 +168,11 @@ export class MapSession {
 			return [];
 		}
 		const changed: string[] = [];
+		const inFile = new Set<string>();
 		for (const level of parsed.value.levels) {
 			if (level.naming !== 'named') continue;
 			const key = level.parentId ?? TOP;
+			inFile.add(key);
 			const names = level.nodes.map(({ id, label, description, keySymbols }) => ({
 				id,
 				label,
@@ -179,7 +184,35 @@ export class MapSession {
 			this.snapshot?.named.delete(key);
 			changed.push(key);
 		}
+		// A level the agent's last run left grouped stops showing the names it had before
+		for (const key of this.fromFile) {
+			if (inFile.has(key)) continue;
+			this.names.delete(key);
+			this.snapshot?.named.delete(key);
+			changed.push(key);
+		}
+		this.fromFile = inFile;
 		return changed;
+	}
+
+	/**
+	 * Answers each queued node that now has names and drops each one the map no longer expands
+	 * (a deleted folder), so the agent is never asked for a folder it cannot name. Returns the
+	 * answered nodes.
+	 */
+	private settleQueue(snap: Snapshot): Set<string> {
+		const answered = new Set<string>();
+		const before = this.queue.size;
+		for (const [nodeId, waiting] of this.queue) {
+			const level = this.namedLevel(snap, nodeId);
+			if (level) {
+				for (const subscriber of waiting) subscriber.push({ type: 'node.named', nodeId, level });
+				answered.add(nodeId);
+			} else if (snap.grouped.expand(nodeId)) continue;
+			this.queue.delete(nodeId);
+		}
+		if (this.queue.size !== before) writeQueue(this.options.out!, [...this.queue.keys()]);
+		return answered;
 	}
 
 	/** The agent ran `ropeman map`: answer the queued nodes it named, and reload the rest. */
@@ -188,15 +221,7 @@ export class MapSession {
 		const changed = this.readNames();
 		const snap = this.snapshot;
 		if (changed.length === 0 || !snap) return;
-		const answered = new Set<string>();
-		for (const [nodeId, waiting] of this.queue) {
-			const level = this.namedLevel(snap, nodeId);
-			if (!level) continue;
-			for (const subscriber of waiting) subscriber.push({ type: 'node.named', nodeId, level });
-			this.queue.delete(nodeId);
-			answered.add(nodeId);
-		}
-		if (answered.size > 0) writeQueue(this.options.out!, [...this.queue.keys()]);
+		const answered = this.settleQueue(snap);
 		this.options.log(`Names for ${changed.length} levels from ${MAP_FILE}`);
 		if (changed.some((key) => !answered.has(key))) {
 			const message: RpcPush = { type: 'map.changed', paths: [] };
@@ -257,7 +282,8 @@ export class MapSession {
 				extraction,
 				grouped: groupExtraction(extraction, this.project),
 				generatedAt: new Date().toISOString(),
-				named: new Map()
+				named: new Map(),
+				refused: new Set()
 			};
 			this.snapshot = snapshot;
 			if (!this.closed) this.watcher.watch(extraction.folders);
@@ -345,10 +371,11 @@ export class MapSession {
 		if (known) return known;
 		const names = this.names.get(nodeId);
 		const grouped = nodeId === TOP ? snap.grouped.top : snap.grouped.expand(nodeId);
-		if (!names || !grouped) return null;
+		if (!names || !grouped || snap.refused.has(nodeId)) return null;
 		const level = applyNames(grouped, names);
+		// Kept, not deleted: a folder added and removed again, or a branch switched back, passes later
 		if (this.problems(snap, nodeId, level).length > 0) {
-			this.names.delete(nodeId);
+			snap.refused.add(nodeId);
 			return null;
 		}
 		snap.named.set(nodeId, level);
@@ -483,8 +510,9 @@ export class MapSession {
 		this.changed.clear();
 		this.extract()
 			.then(
-				() => {
+				(snap) => {
 					if (this.closed) return;
+					if (this.options.out) this.settleQueue(snap);
 					const message: RpcPush = { type: 'map.changed', paths };
 					for (const listener of this.listeners) listener.push(message);
 				},
