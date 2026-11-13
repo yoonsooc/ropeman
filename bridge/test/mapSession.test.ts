@@ -128,15 +128,32 @@ describe.skipIf(process.platform === 'win32')('MapSession catching up after the 
 
 	it('picks up an edit a watcher drops just after it opens', async () => {
 		// Arrange: watchers that report nothing, as macOS can for a change made as a watch opens
-		const { pushes, root } = await start({ deaf: true });
+		const { pushes, root, extractions } = await start({ deaf: true });
 
 		// Act: after the check made as the watchers opened, before the one that follows
 		await new Promise((r) => setTimeout(r, 60));
 		fs.appendFileSync(path.join(root, 'src/lib/math.ts'), 'export const zero = 0;\n');
 		await until(() => pushes.length > 0);
+		// Past both checks of the extraction that push followed, and a debounce after them
+		await new Promise((r) => setTimeout(r, 200 + DEBOUNCE_MS + 150));
+
+		// Assert: that extraction's own checks do not find the edit again
+		expect(pushes).toEqual([{ type: 'map.changed', paths: ['src/lib/math.ts'] }]);
+		expect(extractions()).toBe(2);
+	});
+
+	it('leaves no timer running once closed', async () => {
+		// Arrange: past the check made as the watchers opened, while the next one waits
+		const { session } = await start({ deaf: true });
+		await new Promise((r) => setTimeout(r, 100));
+		const timers = () => process.getActiveResourcesInfo().filter((r) => r === 'Timeout').length;
+		const before = timers();
+
+		// Act
+		session.close();
 
 		// Assert
-		expect(pushes).toEqual([{ type: 'map.changed', paths: ['src/lib/math.ts'] }]);
+		expect(timers()).toBe(before - 1);
 	});
 
 	it('neither pushes nor extracts again when nothing changed', async () => {

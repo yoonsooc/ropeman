@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { setTimeout as sleep } from 'timers/promises';
 import { extractDirectory, type Extraction } from '../../packages/core/src/extract';
 import { groupExtraction, type GroupedMap } from '../../packages/core/src/groupedMap';
 import { verifyMap } from '../../src/lib/services/mapVerifier';
@@ -131,6 +132,7 @@ export class MapSession {
 	private debounce: NodeJS.Timeout | undefined;
 	private refreshAgain = false;
 	private closed = false;
+	private readonly closing = new AbortController();
 
 	constructor(private readonly options: SessionOptions) {
 		this.project = path.basename(options.root);
@@ -271,6 +273,7 @@ export class MapSession {
 
 	close(): void {
 		this.closed = true;
+		this.closing.abort();
 		clearTimeout(this.debounce);
 		clearTimeout(this.outDebounce);
 		this.outWatcher?.close();
@@ -330,7 +333,11 @@ export class MapSession {
 	 */
 	private async catchUp(snap: Snapshot, since: number): Promise<void> {
 		for (const wait of [0, SETTLE_MS]) {
-			await new Promise((r) => setTimeout(r, wait));
+			try {
+				await sleep(wait, undefined, { signal: this.closing.signal });
+			} catch {
+				return; // the session closed, which also cleared the timer
+			}
 			const paths = await changedSince(
 				this.options.root,
 				snap.extraction.folders,
