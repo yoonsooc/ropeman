@@ -11,6 +11,7 @@
 	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
 	import CodeViewer from '$lib/components/CodeViewer.svelte';
 	import BridgeAccessGuide from '$lib/components/BridgeAccessGuide.svelte';
+	import AgentSetup from '$lib/components/AgentSetup.svelte';
 	import type { ConnectFailure } from '$lib/services/bridgeClient';
 	import {
 		accessState,
@@ -383,6 +384,10 @@
 							{i18nStore.t('bridgeAccess.connectAnyway')}
 						</button>
 					{:else if !localHost}
+						<details class="bridge-agent" data-testid="bridge-agent-setup">
+							<summary>{i18nStore.t('bridge.agentSummary')}</summary>
+							<AgentSetup connectHint={false} />
+						</details>
 						<p class="bridge-step">{i18nStore.t('bridge.startServe')}</p>
 						<pre class="bridge-command"><code>npx @ropeman/bridge serve --root .</code></pre>
 						<form class="bridge-form" onsubmit={submit}>
@@ -666,6 +671,34 @@
 		font-family: var(--font-display);
 		font-size: var(--font-size-2xl);
 		color: var(--color-text-primary);
+	}
+
+	.bridge-agent {
+		align-self: stretch;
+		flex-shrink: 0;
+		padding: 0 var(--spacing-4);
+		text-align: left;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-element);
+		background: var(--color-background-body);
+	}
+
+	.bridge-agent summary {
+		margin: 0 calc(-1 * var(--spacing-4));
+		padding: var(--spacing-3) var(--spacing-4);
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-medium);
+		color: var(--color-text-primary);
+		cursor: pointer;
+	}
+
+	.bridge-agent[open] {
+		padding-bottom: var(--spacing-4);
+	}
+
+	.bridge-agent[open] summary {
+		margin-bottom: var(--spacing-5);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.bridge-desc,

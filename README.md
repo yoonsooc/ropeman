@@ -1,10 +1,23 @@
 # Ropeman
 
-> See a codebase's architecture as a diagram. Parsing runs in your browser, and an AI groups the code by role.
+> Map a repository from your coding agent. Ropeman extracts every file, symbol and import without a model, your agent names the parts, and a verifier checks each name against the code.
 
 **Live**: [https://ropeman.dev](https://ropeman.dev)
 
 [한국어](./README-KO.md)
+
+## Use it from your coding agent
+
+```bash
+npm install -g @ropeman/bridge     # the ropeman command, Node 22 or later
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/main/skill/ropeman/SKILL.md
+```
+
+Then ask your agent to "map this repo". It builds the map, names the top two levels, checks them, starts `ropeman serve` and gives you a `http://127.0.0.1:9800/bridge#token=…` address. Open it in your browser: click a folder to drill down, click a file to read its source.
+
+The second command installs the skill for Claude Code, where it is tested. Codex, Gemini CLI and Cursor load skills from other folders according to their documentation, and Ropeman has not been tested with them yet. The folders and details are in [`skill/README.md`](skill/README.md). The commands are for macOS, Linux and WSL shells.
+
+The browser app below stays available without an install: open a folder or a GitHub repository at ropeman.dev, or open a `ropeman.json`.
 
 ## Overview
 

@@ -9,7 +9,7 @@ ropeman serve --root . --out .ropeman --local
 ropeman serve --root ~/code/project --port 9900 --cli claude
 ```
 
-`npx @ropeman/bridge …` runs the same commands once 0.3.0 is on npm (pending).
+`npx @ropeman/bridge serve --root .` runs the same command without installing it first.
 
 `ropeman serve` and `ropeman-bridge` are the same program. Without `--root` it has no map: `map.get` and `node.expand` answer `not-ready` and `file.read` is off.
 

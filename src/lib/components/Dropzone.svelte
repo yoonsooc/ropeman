@@ -17,6 +17,7 @@
 	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { parseGitHubUrl, githubLoadErrorKey } from '$lib/utils/githubUrl';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
+	import AgentSetup from '$lib/components/AgentSetup.svelte';
 
 	const breakpoint = useBreakpoint();
 	// M4: File System Access API + directory drag are desktop-only. On phones
@@ -277,85 +278,92 @@
 					<div class="hero-text">
 						<h1>{@html i18nStore.t('landing.headline')}</h1>
 						<p class="hero-sub">{i18nStore.t('landing.subheadline')}</p>
-						{#if !isCompact}
-							<button class="cta-btn" data-tour-step="1" onclick={handleOpenDirectory}>
-								<span aria-hidden="true" class="material-symbols-outlined cta-icon"
-									>folder_open</span
-								>
-								{i18nStore.t('landing.cta')}
-							</button>
-							<a class="example-link" href={resolve('/explore')} data-tour-step="explore">
-								{i18nStore.t('landing.exampleCta')}
-								<span aria-hidden="true">&#x2192;</span>
-							</a>
-							<a class="example-link" href={resolve('/open')}>
-								{i18nStore.t('landing.openMapCta')}
-								<span aria-hidden="true">&#x2192;</span>
-							</a>
-							<p class="drag-hint">{i18nStore.t('landing.dragHint')}</p>
-						{:else}
-							<p class="mobile-folder-hint">
-								<span aria-hidden="true" class="material-symbols-outlined">info</span>
-								{i18nStore.t('landing.mobileFolderHint')}
-							</p>
-							<a class="example-link compact" href={resolve('/explore')} data-tour-step="explore">
-								{i18nStore.t('landing.exampleCta')}
-								<span aria-hidden="true">&#x2192;</span>
-							</a>
-							<a class="example-link compact" href={resolve('/open')}>
-								{i18nStore.t('landing.openMapCta')}
-								<span aria-hidden="true">&#x2192;</span>
-							</a>
-						{/if}
-						<div class="github-input-section">
-							<label class="github-or" for="landing-github-url">
-								{isCompact
-									? i18nStore.t('landing.mobileGithubLead')
-									: i18nStore.t('landing.githubOr')}
-							</label>
-							<div class="github-input-row">
-								<input
-									id="landing-github-url"
-									type="url"
-									inputmode="url"
-									autocomplete="off"
-									spellcheck="false"
-									class="github-input"
-									aria-invalid={error ? true : undefined}
-									aria-describedby={error ? 'landing-github-error' : undefined}
-									placeholder={i18nStore.t('landing.githubPlaceholder')}
-									bind:value={githubUrl}
-									onkeydown={handleGitHubKeydown}
-									disabled={isLoadingGithub}
-								/>
-								<button
-									class="github-load-btn"
-									onclick={handleGitHubLoad}
-									disabled={isLoadingGithub}
-									aria-busy={isLoadingGithub}
-								>
-									{#if isLoadingGithub}
-										<span aria-hidden="true" class="material-symbols-outlined github-spinner"
-											>progress_activity</span
-										>
-									{:else}
-										<span aria-hidden="true" class="material-symbols-outlined">play_arrow</span>
-									{/if}
-									{i18nStore.t('landing.githubLoad')}
-								</button>
-							</div>
-						</div>
-						<div class="hero-languages">
-							{#each languages as lang}
-								<span class="hero-lang" style="color: {lang.color}">
-									{@html lang.icon}
-								</span>
-							{/each}
-						</div>
-						{#if error}
-							<p class="error-msg" id="landing-github-error" role="alert">{error}</p>
-						{/if}
 					</div>
+
+					<div class="hero-paths">
+						<section class="landing-setup" id="agent-setup" aria-labelledby="landing-setup-title">
+							<h2 id="landing-setup-title">{i18nStore.t('landing.setupTitle')}</h2>
+							<AgentSetup />
+						</section>
+
+						<section class="landing-try" aria-labelledby="landing-try-title">
+							<h2 id="landing-try-title">{i18nStore.t('landing.tryTitle')}</h2>
+							<p class="try-body">{i18nStore.t('landing.tryBody')}</p>
+							{#if !isCompact}
+								<button class="cta-btn" data-tour-step="1" onclick={handleOpenDirectory}>
+									<span aria-hidden="true" class="material-symbols-outlined cta-icon"
+										>folder_open</span
+									>
+									{i18nStore.t('landing.cta')}
+								</button>
+								<p class="drag-hint">{i18nStore.t('landing.dragHint')}</p>
+							{:else}
+								<p class="mobile-folder-hint">
+									<span aria-hidden="true" class="material-symbols-outlined">info</span>
+									{i18nStore.t('landing.mobileFolderHint')}
+								</p>
+							{/if}
+							<div class="github-input-section">
+								<label class="github-or" for="landing-github-url">
+									{isCompact
+										? i18nStore.t('landing.mobileGithubLead')
+										: i18nStore.t('landing.githubOr')}
+								</label>
+								<div class="github-input-row">
+									<input
+										id="landing-github-url"
+										type="url"
+										inputmode="url"
+										autocomplete="off"
+										spellcheck="false"
+										class="github-input"
+										aria-invalid={error ? true : undefined}
+										aria-describedby={error ? 'landing-github-error' : undefined}
+										placeholder={i18nStore.t('landing.githubPlaceholder')}
+										bind:value={githubUrl}
+										onkeydown={handleGitHubKeydown}
+										disabled={isLoadingGithub}
+									/>
+									<button
+										class="github-load-btn"
+										onclick={handleGitHubLoad}
+										disabled={isLoadingGithub}
+										aria-busy={isLoadingGithub}
+									>
+										{#if isLoadingGithub}
+											<span aria-hidden="true" class="material-symbols-outlined github-spinner"
+												>progress_activity</span
+											>
+										{:else}
+											<span aria-hidden="true" class="material-symbols-outlined">play_arrow</span>
+										{/if}
+										{i18nStore.t('landing.githubLoad')}
+									</button>
+								</div>
+							</div>
+							{#if error}
+								<p class="error-msg" id="landing-github-error" role="alert">{error}</p>
+							{/if}
+							<div class="try-links">
+								<a class="example-link" href={resolve('/explore')} data-tour-step="explore">
+									{i18nStore.t('landing.exampleCta')}
+									<span aria-hidden="true">&#x2192;</span>
+								</a>
+								<a class="example-link" href={resolve('/open')}>
+									{i18nStore.t('landing.openMapCta')}
+									<span aria-hidden="true">&#x2192;</span>
+								</a>
+							</div>
+							<div class="hero-languages">
+								{#each languages as lang}
+									<span class="hero-lang" style="color: {lang.color}">
+										{@html lang.icon}
+									</span>
+								{/each}
+							</div>
+						</section>
+					</div>
+
 					<figure class="hero-visual">
 						<a
 							class="hero-shot"
@@ -370,62 +378,55 @@
 								height="928"
 								alt={i18nStore.t('landing.heroShotAlt')}
 								decoding="async"
+								loading="lazy"
 							/>
 						</a>
 						<figcaption>{i18nStore.t('landing.heroShotCaption')}</figcaption>
 					</figure>
 				</section>
 
-				<!-- Technical Specs Strip (Stitch v2) -->
 				<div class="landing-specs-strip">
 					<div class="specs-item">
-						<span aria-hidden="true" class="material-symbols-outlined">verified_user</span>
-						<span>{i18nStore.t('landing.specLocalFirst')}</span>
+						<span aria-hidden="true" class="material-symbols-outlined">computer</span>
+						<span>{i18nStore.t('landing.specLocal')}</span>
 					</div>
 					<div class="specs-item">
-						<span aria-hidden="true" class="material-symbols-outlined">memory</span>
-						<span>{i18nStore.t('landing.specWebgpu')}</span>
+						<span aria-hidden="true" class="material-symbols-outlined">verified</span>
+						<span>{i18nStore.t('landing.specVerified')}</span>
 					</div>
 					<div class="specs-item">
-						<span aria-hidden="true" class="material-symbols-outlined">psychology</span>
-						<span>{i18nStore.t('landing.specSemantic')}</span>
+						<span aria-hidden="true" class="material-symbols-outlined">checklist</span>
+						<span>{i18nStore.t('landing.specCoverage')}</span>
 					</div>
 					<div class="specs-item">
-						<span aria-hidden="true" class="material-symbols-outlined">visibility_off</span>
-						<span>{i18nStore.t('landing.specNoData')}</span>
+						<span aria-hidden="true" class="material-symbols-outlined">code</span>
+						<span>{i18nStore.t('landing.specOpenSource')}</span>
 					</div>
 				</div>
 
 				<section class="landing-features">
 					<div class="feature-card">
-						<span
-							aria-hidden="true"
-							class="material-symbols-outlined feature-mat-icon"
-							style="color: var(--color-accent)">psychology</span
+						<span aria-hidden="true" class="material-symbols-outlined feature-mat-icon"
+							>account_tree</span
 						>
-						<h2>{i18nStore.t('landing.featureAiTitle')}</h2>
-						<p>{i18nStore.t('landing.featureAiDesc')}</p>
+						<h2>{i18nStore.t('landing.featureMapTitle')}</h2>
+						<p>{i18nStore.t('landing.featureMapDesc')}</p>
 					</div>
 					<div class="feature-card">
-						<span
-							aria-hidden="true"
-							class="material-symbols-outlined feature-mat-icon"
-							style="color: var(--color-accent)">account_tree</span
+						<span aria-hidden="true" class="material-symbols-outlined feature-mat-icon"
+							>fact_check</span
+						>
+						<h2>{i18nStore.t('landing.featureVerifyTitle')}</h2>
+						<p>{i18nStore.t('landing.featureVerifyDesc')}</p>
+					</div>
+					<div class="feature-card">
+						<span aria-hidden="true" class="material-symbols-outlined feature-mat-icon"
+							>ads_click</span
 						>
 						<h2>{i18nStore.t('landing.featureDrillTitle')}</h2>
 						<p>{i18nStore.t('landing.featureDrillDesc')}</p>
 					</div>
-					<div class="feature-card">
-						<span
-							aria-hidden="true"
-							class="material-symbols-outlined feature-mat-icon"
-							style="color: var(--color-accent)">hub</span
-						>
-						<h2>{i18nStore.t('landing.featureBrowserTitle')}</h2>
-						<p>{i18nStore.t('landing.featureBrowserDesc')}</p>
-					</div>
 				</section>
-
 				<!-- SnippetEditor hidden from landing — available via direct URL -->
 
 				<footer class="landing-footer">
@@ -542,11 +543,49 @@
 		color: var(--color-accent);
 	}
 
-	.example-link.compact {
+	/* The agent path leads; the in-browser path sits beside it as the lighter option */
+	.hero-paths {
+		display: grid;
+		grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+		gap: var(--spacing-9);
+		align-items: start;
+	}
+
+	.landing-setup h2 {
+		font-family: var(--font-display);
+		font-size: var(--font-size-xl);
+		font-weight: var(--font-weight-bold);
+		color: var(--color-text-primary);
+		margin-bottom: var(--spacing-6);
+	}
+
+	.landing-try {
+		padding: var(--spacing-6);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-container);
+	}
+
+	.landing-try h2 {
+		font-family: var(--font-display);
+		font-size: var(--font-size-lg);
+		font-weight: var(--font-weight-semibold);
+		color: var(--color-text-primary);
+		margin-bottom: var(--spacing-2);
+	}
+
+	.try-body {
+		font-size: var(--font-size-base);
+		line-height: 1.6;
+		color: var(--color-text-secondary);
+		margin-bottom: var(--spacing-5);
+	}
+
+	.try-links {
 		display: flex;
-		justify-content: center;
-		margin-left: 0;
-		padding: var(--spacing-3) var(--spacing-2) 0;
+		flex-wrap: wrap;
+		gap: var(--spacing-1) var(--spacing-4);
+		margin-top: var(--spacing-4);
 	}
 
 	.hero-sub {
@@ -554,9 +593,9 @@
 		font-size: var(--font-size-lg);
 		line-height: 1.6;
 		color: var(--color-text-secondary);
-		max-width: 520px;
+		max-width: 640px;
 		margin-top: var(--spacing-4);
-		margin-bottom: var(--spacing-8);
+		margin-bottom: 0;
 	}
 
 	/* Click targets (buttons / icon rows / card CTA) should not behave like
@@ -574,22 +613,25 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--spacing-2);
-		padding: var(--spacing-3) var(--spacing-7);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		padding: var(--spacing-2) var(--spacing-5);
+		background: var(--color-background-body);
+		color: var(--color-text-primary);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius-element);
 		font-family: var(--font-display);
-		font-size: var(--font-size-lg);
+		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-semibold);
 		cursor: pointer;
 		transition:
-			background-color var(--duration-fast) var(--ease-standard),
+			border-color var(--duration-fast) var(--ease-standard),
+			color var(--duration-fast) var(--ease-standard),
 			scale var(--duration-fast) var(--ease-standard);
 	}
 
 	@media (hover: hover) {
 		.cta-btn:hover {
-			background: var(--color-accent-hover);
+			border-color: var(--color-accent);
+			color: var(--color-accent);
 		}
 	}
 
@@ -598,12 +640,11 @@
 	}
 
 	.cta-icon {
-		font-size: 24px;
+		font-size: 20px;
 	}
 
 	.drag-hint {
-		margin-top: var(--spacing-4);
-		margin-left: var(--spacing-2);
+		margin-top: var(--spacing-2);
 		font-size: var(--font-size-base);
 		color: var(--color-text-tertiary);
 	}
@@ -629,7 +670,7 @@
 
 	/* GitHub URL input */
 	.github-input-section {
-		margin-top: var(--spacing-9);
+		margin-top: var(--spacing-5);
 	}
 
 	.github-or {
@@ -765,8 +806,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--spacing-1-5);
-		margin-left: var(--spacing-4);
-		padding: var(--spacing-3) var(--spacing-2);
+		padding: var(--spacing-2) 0;
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-medium);
 		color: var(--color-accent);
@@ -824,6 +864,7 @@
 	}
 
 	.feature-mat-icon {
+		color: var(--color-accent);
 		font-size: 30px;
 		margin-bottom: var(--spacing-4);
 		display: block;
@@ -934,15 +975,34 @@
 	}
 
 	/* Responsive */
+	@media (max-width: 960px) {
+		.hero-paths {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
 	@media (max-width: 720px) {
 		.dropzone {
 			padding: var(--spacing-6) var(--spacing-4);
 		}
 
+		.dropzone-content {
+			margin-top: 0;
+			padding: 0;
+		}
+
 		.landing-hero {
 			grid-template-columns: minmax(0, 1fr);
+			gap: var(--spacing-10);
+			padding: var(--spacing-8) 0;
+		}
+
+		.hero-text {
 			text-align: center;
-			padding: var(--spacing-10) var(--spacing-6);
+		}
+
+		.landing-try {
+			padding: var(--spacing-5);
 		}
 
 		.hero-text h1 {

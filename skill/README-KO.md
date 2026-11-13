@@ -10,34 +10,41 @@
 
 스킬은 `ropeman`(`@ropeman/bridge` 패키지 0.3.0 이상, Node 22 이상)을 실행한다.
 
-지금은 0.3.0이 npm에 없으므로 이 저장소를 받아서 설치한다.
+```bash
+npm install -g @ropeman/bridge
+ropeman --version                # 0.3.0 이상
+```
+
+npm에 아직 없는 변경을 써 보려면 이 저장소를 받아서 패키지를 직접 만든다.
 
 ```bash
 npm ci && npm ci --prefix bridge
 cd bridge && npm pack            # 앱, bridge, 뷰어를 빌드하고 ropeman-bridge-0.3.0.tgz를 만든다
 npm install -g ./ropeman-bridge-0.3.0.tgz
-ropeman --version                # 0.3.0
-```
-
-0.3.0을 배포한 뒤에는(배포 전) 이렇게 설치한다.
-
-```bash
-npm install -g @ropeman/bridge
 ```
 
 ## 2. 스킬 설치
 
-`ropeman` 폴더를 에이전트가 스킬을 읽는 폴더에 복사한다. Claude Code는 다음과 같다.
+스킬은 파일 하나(`ropeman/SKILL.md`)다. 에이전트가 개인 스킬을 읽는 폴더에 `ropeman/SKILL.md`로 저장한다.
+
+| 에이전트    | 스킬 폴더           | 상태                                  |
+| ----------- | ------------------- | ------------------------------------- |
+| Claude Code | `~/.claude/skills/` | 테스트함                              |
+| Codex       | `~/.agents/skills/` | Codex 문서 기준, 테스트하지 않음      |
+| Gemini CLI  | `~/.gemini/skills/` | Gemini CLI 문서 기준, 테스트하지 않음 |
+| Cursor      | `~/.cursor/skills/` | Cursor 문서 기준, 테스트하지 않음     |
+
+Claude Code는 다음과 같다. 다른 에이전트는 `~/.claude/skills` 자리에 표의 폴더를 넣는다.
 
 ```bash
-cp -R skill/ropeman ~/.claude/skills/ropeman
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/main/skill/ropeman/SKILL.md
 ```
 
-스킬을 지원하지 않는 에이전트에는 `ropeman/SKILL.md` 내용을 대화에 붙여 넣으면 같은 절차를 따른다.
+저장소를 받았다면 `cp -R skill/ropeman ~/.claude/skills/ropeman`도 같다. 이 명령은 저장소 main 브랜치의 스킬을 받고, 스킬의 첫 단계가 `ropeman --version`이 충분히 새것인지 확인한다. 스킬을 지원하지 않는 에이전트에는 `ropeman/SKILL.md` 내용을 대화에 붙여 넣으면 같은 절차를 따른다.
 
 ## 3. 쓰기
 
-에이전트에게 "이 저장소 지도 그려줘"라고 한다. 저장소를 바꾸면 안 되면 그렇게 말한다. 그러면 에이전트가 결과를 `.ropeman/` 대신 저장소 밖에 쓴다. 저장소 안의 `.ropeman/`에는 `.gitignore`가 들어가서 git이 커밋하지 않는다.
+에이전트에게 "이 저장소 지도 그려줘"(map this repo)라고 한다. 에이전트가 지도를 만들고 `http://127.0.0.1:9800/bridge#token=…` 같은 주소를 알려 준다. 아무 브라우저에서 열면 된다. serve가 페이지를 직접 서빙하는 로컬 모드라 권한 창도, 붙여 넣을 토큰도 없다. 저장소를 바꾸면 안 되면 그렇게 말한다. 그러면 에이전트가 결과를 `.ropeman/` 대신 저장소 밖에 쓴다. 저장소 안의 `.ropeman/`에는 `.gitignore`가 들어가서 git이 커밋하지 않는다.
 
 에이전트가 따르는 절차(`SKILL.md`)는 다음과 같다.
 

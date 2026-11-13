@@ -1,10 +1,23 @@
 # Ropeman
 
-> 코드베이스의 아키텍처를 다이어그램으로 봅니다. 파싱은 브라우저에서 하고, AI가 코드를 역할별로 묶습니다.
+> 코딩 에이전트로 저장소 지도를 그립니다. Ropeman이 모델 없이 모든 파일과 심볼, import를 뽑고, 에이전트가 부분마다 이름을 붙이면 검증기가 이름이 코드와 맞는지 검사합니다.
 
 **배포 URL**: [https://ropeman.dev](https://ropeman.dev)
 
 [English](./README.md)
+
+## 코딩 에이전트에서 쓰기
+
+```bash
+npm install -g @ropeman/bridge     # ropeman 명령, Node 22 이상
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/main/skill/ropeman/SKILL.md
+```
+
+그다음 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 검사한 뒤, `ropeman serve`를 띄우고 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다. 브라우저에서 그 주소를 열고, 폴더를 눌러 드릴다운하고 파일을 눌러 소스를 봅니다.
+
+두 번째 명령은 Claude Code용 스킬 설치이고, Claude Code에서 테스트했습니다. Codex, Gemini CLI, Cursor는 각자의 문서에 따르면 다른 폴더에서 스킬을 읽고, Ropeman은 이들에서 아직 테스트하지 않았습니다. 폴더와 자세한 내용은 [`skill/README-KO.md`](skill/README-KO.md)에 있습니다. 명령은 macOS, Linux, WSL 셸 기준입니다.
+
+아래의 브라우저 앱은 설치 없이 계속 쓸 수 있습니다. ropeman.dev에서 폴더나 GitHub 저장소를 열거나, `ropeman.json`을 엽니다.
 
 ## 개요
 

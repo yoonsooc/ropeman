@@ -7,12 +7,15 @@ interface LandingTranslations {
 	subheadline: string;
 	cta: string;
 	dragHint: string;
-	featureAiTitle: string;
-	featureAiDesc: string;
+	setupTitle: string;
+	tryTitle: string;
+	tryBody: string;
+	featureMapTitle: string;
+	featureMapDesc: string;
+	featureVerifyTitle: string;
+	featureVerifyDesc: string;
 	featureDrillTitle: string;
 	featureDrillDesc: string;
-	featureBrowserTitle: string;
-	featureBrowserDesc: string;
 	githubPlaceholder: string;
 	githubLoad: string;
 	githubOr: string;
@@ -23,10 +26,10 @@ interface LandingTranslations {
 	githubRateLimit: string;
 	githubPrivate: string;
 	githubLoadError: string;
-	specLocalFirst: string;
-	specWebgpu: string;
-	specSemantic: string;
-	specNoData: string;
+	specLocal: string;
+	specVerified: string;
+	specCoverage: string;
+	specOpenSource: string;
 	exampleCta: string;
 	openMapCta: string;
 	heroShotAlt: string;
@@ -458,6 +461,26 @@ interface TranslationSet {
 		| 'invalid'
 		| 'readFailed'
 	>;
+	agentSetup: Strings<
+		| 'installTitle'
+		| 'installBody'
+		| 'skillTitle'
+		| 'agentsLabel'
+		| 'skillBody'
+		| 'tested'
+		| 'untested'
+		| 'docsLink'
+		| 'askTitle'
+		| 'askBody'
+		| 'connectLead'
+		| 'connectChromium'
+		| 'connectFirefox'
+		| 'connectSafari'
+		| 'connectLink'
+		| 'shellNote'
+		| 'copy'
+		| 'copied'
+	>;
 	bridgeAccess: Strings<
 		| 'yourBrowser'
 		| 'checking'
@@ -512,6 +535,7 @@ interface TranslationSet {
 		| 'pageTitle'
 		| 'title'
 		| 'desc'
+		| 'agentSummary'
 		| 'startServe'
 		| 'portLabel'
 		| 'tokenLabel'
@@ -629,19 +653,24 @@ const translations: Record<Locale, TranslationSet> = {
 			generatingDiagram: '다이어그램 생성 중...'
 		},
 		landing: {
-			headline: 'AI로 코드 구조를<br/><span class="headline-accent">시각화하세요</span>',
+			headline: '코딩 에이전트로<br/><span class="headline-accent">저장소 지도를 그리세요</span>',
 			subheadline:
-				'폴더를 열면 AI가 코드를 역할별로 묶어 아키텍처 다이어그램을 그립니다. 파싱은 브라우저에서 하고, 소스 코드는 업로드하지 않습니다.',
+				'Ropeman은 모델 없이 모든 파일과 심볼, import를 읽습니다. 에이전트가 부분마다 이름을 붙이면 Ropeman이 이름이 코드와 맞는지 검사합니다. 지도는 브라우저에서 열고, 폴더를 눌러 드릴다운하고 파일을 눌러 소스를 봅니다.',
 			cta: '폴더 열기',
 			dragHint: '또는 폴더를 여기로 끌어다 놓으세요',
-			featureAiTitle: 'AI 시맨틱 분석',
-			featureAiDesc: 'LLM이 파일을 하는 일에 따라 모듈로 묶고, 주요 추상화에 이름을 붙입니다.',
-			featureDrillTitle: '드릴다운 탐색',
+			setupTitle: '세 단계로 시작하기',
+			tryTitle: '설치 없이 브라우저에서 써 보기',
+			tryBody:
+				'폴더나 공개 GitHub 저장소를 여기서 열면 AI가 파일을 역할별로 묶습니다. 분석할 때 데모(설정 없음), 내 API 키, 브라우저에서 도는 모델 중에서 고르세요.',
+			featureMapTitle: '코드에서 바로 뽑은 지도',
+			featureMapDesc:
+				'tree-sitter 파싱으로 폴더, 심볼, import를 뽑고 모델은 쓰지 않습니다. 커버리지 보고가 파일마다 어디에 들어갔는지, 건너뛴 파일은 왜 건너뛰었는지 알려 줍니다.',
+			featureVerifyTitle: '코드로 검사한 이름',
+			featureVerifyDesc:
+				'에이전트는 한 단계씩 이름을 붙입니다. 검증기는 파일마다 정확히 한 부분에 들어갔는지, 핵심 심볼이 그 부분에 선언되어 있는지 봅니다. 검사에 실패한 단계는 폴더 이름을 그대로 둡니다.',
+			featureDrillTitle: '눌러서 더 깊이',
 			featureDrillDesc:
-				'전체 다이어그램에서 파일 하나의 코드까지 내려가 봅니다. 브레드크럼이 지금 위치를 보여 줍니다.',
-			featureBrowserTitle: '네 가지 AI 방식',
-			featureBrowserDesc:
-				'데모, API 키, 브라우저 AI 중에서 고르세요. 어느 방식이든 AI에는 코드 구조 요약을 보내고, 소스 파일은 브라우저에 남깁니다.',
+				'폴더를 누르면 헤드리스 claude 일꾼이 에이전트가 쓴 맥락 요약을 받아 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일을 읽어 보여 줍니다. claude가 없으면 연 폴더는 에이전트가 다음 대화에서 이름을 붙입니다.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: '불러오기',
 			githubOr: '또는 GitHub 저장소 URL을 입력하세요',
@@ -653,10 +682,10 @@ const translations: Record<Locale, TranslationSet> = {
 			githubRateLimit: 'GitHub API 요청 한도에 걸렸습니다. 잠시 후 다시 시도하세요.',
 			githubPrivate: '비공개 저장소는 지원하지 않습니다.',
 			githubLoadError: 'GitHub 저장소를 불러오지 못했습니다.',
-			specLocalFirst: '로컬 분석',
-			specWebgpu: 'WebGPU 가속',
-			specSemantic: '역할별 묶음',
-			specNoData: '데이터 수집 없음',
+			specLocal: '127.0.0.1에서 실행',
+			specVerified: '이름마다 검증',
+			specCoverage: '파일마다 커버리지 보고',
+			specOpenSource: '오픈 소스(MIT)',
 			exampleCta: '분석 예시 보기',
 			openMapCta: 'ropeman.json 열기',
 			heroShotAlt:
@@ -1187,6 +1216,31 @@ const translations: Record<Locale, TranslationSet> = {
 			invalid: '지도 내용이 형식에 맞지 않습니다. 문제가 있는 곳: {field}',
 			readFailed: '파일을 읽지 못했습니다.'
 		},
+		agentSetup: {
+			installTitle: 'ropeman 명령 설치',
+			installBody: 'Node 22 이상이 필요합니다.',
+			skillTitle: '에이전트에 스킬 추가',
+			agentsLabel: '코딩 에이전트',
+			skillBody:
+				'스킬은 SKILL.md 파일 하나입니다. 이 명령은 {agent}가 스킬을 찾는 폴더에 파일을 저장합니다.',
+			tested: '{agent}에서 테스트했습니다.',
+			untested:
+				'{agent} 문서에 따르면 {dir}에서 스킬을 읽습니다. Ropeman은 {agent}에서 아직 테스트하지 않았습니다.',
+			docsLink: '{agent} 문서 보기',
+			askTitle: '에이전트에게 “map this repo” 요청',
+			askBody:
+				'에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 검사합니다. 그다음 ropeman serve를 띄우고 {address} 같은 주소를 알려 줍니다. 브라우저에서 그 주소를 여세요. serve가 페이지를 직접 서빙하는 로컬 모드라서 권한 창도, 붙여 넣을 토큰도 없습니다.',
+			connectLead: 'ropeman.dev에서 연결하려면',
+			connectChromium:
+				'Chrome과 Edge는 ropeman.dev가 이 기기의 앱에 접근해도 되는지 한 번 묻습니다. 허용을 고르세요.',
+			connectFirefox: '최근 Firefox도 같은 질문을 할 수 있습니다. 허용을 고르세요.',
+			connectSafari:
+				'Safari는 ropeman.dev가 serve에 붙지 못하게 막습니다. 에이전트가 알려 준 127.0.0.1 주소를 여세요.',
+			connectLink: '연결 페이지 열기',
+			shellNote: '명령은 macOS, Linux, WSL 셸 기준입니다. Windows는 테스트하지 않았습니다.',
+			copy: '복사',
+			copied: '복사됨'
+		},
 		bridgeAccess: {
 			yourBrowser: '브라우저',
 			checking: '무엇이 잘못됐는지 확인하는 중...',
@@ -1259,7 +1313,8 @@ const translations: Record<Locale, TranslationSet> = {
 			pageTitle: '브리지',
 			title: 'ropeman serve에 연결',
 			desc: 'ropeman serve는 내 컴퓨터에서 돌면서 폴더 하나의 지도를 내줍니다. 폴더를 누르면 로컬 CLI가 그 안의 부분에 이름을 붙이고, 파일을 누르면 serve가 디스크에서 그 파일만 읽어 옵니다. Ropeman 서버는 거치지 않습니다.',
-			startServe: '지도를 만들 폴더에서 serve를 실행하세요.',
+			agentSummary: '코딩 에이전트를 쓰면 에이전트가 serve를 띄웁니다',
+			startServe: '직접 띄우려면 지도를 만들 폴더에서 serve를 실행하세요.',
 			portLabel: '포트',
 			tokenLabel: '토큰',
 			tokenHint:
@@ -1382,20 +1437,24 @@ const translations: Record<Locale, TranslationSet> = {
 			generatingDiagram: 'Generating diagram...'
 		},
 		landing: {
-			headline: 'Visualize code<br/><span class="headline-accent">architecture with AI</span>',
+			headline: 'Map a repo<br/><span class="headline-accent">from your coding agent</span>',
 			subheadline:
-				'Open a folder and the AI groups its code by role into an architecture diagram. Parsing runs in your browser, and the source code is not uploaded.',
+				'Ropeman reads every file, symbol and import without a model. Your agent names the parts, and Ropeman checks each name against the code. You open the map in your browser, click a folder to drill down and click a file to read its source.',
 			cta: 'Open Folder',
 			dragHint: 'or drag & drop a folder here',
-			featureAiTitle: 'AI Semantic Analysis',
-			featureAiDesc:
-				'An LLM groups your files into modules by what they do and names the main abstractions.',
-			featureDrillTitle: 'Drill-down Navigation',
+			setupTitle: 'Set it up in three steps',
+			tryTitle: 'Or try it in the browser, no install',
+			tryBody:
+				'Open a folder or a public GitHub repository here, and an AI groups the files by role. When you analyze, pick Demo (no setup), your own API key, or a model that runs in the browser.',
+			featureMapTitle: 'A map from the code itself',
+			featureMapDesc:
+				'Tree-sitter parsing finds the folders, symbols and imports, with no model involved. The coverage report says where every file went and why any file was skipped.',
+			featureVerifyTitle: 'Names checked against the code',
+			featureVerifyDesc:
+				'Your agent names one level at a time. The verifier checks that each file sits in exactly one part and that each key symbol is declared there. A level whose names fail keeps its folder names.',
+			featureDrillTitle: 'Click to go deeper',
 			featureDrillDesc:
-				'Go from the top-level diagram down to the code of a single file. The breadcrumb shows where you are.',
-			featureBrowserTitle: 'Four AI modes',
-			featureBrowserDesc:
-				'Pick Demo, API Key or Browser AI. Every mode sends the AI a code summary and keeps the source files in your browser.',
+				'Click a folder and a headless claude worker names it from the brief your agent wrote. Click a file and serve reads it from disk. Without claude, your agent names opened folders on your next message.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: 'Load',
 			githubOr: 'or enter a GitHub repository URL',
@@ -1407,10 +1466,10 @@ const translations: Record<Locale, TranslationSet> = {
 			githubRateLimit: 'Hit the GitHub API rate limit. Try again later.',
 			githubPrivate: 'Private repositories are not supported.',
 			githubLoadError: "Couldn't load the GitHub repository.",
-			specLocalFirst: 'Local-First Analysis',
-			specWebgpu: 'WebGPU Accelerated',
-			specSemantic: 'Role-based grouping',
-			specNoData: 'Zero Data Collection',
+			specLocal: 'Runs on 127.0.0.1',
+			specVerified: 'Every name verified',
+			specCoverage: 'Coverage for every file',
+			specOpenSource: 'Open source, MIT',
 			exampleCta: 'See an example',
 			openMapCta: 'Open a ropeman.json',
 			heroShotAlt:
@@ -1942,6 +2001,31 @@ const translations: Record<Locale, TranslationSet> = {
 			invalid: "The map doesn't match the format. The problem is at {field}.",
 			readFailed: "Couldn't read the file."
 		},
+		agentSetup: {
+			installTitle: 'Install the ropeman command',
+			installBody: 'It needs Node 22 or later.',
+			skillTitle: 'Add the skill to your agent',
+			agentsLabel: 'Coding agent',
+			skillBody:
+				'The skill is a single SKILL.md file. This command saves it where {agent} looks for skills.',
+			tested: 'Tested with {agent}.',
+			untested:
+				"{agent}'s documentation says it loads skills from {dir}. Ropeman has not been tested with {agent} yet.",
+			docsLink: 'Read the {agent} docs',
+			askTitle: 'Ask your agent to “map this repo”',
+			askBody:
+				'The agent builds the map, names the top two levels and checks them. Then it starts ropeman serve and gives you an address like {address}. Open it in your browser. serve hosts the page itself (local mode), so there is no permission prompt and no token to paste.',
+			connectLead: 'Connecting from ropeman.dev instead',
+			connectChromium:
+				'Chrome and Edge ask once whether ropeman.dev may reach apps on this device. Choose Allow.',
+			connectFirefox: 'Recent versions of Firefox may ask the same. Choose Allow.',
+			connectSafari:
+				'Safari blocks ropeman.dev from reaching serve. Open the 127.0.0.1 address your agent gave you.',
+			connectLink: 'Open the connection page',
+			shellNote: 'The commands are for macOS, Linux and WSL shells. Windows is not tested.',
+			copy: 'Copy',
+			copied: 'Copied'
+		},
 		bridgeAccess: {
 			yourBrowser: 'your browser',
 			checking: 'Checking what went wrong...',
@@ -2015,7 +2099,8 @@ const translations: Record<Locale, TranslationSet> = {
 			pageTitle: 'Bridge',
 			title: 'Connect to ropeman serve',
 			desc: "ropeman serve runs on your machine and serves the map of one folder. Click a folder and your local CLI names its parts. Click a file and serve reads just that file from disk. Nothing goes through Ropeman's servers.",
-			startServe: 'Start serve in the folder you want to map:',
+			agentSummary: 'With a coding agent, the agent starts serve for you',
+			startServe: 'Or start serve yourself in the folder you want to map:',
 			portLabel: 'Port',
 			tokenLabel: 'Token',
 			tokenHint:
