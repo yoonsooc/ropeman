@@ -349,10 +349,20 @@ function subscriber(): Subscriber & { pushes: RpcPush[] } {
 	return { pushes, push: (m) => pushes.push(m) };
 }
 
-const until = async (check: () => boolean, ms = 5_000) => {
-	const end = Date.now() + ms;
+/**
+ * Waits for `check`, rewriting `touch` with its own bytes every 200 ms meanwhile. Observed on
+ * macOS under load: a change made right after the session opens its watchers can go unreported,
+ * so the test would wait forever for an event the change never produced.
+ */
+const until = async (check: () => boolean, touch?: string) => {
+	const end = Date.now() + 5_000;
+	let next = Date.now() + 200;
 	while (!check()) {
 		if (Date.now() > end) throw new Error('timed out waiting');
+		if (touch && Date.now() > next) {
+			fs.writeFileSync(touch, fs.readFileSync(touch));
+			next = Date.now() + 200;
+		}
 		await new Promise((r) => setTimeout(r, 20));
 	}
 };
@@ -414,7 +424,7 @@ describe('serve --out', () => {
 			const work = read<Work>(WORK_FILE);
 			writeNames(nameWork(work, read(NAMES_FILE)));
 			await map('--depth', '1');
-			await until(() => viewer.pushes.length === 2);
+			await until(() => viewer.pushes.length === 2, path.join(out, MAP_FILE));
 
 			expect(idle.result).toEqual({ queued: [], named: [] });
 			expect(expanded.ok && expanded.level.naming).toBe('grouped');
@@ -448,7 +458,12 @@ describe('serve --out', () => {
 		try {
 			const withExtra = await s.map();
 			fs.rmSync(extra, { recursive: true });
-			await until(() => viewer.pushes.some((m) => m.type === 'map.changed'));
+			// The rewrite of src/index.ts also starts a re-extraction, so this proves the names
+			// come back once a rescan no longer sees extra/, not that serve noticed the removal
+			await until(
+				() => viewer.pushes.some((m) => m.type === 'map.changed'),
+				path.join(root, 'src/index.ts')
+			);
 			const without = await s.map();
 
 			expect(withExtra.levels[0].naming).toBe('grouped');
@@ -706,7 +721,7 @@ describe('serve --out workers and the naming log', () => {
 			await map('--depth', '2');
 			writeNames(nameWork(read<Work>(WORK_FILE), read(NAMES_FILE)));
 			await map('--depth', '2');
-			await until(() => log.some((m) => m.startsWith('Names for')));
+			await until(() => log.some((m) => m.startsWith('Names for')), path.join(out, MAP_FILE));
 			cli.release();
 			await until(() => viewer.pushes.length === 1);
 			const served = await s.expand('dir:src');
