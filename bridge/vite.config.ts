@@ -23,8 +23,9 @@ export default defineConfig({
 	plugins: [
 		{
 			name: 'copy-tree-sitter-wasm',
-			async writeBundle() {
-				const wasmDir = repo('bridge/dist/wasm');
+			// Beside the bundle wherever it goes, so a test can build into a folder of its own
+			async writeBundle({ dir }) {
+				const wasmDir = `${dir}/wasm`;
 				await mkdir(wasmDir, { recursive: true });
 				for (const file of await readdir(repo('static'))) {
 					if (file.endsWith('.wasm')) await copyFile(repo(`static/${file}`), `${wasmDir}/${file}`);

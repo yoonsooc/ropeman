@@ -26,6 +26,8 @@ export const HOST = '127.0.0.1';
 const MAX_FILE_READS_IN_FLIGHT = 8;
 /** Per connection: the namings it waits for. */
 export const MAX_NAMINGS_IN_FLIGHT = 4;
+/** Carries `BridgeOptions.instance` on every HTTP answer */
+export const INSTANCE_HEADER = 'x-ropeman-instance';
 
 export interface BridgeOptions {
 	port: number;
@@ -40,6 +42,11 @@ export interface BridgeOptions {
 	/** The session's naming runs here; `close` waits for its process trees */
 	runner: CliRunner;
 	server: { name: string; version: string };
+	/**
+	 * A random id of this process, sent on every HTTP answer, so `ropeman stop` and a second
+	 * start can tell this server from whatever else holds a recorded pid or port.
+	 */
+	instance?: string;
 	log?: (msg: string) => void;
 }
 
@@ -85,6 +92,7 @@ export function createBridgeServer(options: BridgeOptions): {
 			res.writeHead(403, { 'Content-Type': 'text/plain' }).end('Host not allowed');
 			return;
 		}
+		if (options.instance) res.setHeader(INSTANCE_HEADER, options.instance);
 		if (!viewerDir) {
 			res.writeHead(426, { 'Content-Type': 'text/plain' }).end('Upgrade Required');
 			return;

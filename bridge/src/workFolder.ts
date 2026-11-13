@@ -5,8 +5,10 @@ import path from 'path';
  * The folder (`--out`) the agent and serve share. Each file has one writer, so nothing needs a
  * lock: the agent writes `names.json` and `brief.md`; `ropeman map` writes `ropeman.json` and
  * `work.json`; serve writes `queue.json` (folders the user opened that have no names and no
- * worker to name them) and `naming-log.jsonl` (what its workers named); `ropeman inbox` writes
- * `inbox-read.json`, the last log entry the agent has seen. Any other channel to the agent (a
+ * worker to name them), `naming-log.jsonl` (what its workers named) and `serve.json` (which
+ * process serves this folder, see `background.ts`); `ropeman serve --detach` writes `serve.log`,
+ * the output of the serve it starts; `ropeman inbox` writes `inbox-read.json`, the last log entry
+ * the agent has seen. Any other channel to the agent (a
  * Claude Code channel, later) reads and writes the same files.
  *
  * A cloned repository can ship any of these files, so every read here treats them as untrusted.
@@ -18,6 +20,8 @@ export const WORK_FILE = 'work.json';
 export const QUEUE_FILE = 'queue.json';
 export const LOG_FILE = 'naming-log.jsonl';
 export const INBOX_READ_FILE = 'inbox-read.json';
+export const SERVE_FILE = 'serve.json';
+export const SERVE_LOG_FILE = 'serve.log';
 
 /** The most of `brief.md` a worker prompt carries; the rest is cut and says so. */
 export const MAX_BRIEF_BYTES = 4_000;

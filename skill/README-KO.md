@@ -55,7 +55,7 @@ curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubus
 5. 3을 다시 실행한다. 문제가 있으면 코드(`name-missing`, `key-symbol-unknown` 등)대로 고치고, 없으면 다음 단계로 간다. 검증기를 통과하지 못한 단계는 지도에 폴더 이름으로 남는다.
 6. `ropeman verify --root <저장소> --map <폴더>/ropeman.json`으로 위반이 0개인지 확인한다.
 7. 커버리지(본 파일, 지도에 든 파일, 건너뛴 파일과 이유)와 최상위 이름을 알려 준다.
-8. `ropeman serve --root <저장소> --out <폴더> --local`을 띄우고, 출력된 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 준다.
+8. `ropeman serve --root <저장소> --out <폴더> --local --detach`로 serve를 백그라운드에 띄우고, 출력된 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 준다. serve는 에이전트의 셸이 끝나도 계속 돌고, 페이지를 연 탭이 한 시간 동안 없으면 스스로 멈춘다. `ropeman stop --out <폴더>`로 멈출 수 있다.
 9. 위쪽 단계에 이름을 붙인 뒤 `brief.md`를 쓴다. 사용자가 지도로 알고 싶은 것, 프로젝트 용어, 이름 규칙, 지금까지 붙인 이름이 들어가고 비밀 값은 넣지 않는다. 사용자 의도가 바뀌면 다시 쓴다.
 10. 브라우저에서 이름이 없는 더 깊은 폴더를 열면 serve가 헤드리스 `claude` 일꾼에게 요약과 위 단계 이름을 주어 이름을 붙이고, 검증한 뒤 화면에 바로 보낸다. 여러 폴더를 동시에 처리하고, 화면에는 어느 일꾼이 붙였는지와, serve가 켜진 뒤 모든 폴더를 합친 일꾼 실행 수가 나온다. 결과는 `naming-log.jsonl`에 남는다. `claude`가 없으면 대기열(`queue.json`)에 쌓는다. `gemini`는 `--cli gemini`로 직접 고를 때만 쓴다.
 11. 에이전트는 다음 메시지를 받으면 먼저 `ropeman inbox --out <폴더>`로 일꾼 결과와 남은 대기열을 본다. 사용자가 무엇을 열어 봤는지 알고 답하며, 이름을 고쳐 달라고 하면 `names.json`에 옮겨 고친 뒤 3~5를 다시 한다. 대기열이 있으면 그것도 이름 붙인다.
