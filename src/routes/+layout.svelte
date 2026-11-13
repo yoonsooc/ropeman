@@ -18,6 +18,7 @@
 	// Screen readers pick the voice from <html lang>, so it follows the UI locale
 	$effect(() => {
 		document.documentElement.lang = i18nStore.locale;
+		delete document.documentElement.dataset.localePending;
 	});
 
 	onMount(() => {

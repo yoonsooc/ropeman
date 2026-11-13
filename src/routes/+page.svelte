@@ -609,6 +609,12 @@
 </div>
 
 <style>
+	/* app.html sets this for Korean visitors, so the English prerender never shows. Not laid
+	   out, it fetches no fonts or images while the app's scripts load. */
+	:global(html[data-locale-pending]) #app {
+		display: none;
+	}
+
 	#app {
 		height: 100vh;
 		display: flex;

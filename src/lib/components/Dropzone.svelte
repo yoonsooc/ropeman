@@ -14,7 +14,6 @@
 	import { createPathFilter } from '$lib/utils/filePriority';
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
-	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { parseGitHubUrl, githubLoadErrorKey } from '$lib/utils/githubUrl';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import AgentSetup from '$lib/components/AgentSetup.svelte';
@@ -276,7 +275,11 @@
 			<div class="landing" class:mobile={isCompact}>
 				<section class="landing-hero">
 					<div class="hero-text">
-						<h1>{@html i18nStore.t('landing.headline')}</h1>
+						<h1>
+							{i18nStore.t('landing.headlineLead')}<br /><span class="headline-accent"
+								>{i18nStore.t('landing.headlineAccent')}</span
+							>
+						</h1>
 						<p class="hero-sub">{i18nStore.t('landing.subheadline')}</p>
 					</div>
 
@@ -370,16 +373,18 @@
 							href={resolve('/explore/transformers')}
 							aria-label={i18nStore.t('landing.heroShotLink')}
 						>
-							<img
-								src={themeStore.current === 'dark'
-									? '/landing/explore-transformers-dark.webp'
-									: '/landing/explore-transformers-light.webp'}
-								width="1600"
-								height="928"
-								alt={i18nStore.t('landing.heroShotAlt')}
-								decoding="async"
-								loading="lazy"
-							/>
+							<!-- One image per theme, picked in CSS, because hydration keeps the prerendered src -->
+							{#each ['dark', 'light'] as theme (theme)}
+								<img
+									class="shot-{theme}"
+									src="/landing/explore-transformers-{theme}.webp"
+									width="1600"
+									height="928"
+									alt={i18nStore.t('landing.heroShotAlt')}
+									decoding="async"
+									loading="lazy"
+								/>
+							{/each}
 						</a>
 						<figcaption>{i18nStore.t('landing.heroShotCaption')}</figcaption>
 					</figure>
@@ -539,7 +544,7 @@
 		margin-bottom: 0;
 	}
 
-	.hero-text h1 :global(.headline-accent) {
+	.headline-accent {
 		color: var(--color-accent);
 	}
 
@@ -788,6 +793,11 @@
 		height: auto;
 		outline: 1px solid color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 		outline-offset: -1px;
+	}
+
+	:global([data-theme='light']) .hero-shot img.shot-dark,
+	:global(:root:not([data-theme='light'])) .hero-shot img.shot-light {
+		display: none;
 	}
 
 	@media (hover: hover) {

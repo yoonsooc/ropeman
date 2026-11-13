@@ -72,6 +72,8 @@ describe('i18nStore', () => {
 				'header.homeConfirmMessage',
 				'header.homeConfirmOk',
 				'header.homeConfirmCancel',
+				'landing.headlineLead',
+				'landing.headlineAccent',
 				'landing.dropRegion',
 				'landing.loadingTitle',
 				'landing.parsingLabel'
