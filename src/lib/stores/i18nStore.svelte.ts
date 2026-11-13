@@ -1286,7 +1286,7 @@ const translations: Record<Locale, TranslationSet> = {
 			localMode: '로컬 모드',
 			namingPending: '이 부분들의 이름을 기다리는 중입니다. 그동안은 폴더 이름이 보입니다.',
 			namedByWorker:
-				'{worker} 일꾼이 이 부분들에 이름을 붙였습니다. 이번 세션에서 일꾼을 {runs}번 실행했습니다.',
+				'{worker} 일꾼이 이 부분들에 이름을 붙였습니다. serve가 이번에 켜진 뒤 모든 폴더를 합쳐 일꾼을 {runs}번 실행했습니다.',
 			namingQueued:
 				'에이전트 대기열에 넣었습니다. 다음에 에이전트와 대화할 때 이 부분들의 이름을 붙입니다. 그동안은 폴더 이름이 보입니다.',
 			namingNoCli:
@@ -2040,7 +2040,8 @@ const translations: Record<Locale, TranslationSet> = {
 			loadingMap: 'Loading the map from serve...',
 			localMode: 'Local mode',
 			namingPending: 'Waiting for names for these parts. Folder names show until then.',
-			namedByWorker: 'The {worker} worker named these parts. Worker runs this session: {runs}.',
+			namedByWorker:
+				'The {worker} worker named these parts. Worker runs since serve started, all folders: {runs}.',
 			namingQueued:
 				'Queued for your agent. It names these parts the next time you talk to it. Folder names show until then.',
 			namingNoCli:

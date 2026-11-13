@@ -12,6 +12,7 @@ import type { Violation, ViolationCode } from '../../src/lib/types/mapVerificati
 import {
 	MAP_FORMAT,
 	MAP_SCHEMA_VERSION,
+	MAX_MAP_BYTES,
 	type MapFailure,
 	type MapLevel,
 	type RopemanMap
@@ -19,13 +20,17 @@ import {
 import { resolveRoot } from './fileRead.js';
 import { applyNames, parseNamingAnswer, summarizePart, type PartSummary } from './naming.js';
 import {
-	INBOX_READ_FILE,
 	MAP_FILE,
+	MAX_NAMES_BYTES,
 	NAMES_FILE,
 	WORK_FILE,
+	readInboxCursor,
 	readLog,
+	readOutFile,
 	readQueue,
-	writeAtomic
+	type OutRead,
+	writeAtomic,
+	writeInboxCursor
 } from './workFolder.js';
 
 /**
@@ -128,16 +133,18 @@ function slotsOf(grouped: GroupedMap): Slot[] {
 	return slots;
 }
 
-/** `names.json` as text, or null when the agent has not written one yet. */
-export function parseNames(text: string | null): { names: NamesInput; problems: Problem[] } {
-	if (text === null) return { names: new Map(), problems: [] };
+/** `names.json` as read from the output folder; null when the agent has not written one yet. */
+export function parseNames(read: OutRead): { names: NamesInput; problems: Problem[] } {
+	if (read === null) return { names: new Map(), problems: [] };
 	const unreadable = (message: string) => ({
 		names: new Map(),
 		problems: [{ code: 'names-unreadable' as const, level: null, nodeId: null, message }]
 	});
+	if ('refused' in read) return unreadable(read.refused);
+	if (read.cut) return unreadable(`${NAMES_FILE} is over ${MAX_NAMES_BYTES} bytes.`);
 	let value: unknown;
 	try {
-		value = JSON.parse(text);
+		value = JSON.parse(read.text);
 	} catch {
 		return unreadable(`${NAMES_FILE} is not valid JSON.`);
 	}
@@ -424,12 +431,37 @@ function rootOf(value: string | undefined, usage: string): string {
 	}
 }
 
+/** serve's `--out` value; a missing value or a flag in its place is refused, not ignored. */
+export function serveOutValue(args: readonly string[]): string | null {
+	const idx = args.indexOf('--out');
+	if (idx === -1) return null;
+	const value = args[idx + 1];
+	if (!value || value.startsWith('-')) {
+		throw new UsageError(`--out needs a folder, such as REPO/.ropeman; got ${value ?? 'nothing'}.`);
+	}
+	return value;
+}
+
+/** A cloned repository can ship `.ropeman` as a link to a folder of the user's; refuse it. */
+function refuseLink(value: string): void {
+	if (fs.lstatSync(path.resolve(value), { throwIfNoEntry: false })?.isSymbolicLink()) {
+		throw new UsageError(
+			`--out ${value} is a link; pass the folder it points to, or another folder.`
+		);
+	}
+}
+
+/** Ignores everything in the folder, itself included, so git never commits the work folder. */
+const GITIGNORE = '*\n';
+
 /**
  * The output folder, created if needed. Inside the root it must be a folder the walk skips
  * (`.ropeman`), or the map would list its own files and serve would re-extract on every write.
+ * Inside the root a new folder, or one that already holds a map, also gets a `.gitignore`.
  */
 export function outFolder(root: string, value: string | undefined): string {
 	if (!value) throw new UsageError(`--out is required.\n${MAP_USAGE}`);
+	refuseLink(value);
 	// Decided on the real path before anything is created, so a refused folder is not left behind
 	let existing = path.resolve(value);
 	const missing: string[] = [];
@@ -446,7 +478,32 @@ export function outFolder(root: string, value: string | undefined): string {
 		);
 	}
 	fs.mkdirSync(target, { recursive: true });
+	// Not into a hidden folder the user already keeps, such as .github, where it would hide their files
+	if (inside && (missing.length > 0 || fs.existsSync(path.join(target, MAP_FILE)))) {
+		try {
+			fs.writeFileSync(path.join(target, '.gitignore'), GITIGNORE, { flag: 'wx' });
+		} catch (err) {
+			if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+		}
+	}
 	return target;
+}
+
+/** An output folder `ropeman map` already wrote: a real folder, not a link, with a map in it. */
+function existingOutFolder(value: string | undefined, usage: string): string {
+	if (!value) throw new UsageError(`--out is required.\n${usage}`);
+	refuseLink(value);
+	let real: string;
+	try {
+		real = fs.realpathSync.native(value);
+	} catch {
+		throw new UsageError(`--out ${value} does not exist; run ropeman map first.`);
+	}
+	const map = fs.statSync(real).isDirectory() ? readOutFile(real, MAP_FILE, MAX_MAP_BYTES) : null;
+	if (!map || !('text' in map)) {
+		throw new UsageError(`--out ${value} has no ${MAP_FILE}; run ropeman map first.`);
+	}
+	return real;
 }
 
 function extract(root: string, env: CommandEnv): Promise<Extraction> {
@@ -486,8 +543,7 @@ export async function runMap(args: string[], env: CommandEnv): Promise<number> {
 	}
 	const out = outFolder(root, values.out);
 	const namesPath = path.join(out, NAMES_FILE);
-	const namesText = fs.existsSync(namesPath) ? fs.readFileSync(namesPath, 'utf8') : null;
-	const { names, problems } = parseNames(namesText);
+	const { names, problems } = parseNames(readOutFile(out, NAMES_FILE, MAX_NAMES_BYTES));
 
 	const built = buildNamedMap({
 		extraction: await extract(root, env),
@@ -548,7 +604,8 @@ export async function runVerify(args: string[], env: CommandEnv): Promise<number
 export function pendingQueue(out: string): string[] {
 	let grouped: Set<string>;
 	try {
-		const map = JSON.parse(fs.readFileSync(path.join(out, MAP_FILE), 'utf8')) as RopemanMap;
+		const read = readOutFile(out, MAP_FILE, MAX_MAP_BYTES);
+		const map = JSON.parse(read && 'text' in read ? read.text : '') as RopemanMap;
 		grouped = new Set(
 			map.levels.flatMap((l) => (l.naming === 'grouped' && l.parentId ? [l.parentId] : []))
 		);
@@ -564,22 +621,10 @@ export function pendingQueue(out: string): string[] {
  */
 export async function runInbox(args: string[], env: CommandEnv): Promise<number> {
 	const values = options(args, ['out'], INBOX_USAGE);
-	if (!values.out) throw new UsageError(`--out is required.\n${INBOX_USAGE}`);
-	if (!fs.statSync(values.out, { throwIfNoEntry: false })?.isDirectory()) {
-		throw new UsageError(`--out ${values.out} is not a folder; run ropeman map first.`);
-	}
-	const out = values.out;
-	const cursor = path.join(out, INBOX_READ_FILE);
-	let seen = 0;
-	try {
-		seen = Number(JSON.parse(fs.readFileSync(cursor, 'utf8')).read) || 0;
-	} catch {
-		// first read
-	}
-	const log = readLog(out);
-	// A log shorter than what was read was replaced; read it from the start
-	const named = log.slice(log.length < seen ? 0 : seen);
-	writeAtomic(cursor, `${JSON.stringify({ read: log.length })}\n`);
+	const out = existingOutFolder(values.out, INBOX_USAGE);
+	const seen = readInboxCursor(out);
+	const named = readLog(out).filter((entry) => entry.seq > seen);
+	if (named.length > 0) writeInboxCursor(out, named.at(-1)!.seq);
 	env.out(JSON.stringify({ queued: pendingQueue(out), named }, null, 1));
 	return 0;
 }

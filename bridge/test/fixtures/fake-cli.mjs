@@ -17,11 +17,21 @@ const prompt = geminiStyle ? args[args.indexOf('-p') + 1] : stdin;
 
 const callsDir = path.join(dir, 'calls');
 fs.mkdirSync(callsDir, { recursive: true });
-const n = fs.readdirSync(callsDir).length;
-fs.writeFileSync(
-	path.join(callsDir, `${String(n).padStart(3, '0')}.json`),
-	JSON.stringify({ args, stdin, cwd: process.cwd(), pid: process.pid })
-);
+// Two runs that start together count the same files, so the first to create a number takes it
+let n = fs.readdirSync(callsDir).length;
+for (;;) {
+	try {
+		fs.writeFileSync(
+			path.join(callsDir, `${String(n).padStart(3, '0')}.json`),
+			JSON.stringify({ args, stdin, cwd: process.cwd(), pid: process.pid }),
+			{ flag: 'wx' }
+		);
+		break;
+	} catch (err) {
+		if (err.code !== 'EEXIST') throw err;
+		n++;
+	}
+}
 let plan = [];
 try {
 	plan = JSON.parse(fs.readFileSync(path.join(dir, 'plan.json'), 'utf8'));

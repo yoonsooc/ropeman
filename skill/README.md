@@ -37,7 +37,7 @@ An agent without skill support can follow the same steps: paste the text of `rop
 
 ## 3. Use it
 
-Ask the agent to "map this repo". If the repository must stay unchanged, say so. The agent then writes its output outside the repository instead of in `.ropeman/`.
+Ask the agent to "map this repo". If the repository must stay unchanged, say so. The agent then writes its output outside the repository instead of in `.ropeman/`. Inside the repository `.ropeman/` gets a `.gitignore`, so git does not commit it.
 
 The agent runs these commands with fixed arguments:
 
@@ -48,7 +48,7 @@ The agent runs these commands with fixed arguments:
 | `ropeman serve --root <repo> --out <folder> --local` | Serves the map with the viewer at `http://127.0.0.1:9800/bridge#token=…`                                                                                                                       |
 | `ropeman inbox --out <folder>`                       | Prints what workers named since the agent last looked, and folders still waiting for it                                                                                                        |
 
-The agent names the top two stages when it maps the repository and writes `brief.md`: what you want from the map, the project's terms, its naming conventions and the names so far. A deeper folder you open in the browser is named by a headless `claude` worker that gets the brief, and several folders are named at once. The page shows which worker named a folder and how many worker runs serve has made. On your next message the agent reads what the workers named, so it knows what you explored and can change names you ask about. Without `claude`, opened folders wait on a queue for the agent's next turn. serve uses `gemini` only when you start it with `--cli gemini`.
+The agent names the top two stages when it maps the repository and writes `brief.md`: what you want from the map, the project's terms, its naming conventions and the names so far. A deeper folder you open in the browser is named by a headless `claude` worker that gets the brief, and several folders are named at once. The page shows which worker named a folder and how many worker runs serve has made since it started, over all folders. On your next message the agent reads what the workers named, so it knows what you explored and can change names you ask about. Without `claude`, opened folders wait on a queue for the agent's next turn. serve uses `gemini` only when you start it with `--cli gemini`.
 
 Every command takes argv only. The agent writes the names to a file and never puts them into a command line. See `bridge/README.md` for the server's security model.
 

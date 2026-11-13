@@ -63,7 +63,7 @@ ropeman verify --root <repo> --map <ropeman.json>
 ropeman inbox --out <folder>
 ```
 
-Each file in the folder (`--out`) has one writer: the agent writes `names.json` and `brief.md`, `ropeman map` writes `ropeman.json` and `work.json`, serve writes `queue.json` and `naming-log.jsonl`, and `ropeman inbox` writes `inbox-read.json`.
+Each file in the folder (`--out`) has one writer: the agent writes `names.json` and `brief.md`, `ropeman map` writes `ropeman.json` and `work.json`, serve writes `queue.json` and `naming-log.jsonl`, and `ropeman inbox` writes `inbox-read.json`. A cloned repository can ship any of them, so Ropeman reads only regular files directly in the folder, never through a link and never past a size limit, and refuses an `--out` that is a link. Inside the repository the folder gets a `.gitignore` of `*`, so git does not commit it.
 
 `ropeman map` extracts the repository and reads `<folder>/names.json`, an object keyed by node id whose values are `{ "label", "description", "keySymbols" }`, the fields serve asks its CLI for. A level gets names only when every one of its parts has an entry and the verifier passes the result. Every other level stays grouped, so the `ropeman.json` it writes always verifies. It also writes `work.json`, the parts to name next: the shallowest stage with no names yet (stage 1 is the top level, stage 2 the folders inside it, up to `--depth`, default 2) , every folder in `queue.json` (`"queued": true`), and every level whose names were refused. Each part lists its file count, up to 12 paths and up to 24 declared names, never file contents. The report on stdout is JSON: `done`, `coverage` (files listed, in the map, by reason), `stages`, `problems` (each with a `code`, the `level`, the `nodeId` and a message) and `next`. The codes are the verifier's (`key-symbol-unknown`, `file-unassigned`, …) plus `names-unreadable`, `node-unknown`, `name-missing`, `name-invalid` and `map-invalid`. Exit code 0 means no problems, 1 problems, 2 bad arguments.
 
@@ -71,7 +71,7 @@ Each file in the folder (`--out`) has one writer: the agent writes `names.json` 
 
 `ropeman verify` checks any `ropeman.json` against a fresh extraction and prints `{ "ok", "violations", "unverifiedEdges", "checked" }`, or `{ "ok": false, "failure" }` with the parser's code when the file is not a map it reads.
 
-`ropeman inbox` prints `{ "queued": [...], "named": [...] }`: the folders in `queue.json` that `ropeman.json` still holds without names, and the worker results logged since the last `ropeman inbox` (node, folder, names, worker, time). serve drops a queued folder once it has names or no longer exists.
+`ropeman inbox` prints `{ "queued": [...], "named": [...] }`: the folders in `queue.json` that `ropeman.json` still holds without names, and the worker results logged since the last `ropeman inbox` (node, folder, names, worker, time). serve drops a queued folder once it has names or no longer exists. Each log entry has a `seq` that only grows, and `inbox-read.json` keeps the last one shown, so trimming the log (serve keeps it under 1,000,000 bytes), restarting serve or removing the log never shows an entry twice or skips one. `ropeman inbox` refuses a folder with no `ropeman.json`.
 
 `brief.md` is the agent's context for workers: the user's intent, terms, naming conventions and the names of the levels above. serve puts its first 4,000 bytes into each worker prompt, with the name the folder got one level up.
 

@@ -7,6 +7,7 @@ import { DEFAULT_PATH_FILTER, shouldSkipPath } from '../../src/lib/utils/filePri
 import {
 	MAP_FORMAT,
 	MAP_SCHEMA_VERSION,
+	MAX_MAP_BYTES,
 	RESERVED_NODE_ID,
 	type MapLevel,
 	type RopemanMap,
@@ -24,7 +25,15 @@ import {
 	type TokenUsage
 } from './naming.js';
 import { createTreeWatcher, type TreeWatcher } from './watch.js';
-import { MAP_FILE, appendLog, readBrief, readQueue, writeQueue } from './workFolder.js';
+import {
+	LOG_FILE,
+	MAP_FILE,
+	appendLog,
+	readBrief,
+	readOutFile,
+	readQueue,
+	writeQueue
+} from './workFolder.js';
 import { parseRopemanMap } from '../../src/lib/services/ropemanMapSchema';
 
 /** One open socket, as the session sees it: somewhere to push. */
@@ -159,15 +168,13 @@ export class MapSession {
 	 */
 	private readNames(): string[] {
 		const file = path.join(this.options.out!, MAP_FILE);
-		let text: string;
-		try {
-			text = fs.readFileSync(file, 'utf8');
-		} catch {
-			return [];
-		}
-		const parsed = parseRopemanMap(text);
-		if (!parsed.ok) {
-			this.options.log(`${file}: ${parsed.message}`);
+		const read = readOutFile(this.options.out!, MAP_FILE, MAX_MAP_BYTES);
+		if (!read) return [];
+		const parsed = 'text' in read && !read.cut ? parseRopemanMap(read.text) : null;
+		if (!parsed?.ok) {
+			const why =
+				parsed?.message ?? ('refused' in read ? read.refused : `over ${MAX_MAP_BYTES} bytes`);
+			this.options.log(`${file}: ${why}`);
 			return [];
 		}
 		const changed: string[] = [];
@@ -485,18 +492,13 @@ export class MapSession {
 			this.options.log(
 				`node.named ${nodeId}: ${outcome.ok ? 'named' : outcome.code} after ${outcome.attempts} run(s), ${ms} ms${tokens(outcome.usage)}`
 			);
-			if (this.options.out) {
-				appendLog(this.options.out, {
-					at: new Date().toISOString(),
-					nodeId,
-					folder: target.folder,
-					worker: naming.cli,
-					outcome: outcome.ok ? 'named' : outcome.code,
-					names: outcome.ok ? outcome.names : [],
-					ms
-				});
-			}
-			if (outcome.ok) {
+			// Names the agent wrote while the worker ran win: they carry the conversation
+			const agent = this.fromFile.has(nodeId)
+				? this.namedLevel(this.snapshot ?? snap, nodeId)
+				: null;
+			if (agent) {
+				push({ type: 'node.named', nodeId, level: agent });
+			} else if (outcome.ok) {
 				this.names.set(nodeId, outcome.names);
 				snap.named.set(nodeId, outcome.level);
 				push({
@@ -507,6 +509,22 @@ export class MapSession {
 				});
 			} else {
 				push({ type: 'node.named', nodeId, code: outcome.code, error: outcome.error });
+			}
+			if (this.options.out) {
+				// The log is for the agent; the page already has its answer, so a failed write only logs here
+				try {
+					appendLog(this.options.out, {
+						at: new Date().toISOString(),
+						nodeId,
+						folder: target.folder,
+						worker: naming.cli,
+						outcome: agent ? 'agent-named' : outcome.ok ? 'named' : outcome.code,
+						names: !agent && outcome.ok ? outcome.names : [],
+						ms
+					});
+				} catch (err) {
+					this.options.log(`Could not add to ${LOG_FILE}: ${(err as Error).message}`);
+				}
 			}
 		} catch (err) {
 			if (err instanceof CliError && err.reason === 'aborted') {

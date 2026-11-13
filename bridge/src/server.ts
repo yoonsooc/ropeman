@@ -20,7 +20,8 @@ import {
 	runCommand,
 	runMap,
 	runInbox,
-	runVerify
+	runVerify,
+	serveOutValue
 } from './mapCommand.js';
 import { MapSession } from './mapSession.js';
 import pkg from '../package.json';
@@ -80,14 +81,14 @@ const USAGE = `usage:
 
 /** `--out`: the folder shared with the agent (`ropeman map --out`), created if missing. */
 function parseOutFlag(args: string[], root: string | null): string | null {
-	const idx = args.indexOf('--out');
-	if (idx === -1 || !args[idx + 1]) return null;
-	if (!root) {
-		console.error('Cannot start: --out needs --root, the folder its map describes.');
-		process.exit(1);
-	}
 	try {
-		return outFolder(root, args[idx + 1]);
+		const value = serveOutValue(args);
+		if (value === null) return null;
+		if (!root) {
+			console.error('Cannot start: --out needs --root, the folder its map describes.');
+			process.exit(1);
+		}
+		return outFolder(root, value);
 	} catch (err) {
 		console.error(`Cannot start: ${(err as Error).message}`);
 		process.exit(1);

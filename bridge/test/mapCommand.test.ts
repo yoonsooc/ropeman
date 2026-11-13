@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -8,20 +9,26 @@ import {
 	runMap,
 	runInbox,
 	runVerify,
+	serveOutValue,
 	type CommandEnv,
 	type MapReport,
 	type Work
 } from '../src/mapCommand';
 import {
 	BRIEF_FILE,
+	INBOX_READ_FILE,
 	LOG_FILE,
 	MAP_FILE,
 	MAX_BRIEF_BYTES,
+	MAX_LOG_BYTES,
 	NAMES_FILE,
 	QUEUE_FILE,
 	WORK_FILE,
+	appendLog,
 	readBrief,
-	writeQueue
+	readQueue,
+	writeQueue,
+	type LogEntry
 } from '../src/workFolder';
 import { CliRunner } from '../src/cli';
 import { MapSession, type Subscriber } from '../src/mapSession';
@@ -521,5 +528,275 @@ describe('serve --out', () => {
 
 		expect(Buffer.byteLength(brief)).toBeLessThan(MAX_BRIEF_BYTES + 100);
 		expect(brief).toContain(`[brief cut at ${MAX_BRIEF_BYTES} bytes]`);
+	});
+});
+
+const posix = process.platform !== 'win32';
+
+/** `map --depth 1` with the top level named, as the agent leaves it before serve starts. */
+async function namedTop() {
+	await map('--depth', '1');
+	writeNames(nameWork(read<Work>(WORK_FILE)));
+	await map('--depth', '1');
+}
+
+/** The fake CLI's folder with a plan of steps; its runs are recorded under `calls/`. */
+function fakeCli(plan: string[] = []) {
+	const dir = path.join(base, 'cli');
+	fs.mkdirSync(dir, { recursive: true });
+	fs.writeFileSync(path.join(dir, 'plan.json'), JSON.stringify(plan));
+	process.env.FAKE_CLI_DIR = dir;
+	const callsDir = path.join(dir, 'calls');
+	const calls = (): { stdin: string; pid: number }[] =>
+		fs.existsSync(callsDir)
+			? fs
+					.readdirSync(callsDir)
+					.sort()
+					.map((f) => JSON.parse(fs.readFileSync(path.join(callsDir, f), 'utf8')))
+			: [];
+	return { dir, calls, release: () => fs.writeFileSync(path.join(dir, 'release'), '') };
+}
+
+function alive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** A worker result as serve logs it, with a description `size` characters long. */
+const logEntry = (n: number, size = 10): Omit<LogEntry, 'seq'> => ({
+	at: '2026-11-13T00:00:00.000Z',
+	nodeId: `dir:src/n${n}`,
+	folder: `src/n${n}`,
+	worker: 'claude',
+	outcome: 'named',
+	names: [{ id: `dir:src/n${n}/a`, label: 'A', description: 'x'.repeat(size), keySymbols: [] }],
+	ms: 1
+});
+
+const nodeIds = (entries: { nodeId: string }[]) => entries.map((e) => e.nodeId);
+const labelOf = (level: { nodes: { id: string; label: string }[] }, id: string) =>
+	level.nodes.find((n) => n.id === id)?.label;
+
+describe('the work folder a cloned repository can plant files in', () => {
+	it.runIf(posix)('follows no brief, names or queue link out of the folder', async () => {
+		await map('--depth', '1');
+		const secretFile = path.join(base, 'credentials');
+		fs.writeFileSync(secretFile, `${SECRET}\n`);
+		const namesElsewhere = path.join(base, 'names-elsewhere.json');
+		fs.writeFileSync(namesElsewhere, JSON.stringify(nameWork(read<Work>(WORK_FILE))));
+		const queueElsewhere = path.join(base, 'queue-elsewhere.json');
+		fs.writeFileSync(queueElsewhere, JSON.stringify({ queued: ['dir:src'] }));
+		fs.symlinkSync(secretFile, path.join(out, BRIEF_FILE));
+		fs.symlinkSync(namesElsewhere, path.join(out, NAMES_FILE));
+		fs.symlinkSync(queueElsewhere, path.join(out, QUEUE_FILE));
+
+		const run = await map('--depth', '1');
+
+		expect(readBrief(out)).toBeNull();
+		expect(readQueue(out)).toEqual([]);
+		expect(run.code).toBe(1);
+		expect(run.report.problems).toEqual([
+			expect.objectContaining({ code: 'names-unreadable', level: null })
+		]);
+		expect(read<RopemanMap>(MAP_FILE).levels[0].naming).toBe('grouped');
+	});
+
+	it.runIf(posix)('reads no brief from a FIFO instead of blocking serve', () => {
+		fs.mkdirSync(out);
+		execFileSync('mkfifo', [path.join(out, BRIEF_FILE)]);
+
+		const brief = readBrief(out);
+
+		expect(brief).toBeNull();
+	});
+
+	it('reads only the start of a huge brief', () => {
+		fs.mkdirSync(out);
+		const file = path.join(out, BRIEF_FILE);
+		fs.writeFileSync(file, 'Use plain words.\n');
+		// Sparse: 3 GiB on paper, so a whole-file read fails or takes seconds
+		fs.truncateSync(file, 3 * 1024 ** 3);
+
+		const brief = readBrief(out);
+
+		expect(brief).toMatch(/^Use plain words\./);
+		expect(brief).toContain(`[brief cut at ${MAX_BRIEF_BYTES} bytes]`);
+	});
+
+	it.runIf(posix)('refuses an output folder that is a link the repository ships', async () => {
+		const elsewhere = path.join(base, 'elsewhere');
+		fs.mkdirSync(elsewhere);
+		fs.symlinkSync(elsewhere, path.join(root, '.ropeman'));
+		out = path.join(root, '.ropeman');
+
+		const run = await map();
+
+		expect(run.code).toBe(2);
+		expect(run.stderr).toContain('is a link');
+		expect(fs.readdirSync(elsewhere)).toEqual([]);
+	});
+
+	it('keeps the work folder out of commits when it is inside a git repository', async () => {
+		execFileSync('git', ['init', '-q'], { cwd: root });
+		out = path.join(root, '.ropeman');
+
+		await map();
+		const status = execFileSync('git', ['status', '--porcelain', '--untracked-files=all'], {
+			cwd: root,
+			encoding: 'utf8'
+		});
+
+		expect(fs.existsSync(path.join(out, MAP_FILE))).toBe(true);
+		expect(status).toContain('src/');
+		expect(status).not.toContain('.ropeman');
+	});
+
+	it('adds no .gitignore to a hidden folder the user already keeps', async () => {
+		out = path.join(root, '.github');
+		fs.mkdirSync(out);
+
+		const run = await map();
+
+		expect(run.code).toBe(0);
+		expect(fs.existsSync(path.join(out, '.gitignore'))).toBe(false);
+	});
+});
+
+describe('serve --out workers and the naming log', () => {
+	it('keeps a verified name and leaks no path when the naming log cannot be written', async () => {
+		await namedTop();
+		fs.mkdirSync(path.join(out, LOG_FILE));
+		fakeCli();
+		const log: string[] = [];
+		const s = session(log, true);
+		const viewer = subscriber();
+
+		try {
+			await s.expand('dir:src');
+			s.name('dir:src', viewer);
+			await until(() => viewer.pushes.length === 1);
+			const served = await s.expand('dir:src');
+
+			expect(viewer.pushes[0]).toMatchObject({ nodeId: 'dir:src', level: { naming: 'named' } });
+			expect(JSON.stringify(viewer.pushes)).not.toContain(base);
+			expect(served.ok && served.level.naming).toBe('named');
+			expect(log.some((m) => m.includes(LOG_FILE))).toBe(true);
+		} finally {
+			s.close();
+			delete process.env.FAKE_CLI_DIR;
+		}
+	});
+
+	it('keeps the names the agent wrote while a worker was still naming the folder', async () => {
+		await namedTop();
+		const cli = fakeCli(['gate']);
+		const log: string[] = [];
+		const s = session(log, true);
+		s.start();
+		const viewer = subscriber();
+
+		try {
+			await s.expand('dir:src');
+			s.name('dir:src', viewer);
+			await until(() => cli.calls().length === 1);
+			await map('--depth', '2');
+			writeNames(nameWork(read<Work>(WORK_FILE), read(NAMES_FILE)));
+			await map('--depth', '2');
+			await until(() => log.some((m) => m.startsWith('Names for')));
+			cli.release();
+			await until(() => viewer.pushes.length === 1);
+			const served = await s.expand('dir:src');
+
+			const pushed = viewer.pushes[0] as { level: { nodes: { id: string; label: string }[] } };
+			expect(labelOf(pushed.level, 'dir:src/app')).toBe('Part dir:src/app');
+			expect(served.ok && labelOf(served.level, 'dir:src/app')).toBe('Part dir:src/app');
+		} finally {
+			s.close();
+			delete process.env.FAKE_CLI_DIR;
+		}
+	});
+
+	it('names two opened folders at once and stops the run no socket waits for', async () => {
+		await namedTop();
+		const cli = fakeCli(['hang', 'hang']);
+		const s = session([], true);
+		const src = subscriber();
+		const tools = subscriber();
+
+		try {
+			await s.expand('dir:src');
+			await s.expand('dir:tools');
+			s.name('dir:src', src);
+			s.name('dir:tools', tools);
+			await until(() => cli.calls().length === 2);
+			const pidOf = (folder: string) =>
+				cli.calls().find((c) => c.stdin.includes(`Folder: ${folder}\n`))!.pid;
+			s.leave(tools);
+			await until(() => !alive(pidOf('tools')));
+
+			expect(alive(pidOf('src'))).toBe(true);
+			expect(s.pendingFor(src)).toBe(1);
+			expect(tools.pushes).toEqual([]);
+			expect(fs.existsSync(path.join(out, LOG_FILE))).toBe(false);
+		} finally {
+			s.close();
+			delete process.env.FAKE_CLI_DIR;
+		}
+	});
+
+	it('keeps the naming log bounded, and the inbox shows each entry once across a trim', async () => {
+		await map();
+		for (let n = 1; n <= 150; n++) appendLog(out, logEntry(n, 20_000));
+		const first = await inbox();
+		appendLog(out, logEntry(151));
+
+		const second = await inbox();
+
+		expect(fs.statSync(path.join(out, LOG_FILE)).size).toBeLessThanOrEqual(MAX_LOG_BYTES);
+		expect(nodeIds(first.result.named).at(-1)).toBe('dir:src/n150');
+		expect(nodeIds(second.result.named)).toEqual(['dir:src/n151']);
+	});
+
+	it('shows every entry of a replaced log that the agent has not seen', async () => {
+		await map();
+		const lines = (...seqs: number[]) =>
+			seqs.map((seq) => `${JSON.stringify({ seq, ...logEntry(seq) })}\n`).join('');
+		fs.writeFileSync(path.join(out, LOG_FILE), lines(1, 2));
+		const first = await inbox();
+		// serve trimmed the log: the oldest entry went, two new ones came
+		fs.writeFileSync(path.join(out, LOG_FILE), lines(2, 3, 4));
+
+		const second = await inbox();
+
+		expect(nodeIds(first.result.named)).toEqual(['dir:src/n1', 'dir:src/n2']);
+		expect(nodeIds(second.result.named)).toEqual(['dir:src/n3', 'dir:src/n4']);
+	});
+});
+
+describe('flags', () => {
+	it('refuses serve --out with no folder or a flag in its place', () => {
+		const missing = () => serveOutValue(['--root', root, '--out']);
+		const flag = () => serveOutValue(['--out', '--local']);
+
+		expect(serveOutValue(['--root', root])).toBeNull();
+		expect(serveOutValue(['--out', out, '--local'])).toBe(out);
+		expect(missing).toThrow('--out needs a folder');
+		expect(flag).toThrow('--out needs a folder');
+	});
+
+	it('refuses an inbox folder that ropeman map never wrote, and writes nothing there', async () => {
+		fs.mkdirSync(out);
+		const e = env();
+
+		const code = await runCommand(runInbox, ['--out', out], e);
+
+		expect(code).toBe(2);
+		expect(e.stderr.join('\n')).toContain('run ropeman map first');
+		expect(fs.readdirSync(out)).toEqual([]);
+		expect(fs.existsSync(path.join(out, INBOX_READ_FILE))).toBe(false);
 	});
 });
