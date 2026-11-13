@@ -634,7 +634,7 @@ main push → ci job (lint, svelte-check, build, core·bridge 번들 확인, uni
 - 수동 배포(`npm run deploy`, `npm run deploy:edge:<worker>`)는 장애 대응용이다
 - npm 패키지 `@ropeman/bridge`는 `release-bridge.yml`이 올린다. main 커밋에 `bridge-v<버전>` 태그를 푸시하면(옮겨도) 돈다. 실패를 다시 돌릴 때는 손으로 실행한다(`gh workflow run release-bridge.yml -f tag=bridge-v<버전>`)
   - `build` job(OIDC 토큰 없음): 태그 형식 → 태그 커밋이 main에 있는지 → `bridge/package.json` 버전이 태그와 같은지 → 그 커밋의 CI가 통과했는지(진행 중이면 30분까지 기다림) → npm에 그 버전이 있으면 아무것도 안 하고 끝(E404만 "없음"으로 보고 다른 오류는 멈춤) → `npm pack`(prepack이 앱·bridge·뷰어 번들을 빌드) → tarball을 `npm install -g`로 설치해 `ropeman --version`이 태그 버전인지, 그 bin으로 `smoke.mjs` 한 바퀴 → tarball을 artifact로 넘김
-  - `publish` job(`npm-release` environment, `id-token: write`): tarball만 받아 `npm publish` → npm이 그 버전을 보여 주는지. checkout도 `npm ci`도 하지 않아, 의존성 설치 스크립트나 빌드 플러그인이 배포 토큰을 받을 수 없다
+  - `publish` job(`npm-release` environment, `id-token: write`): tarball만 받아 `npm publish` → npm이 그 버전을 보여 주는지(npm이 새 버전을 보이기까지 몇 분 걸려 15분까지 기다린다, 0.3.0은 약 7분. 배포가 성공했으면 그래도 안 보일 때 경고만 남긴다). checkout도 `npm ci`도 하지 않아, 의존성 설치 스크립트나 빌드 플러그인이 배포 토큰을 받을 수 없다
   - npm 토큰은 GitHub에 없다. npmjs.com의 패키지 설정에 등록한 trusted publisher(저장소 `yoonsooc/ropeman`, 워크플로 파일 `release-bridge.yml`, environment `npm-release`)로 OIDC 인증하고, npm이 provenance(빌드한 커밋과 워크플로)를 붙인다. GitHub의 `npm-release` environment는 main 브랜치와 `bridge-v*` 태그에서만 돌게 막아, 다른 브랜치에서 고친 워크플로를 손으로 돌려도 배포할 수 없다. npm이 provenance의 저장소와 `bridge/package.json`의 `repository.url`을 대조하므로 `releasePin.test.ts`가 그 값을 고정한다. 워크플로 파일이나 environment 이름을 바꾸면 npmjs.com 등록도 바꿔야 한다
   - trusted publishing은 npm 11.5.1 이상이 필요해 Node 22 위에 npm 11.17.0을 설치한다. 액션은 커밋 SHA로 고정한다
 
