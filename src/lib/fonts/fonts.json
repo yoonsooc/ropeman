@@ -1,4 +1,5 @@
 {
+	"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
 	"icons": [
 		"account_tree",
 		"add",
@@ -91,6 +92,24 @@
 			"bytes": 48432
 		},
 		{
+			"file": "jetbrains-mono-cyrillic.woff2",
+			"source": "https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=JetBrains+Mono:wght@400..500&family=Space+Grotesk:wght@400..700",
+			"sha256": "4995a9a43ac659ec32fcd8b463755cd6a07b31a6e6b3894a6a153b661cf490e2",
+			"bytes": 8892
+		},
+		{
+			"file": "jetbrains-mono-greek.woff2",
+			"source": "https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=JetBrains+Mono:wght@400..500&family=Space+Grotesk:wght@400..700",
+			"sha256": "49c3da6c9a2b279b0f1f860f5cfb1f5dc38d88a5c7be9c9b1837bbc4e3db6111",
+			"bytes": 6800
+		},
+		{
+			"file": "jetbrains-mono-vietnamese.woff2",
+			"source": "https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=JetBrains+Mono:wght@400..500&family=Space+Grotesk:wght@400..700",
+			"sha256": "d44eb1936043a56038eb02dd70b243f379bef65783f94ec12f277550720411f1",
+			"bytes": 5872
+		},
+		{
 			"file": "jetbrains-mono-latin-ext.woff2",
 			"source": "https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=JetBrains+Mono:wght@400..500&family=Space+Grotesk:wght@400..700",
 			"sha256": "9c38cb2d0d2d93c1ee6e21fa78db76f13ea7e15e15cc64214c7ca89b6aaa35c4",
@@ -119,6 +138,32 @@
 			"source": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=account_tree,add,ads_click,arrow_back,article,auto_awesome,block,bolt,build,cable,check,check_circle,checklist,chevron_right,close,cloud,code,coffee,computer,content_copy,css,data_object,delete,deployed_code,description,download,error,expand_less,expand_more,explore_off,fact_check,folder,folder_open,front_hand,gavel,help,help_outline,home,hourglass_empty,html,image,info,inventory_2,javascript,key_off,keyboard_arrow_down,keyboard_arrow_up,link_off,lock,map,memory,menu,menu_book,open_in_browser,open_in_new,photo_library,play_arrow,play_circle,power_off,progress_activity,psychology,refresh,rule,settings,settings_input_component,share,shield_lock,stop_circle,terminal,upload_file,verified,verified_user,visibility_off,vpn_key,warning,zoom_in",
 			"sha256": "2f5f43498a9a7b50c9de1b4c221df666ca9e3a0d5af398df4949511f7f1ddc21",
 			"bytes": 8408
+		}
+	],
+	"licenses": [
+		{
+			"file": "Inter-OFL.txt",
+			"source": "https://raw.githubusercontent.com/google/fonts/3cb0866aebe5de40156f418a1750cb329e81ebdb/ofl/inter/OFL.txt",
+			"sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+			"bytes": 4377
+		},
+		{
+			"file": "JetBrainsMono-OFL.txt",
+			"source": "https://raw.githubusercontent.com/google/fonts/3cb0866aebe5de40156f418a1750cb329e81ebdb/ofl/jetbrainsmono/OFL.txt",
+			"sha256": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d",
+			"bytes": 4399
+		},
+		{
+			"file": "SpaceGrotesk-OFL.txt",
+			"source": "https://raw.githubusercontent.com/google/fonts/3cb0866aebe5de40156f418a1750cb329e81ebdb/ofl/spacegrotesk/OFL.txt",
+			"sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+			"bytes": 4495
+		},
+		{
+			"file": "MaterialSymbols-Apache-2.0.txt",
+			"source": "https://raw.githubusercontent.com/google/material-design-icons/10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7/LICENSE",
+			"sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+			"bytes": 11357
 		}
 	]
 }

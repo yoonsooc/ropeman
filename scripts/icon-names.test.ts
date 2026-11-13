@@ -6,9 +6,12 @@ import { iconNames, readSources } from './icon-names.mjs';
 
 const repo = join(__dirname, '..');
 const fontsDir = join(repo, 'src/lib/fonts');
+type Fetched = { file: string; source: string; sha256: string };
 const manifest: {
+	userAgent: string;
 	icons: string[];
-	files: { file: string; source: string; sha256: string }[];
+	files: Fetched[];
+	licenses: Fetched[];
 } = JSON.parse(readFileSync(join(fontsDir, 'fonts.json'), 'utf8'));
 const REFETCH = 'run `node scripts/fetch-fonts.mjs` to refetch the fonts';
 
@@ -30,12 +33,22 @@ describe('self-hosted icon font', () => {
 		expect(new URL(icon!.source).searchParams.get('icon_names'), REFETCH).toBe(
 			manifest.icons.join(',')
 		);
-		for (const { file, sha256 } of manifest.files) {
-			const actual = createHash('sha256')
-				.update(readFileSync(join(fontsDir, file)))
-				.digest('hex');
+		const committed = [
+			...manifest.files.map((f) => ({ ...f, path: join(fontsDir, f.file) })),
+			...manifest.licenses.map((f) => ({ ...f, path: join(repo, 'static/fonts/LICENSES', f.file) }))
+		];
+		for (const { path, file, sha256 } of committed) {
+			const actual = createHash('sha256').update(readFileSync(path)).digest('hex');
 			expect(actual, `${file}: ${REFETCH}`).toBe(sha256);
 		}
+	});
+
+	it('was fetched reproducibly: one recorded user agent, licenses pinned to a commit', () => {
+		expect(manifest.userAgent).toMatch(/Chrome\/\d+/);
+		for (const { source } of manifest.licenses)
+			expect(source).toMatch(
+				/^https:\/\/raw\.githubusercontent\.com\/google\/[\w-]+\/[0-9a-f]{40}\//
+			);
 	});
 
 	it('fails when the source renders a name the font lacks', () => {
@@ -96,8 +109,52 @@ describe('iconNames', () => {
 		],
 		['a call', `<span class="material-symbols-outlined">{pick()}</span>`],
 		['an undeclared name', `<span class="material-symbols-outlined">{nowhere}</span>`],
-		['a word that is not a name', `<span class="material-symbols-outlined">Arrow Back</span>`]
+		['a word that is not a name', `<span class="material-symbols-outlined">Arrow Back</span>`],
+		['a component', `<Icon class="material-symbols-outlined">home</Icon>`],
+		[
+			'a dynamic element',
+			`<svelte:element this="span" class="material-symbols-outlined">home</svelte:element>`
+		]
 	])('rejects %s it cannot see through', (_, source) => {
 		expect(() => iconNames([svelte(source)])).toThrow(/src\/A\.svelte:1/);
+	});
+
+	it.each([
+		[
+			'a stylesheet',
+			'src/a.css',
+			`.a {}\n.b::before { font: 20px 'Material Symbols Outlined'; }`,
+			2
+		],
+		[
+			'a selector list that includes the class',
+			'src/a.css',
+			`.material-symbols-outlined, .b { font-family: 'Material Symbols Outlined'; }`,
+			1
+		],
+		[
+			'a component style',
+			'src/A.svelte',
+			`<i>x</i>\n<style>\n\t@media (x) { .b { font-family: 'Material Symbols Outlined'; } }\n</style>`,
+			3
+		],
+		[
+			'an inline style',
+			'src/A.svelte',
+			`<i style="font-family: Material Symbols Outlined">home</i>`,
+			1
+		],
+		['a script string', 'src/a.ts', `el.style.fontFamily = 'Material Symbols Outlined';`, 1]
+	])('rejects the icon font family named in %s', (_, path, source, line) => {
+		expect(() => iconNames([{ path, source }])).toThrow(
+			`${path}:${line} names the icon font family`
+		);
+	});
+
+	it('allows the icon font family in @font-face and in the icon class rule', () => {
+		const css = `@font-face { font-family: 'Material Symbols Outlined'; }
+			.material-symbols-outlined { font-family: 'Material Symbols Outlined'; }`;
+
+		expect(iconNames([{ path: 'src/a.css', source: css }])).toEqual([]);
 	});
 });
