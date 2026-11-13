@@ -13,11 +13,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	return resolve(event, {
-		// `app.html` provides a static <title>Ropeman</title> as the SPA fallback
-		// (needed because the landing page runs with ssr=false and produces no
-		// SSR head). When a route also emits a <title> via <svelte:head> (e.g.
-		// /docs/* with ssr=true), we end up with two title tags. Strip the first
-		// one so the page-specific title is the only survivor.
+		// `app.html` provides a static <title>Ropeman</title> for the client-only
+		// routes (ssr=false), which produce no SSR head. When a route also emits a
+		// <title> via <svelte:head> (e.g. /docs/* with ssr=true), we end up with two
+		// title tags. Strip the first one so the page-specific title is the only survivor.
 		transformPageChunk: ({ html, done }) => {
 			if (!done) return html;
 			const titles = html.match(/<title>[^<]*<\/title>/g);

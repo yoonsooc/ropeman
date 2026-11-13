@@ -21,6 +21,10 @@
 					.find((tag) => tag === 'ko' || tag === 'en');
 				if ((stored === 'ko' || stored === 'en' ? stored : preferred) === 'ko') {
 					root.dataset.localePending = '';
+					// If the app never renders (a script failed to load), the English landing beats a
+					// blank page. On Lighthouse's throttled mobile profile the app renders about 4.5 s
+					// after this line, so 8 s leaves room for a slower phone before English shows.
+					setTimeout(() => delete root.dataset.localePending, 8000);
 				}
 			} catch {}
 		</script>

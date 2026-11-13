@@ -54,6 +54,17 @@ test.describe('without JavaScript', () => {
 		await expect(page.getByTestId('install-command')).toBeVisible();
 		await expect(page.getByTestId('install-command')).toHaveText(INSTALL);
 	});
+
+	test.describe('in a Korean browser', () => {
+		test.use({ locale: 'ko-KR' });
+
+		test('the English landing still shows, since nothing hides it', async ({ page }) => {
+			await page.goto('/');
+
+			await expect(page.locator('#app')).toBeVisible();
+			await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+		});
+	});
 });
 
 test('the app takes over the prerendered landing in place', async ({ page }) => {
@@ -90,6 +101,21 @@ test('a Korean visitor never sees the English prerender', async ({ page }) => {
 	);
 	await expect(page.locator('#app')).toBeVisible();
 	await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
+});
+
+test('a Korean visitor whose app never loads gets the English landing, not a blank page', async ({
+	page
+}) => {
+	await useSettings(page, { language: 'ko' });
+	await withoutAppScripts(page);
+	await page.clock.install();
+	await page.goto('/');
+	await expect(page.locator('#app')).toBeHidden();
+
+	await page.clock.runFor(8_000);
+
+	await expect(page.locator('#app')).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
 });
 
 test('the stored light theme applies before the app boots', async ({ page }) => {
