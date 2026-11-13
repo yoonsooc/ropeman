@@ -1,8 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { waitForApp } from './support/app';
 
 const HEADLINE = /^Map a repo\s*from your coding agent$/;
-const INSTALL = 'npm install -g @ropeman/bridge@0.3.0';
+const { version } = JSON.parse(
+	readFileSync(new URL('../bridge/package.json', import.meta.url), 'utf8')
+);
+const INSTALL = `npm install -g @ropeman/bridge@${version}`;
 
 async function useSettings(page: Page, settings: { language?: 'en' | 'ko'; theme?: string }) {
 	await page.addInitScript(({ language, theme }) => {
