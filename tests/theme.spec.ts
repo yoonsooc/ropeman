@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './support/app';
 
 test.describe('Theme Toggle', () => {
 	test.beforeEach(async ({ page }) => {
@@ -11,7 +12,7 @@ test.describe('Theme Toggle', () => {
 	});
 
 	test('should toggle between dark and light themes', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 
 		// Get initial theme from html data attribute or body class
 		const initialTheme = await page.evaluate(() => {
@@ -30,7 +31,7 @@ test.describe('Theme Toggle', () => {
 	});
 
 	test('should persist theme setting after reload', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 
 		// Toggle theme
 		const themeBtn = page.locator('header .header-btn').filter({ hasText: /☀|☽/ });
@@ -59,7 +60,7 @@ test.describe('Theme Toggle', () => {
 
 test.describe('Language Toggle', () => {
 	test('should toggle header subtitle language', { tag: '@responsive' }, async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 
 		// Default locale is en for the en-US test browser
 		const subtitle = page.locator('.header-subtitle');

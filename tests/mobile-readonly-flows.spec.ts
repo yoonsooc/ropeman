@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './support/app';
 
 test.describe('Mobile read-only routes', { tag: '@responsive' }, () => {
 	test.beforeEach(async ({ page }) => {
@@ -15,7 +16,7 @@ test.describe('Mobile read-only routes', { tag: '@responsive' }, () => {
 		viewport
 	}) => {
 		test.skip(!viewport || viewport.width > 768, 'mobile/tablet-only');
-		await page.goto('/');
+		await gotoApp(page);
 		// CTA folder button should not be rendered on compact viewports
 		await expect(page.locator('.cta-btn')).toHaveCount(0);
 		// GitHub URL input remains accessible
@@ -26,7 +27,7 @@ test.describe('Mobile read-only routes', { tag: '@responsive' }, () => {
 
 	test('Landing keeps folder picker on desktop (regression)', async ({ page, viewport }) => {
 		test.skip(!viewport || viewport.width <= 768, 'desktop-only');
-		await page.goto('/');
+		await gotoApp(page);
 		await expect(page.locator('.cta-btn')).toBeVisible();
 		await expect(page.locator('.mobile-folder-hint')).toHaveCount(0);
 	});

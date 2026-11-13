@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './support/app';
 
 // The full SvelteFlow canvas only mounts after AI semantic analysis (which
 // requires either a live API key / Bridge / WebGPU model — none available in
@@ -14,7 +15,7 @@ test.describe('M3 canvas CSS rules', () => {
 				JSON.stringify({ phase1Completed: true, phase2Completed: true })
 			);
 		});
-		await page.goto('/');
+		await gotoApp(page);
 		await expect(page.locator('header.header')).toBeVisible();
 	});
 

@@ -3,7 +3,8 @@ import { settingsStore } from './settingsStore.svelte';
 import type { CoverageReason, CoverageStatus } from '$lib/types/coverage';
 
 interface LandingTranslations {
-	headline: string;
+	headlineLead: string;
+	headlineAccent: string;
 	subheadline: string;
 	cta: string;
 	dragHint: string;
@@ -658,7 +659,8 @@ const translations: Record<Locale, TranslationSet> = {
 			generatingDiagram: '다이어그램 생성 중...'
 		},
 		landing: {
-			headline: '코딩 에이전트로<br/><span class="headline-accent">저장소 지도를 그리세요</span>',
+			headlineLead: '코딩 에이전트로',
+			headlineAccent: '저장소 지도를 그리세요',
 			subheadline:
 				'Ropeman은 모델 없이 모든 파일과 심볼, import를 읽습니다. 에이전트가 부분마다 이름을 붙이면 Ropeman이 이름이 코드와 맞는지 검사합니다. 지도는 브라우저에서 열고, 폴더를 눌러 드릴다운하고 파일을 눌러 소스를 봅니다.',
 			cta: '폴더 열기',
@@ -1447,7 +1449,8 @@ const translations: Record<Locale, TranslationSet> = {
 			generatingDiagram: 'Generating diagram...'
 		},
 		landing: {
-			headline: 'Map a repo<br/><span class="headline-accent">from your coding agent</span>',
+			headlineLead: 'Map a repo',
+			headlineAccent: 'from your coding agent',
 			subheadline:
 				'Ropeman reads every file, symbol and import without a model. Your agent names the parts, and Ropeman checks each name against the code. You open the map in your browser, click a folder to drill down and click a file to read its source.',
 			cta: 'Open Folder',

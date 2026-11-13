@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './support/app';
 
 test.describe('Mobile foundation (viewport + safe-area)', { tag: '@responsive' }, () => {
 	test.beforeEach(async ({ page }) => {
@@ -11,13 +12,13 @@ test.describe('Mobile foundation (viewport + safe-area)', { tag: '@responsive' }
 	});
 
 	test('viewport meta declares viewport-fit=cover', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 		const viewportMeta = await page.locator('meta[name="viewport"]').getAttribute('content');
 		expect(viewportMeta).toContain('viewport-fit=cover');
 	});
 
 	test('breakpoint tokens are defined on :root', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 		// In dev mode global.css is injected by JS after hydration — wait for
 		// any CSS-driven layout to settle before reading custom properties.
 		await expect(page.locator('header.header')).toBeVisible();
@@ -35,7 +36,7 @@ test.describe('Mobile foundation (viewport + safe-area)', { tag: '@responsive' }
 	});
 
 	test('header renders and stays within viewport on mobile', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 		const header = page.locator('header.header');
 		await expect(header).toBeVisible();
 		const headerBox = await header.boundingBox();
@@ -46,7 +47,7 @@ test.describe('Mobile foundation (viewport + safe-area)', { tag: '@responsive' }
 	});
 
 	test('landing page has no horizontal scroll on mobile viewport', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 		const hasHorizontalScroll = await page.evaluate(
 			() => document.documentElement.scrollWidth > document.documentElement.clientWidth
 		);
