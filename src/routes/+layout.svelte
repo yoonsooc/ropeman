@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '$lib/fonts/fonts.css';
 	import '$lib/styles/global.css';
 	import '$lib/styles/chat.css';
 	import { onMount } from 'svelte';
