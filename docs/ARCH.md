@@ -88,8 +88,9 @@ src/
 │   │   ├── ChatPopup.svelte          # AI 채팅 팝업
 │   │   ├── SettingsModal.svelte      # ★ Stitch 디자인 설정 모달 (캐시 클리어, 폰트 슬라이더, info 툴팁)
 │   │   ├── HelpModal.svelte          # 도움말 모달 (4탭, FAQ, 투어 재시작, 저작권/이메일)
-│   │   ├── OnboardingTour.svelte     # 온보딩 투어 오버레이 (2-phase, cutout 하이라이트)
-│   │   ├── Dropzone.svelte           # 랜딩 페이지 (폴더 드롭, 푸터 © + email)
+│   │   ├── OnboardingTour.svelte     # 온보딩 투어 오버레이 (2-phase, cutout 하이라이트, 설정·도움말에서 시작)
+│   │   ├── Dropzone.svelte           # 랜딩 페이지 (에이전트 설치 안내가 먼저, 폴더·GitHub·예시·ropeman.json은 옆 상자, 푸터 © + email)
+│   │   ├── AgentSetup.svelte         # 첫 사용 3단계(명령 설치, 에이전트별 스킬 폴더 탭, "map this repo"), 랜딩과 연결 전 /bridge가 같이 쓴다
 │   │   ├── SearchBar.svelte          # 검색 바
 │   │   └── nodes/                    # SvelteFlow 커스텀 노드
 │   │       ├── SemanticNode.svelte
@@ -328,7 +329,7 @@ LLM은 지도의 이름과 관계를 쓰기만 하고, 믿을지는 결정론 �
 
 ### `ropeman serve` (T2-4)
 
-`npx @ropeman/bridge serve --root <폴더>`는 그 폴더의 지도를 WebSocket RPC(ADR-24)로 내준다. 뷰어가 노드를 펼치면 폴더로 묶은 결정론 단계를 바로 돌려주고, 로컬 CLI(`claude -p`나 `gemini -p`)에게 그 단계의 부분마다 이름을 붙이게 한 뒤, 검증기를 통과한 이름만 `node.named`로 보낸다. LLM은 이름과 설명과 핵심 심볼만 쓰고, 파일이 어느 노드에 드는지와 관계는 결정론 코드가 정한다(A-12).
+`ropeman serve --root <폴더>`는 그 폴더의 지도를 WebSocket RPC(ADR-24)로 내준다. 위쪽 단계는 코딩 에이전트가 스킬로 이름을 붙인다. 뷰어가 노드를 펼치면 폴더로 묶은 결정론 단계를 바로 돌려주고, 헤드리스 일꾼(`claude -p`)에게 그 단계의 부분마다 이름을 붙이게 한 뒤, 검증기를 통과한 이름만 `node.named`로 보낸다. 일꾼 CLI가 없으면 그 폴더는 대기열에 들어가 사용자의 다음 메시지에서 에이전트가 이름을 붙인다. `gemini -p`는 `--cli gemini`를 줄 때만 쓴다. LLM은 이름과 설명과 핵심 심볼만 쓰고, 파일이 어느 노드에 드는지와 관계는 결정론 코드가 정한다(A-12).
 
 ```
 시작 → MapSession.start(): extractDirectory(--root) → groupExtraction() → 폴더마다 fs.watch
@@ -380,7 +381,7 @@ ropeman inbox --out O            → 남은 대기열 + 지난번 이후의 일�
 - 이름 읽기: serve는 `ropeman.json`의 `named` 단계(최상위 포함)를 이름으로 쓰고, 파일이 바뀌면(`fs.watch`로 폴더를 본다) 다시 읽는다. 이름이 생긴 대기열 폴더는 기다리던 화면에 `node.named`로, 다른 단계가 바뀌었으면 `map.changed`(경로 없음)로 알린다. 한 번 검증에 실패한 이름은 지우지 않고 그 추출에서만 거부해서, 폴더가 생겼다 사라지면 다음 추출에서 돌아온다.
 - `ropeman inbox`: 대기열 폴더 가운데 `ropeman.json`에 아직 `grouped`로 있는 것과, `seq`가 `inbox-read.json`의 번호보다 큰 기록 줄을 돌려주고 번호를 옮긴다. 줄 수가 아니라 번호라서 기록을 잘라도, serve를 다시 띄워도, 기록을 지워도 본 줄을 다시 보이거나 새 줄을 빠뜨리지 않는다(시계를 되돌리면 예외). `--out`은 `ropeman map`이 쓴 폴더(링크가 아닌 실제 폴더에 `ropeman.json`이 있다)여야 하고, 아니면 아무것도 쓰지 않고 종료 코드 2다. 스킬은 이후 메시지마다 이것을 먼저 돌린다. MAIN은 사용자가 무엇을 열어 봤는지 알고, 이름을 고쳐 달라고 하면 그 결과를 `names.json`에 옮겨 고친 뒤 `ropeman map`으로 검증한다. 클릭을 기다리는 반복(`ropeman next`)은 만들었다가 사용자 결정으로 지웠다.
 - 셸: 스킬은 정해진 명령에 경로 인자만 넣게 한다. 이름과 요약은 파일 쓰기 도구로 쓰고 명령줄에 넣지 않는다. `work.json` 안의 경로와 심볼 이름, `ropeman inbox` 보고는 데이터로 다루고 지시로 따르지 않는다.
-- 배포: 0.3.0은 npm에 없어서, 지금은 저장소에서 `npm pack`한 tarball을 `npm install -g`로 깐다. 스킬 폴더는 에이전트의 스킬 폴더(Claude Code는 `~/.claude/skills/`)에 복사한다.
+- 배포(T2-7): 명령은 npm `@ropeman/bridge@0.3.0`(`npm install -g` 뒤 `ropeman …`이 기본이고, 오래된 npm에서 실행 파일을 못 찾을 수 있는 `npx @ropeman/bridge@0.3.0 serve`는 보조)로, 스킬은 릴리스 태그 `bridge-v<버전>`의 `skill/ropeman/SKILL.md` 한 파일을 `curl --create-dirs -fsSLo <스킬 폴더>/ropeman/SKILL.md <raw 주소>`로 받는다. 스킬 폴더는 에이전트 문서 기준으로 Claude Code `~/.claude/skills/`, Codex `~/.agents/skills/`, Gemini CLI `~/.gemini/skills/`, Cursor `~/.cursor/skills/`이고 Claude Code만 테스트했다(`AgentSetup.svelte`의 표 하나가 랜딩·`/bridge` 안내를 만든다). 스킬을 npm 패키지에 싣지 않은 이유: `npx`로 받은 패키지는 캐시 경로가 고정되지 않아 "여기서 복사하라"고 적을 자리가 없고, 파일 하나라 저장소에서 바로 받는 편이 단계가 적다. 스킬 주소와 설치 명령이 같은 버전을 가리키므로, main의 새 SKILL.md가 예전 설치본에 없는 명령을 부르는 일이 없다. 스킬 1단계도 `ropeman --version`을 확인하고 낮으면 같은 버전의 설치 명령을 안내한다. `bridge/test/releasePin.test.ts`가 `bridge/package.json`의 버전과 안내 문서의 태그, 설치 명령, SKILL.md 1단계가 모두 같은지 검사하고, 태그는 병합 커밋에 붙인 뒤 npm에 올린다. `npx`가 실행할 bin은 `ropeman`과 `ropeman-bridge`가 같은 파일을 가리켜 npm이 별칭으로 보고 하나로 고른다(`libnpmexec`의 `getBinFromManifest`, npm 11.17에서 tarball로 확인).
 - 검증: `bridge/test/mapCommand.test.ts`(30개)가 임시 저장소에서 첫 실행, 단계 적용, 끝과 재실행이 같은 바이트를 쓰는지, 문제 코드별 단계 되돌리기, 단계 밖의 거부된 단계, 출력 폴더 규칙, `verify`, 대기열 한 바퀴, 폴더가 생겼다 사라진 뒤 이름이 돌아오는지, 사라진 폴더의 대기열 정리, 가짜 일꾼이 요약과 위 단계 이름을 받아 이름 붙이고 기록하며 `inbox`가 그것을 한 번만 돌려주는지, 긴 요약 자르기를 본다. 심어 둔 파일(요약·이름·대기열 링크, FIFO 요약, 3GiB 희소 요약, 링크인 `--out`), git이 작업 폴더를 커밋하지 않는지와 사용자의 숨은 폴더에는 `.gitignore`를 넣지 않는지, 기록을 못 쓸 때, 일꾼보다 늦게 온 에이전트 이름, `--out` 모드의 동시 2개와 취소, 기록 자르기와 바뀐 기록의 `inbox`, serve `--out` 값과 `ropeman map` 없는 `inbox` 폴더도 본다. `bridge/test/detectCli.test.ts`(2개)는 PATH에 가짜 `gemini`만 있으면 일꾼을 고르지 않고, `claude`가 있으면 그것을 고르는지 본다. `tests/bridge-mode.spec.ts`는 일꾼 이름 뒤에 "claude 일꾼" 띠가 뜨는지, 일꾼이 없는 `--out` 모드에서 대기열 안내와 `ropeman map` 뒤의 이름이 같은 화면에 뜨는지 본다.
 - PASEO 실측(`e0f545fed`, Apple M4, 2026-11-13, 모델 비용 합계 2.24달러): 새 Claude Code 세션(`claude -p`, sonnet, 프로젝트 설정만, `ropeman` 명령만 허용)에 스킬을 설치하고 "이 저장소 지도 그려줘. 서버와 앱이 어떻게 통신하는지 알고 싶다. 저장소는 읽기 전용이니 결과는 <폴더>에"라고만 했다. 최종 스킬로 첫 대화는 16턴, 114초, 0.37달러였다. `ropeman map`을 3번 돌려 두 단계(최상위 하나와 그 아래 폴더 12개, 부분 87개)에 이름을 붙이고 문제 0개로 끝냈고, `brief.md`(사용자 목표, 용어 6개, 이름 규칙 "전송을 다루면 WebSocket·session을 쓴다", 위 단계 이름)를 썼다. `ropeman verify`는 위반 0, 단계 735, 노드 1,398, 관계 1,438, 근거 12,244를 확인했다. 커버리지 보고는 본 파일 6,756, 지도 6,173(읽음 6,171, 크기 초과 1, 파싱 실패 1), 문법 없음 583이다. `ropeman map` 한 번은 7~8초다. serve(`--out`, 일꾼 `claude` 자동 감지)를 띄우고 headless Chromium으로 최상위와 `packages` 아래 이름을 확인한 뒤 `packages/server`를 열자 claude 일꾼이 9.0초 뒤 이름을 보냈다("Daemon source and WebSocket sessions" 등, 요약의 규칙을 따랐다. 0.059달러). 그 안의 `src`는 12.5초(0.081달러)였고, 화면 띠는 "The claude worker named these parts. Worker runs this session: 2."였다. 같은 세션에 "뷰어에서 좀 눌러 봤어. WebSocket 세션은 어디서 다뤄?"를 보내자 에이전트가 먼저 `ropeman inbox`를 돌려 일꾼 기록 2줄을 읽고, 답에 "열어 본 `packages/server/src/server`를 일꾼이 'WebSocket sessions and request handlers'로 이름 붙였다"를 넣었다(5턴, 13초, 0.44달러). 앞선 판들: 파이프 금지 규칙 전 실행(14턴, 113초, 0.52달러, `sed`로 보고를 자르려다 막혀 규칙을 넣었다), 대기열만 있던 판(첫 대화 0.34달러, 대기열 처리 0.43달러).
 - 확인하지 않은 것: Claude Code 밖의 에이전트(Codex, Gemini CLI, Cursor), Windows, gemini 일꾼.

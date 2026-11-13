@@ -55,7 +55,7 @@ The recommended workflow: start at the default, and only nudge the limit up or d
 | Full control over model and quota       | **API Key** |
 | Absolutely nothing to leave your device | **WebGPU**  |
 
-To map a folder on your machine and have your own Claude Code or Gemini CLI name its parts, use Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge). See [Bridge Setup](/docs/en/bridge-setup).
+To map a folder on your machine, use Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge). Your coding agent names the top levels. A headless `claude` worker names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. serve runs `gemini` only with `--cli gemini`. See [Bridge Setup](/docs/en/bridge-setup).
 
 ## Switching Modes
 

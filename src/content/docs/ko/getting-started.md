@@ -16,6 +16,19 @@ Ropeman은 임의의 코드베이스를 브라우저에서 분석하여 **AI 기
 - **100% Local-First** — 원본 소스 코드는 절대 브라우저를 떠나지 않습니다. 브라우저 안에서 WASM 기반 AST 파싱이 이루어지고, AI에는 **코드 구조 요약(메타데이터)** 만 전달됩니다.
 - **Zero Friction** — 회원가입, 설치, CLI 없이 URL에 접속해 폴더를 드롭하기만 하면 됩니다.
 
+## 코딩 에이전트에서 쓰기
+
+Ropeman의 기본 사용법은 코딩 에이전트에서 Ropeman 스킬로 쓰는 것입니다. Node 22 이상이 필요합니다.
+
+```bash
+npm install -g @ropeman/bridge@0.3.0
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.0/skill/ropeman/SKILL.md
+```
+
+그다음 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 코드와 맞는지 검사한 뒤, `ropeman serve`를 띄우고 열어 볼 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다. 두 번째 명령은 Claude Code용이고, 스킬은 Claude Code에서 테스트했습니다. Codex, Gemini CLI, Cursor는 각자의 문서에 따르면 다른 폴더에서 스킬을 읽습니다. 에이전트별 명령은 [홈 화면](/)에 있고, Ropeman은 이들에서 아직 테스트하지 않았습니다.
+
+아래 퀵스타트는 설치 없이 브라우저에서 쓰는 방법입니다.
+
 ## 30초 퀵스타트 (데모 모드)
 
 가장 빠른 길은 설정이 필요 없는 데모 모드입니다.
@@ -57,7 +70,7 @@ Ropeman은 임의의 코드베이스를 브라우저에서 분석하여 **AI 기
 ## 다음 단계
 
 - 다른 AI 모델을 쓰려면 [AI 모드 가이드](/docs/ko/ai-modes)에서 API 키와 WebGPU 모드를 살펴보세요.
-- 내 컴퓨터의 폴더 지도를 만들고 내 Claude Code나 Gemini CLI로 이름을 붙이려면 [브리지 설정](/docs/ko/bridge-setup)을 보세요.
+- `ropeman serve`를 직접 켜서 내 컴퓨터 폴더의 지도를 열려면 [브리지 설정](/docs/ko/bridge-setup)을 보세요.
 - 보안이 걱정된다면 [보안 및 데이터 흐름](/docs/ko/security) 문서를 먼저 읽어보시기 바랍니다.
 - 단축키를 익히면 탐색이 훨씬 빨라집니다. [키보드 단축키](/docs/ko/keyboard-shortcuts) 참고.
 - 문제가 생겼다면 [자주 묻는 질문](/docs/ko/faq) 또는 [문제 해결](/docs/ko/troubleshooting)을 확인하세요.

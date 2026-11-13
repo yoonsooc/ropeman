@@ -1,11 +1,13 @@
 ---
 title: Bridge Setup
-description: Map a folder on your machine with ropeman serve, open it at ropeman.dev/bridge, and let your own Claude Code or Gemini CLI name its parts
+description: Map a folder on your machine with ropeman serve, open it at ropeman.dev/bridge or in local mode, and let a headless Claude Code worker name its parts
 category: guides
 order: 6
 ---
 
-**Bridge mode** shows a map of a folder on your machine. `ropeman serve` (npm package `@ropeman/bridge`) reads the folder, and the page at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to it over `ws://127.0.0.1:9800`. Click a folder to open it. Its subfolders and files show right away, and then your local CLI, **Claude Code** or **Gemini CLI**, names the parts. Click a file to open its source.
+**Bridge mode** shows a map of a folder on your machine. `ropeman serve` (npm package `@ropeman/bridge`) reads the folder, and the page at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to it over `ws://127.0.0.1:9800`. Click a folder to open it. Its subfolders and files show right away, and then a headless **Claude Code** worker (`claude -p`) names the parts. Click a file to open its source.
+
+With the Ropeman skill installed, your coding agent runs these steps for you: ask it to "map this repo" and open the local mode address it gives you. See [Getting Started](/docs/en/getting-started). This page is for starting serve yourself.
 
 Bridge mode runs on its own page. The main app's AI modes (Demo, API Key and WebGPU) are described in [AI Modes](/docs/en/ai-modes).
 
@@ -18,27 +20,29 @@ A file you open goes from serve to the page over `127.0.0.1`. serve refuses `.en
 ## Before you start
 
 - Node.js 22 or later.
-- Claude Code or Gemini CLI, installed and signed in. Without a CLI the map still works, and folders keep their folder names.
+- Claude Code (`claude`), installed and signed in, to name the folders you open. Gemini CLI names them only when you start serve with `--cli gemini`. Without a CLI the map still works, and folders keep their folder names.
 - Chrome, Edge or Firefox. Safari cannot connect from ropeman.dev, so in Safari start serve in [local mode](#use-local-mode).
 
 ## Start serve
 
-Run serve in the folder you want to map:
+Install the command once, then run serve in the folder you want to map:
 
 ```bash
+npm install -g @ropeman/bridge@0.3.0
 cd ~/code/your-project
-npx @ropeman/bridge serve --root .
+ropeman serve --root .
 ```
 
-`npx` downloads the package on first use. Without `--cli`, serve checks for `claude`, then `gemini`, and uses the first one it finds. The output looks like this:
+Without a global install, `npx @ropeman/bridge@0.3.0 serve --root .` runs the same command. Older npm versions can fail to find the executable this way. Without `--cli`, serve uses `claude` when it is on your `PATH`. It never picks `gemini` on its own. The output looks like this:
 
 ```text
-[09:41:02] Using CLI: claude
+[09:41:02] Workers naming opened folders: claude
 [09:41:02] Allowed origins: https://ropeman.dev, http://localhost:5173, ...
 [09:41:02] Bridge server ready on ws://127.0.0.1:9800
 [09:41:02] Open https://ropeman.dev/bridge and paste the token (stored in /Users/you/.ropeman/bridge-token).
 [09:41:02] Map and file.read root: /Users/you/code/your-project
 [09:41:02] Safari, or the browser blocked the connection? Start again with --local.
+[09:41:02] Extracted 24 files of 24 listed in 0.05s
 ```
 
 serve prints where the token is, not the token itself, so the value stays out of terminal logs. Copy it from the file:
@@ -85,7 +89,7 @@ In local mode serve hosts the same viewer itself, so the page and serve share on
 2. Start it again with `--local`:
 
    ```bash
-   npx @ropeman/bridge serve --root . --local
+   ropeman serve --root . --local
    ```
 
 3. Open the address serve prints, `http://127.0.0.1:9800/bridge#token=…`.
@@ -98,7 +102,7 @@ This address is the only place serve prints the token. The token comes after `#`
 | ------------------------ | ------------------------------------------------------------------------------------ |
 | `--root <dir>`           | Map this folder, watch it, and let the page read files under it                      |
 | `--port <number>`        | Port to listen on (default `9800`)                                                   |
-| `--cli <claude\|gemini>` | CLI that names folders (default: auto-detect)                                        |
+| `--cli <claude\|gemini>` | CLI that names folders (default: `claude` when installed)                            |
 | `--token <value>`        | Use this token instead of the stored one                                             |
 | `--allow-origin <url>`   | Also accept connections from this origin                                             |
 | `--local`                | Serve the viewer at `http://127.0.0.1:<port>/bridge` ([local mode](#use-local-mode)) |
@@ -136,7 +140,7 @@ When a connection fails, the page says which case it is:
 - **Nothing listens on the port.** serve is not running, or it runs on another port. Start serve, and check that **Port** matches the port in the terminal output.
 - **serve refused the connection.** The token is wrong, or serve does not allow the page's address. The terminal running serve says which:
   - `Rejected connection: missing or wrong token`. Copy the token again with `cat ~/.ropeman/bridge-token`. If you deleted the file or changed `ROPEMAN_BRIDGE_TOKEN`, the token changed.
-  - `Rejected connection from origin "..." (not allowed)`. Restart serve with `--allow-origin` and the page's address, which the card shows, for example `npx @ropeman/bridge serve --root . --allow-origin https://preview.example.com`.
+  - `Rejected connection from origin "..." (not allowed)`. Restart serve with `--allow-origin` and the page's address, which the card shows, for example `ropeman serve --root . --allow-origin https://preview.example.com`.
 - **The connection did not go through, and the browser does not say why.** Firefox and Safari have no permission the page can read. The page then does not check the port, because that check could make the browser ask a second time. Check that serve runs on that port, that the token matches, that you did not block the site, and what serve's terminal says. If the page still cannot connect, use [local mode](#use-local-mode).
 
 ### "Port 9800 is already in use"
@@ -149,14 +153,13 @@ The token from `--token` or `ROPEMAN_BRIDGE_TOKEN` is too short. Use a longer on
 
 ### No CLI found
 
-serve prints `Warning: No CLI tool detected` at startup when it finds neither `claude` nor `gemini` on your `PATH`. The map still works, and the page says that no CLI names the parts. Check:
+serve prints `Warning: claude not found, so opened folders keep folder names.` at startup when `claude` is not on your `PATH` and you did not pass `--cli` or `--out`. The map still works, and the page says that no CLI names the parts. Check:
 
 ```bash
 which claude
-which gemini
 ```
 
-Install one of them or fix your `PATH`, then restart serve. On Windows, open a new terminal after installing so the `PATH` change takes effect.
+Install Claude Code or fix your `PATH`, then restart serve. To use Gemini CLI instead, start serve with `--cli gemini`. On Windows, open a new terminal after installing so the `PATH` change takes effect.
 
 ### Folders keep their folder names
 

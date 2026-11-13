@@ -8,36 +8,43 @@ The skill uses only shell commands and file writes. It does not need subagents, 
 
 ## 1. Install the `ropeman` command
 
-The skill runs `ropeman` (the `@ropeman/bridge` package, 0.3.0 or later, Node 22 or later).
+The skill runs `ropeman` from the `@ropeman/bridge` package, 0.3.0 or later, on Node 22 or later.
 
-Today, from a checkout of this repository (0.3.0 is not on npm yet):
+```bash
+npm install -g @ropeman/bridge@0.3.0
+ropeman --version                # 0.3.0 or later
+```
+
+To try a change that is not on npm yet, build the package from a checkout of this repository instead:
 
 ```bash
 npm ci && npm ci --prefix bridge
 cd bridge && npm pack            # builds the app, the bridge and the viewer, writes ropeman-bridge-0.3.0.tgz
 npm install -g ./ropeman-bridge-0.3.0.tgz
-ropeman --version                # 0.3.0
-```
-
-After 0.3.0 is published (pending):
-
-```bash
-npm install -g @ropeman/bridge
 ```
 
 ## 2. Install the skill
 
-Copy the `ropeman` folder into the folder your agent loads skills from. For Claude Code:
+The skill is one file, `ropeman/SKILL.md`. Save it as `ropeman/SKILL.md` in the folder your agent loads personal skills from:
+
+| Agent       | Skills folder       | Status                                      |
+| ----------- | ------------------- | ------------------------------------------- |
+| Claude Code | `~/.claude/skills/` | Tested                                      |
+| Codex       | `~/.agents/skills/` | From Codex's documentation, not tested      |
+| Gemini CLI  | `~/.gemini/skills/` | From Gemini CLI's documentation, not tested |
+| Cursor      | `~/.cursor/skills/` | From Cursor's documentation, not tested     |
+
+For Claude Code (put the folder from the table in place of `~/.claude/skills` for another agent):
 
 ```bash
-cp -R skill/ropeman ~/.claude/skills/ropeman
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.0/skill/ropeman/SKILL.md
 ```
 
-An agent without skill support can follow the same steps: paste the text of `ropeman/SKILL.md` into the conversation.
+From a checkout, `cp -R skill/ropeman ~/.claude/skills/ropeman` does the same. The command takes the skill from the `bridge-v0.3.0` tag, the release that matches the package you installed, and the skill's first step checks that `ropeman --version` is new enough. An agent without skill support can follow the same steps: paste the text of `ropeman/SKILL.md` into the conversation.
 
 ## 3. Use it
 
-Ask the agent to "map this repo". If the repository must stay unchanged, say so. The agent then writes its output outside the repository instead of in `.ropeman/`. Inside the repository `.ropeman/` gets a `.gitignore`, so git does not commit it.
+Ask the agent to "map this repo". It builds the map and gives you an address like `http://127.0.0.1:9800/bridge#token=…`. Open it in any browser: serve hosts the page itself (local mode), so there is no permission prompt and no token to paste. If the repository must stay unchanged, say so. The agent then writes its output outside the repository instead of in `.ropeman/`. Inside the repository `.ropeman/` gets a `.gitignore`, so git does not commit it.
 
 The agent runs these commands with fixed arguments:
 

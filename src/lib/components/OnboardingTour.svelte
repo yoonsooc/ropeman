@@ -2,7 +2,6 @@
 	import { onboardingStore } from '$lib/stores/onboardingStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
-	import { onMount } from 'svelte';
 
 	// Phase 2 auto-trigger: watch for analysis completion
 	let phase2Triggered = $state(false);
@@ -16,28 +15,12 @@
 
 	$effect(() => {
 		const hasSemanticData = semanticStore.cache.size > 0;
-		if (
-			hasSemanticData &&
-			onboardingStore.phase1Completed &&
-			!onboardingStore.phase2Completed &&
-			!phase2Triggered &&
-			onboardingStore.phase !== 'phase2'
-		) {
+		if (hasSemanticData && onboardingStore.canStartPhase2 && !phase2Triggered) {
 			phase2Triggered = true;
 			// Small delay so the UI has time to render the semantic elements
 			setTimeout(() => {
 				onboardingStore.startPhase2();
 			}, 800);
-		}
-	});
-
-	// Auto-start Phase 1 on first visit
-	onMount(() => {
-		if (!onboardingStore.phase1Completed && !onboardingStore.phase2Completed) {
-			// Small delay so the landing page renders first
-			setTimeout(() => {
-				onboardingStore.startPhase1();
-			}, 500);
 		}
 	});
 

@@ -66,10 +66,13 @@ function createOnboardingStore() {
 			currentStep = PHASE1_START;
 		},
 
-		/** Start Phase 2 (after analysis completes) */
+		/** Phase 2 runs once, after any analysis, whether or not Phase 1 ever ran, but never over a running Phase 1 */
+		get canStartPhase2() {
+			return !phase2Completed && phase === 'idle';
+		},
+
 		startPhase2() {
-			if (phase2Completed) return;
-			if (!phase1Completed) return;
+			if (!this.canStartPhase2) return;
 			phase = 'phase2';
 			currentStep = PHASE2_START;
 		},

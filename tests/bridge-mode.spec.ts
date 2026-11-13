@@ -283,7 +283,7 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 
 		await page.goto('/bridge');
 		await expect(page.getByRole('heading', { name: 'Connect to ropeman serve' })).toBeVisible();
-		await expect(page.getByText('npx @ropeman/bridge serve --root .')).toBeVisible();
+		await expect(page.getByText('ropeman serve --root .')).toBeVisible();
 		await page.getByLabel('Port').fill(String(serve.port));
 		await page.getByLabel('Token', { exact: true }).fill('not-the-token-at-all');
 		await shot(page, 'en-desktop-connect');
@@ -423,7 +423,7 @@ test.describe('Connection guide on ropeman.dev', () => {
 			// Nothing listens: with the permission undecided the page cannot tell which it was
 			await tryConnect(page, await freePort(), TOKEN);
 			await expect(guide(page)).toHaveAttribute('data-state', 'unanswered');
-			await expect(guide(page)).toContainText('npx @ropeman/bridge serve --root . --local');
+			await expect(guide(page)).toContainText('ropeman serve --root . --local');
 			await shot(page, `${variant.tag}-guide-unanswered`);
 			await context.close();
 		});
@@ -449,7 +449,7 @@ test.describe('Connection guide on ropeman.dev', () => {
 
 			await tryConnect(page, await freePort(), TOKEN);
 			await expect(guide(page)).toHaveAttribute('data-state', 'serve-down');
-			await expect(guide(page)).toContainText('npx @ropeman/bridge serve --root .');
+			await expect(guide(page)).toContainText('ropeman serve --root .');
 			await shot(page, `${variant.tag}-guide-serve-down`);
 
 			await tryConnect(page, serve.port, 'not-the-token-at-all');
@@ -474,7 +474,7 @@ test.describe('Connection guide on ropeman.dev', () => {
 			await expect(guide(page)).toHaveAttribute('data-state', 'refused');
 			await expect(guide(page)).toContainText('cat ~/.ropeman/bridge-token');
 			await expect(guide(page)).toContainText(
-				`npx @ropeman/bridge serve --root . --allow-origin ${PUBLIC_ORIGIN}`
+				`ropeman serve --root . --allow-origin ${PUBLIC_ORIGIN}`
 			);
 			await shot(page, `${variant.tag}-guide-refused-origin`);
 			await context.close();
@@ -490,7 +490,7 @@ test.describe('Connection guide on ropeman.dev', () => {
 			await expect(guide(page)).toContainText(
 				'chrome://settings/content/siteDetails?site=https%3A%2F%2Fropeman.test'
 			);
-			await expect(guide(page)).toContainText('npx @ropeman/bridge serve --root . --local');
+			await expect(guide(page)).toContainText('ropeman serve --root . --local');
 			await shot(page, `${variant.tag}-guide-denied`);
 			await context.close();
 		});
@@ -521,7 +521,7 @@ test.describe('Connection guide on ropeman.dev', () => {
 		test(`${variant.tag}: Safari goes straight to local mode`, async ({ browser }) => {
 			const { page, context } = await open(browser, 'unsupported', UA.safari);
 			await expect(guide(page)).toHaveAttribute('data-state', 'safari');
-			await expect(guide(page)).toContainText('npx @ropeman/bridge serve --root . --local');
+			await expect(guide(page)).toContainText('ropeman serve --root . --local');
 			await expect(page.locator('.bridge-form')).toHaveCount(0);
 			await shot(page, `${variant.tag}-guide-safari`);
 

@@ -45,4 +45,4 @@ Ropeman is designed to be driven from the keyboard. Every shortcut below works a
 
 - **Double-click** is the universal "go deeper" gesture: on a semantic node it triggers drill-down, on a file in the explorer it opens the code viewer.
 - **Drag a tab** onto the opposite half of the workspace to create a split view automatically.
-- The onboarding tour walks through these interactions on your first visit. Restart it anytime from **Settings** or from the **Help** modal footer.
+- The onboarding tour walks through these interactions. Start it from **Settings** or from the **Help** modal footer.

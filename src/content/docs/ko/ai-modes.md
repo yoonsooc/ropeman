@@ -60,6 +60,6 @@ Ropeman에서는 **AI 트랙 세 가지** 중 하나를 고릅니다. 모드마�
 | 오프라인 동작      | 불가  | 불가                                   | 완전             |
 | 추천 프로젝트 크기 | 소~중 | 소~대                                  | 소               |
 
-내 컴퓨터에 있는 폴더의 지도를 만들고 내 Claude Code나 Gemini CLI로 이름을 붙이려면 [ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드를 쓰세요. 방법은 [브리지 설정](/docs/ko/bridge-setup)에 있습니다.
+내 컴퓨터에 있는 폴더의 지도를 만들려면 [ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드를 쓰세요. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 `claude` 일꾼이 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. serve는 `--cli gemini`를 줄 때만 `gemini`를 씁니다. 방법은 [브리지 설정](/docs/ko/bridge-setup)에 있습니다.
 
 어떤 모드를 선택하든 **원본 소스 코드는 브라우저를 떠나지 않는다는 원칙**은 동일합니다. 자세한 데이터 흐름은 [보안 문서](/docs/ko/security)에서 확인할 수 있습니다.

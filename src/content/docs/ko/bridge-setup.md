@@ -1,11 +1,13 @@
 ---
 title: 브리지 설정
-description: ropeman serve로 내 컴퓨터의 폴더 지도를 만들고 ropeman.dev/bridge에서 엽니다. 폴더 안의 부분에는 내 Claude Code나 Gemini CLI가 이름을 붙입니다.
+description: ropeman serve로 내 컴퓨터의 폴더 지도를 만들고 ropeman.dev/bridge나 로컬 모드에서 엽니다. 폴더 안의 부분에는 헤드리스 Claude Code 일꾼이 이름을 붙입니다.
 category: guides
 order: 6
 ---
 
-**브리지 모드**는 내 컴퓨터에 있는 폴더의 지도를 보여 줍니다. `ropeman serve`(npm 패키지 `@ropeman/bridge`)가 폴더를 읽고, [ropeman.dev/bridge](https://ropeman.dev/bridge) 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 폴더를 누르면 그 안의 하위 폴더와 파일이 바로 보이고, 이어서 내 컴퓨터의 CLI(**Claude Code** 또는 **Gemini CLI**)가 각 부분에 이름을 붙입니다. 파일을 누르면 소스가 열립니다.
+**브리지 모드**는 내 컴퓨터에 있는 폴더의 지도를 보여 줍니다. `ropeman serve`(npm 패키지 `@ropeman/bridge`)가 폴더를 읽고, [ropeman.dev/bridge](https://ropeman.dev/bridge) 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 폴더를 누르면 그 안의 하위 폴더와 파일이 바로 보이고, 이어서 헤드리스 **Claude Code** 일꾼(`claude -p`)이 각 부분에 이름을 붙입니다. 파일을 누르면 소스가 열립니다.
+
+Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 합니다. 에이전트에게 "map this repo"라고 요청하고, 에이전트가 알려 주는 로컬 모드 주소를 여세요. [시작하기](/docs/ko/getting-started)를 보세요. 이 문서는 serve를 직접 띄울 때를 다룹니다.
 
 브리지 모드는 메인 앱과 다른 페이지에서 씁니다. 메인 앱의 AI 모드(데모, API 키, WebGPU)는 [AI 모드 가이드](/docs/ko/ai-modes)를 보세요.
 
@@ -18,27 +20,29 @@ order: 6
 ## 사전 준비
 
 - Node.js 22 이상
-- Claude Code나 Gemini CLI를 설치하고 로그인해 둡니다. CLI가 없어도 지도는 볼 수 있고, 폴더는 폴더 이름을 그대로 씁니다.
+- 연 폴더에 이름을 붙이려면 Claude Code(`claude`)를 설치하고 로그인해 둡니다. Gemini CLI는 serve를 `--cli gemini`로 켤 때만 이름을 붙입니다. CLI가 없어도 지도는 볼 수 있고, 폴더는 폴더 이름을 그대로 씁니다.
 - Chrome, Edge, Firefox 중 하나. Safari는 ropeman.dev에서 serve에 연결하지 못하므로 [로컬 모드](#로컬-모드로-쓰기)로 serve를 켜세요.
 
 ## serve 실행
 
-지도를 만들 폴더에서 serve를 실행하세요.
+명령을 한 번 설치하고, 지도를 만들 폴더에서 serve를 실행하세요.
 
 ```bash
+npm install -g @ropeman/bridge@0.3.0
 cd ~/code/your-project
-npx @ropeman/bridge serve --root .
+ropeman serve --root .
 ```
 
-`npx`는 처음 한 번 패키지를 내려받습니다. `--cli`를 주지 않으면 serve는 `claude`, `gemini` 순서로 찾아 먼저 찾은 것을 씁니다. 실행하면 아래처럼 출력합니다.
+전역 설치 없이 `npx @ropeman/bridge@0.3.0 serve --root .`로도 같은 명령을 실행할 수 있습니다. 오래된 npm에서는 이 방법으로 실행 파일을 못 찾을 수 있습니다. `--cli`를 주지 않으면 serve는 `PATH`에 `claude`가 있을 때 그것을 씁니다. `gemini`는 스스로 고르지 않습니다. 실행하면 아래처럼 출력합니다.
 
 ```text
-[09:41:02] Using CLI: claude
+[09:41:02] Workers naming opened folders: claude
 [09:41:02] Allowed origins: https://ropeman.dev, http://localhost:5173, ...
 [09:41:02] Bridge server ready on ws://127.0.0.1:9800
 [09:41:02] Open https://ropeman.dev/bridge and paste the token (stored in /Users/you/.ropeman/bridge-token).
 [09:41:02] Map and file.read root: /Users/you/code/your-project
 [09:41:02] Safari, or the browser blocked the connection? Start again with --local.
+[09:41:02] Extracted 24 files of 24 listed in 0.05s
 ```
 
 serve는 토큰 값을 찍지 않고 어디 있는지만 알려 줍니다. 그래서 토큰이 터미널 로그에 남지 않습니다. 토큰은 파일에서 복사하세요.
@@ -85,7 +89,7 @@ serve가 연결을 받으면 지도가 나옵니다. 페이지는 토큰을 저�
 2. `--local`을 붙여 다시 켭니다.
 
    ```bash
-   npx @ropeman/bridge serve --root . --local
+   ropeman serve --root . --local
    ```
 
 3. serve가 출력한 주소 `http://127.0.0.1:9800/bridge#token=…`를 엽니다.
@@ -98,7 +102,7 @@ serve가 토큰을 출력하는 곳은 이 주소뿐입니다. 토큰은 `#` 뒤
 | ------------------------ | ------------------------------------------------------------------------------------- |
 | `--root <폴더>`          | 이 폴더의 지도를 만들고 변경을 지켜보며, 페이지가 그 안의 파일을 읽게 합니다          |
 | `--port <번호>`          | 열 포트 (기본 `9800`)                                                                 |
-| `--cli <claude\|gemini>` | 폴더에 이름을 붙일 CLI (기본: 자동 감지)                                              |
+| `--cli <claude\|gemini>` | 폴더에 이름을 붙일 CLI (기본: 설치돼 있으면 `claude`)                                 |
 | `--token <값>`           | 저장된 토큰 대신 이 토큰을 씁니다                                                     |
 | `--allow-origin <url>`   | 이 출처의 연결도 받습니다                                                             |
 | `--local`                | `http://127.0.0.1:<포트>/bridge`에서 뷰어를 내줍니다 ([로컬 모드](#로컬-모드로-쓰기)) |
@@ -136,7 +140,7 @@ serve는 내 CLI를 실행하고 `--root` 안의 파일을 읽습니다. 그래�
 - **그 포트에서 아무것도 듣고 있지 않습니다.** serve가 꺼져 있거나 다른 포트에서 돌고 있습니다. serve를 켜고, **포트** 값이 터미널에 찍힌 포트와 같은지 확인하세요.
 - **serve가 연결을 거부했습니다.** 토큰이 틀렸거나 serve가 그 페이지 주소를 허용하지 않은 경우입니다. 어느 쪽인지는 serve를 실행한 터미널에 나옵니다.
   - `Rejected connection: missing or wrong token`: `cat ~/.ropeman/bridge-token`으로 토큰을 다시 복사하세요. 토큰 파일을 지웠거나 `ROPEMAN_BRIDGE_TOKEN`을 바꿨다면 토큰도 바뀌었습니다.
-  - `Rejected connection from origin "..." (not allowed)`: 카드에 나온 페이지 주소를 `--allow-origin`에 넣어 serve를 다시 실행하세요. 예: `npx @ropeman/bridge serve --root . --allow-origin https://preview.example.com`
+  - `Rejected connection from origin "..." (not allowed)`: 카드에 나온 페이지 주소를 `--allow-origin`에 넣어 serve를 다시 실행하세요. 예: `ropeman serve --root . --allow-origin https://preview.example.com`
 - **연결되지 않았고, 브라우저가 이유를 알려 주지 않습니다.** Firefox와 Safari에는 페이지가 읽을 수 있는 권한이 없습니다. 이때 페이지는 포트를 따로 확인하지 않습니다. 그 확인 때문에 브라우저가 한 번 더 물을 수 있어서입니다. serve가 그 포트에서 돌고 있는지, 토큰이 맞는지, 사이트를 차단하지 않았는지, serve 터미널에 무엇이 찍혔는지 확인하세요. 그래도 연결되지 않으면 [로컬 모드](#로컬-모드로-쓰기)를 쓰세요.
 
 ### "Port 9800 is already in use"
@@ -149,14 +153,13 @@ serve는 내 CLI를 실행하고 `--root` 안의 파일을 읽습니다. 그래�
 
 ### CLI를 찾지 못할 때
 
-`PATH`에 `claude`도 `gemini`도 없으면 serve는 시작할 때 `Warning: No CLI tool detected`를 출력합니다. 지도는 그대로 볼 수 있고, 페이지는 이름을 붙일 CLI가 없다고 알려 줍니다. 설치 여부를 확인하세요.
+`PATH`에 `claude`가 없고 `--cli`나 `--out`도 주지 않으면 serve는 시작할 때 `Warning: claude not found, so opened folders keep folder names.`를 출력합니다. 지도는 그대로 볼 수 있고, 페이지는 이름을 붙일 CLI가 없다고 알려 줍니다. 설치 여부를 확인하세요.
 
 ```bash
 which claude
-which gemini
 ```
 
-둘 중 하나를 설치하거나 `PATH`를 고친 뒤 serve를 다시 켜세요. Windows에서는 설치 후 터미널을 새로 열어야 `PATH` 변경이 적용됩니다.
+Claude Code를 설치하거나 `PATH`를 고친 뒤 serve를 다시 켜세요. Gemini CLI를 쓰려면 serve를 `--cli gemini`로 켜세요. Windows에서는 설치 후 터미널을 새로 열어야 `PATH` 변경이 적용됩니다.
 
 ### 폴더 이름이 그대로 남을 때
 

@@ -87,7 +87,7 @@ describe('i18nStore', () => {
 		it('keeps the Korean landing free of the English strings it used to show', () => {
 			// Regression: the ko locale showed "or drag & drop a folder here",
 			// "Multi-Track AI" and "Explore Gallery" in English (the gallery link is now landing.exampleCta)
-			for (const key of ['landing.dragHint', 'landing.featureBrowserTitle', 'landing.exampleCta']) {
+			for (const key of ['landing.dragHint', 'landing.featureMapTitle', 'landing.exampleCta']) {
 				expect(i18nStore.t(key)).toMatch(/[가-힣]/);
 			}
 		});
@@ -228,6 +228,42 @@ describe('i18nStore', () => {
 						if (language === 'ko') expect(text, key).toMatch(/[가-힣]/);
 					}
 				}
+			}
+		});
+
+		it('says in both languages that only Claude Code was tested with the skill', () => {
+			for (const language of ['ko', 'en'] as const) {
+				// Arrange
+				settingsStore.language = language;
+				const params = { agent: 'Codex', dir: '~/.agents/skills' };
+
+				// Act
+				const untested = i18nStore.t('agentSetup.untested', params);
+				const tested = i18nStore.t('agentSetup.tested', { agent: 'Claude Code' });
+
+				// Assert
+				expect(untested).toContain('~/.agents/skills');
+				expect(untested).toMatch(language === 'ko' ? /테스트하지 않았습니다/ : /not been tested/);
+				expect(untested).not.toMatch(/\{\w+\}/);
+				expect(tested).toContain('Claude Code');
+			}
+		});
+
+		// Regression: /bridge said "your local CLI (Claude Code or Gemini) names the parts", but the
+		// agent names the top levels, a claude worker names opened folders, and gemini needs --cli
+		it('says on /bridge who names each part, in both languages', () => {
+			for (const language of ['ko', 'en'] as const) {
+				// Arrange
+				settingsStore.language = language;
+
+				// Act
+				const desc = i18nStore.t('bridge.desc');
+
+				// Assert
+				expect(desc).toMatch(language === 'ko' ? /코딩 에이전트/ : /coding agent/);
+				expect(desc).toContain('claude');
+				expect(desc).toContain('--cli gemini');
+				expect(desc).not.toMatch(/local CLI|로컬 CLI|Nothing goes through|거치지 않습니다/);
 			}
 		});
 

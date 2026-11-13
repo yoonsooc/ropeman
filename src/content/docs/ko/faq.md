@@ -77,7 +77,7 @@ WebGPU 모드는 모델을 처음 내려받은 뒤에는 오프라인에서 동�
 
 ### 내 Claude Code나 Gemini CLI를 쓸 수 있나요?
 
-메인 앱에서는 쓸 수 없습니다. [ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드가 내 컴퓨터의 `ropeman serve`에 연결하고, 내가 연 폴더에 내 CLI가 이름을 붙입니다. 방법은 [브리지 설정](/docs/ko/bridge-setup)에 있습니다.
+메인 앱에서는 쓸 수 없습니다. [ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드가 내 컴퓨터의 `ropeman serve`에 연결합니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 `claude` 일꾼이 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. serve는 `--cli gemini`를 줄 때만 `gemini`를 씁니다. 방법은 [브리지 설정](/docs/ko/bridge-setup)에 있습니다.
 
 ### Ropeman은 어떻게 설치하나요?
 
