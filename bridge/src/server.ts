@@ -17,9 +17,9 @@ import {
 	DETACHED_CHILD,
 	type Running,
 	type ServeStatus,
+	findServe,
 	removeRecord,
 	runStop,
-	runningServe,
 	startDetached,
 	writeRecord
 } from './background.js';
@@ -294,6 +294,9 @@ async function main() {
 			})
 		: null;
 
+	// Only what passed the token or the secret counts as use, so a page that polls the port, or the
+	// viewer's files loaded with no socket after them, does not keep serve running
+	let lastUse = Date.now();
 	const bridge = createBridgeServer({
 		port,
 		token,
@@ -311,6 +314,7 @@ async function main() {
 				void shutdown();
 			}
 		},
+		onUse: () => (lastUse = Date.now()),
 		log
 	});
 
@@ -329,11 +333,11 @@ async function main() {
 		stopping = true;
 		log('Shutting down...');
 		// A CLI that ignores SIGTERM gets SIGKILL after the grace; this cap only covers a stuck close
-		setTimeout(() => process.exit(0), KILL_GRACE_MS + 3_000).unref();
+		setTimeout(() => process.exit(), KILL_GRACE_MS + 3_000).unref();
 		await bridge.close();
 		fs.rmSync(namingDir, { recursive: true, force: true });
 		log('Server stopped');
-		process.exit(0);
+		process.exit();
 	}
 
 	process.on('SIGINT', shutdown);
@@ -343,14 +347,9 @@ async function main() {
 
 	if (idleMinutes > 0) {
 		const idleMs = idleMinutes * 60_000;
-		let lastUse = Date.now();
-		// A page load or a second start's check (a request) counts as use, like an open socket
-		const use = () => (lastUse = Date.now());
-		server.on('request', use);
-		server.on('upgrade', use);
 		setInterval(
 			() => {
-				if (bridge.clients.size > 0) use();
+				if (bridge.clients.size > 0) lastUse = Date.now();
 				else if (Date.now() - lastUse >= idleMs) {
 					log(`No page open for ${idleMinutes} minutes.`);
 					void shutdown();
@@ -379,13 +378,27 @@ async function main() {
 			startedAt: new Date().toISOString(),
 			version: pkg.version
 		};
-		// The --detach start checked under its lock; a terminal's serve leaves another one's record
-		if (detachedChild) return writeRecord(out, record);
-		void runningServe(out).then((other) => {
-			if (!other) return writeRecord(out, record);
+		const keep = () => {
+			const exposed = writeRecord(out, record);
+			if (!exposed) return;
 			log(
-				`Another serve runs for ${out} (pid ${other.status.pid}, port ${other.record.port}); ropeman stop and serve --detach reach that one, not this one.`
+				`Cannot keep ${out}/serve.json private: this file system reports it as ${exposed}, so ropeman stop and serve --detach would not trust it. Use an --out folder on a disk that keeps file modes.`
 			);
+			// A detached serve nobody can reach or stop would only hold its port until idle
+			if (detachedChild) {
+				process.exitCode = 1;
+				void shutdown();
+			}
+		};
+		// The --detach start checked under its lock; a terminal's serve leaves another one's record
+		if (detachedChild) return keep();
+		void findServe(out).then((other) => {
+			if (other.kind === 'none' || other.kind === 'stale') return keep();
+			const which =
+				other.kind === 'running'
+					? `Another serve runs for ${out} (pid ${other.running.status.pid}, port ${other.running.record.port})`
+					: `${out}/serve.json may point to another serve (${other.problem})`;
+			log(`${which}; ropeman stop and serve --detach reach that one, not this one.`);
 		});
 	});
 }

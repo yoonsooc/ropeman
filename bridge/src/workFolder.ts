@@ -34,18 +34,29 @@ const MAX_QUEUE_BYTES = 1024 * 1024;
 export const MAX_LOG_BYTES = 1_000_000;
 const MAX_CURSOR_BYTES = 1024;
 
-export type OutRead = { text: string; cut: boolean } | { refused: string } | null;
+/** `exposed`, asked for with `owned`, says why others could read or replace the file. */
+export type OutRead = { text: string; cut: boolean; exposed?: string } | { refused: string } | null;
 
 const linkRefused = (name: string) => ({
 	refused: `${name} is a link; Ropeman reads only the folder's own files.`
 });
 
+/** Why others could read or replace a file; undefined for a private file of this user, and on Windows. */
+function exposure(stat: fs.Stats): string | undefined {
+	const uid = process.getuid?.();
+	if (uid === undefined) return undefined;
+	if (stat.uid !== uid) return `owned by uid ${stat.uid}`;
+	if (stat.mode & 0o077) return `mode ${(stat.mode & 0o777).toString(8)}`;
+	return undefined;
+}
+
 /**
  * One file of `--out`, which is a real path: only a regular file directly in it, never a link,
  * so the bytes read are the folder's own. At most `maxBytes` of it; `cut` says there was more.
  * null when the file is missing; `refused` says why it was not read. It opens without blocking,
- * so a FIFO is refused instead of stopping serve. `owned` also refuses, on POSIX, a file another
- * user owns or others can read, which a file serve wrote itself (mode 0600) never is.
+ * so a FIFO is refused instead of stopping serve. `owned` also sets `exposed`, on POSIX, for a file
+ * another user owns or others can read, which a file serve wrote itself (mode 0600) never is on a
+ * file system that keeps modes.
  */
 export function readOutFile(
 	out: string,
@@ -71,9 +82,7 @@ export function readOutFile(
 	try {
 		const stat = fs.fstatSync(fd);
 		if (!stat.isFile()) return { refused: `${name} is not a regular file.` };
-		if (owned && process.getuid && (stat.uid !== process.getuid() || stat.mode & 0o077)) {
-			return { refused: `${name} is not a private file of this user.` };
-		}
+		const exposed = owned ? exposure(stat) : undefined;
 		const bytes = Buffer.alloc(Math.min(stat.size, maxBytes) + 1);
 		let read = 0;
 		for (let n = -1; n !== 0 && read < bytes.length; read += n) {
@@ -81,7 +90,8 @@ export function readOutFile(
 		}
 		return {
 			text: bytes.subarray(0, Math.min(read, maxBytes)).toString('utf8'),
-			cut: read > maxBytes
+			cut: read > maxBytes,
+			...(exposed && { exposed })
 		};
 	} finally {
 		fs.closeSync(fd);

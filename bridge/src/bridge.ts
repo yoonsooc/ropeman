@@ -59,6 +59,8 @@ export interface BridgeOptions {
 	runner: CliRunner;
 	server: { name: string; version: string };
 	control?: ServeControl;
+	/** Called for each socket that passed the token check and each request with the control secret */
+	onUse?: () => void;
 	log?: (msg: string) => void;
 }
 
@@ -83,12 +85,20 @@ function echo(text: string): { id: number; type: string } {
 	}
 }
 
-function answerControl(control: ServeControl, req: http.IncomingMessage, res: http.ServerResponse) {
+function answerControl(
+	control: ServeControl,
+	req: http.IncomingMessage,
+	res: http.ServerResponse,
+	onUse: () => void
+) {
 	const given = req.headers[SECRET_HEADER];
 	const head = { 'Content-Type': 'text/plain', Connection: 'close' };
 	if (!tokensMatch(typeof given === 'string' ? given : null, control.secret)) {
 		res.writeHead(403, head).end('Wrong secret');
-	} else if (req.method === 'GET') {
+		return;
+	}
+	onUse();
+	if (req.method === 'GET') {
 		res.writeHead(200, { ...head, 'Content-Type': 'application/json' });
 		res.end(JSON.stringify(control.status));
 	} else if (req.method === 'POST') {
@@ -110,6 +120,7 @@ export function createBridgeServer(options: BridgeOptions): {
 } {
 	const { port, token, root, viewerDir, session, runner } = options;
 	const log = options.log ?? (() => {});
+	const onUse = options.onUse ?? (() => {});
 	const allowedOrigins = new Set(options.allowedOrigins);
 	if (viewerDir) for (const origin of localOrigins(port)) allowedOrigins.add(origin);
 	const clients = new Set<WebSocket>();
@@ -120,7 +131,7 @@ export function createBridgeServer(options: BridgeOptions): {
 			return;
 		}
 		if (options.control && req.url?.split('?')[0] === CONTROL_PATH) {
-			answerControl(options.control, req, res);
+			answerControl(options.control, req, res, onUse);
 			return;
 		}
 		if (!viewerDir) {
@@ -168,6 +179,7 @@ export function createBridgeServer(options: BridgeOptions): {
 	wss.on('connection', (ws, req) => {
 		const addr = req.socket.remoteAddress ?? 'unknown';
 		clients.add(ws);
+		onUse();
 		log(
 			`Client connected from ${addr} origin=${req.headers.origin ?? '-'} (${clients.size} total)`
 		);

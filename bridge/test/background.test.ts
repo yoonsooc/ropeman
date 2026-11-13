@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ChildProcess, execFile, execFileSync, spawn } from 'child_process';
 import fs from 'fs';
 import http from 'http';
@@ -8,7 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { build } from 'vite';
 import { HOST } from '../src/bridge';
-import { readRecord, type ServeRecord } from '../src/background';
+import { readRecord, type ServeRecord, writeRecord } from '../src/background';
 import { SERVE_FILE, SERVE_LOG_FILE } from '../src/workFolder';
 import { parseServerMessage } from '../../src/lib/services/ropemanMapSchema';
 import type { ServerMessage } from '../../src/lib/types/ropemanMap';
@@ -192,7 +192,11 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		return { child, output: () => output };
 	}
 
-	/** A planted record, valid in every field; mode 0600 unless given. */
+	/**
+	 * A planted record, valid in every field of this version's record and of 0.3.0's (`root`,
+	 * `open`, `idleMinutes`), so a test of an attack on 0.3.0 runs that attack on it; mode 0600
+	 * unless given.
+	 */
 	function plant(out: string, fields: Record<string, unknown>, mode = 0o600) {
 		fs.mkdirSync(out, { recursive: true });
 		const file = path.join(out, SERVE_FILE);
@@ -205,6 +209,9 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 				secret: 'planted-secret-planted-secret-planted-secret',
 				startedAt: new Date().toISOString(),
 				version: '0.3.0',
+				root: null,
+				open: null,
+				idleMinutes: 0,
 				...fields
 			})
 		);
@@ -405,6 +412,36 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		);
 	}, 30_000);
 
+	it('stops after the idle time while a page polls the port without the token', async () => {
+		// Arrange: local mode, so the poll loads the viewer page, which needs no token
+		const p = project();
+		const port = await freePort();
+		await start(p, port, '--viewer', p.viewer, '--idle-minutes', '0.02');
+		const { pid } = record(p.out);
+		const loads: number[] = [];
+		const poll = setInterval(() => {
+			http
+				.get({ host: HOST, port, path: '/' }, (res) => {
+					loads.push(res.statusCode ?? 0);
+					res.resume();
+				})
+				.on('error', () => {});
+		}, 100);
+
+		// Act
+		try {
+			await until(() => !alive(pid), 10_000);
+		} finally {
+			clearInterval(poll);
+		}
+
+		// Assert
+		expect(loads.filter((status) => status === 200).length).toBeGreaterThan(3);
+		expect(fs.readFileSync(path.join(p.out, SERVE_LOG_FILE), 'utf8')).toContain(
+			'No page open for 0.02 minutes.'
+		);
+	}, 30_000);
+
 	it('replaces a record whose process is gone', async () => {
 		// Arrange: a serve killed with SIGKILL leaves its record behind
 		const p = project();
@@ -439,11 +476,11 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		// Act
 		const stopped = await ropeman(['stop', '--out', p.out]);
 
-		// Assert
-		expect(stopped.code).toBe(0);
-		expect(JSON.parse(stopped.stdout)).toEqual({ stopped: false, staleRecordRemoved: true });
+		// Assert: 0.3.0 killed the bystander here. Something listens on the port, so the record stays
 		expect(alive(bystander.pid!)).toBe(true);
-		expect(fs.existsSync(path.join(p.out, SERVE_FILE))).toBe(false);
+		expect(stopped.code).toBe(1);
+		expect(stopped.stderr).toContain(`nothing on port ${stranger.port} answered as the serve in`);
+		expect(fs.existsSync(path.join(p.out, SERVE_FILE))).toBe(true);
 	}, 30_000);
 
 	it('never signals a pid even when a listener knows the planted secret', async () => {
@@ -472,8 +509,23 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		expect(alive(bystander.pid!)).toBe(true);
 	}, 30_000);
 
-	it('ignores a record others can read, as a cloned repository ships it', async () => {
-		// Arrange: git checks files out 0644; the listener answers for the planted secret
+	it('removes a record others can read once nothing listens on its port, as a cloned repository ships it', async () => {
+		// Arrange: git checks files out 0644
+		const p = project();
+		plant(p.out, { port: await freePort() }, 0o644);
+
+		// Act
+		const port = await freePort();
+		const run = await start(p, port);
+
+		// Assert
+		expect(run.code).toBe(0);
+		expect(record(p.out).port).toBe(port);
+		expect(record(p.out).instance).not.toBe('planted');
+	}, 30_000);
+
+	it('never trusts a record others can read while its port answers, and starts no serve', async () => {
+		// Arrange: a 0644 record and a listener that answers for its secret
 		const p = project();
 		let strangerPort = 0;
 		const stranger = await listener((_req, res) => {
@@ -487,16 +539,74 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		plant(p.out, { port: strangerPort, open: 'http://evil.example/' }, 0o644);
 
 		// Act
-		const port = await freePort();
-		const run = await start(p, port);
+		const run = await start(p, await freePort());
 
 		// Assert
-		expect(run.code).toBe(0);
-		expect(run.stdout).not.toContain('already runs');
-		expect(run.stdout).not.toContain('evil.example');
-		expect(record(p.out).port).toBe(port);
-		expect(record(p.out).instance).not.toBe('planted');
+		expect(run.code).toBe(1);
+		expect(run.stderr).toContain('is not a private file of this user (mode 644)');
+		expect(run.stdout + run.stderr).not.toContain('already runs');
+		expect(run.stdout + run.stderr).not.toContain('evil.example');
+		expect(fs.readFileSync(path.join(p.out, SERVE_FILE), 'utf8')).toContain('"planted"');
+		expect(servesOf(p.base)).toEqual([]);
 	}, 30_000);
+
+	it('keeps a record that is not private while its serve runs, and says how to recover', async () => {
+		// Arrange: the mode a file system that keeps no modes (exFAT, SMB, NFS) reports
+		const p = project();
+		const port = await freePort();
+		await start(p, port);
+		const kept = record(p.out);
+		const file = path.join(p.out, SERVE_FILE);
+		fs.chmodSync(file, 0o644);
+
+		// Act
+		const stopped = await ropeman(['stop', '--out', p.out]);
+		const again = await start(p, await freePort());
+		const serves = servesOf(p.base);
+		const reply = await mapGet(port);
+		// The recovery the message names
+		fs.chmodSync(file, 0o600);
+		const recovered = await ropeman(['stop', '--out', p.out]);
+
+		// Assert
+		expect(stopped.code).toBe(1);
+		expect(stopped.stderr).toContain('is not a private file of this user (mode 644)');
+		expect(stopped.stderr).toContain(`run chmod 600 ${file} and try again`);
+		expect(again.code).toBe(1);
+		expect(again.stderr).toContain('mode 644');
+		expect(serves).toEqual([kept.pid]);
+		expect(reply).toMatchObject({ type: 'map.get' });
+		expect(JSON.parse(recovered.stdout)).toEqual({ stopped: true, pid: kept.pid, port });
+	}, 30_000);
+
+	it('keeps the record of a serve too busy to answer, and starts no second one', async () => {
+		// Arrange: a stopped process accepts connections and answers none, as an event loop blocked
+		// past the 5 s probe
+		const p = project();
+		const port = await freePort();
+		await start(p, port);
+		const busy = record(p.out);
+		process.kill(busy.pid, 'SIGSTOP');
+
+		// Act
+		let stopped: Run;
+		let again: Run;
+		try {
+			stopped = await ropeman(['stop', '--out', p.out]);
+			again = await start(p, await freePort());
+		} finally {
+			process.kill(busy.pid, 'SIGCONT');
+		}
+		const reply = await mapGet(port);
+
+		// Assert
+		expect(stopped.code).toBe(1);
+		expect(stopped.stderr).toContain(`answered as the serve in ${p.out}/serve.json within 5 s`);
+		expect(again.code).toBe(1);
+		expect(record(p.out)).toEqual(busy);
+		expect(servesOf(p.base)).toEqual([busy.pid]);
+		expect(reply).toMatchObject({ type: 'map.get' });
+	}, 40_000);
 
 	it('ignores a planted record with a pid of 0 or a port out of range', async () => {
 		// Arrange: process.kill(0) would signal this whole process group
@@ -527,7 +637,7 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 
 		// Assert
 		expect(run.code).toBe(1);
-		expect(run.stderr).toContain('Cannot start: serve exited before it listened.');
+		expect(run.stderr).toContain('Cannot start: serve exited before it was ready.');
 		expect(run.stderr).toContain(`Port ${port} is already in use`);
 		expect(fs.existsSync(path.join(p.out, SERVE_FILE))).toBe(false);
 	}, 30_000);
@@ -574,5 +684,52 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 		// Assert
 		expect(run.code).toBe(1);
 		expect(run.stderr).toContain('--detach needs --out');
+	});
+});
+
+describe.skipIf(process.platform === 'win32')('writeRecord', () => {
+	const record: ServeRecord = {
+		pid: process.pid,
+		port: 9999,
+		instance: 'mine',
+		secret: 'a-secret-long-enough-to-be-a-record-secret',
+		startedAt: new Date().toISOString(),
+		version: '0.3.1'
+	};
+	let out: string;
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		fs.rmSync(out, { recursive: true, force: true });
+	});
+
+	it('keeps a record that reads back private', () => {
+		// Arrange
+		out = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-record-'));
+
+		// Act
+		const exposed = writeRecord(out, record);
+
+		// Assert
+		expect(exposed).toBe(null);
+		expect(readRecord(out)).toEqual(record);
+	});
+
+	it("removes a record the file system reports as others' too, and says what it reported", () => {
+		// Arrange: the mode a mount that keeps no modes reports for every file
+		out = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-record-'));
+		const fstat = fs.fstatSync;
+		vi.spyOn(fs, 'fstatSync').mockImplementation(((fd: number) => {
+			const stat = fstat(fd);
+			stat.mode = (stat.mode & ~0o777) | 0o755;
+			return stat;
+		}) as typeof fs.fstatSync);
+
+		// Act
+		const exposed = writeRecord(out, record);
+
+		// Assert
+		expect(exposed).toBe('mode 755');
+		expect(fs.existsSync(path.join(out, SERVE_FILE))).toBe(false);
 	});
 });
