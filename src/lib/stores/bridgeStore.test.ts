@@ -199,6 +199,22 @@ describe('bridgeStore', () => {
 		expect(bridgeStore.namingOf('dir:src')).toBeNull();
 	});
 
+	it('remembers which worker named a level and the session run count serve reported', async () => {
+		const server = await connected();
+		await expandSrc(server);
+
+		server.push({
+			type: 'node.named',
+			nodeId: 'dir:src',
+			level: SRC_NAMED,
+			namedBy: { worker: 'claude', runs: 2 }
+		});
+
+		expect(bridgeStore.namedByOf('dir:src')).toBe('claude');
+		expect(bridgeStore.workerRuns).toBe(2);
+		expect(bridgeStore.namedByOf('dir:other')).toBeNull();
+	});
+
 	it('opens the file list of a node serve does not expand', async () => {
 		const server = await connected();
 

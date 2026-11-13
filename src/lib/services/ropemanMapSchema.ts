@@ -405,7 +405,17 @@ export function parseServerMessage(text: string): ParseResult<ServerMessage> {
 				const named = expansion(field(o, 'level'), 'level');
 				if (named.parentId !== nodeId) invalid('level.parentId', `the node ${nodeId}`);
 				if (named.naming !== 'named') invalid('level.naming', 'named');
-				return { type, nodeId, level: named };
+				if (!Object.hasOwn(o, 'namedBy')) return { type, nodeId, level: named };
+				const by = obj(field(o, 'namedBy'), 'namedBy');
+				return {
+					type,
+					nodeId,
+					level: named,
+					namedBy: {
+						worker: nonEmpty(field(by, 'worker'), 'namedBy.worker'),
+						runs: int(field(by, 'runs'), 'namedBy.runs', 0)
+					}
+				};
 			}
 			case 'map.changed':
 				return { type, paths: strings(field(o, 'paths'), 'paths') };

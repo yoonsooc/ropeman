@@ -57,7 +57,8 @@ async function startServe(allowOrigin: string, naming: 'cli' | 'agent' = 'cli'):
 	fs.cpSync(FIXTURE, root, { recursive: true });
 	const bin = path.join(work, 'bin');
 	fs.mkdirSync(bin);
-	fs.symlinkSync(FAKE_CLI, path.join(bin, 'claude'));
+	// Agent mode needs no claude anywhere on PATH, or serve would pick it as the worker
+	if (naming === 'cli') fs.symlinkSync(FAKE_CLI, path.join(bin, 'claude'));
 	const cliDir = path.join(work, 'cli');
 	fs.mkdirSync(cliDir);
 	// Every naming run waits for the release file, so the pending state stays on screen
@@ -86,7 +87,7 @@ async function startServe(allowOrigin: string, naming: 'cli' | 'agent' = 'cli'):
 		{
 			env: {
 				...process.env,
-				PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+				PATH: naming === 'cli' ? `${bin}${path.delimiter}${process.env.PATH}` : bin,
 				FAKE_CLI_DIR: cliDir
 			},
 			stdio: ['ignore', 'pipe', 'pipe']
@@ -180,6 +181,7 @@ async function walkThrough(page: Page, serve: Serve, tag: string) {
 	serve.release();
 	await expect(node(page, 'Named apps/web')).toBeVisible({ timeout: 10_000 });
 	await expect(page.getByTestId('naming-status')).toHaveCount(0);
+	await expect(page.getByTestId('named-by')).toContainText(/claude/);
 	await expect(page.locator('.breadcrumb-bar .crumb.active')).toHaveText(/apps/);
 	await shot(page, `${tag}-named`);
 

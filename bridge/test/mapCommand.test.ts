@@ -6,13 +6,24 @@ import { fileURLToPath } from 'url';
 import {
 	runCommand,
 	runMap,
-	runQueue,
+	runInbox,
 	runVerify,
 	type CommandEnv,
 	type MapReport,
 	type Work
 } from '../src/mapCommand';
-import { MAP_FILE, NAMES_FILE, QUEUE_FILE, WORK_FILE, writeQueue } from '../src/workFolder';
+import {
+	BRIEF_FILE,
+	LOG_FILE,
+	MAP_FILE,
+	MAX_BRIEF_BYTES,
+	NAMES_FILE,
+	QUEUE_FILE,
+	WORK_FILE,
+	readBrief,
+	writeQueue
+} from '../src/workFolder';
+import { CliRunner } from '../src/cli';
 import { MapSession, type Subscriber } from '../src/mapSession';
 import { verifyMap } from '../../src/lib/services/mapVerifier';
 import { extractDirectory } from '../../packages/core/src/extract';
@@ -303,11 +314,22 @@ describe('ropeman verify', () => {
 	});
 });
 
-function session(log: string[] = []) {
+const FAKE_CLI = fileURLToPath(new URL('./fixtures/fake-cli.mjs', import.meta.url));
+
+/** serve in `--out` mode; with `worker`, the fake CLI names opened folders as `claude`. */
+function session(log: string[] = [], worker = false) {
 	return new MapSession({
 		root: fs.realpathSync(root),
 		wasmDir: WASM_DIR,
-		naming: null,
+		naming: worker
+			? {
+					cli: 'claude',
+					command: FAKE_CLI,
+					timeoutMs: 10_000,
+					maxOutputBytes: 1_000_000,
+					runner: new CliRunner(2, base)
+				}
+			: null,
 		out: fs.realpathSync(out),
 		server: { name: '@ropeman/bridge', version: 'test' },
 		debounceMs: 20,
@@ -328,9 +350,9 @@ const until = async (check: () => boolean, ms = 5_000) => {
 	}
 };
 
-async function queue() {
+async function inbox() {
 	const e = env();
-	const code = await runCommand(runQueue, ['--out', out], e);
+	const code = await runCommand(runInbox, ['--out', out], e);
 	return { code, result: JSON.parse(e.stdout.join('\n')) };
 }
 
@@ -377,20 +399,20 @@ describe('serve --out', () => {
 		const viewer = subscriber();
 
 		try {
-			const idle = await queue();
+			const idle = await inbox();
 			const expanded = await s.expand('dir:src');
 			s.name('dir:src', viewer);
-			const waiting = await queue();
+			const waiting = await inbox();
 			const run = await map('--depth', '1');
 			const work = read<Work>(WORK_FILE);
 			writeNames(nameWork(work, read(NAMES_FILE)));
 			await map('--depth', '1');
 			await until(() => viewer.pushes.length === 2);
 
-			expect(idle.result).toEqual({ queued: [] });
+			expect(idle.result).toEqual({ queued: [], named: [] });
 			expect(expanded.ok && expanded.level.naming).toBe('grouped');
 			expect(viewer.pushes[0]).toMatchObject({ type: 'node.named', code: 'queued' });
-			expect(waiting.result).toEqual({ queued: ['dir:src'] });
+			expect(waiting.result).toEqual({ queued: ['dir:src'], named: [] });
 			expect(run.report.next).toMatchObject({ stage: null, queued: 1, levels: 1 });
 			expect(work.levels.map((l) => [l.level, l.queued])).toEqual([['dir:src', true]]);
 			expect(viewer.pushes[1]).toMatchObject({
@@ -399,7 +421,7 @@ describe('serve --out', () => {
 				level: { naming: 'named' }
 			});
 			expect(read(QUEUE_FILE)).toEqual({ queued: [] });
-			expect((await queue()).result).toEqual({ queued: [] });
+			expect((await inbox()).result).toEqual({ queued: [], named: [] });
 		} finally {
 			s.close();
 		}
@@ -437,12 +459,67 @@ describe('serve --out', () => {
 		try {
 			s.start();
 			await until(() => read<{ queued: string[] }>(QUEUE_FILE).queued.length === 1);
-			const pending = await queue();
+			const pending = await inbox();
 
 			expect(read(QUEUE_FILE)).toEqual({ queued: ['dir:src'] });
-			expect(pending.result).toEqual({ queued: ['dir:src'] });
+			expect(pending.result).toEqual({ queued: ['dir:src'], named: [] });
 		} finally {
 			s.close();
 		}
+	});
+
+	it('names an opened folder with the worker, the brief and the parent name, and logs it for the agent', async () => {
+		await map('--depth', '1');
+		writeNames(nameWork(read<Work>(WORK_FILE)));
+		await map('--depth', '1');
+		fs.writeFileSync(path.join(out, BRIEF_FILE), 'Call the math helpers "arithmetic".\n');
+		process.env.FAKE_CLI_DIR = path.join(base, 'cli');
+		const s = session([], true);
+		const viewer = subscriber();
+
+		try {
+			await s.expand('dir:src');
+			s.name('dir:src', viewer);
+			await until(() => viewer.pushes.length === 1);
+			const prompt = JSON.parse(
+				fs.readFileSync(path.join(base, 'cli/calls/000.json'), 'utf8')
+			).stdin;
+			const first = await inbox();
+			const again = await inbox();
+
+			expect(viewer.pushes[0]).toMatchObject({
+				type: 'node.named',
+				nodeId: 'dir:src',
+				level: { naming: 'named' },
+				namedBy: { worker: 'claude', runs: 1 }
+			});
+			expect(prompt).toContain('Call the math helpers "arithmetic".');
+			expect(prompt).toContain('This folder is named: Part dir:src. Holds 5 files.');
+			expect(fs.existsSync(path.join(out, QUEUE_FILE))).toBe(false);
+			expect(first.result.queued).toEqual([]);
+			expect(first.result.named).toEqual([
+				expect.objectContaining({ nodeId: 'dir:src', worker: 'claude', outcome: 'named' })
+			]);
+			expect(first.result.named[0].names.map((n: { id: string }) => n.id).sort()).toEqual([
+				'dir:src/app',
+				'dir:src/lib',
+				'files:src'
+			]);
+			expect(again.result.named).toEqual([]);
+			expect(fs.readFileSync(path.join(out, LOG_FILE), 'utf8').trim().split('\n')).toHaveLength(1);
+		} finally {
+			s.close();
+			delete process.env.FAKE_CLI_DIR;
+		}
+	});
+
+	it('cuts a long brief before it reaches a prompt', () => {
+		fs.mkdirSync(out);
+		fs.writeFileSync(path.join(out, BRIEF_FILE), 'x'.repeat(MAX_BRIEF_BYTES + 500));
+
+		const brief = readBrief(out)!;
+
+		expect(Buffer.byteLength(brief)).toBeLessThan(MAX_BRIEF_BYTES + 100);
+		expect(brief).toContain(`[brief cut at ${MAX_BRIEF_BYTES} bytes]`);
 	});
 });

@@ -24,7 +24,7 @@ import {
 	type TokenUsage
 } from './naming.js';
 import { createTreeWatcher, type TreeWatcher } from './watch.js';
-import { MAP_FILE, readQueue, writeQueue } from './workFolder.js';
+import { MAP_FILE, appendLog, readBrief, readQueue, writeQueue } from './workFolder.js';
 import { parseRopemanMap } from '../../src/lib/services/ropemanMapSchema';
 
 /** One open socket, as the session sees it: somewhere to push. */
@@ -46,12 +46,13 @@ export interface SessionOptions {
 	/** Real path of `--root` */
 	root: string;
 	wasmDir: string;
-	/** The headless CLI (`--cli`) that names an expanded node; null leaves naming to the agent */
+	/** The headless worker CLI that names an expanded node; null leaves it to the agent's queue */
 	naming: NamingOptions | null;
 	/**
 	 * The folder shared with the user's agent (`--out`, see `workFolder.ts`): the named levels of
-	 * its `ropeman.json` are served while they pass the verifier, and a node expanded without
-	 * names goes on its queue. null with no CLI: every expansion stays grouped and says so.
+	 * its `ropeman.json` are served while they pass the verifier. A node expanded without names
+	 * goes to the worker CLI with the agent's `brief.md`, and the result to `naming-log.jsonl`;
+	 * with no CLI it goes on the queue. null with no CLI: every expansion stays grouped.
 	 */
 	out?: string | null;
 	server: { name: string; version: string };
@@ -102,6 +103,8 @@ export class MapSession {
 	private readonly names = new Map<string, PartNames[]>();
 	/** Queued node ids, oldest first, with the sockets waiting for their names */
 	private readonly queue = new Map<string, Set<Subscriber>>();
+	/** CLI runs this session, retries included, for the viewer's count */
+	private workerRuns = 0;
 	/** The levels `--out/ropeman.json` named when it was last read */
 	private fromFile = new Set<string>();
 	private outWatcher: fs.FSWatcher | null = null;
@@ -344,8 +347,19 @@ export class MapSession {
 		return result.violations.map((v) => `${v.at}: ${v.message}`);
 	}
 
+	/** The worker's task, with the agent's brief and the name the folder got one level up. */
 	private target(snap: Snapshot, nodeId: string, level: MapLevel): NamingTarget {
-		return { project: this.project, nodeId, folder: folderOfNode(snap.grouped, nodeId), level };
+		const above = snap.grouped.parentOf(nodeId);
+		const parentLevel = above === undefined ? null : this.namedLevel(snap, above ?? TOP);
+		const self = parentLevel?.nodes.find((n) => n.id === nodeId);
+		return {
+			project: this.project,
+			nodeId,
+			folder: folderOfNode(snap.grouped, nodeId),
+			level,
+			brief: this.options.out ? readBrief(this.options.out) : null,
+			parent: self ? { label: self.label, description: self.description } : null
+		};
 	}
 
 	/**
@@ -454,6 +468,7 @@ export class MapSession {
 			const outcome = await nameLevel(target, {
 				codeMap: snap.extraction.map,
 				run: (prompt) => {
+					this.workerRuns++;
 					const { args, stdin } = headlessCommand(naming.cli, prompt);
 					return naming.runner.run({
 						command: naming.command,
@@ -470,10 +485,26 @@ export class MapSession {
 			this.options.log(
 				`node.named ${nodeId}: ${outcome.ok ? 'named' : outcome.code} after ${outcome.attempts} run(s), ${ms} ms${tokens(outcome.usage)}`
 			);
+			if (this.options.out) {
+				appendLog(this.options.out, {
+					at: new Date().toISOString(),
+					nodeId,
+					folder: target.folder,
+					worker: naming.cli,
+					outcome: outcome.ok ? 'named' : outcome.code,
+					names: outcome.ok ? outcome.names : [],
+					ms
+				});
+			}
 			if (outcome.ok) {
 				this.names.set(nodeId, outcome.names);
 				snap.named.set(nodeId, outcome.level);
-				push({ type: 'node.named', nodeId, level: outcome.level });
+				push({
+					type: 'node.named',
+					nodeId,
+					level: outcome.level,
+					namedBy: { worker: naming.cli, runs: this.workerRuns }
+				});
 			} else {
 				push({ type: 'node.named', nodeId, code: outcome.code, error: outcome.error });
 			}

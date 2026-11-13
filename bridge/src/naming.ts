@@ -41,6 +41,10 @@ export interface NamingTarget {
 	folder: string;
 	/** Its grouped level: the parts to name */
 	level: MapLevel;
+	/** The user's agent's `brief.md` (intent, terms, naming rules), already cut to size */
+	brief?: string | null;
+	/** The name the folder itself got one level up */
+	parent?: { label: string; description: string } | null;
 }
 
 /** What the prompt says about one part. Paths and names only, never a line of a file. */
@@ -92,6 +96,16 @@ function render(target: NamingTarget, parts: PartSummary[], feedback: readonly s
 		'',
 		`Project: ${target.project}`,
 		`Folder: ${target.folder}`,
+		...(target.parent
+			? [`This folder is named: ${target.parent.label}. ${target.parent.description}`]
+			: []),
+		...(target.brief
+			? [
+					'Brief from the agent the user works with (intent, terms, naming conventions; follow its naming conventions):',
+					target.brief,
+					'End of brief.'
+				]
+			: []),
 		'Parts:',
 		JSON.stringify(parts),
 		'Imports between parts:',

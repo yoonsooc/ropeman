@@ -5,7 +5,7 @@ import { extractDirectory, type Extraction } from '../../packages/core/src/extra
 import { groupExtraction, type GroupedMap } from '../../packages/core/src/groupedMap';
 import { verifyMap } from '../../src/lib/services/mapVerifier';
 import { parseRopemanMap } from '../../src/lib/services/ropemanMapSchema';
-import { DEFAULT_PATH_FILTER, shouldSkipPath } from '../../src/lib/utils/filePriority';
+import { shouldSkipPath } from '../../src/lib/utils/filePriority';
 import type { CodeMap } from '../../src/lib/types/codeMap';
 import type { CoverageReason } from '../../src/lib/types/coverage';
 import type { Violation, ViolationCode } from '../../src/lib/types/mapVerification';
@@ -18,7 +18,15 @@ import {
 } from '../../src/lib/types/ropemanMap';
 import { resolveRoot } from './fileRead.js';
 import { applyNames, parseNamingAnswer, summarizePart, type PartSummary } from './naming.js';
-import { MAP_FILE, NAMES_FILE, WORK_FILE, readQueue, writeAtomic } from './workFolder.js';
+import {
+	INBOX_READ_FILE,
+	MAP_FILE,
+	NAMES_FILE,
+	WORK_FILE,
+	readLog,
+	readQueue,
+	writeAtomic
+} from './workFolder.js';
 
 /**
  * `ropeman map`, `verify` and `next`: the agent the user talks to names the map, one stage
@@ -393,7 +401,7 @@ class UsageError extends Error {}
 
 const MAP_USAGE = 'usage: ropeman map --root <repo> --out <folder> [--depth <n>]';
 const VERIFY_USAGE = 'usage: ropeman verify --root <repo> --map <ropeman.json>';
-const QUEUE_USAGE = 'usage: ropeman queue --out <folder>';
+const INBOX_USAGE = 'usage: ropeman inbox --out <folder>';
 
 function options(args: string[], names: string[], usage: string) {
 	const spec = Object.fromEntries(names.map((name) => [name, { type: 'string' as const }]));
@@ -550,14 +558,29 @@ export function pendingQueue(out: string): string[] {
 	return readQueue(out).filter((id) => grouped.has(id));
 }
 
-/** Prints the queued folders still to name, so the agent checks before each answer. */
-export async function runQueue(args: string[], env: CommandEnv): Promise<number> {
-	const values = options(args, ['out'], QUEUE_USAGE);
-	if (!values.out) throw new UsageError(`--out is required.\n${QUEUE_USAGE}`);
+/**
+ * What happened in the browser since the agent last looked: the queued folders still to name,
+ * and what serve's workers named (`naming-log.jsonl`) since the last `ropeman inbox`.
+ */
+export async function runInbox(args: string[], env: CommandEnv): Promise<number> {
+	const values = options(args, ['out'], INBOX_USAGE);
+	if (!values.out) throw new UsageError(`--out is required.\n${INBOX_USAGE}`);
 	if (!fs.statSync(values.out, { throwIfNoEntry: false })?.isDirectory()) {
 		throw new UsageError(`--out ${values.out} is not a folder; run ropeman map first.`);
 	}
-	env.out(JSON.stringify({ queued: pendingQueue(values.out) }));
+	const out = values.out;
+	const cursor = path.join(out, INBOX_READ_FILE);
+	let seen = 0;
+	try {
+		seen = Number(JSON.parse(fs.readFileSync(cursor, 'utf8')).read) || 0;
+	} catch {
+		// first read
+	}
+	const log = readLog(out);
+	// A log shorter than what was read was replaced; read it from the start
+	const named = log.slice(log.length < seen ? 0 : seen);
+	writeAtomic(cursor, `${JSON.stringify({ read: log.length })}\n`);
+	env.out(JSON.stringify({ queued: pendingQueue(out), named }, null, 1));
 	return 0;
 }
 
