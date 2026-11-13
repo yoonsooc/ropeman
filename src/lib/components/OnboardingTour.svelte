@@ -15,13 +15,7 @@
 
 	$effect(() => {
 		const hasSemanticData = semanticStore.cache.size > 0;
-		if (
-			hasSemanticData &&
-			onboardingStore.phase1Completed &&
-			!onboardingStore.phase2Completed &&
-			!phase2Triggered &&
-			onboardingStore.phase !== 'phase2'
-		) {
+		if (hasSemanticData && onboardingStore.canStartPhase2 && !phase2Triggered) {
 			phase2Triggered = true;
 			// Small delay so the UI has time to render the semantic elements
 			setTimeout(() => {

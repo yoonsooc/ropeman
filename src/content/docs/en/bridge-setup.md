@@ -25,14 +25,15 @@ A file you open goes from serve to the page over `127.0.0.1`. serve refuses `.en
 
 ## Start serve
 
-Run serve in the folder you want to map:
+Install the command once, then run serve in the folder you want to map:
 
 ```bash
+npm install -g @ropeman/bridge@0.3.0
 cd ~/code/your-project
-npx @ropeman/bridge serve --root .
+ropeman serve --root .
 ```
 
-`npx` downloads the package on first use. Without `--cli`, serve uses `claude` when it is on your `PATH`. It never picks `gemini` on its own. The output looks like this:
+Without a global install, `npx @ropeman/bridge@0.3.0 serve --root .` runs the same command. Older npm versions can fail to find the executable this way. Without `--cli`, serve uses `claude` when it is on your `PATH`. It never picks `gemini` on its own. The output looks like this:
 
 ```text
 [09:41:02] Workers naming opened folders: claude
@@ -88,7 +89,7 @@ In local mode serve hosts the same viewer itself, so the page and serve share on
 2. Start it again with `--local`:
 
    ```bash
-   npx @ropeman/bridge serve --root . --local
+   ropeman serve --root . --local
    ```
 
 3. Open the address serve prints, `http://127.0.0.1:9800/bridge#token=…`.
@@ -139,7 +140,7 @@ When a connection fails, the page says which case it is:
 - **Nothing listens on the port.** serve is not running, or it runs on another port. Start serve, and check that **Port** matches the port in the terminal output.
 - **serve refused the connection.** The token is wrong, or serve does not allow the page's address. The terminal running serve says which:
   - `Rejected connection: missing or wrong token`. Copy the token again with `cat ~/.ropeman/bridge-token`. If you deleted the file or changed `ROPEMAN_BRIDGE_TOKEN`, the token changed.
-  - `Rejected connection from origin "..." (not allowed)`. Restart serve with `--allow-origin` and the page's address, which the card shows, for example `npx @ropeman/bridge serve --root . --allow-origin https://preview.example.com`.
+  - `Rejected connection from origin "..." (not allowed)`. Restart serve with `--allow-origin` and the page's address, which the card shows, for example `ropeman serve --root . --allow-origin https://preview.example.com`.
 - **The connection did not go through, and the browser does not say why.** Firefox and Safari have no permission the page can read. The page then does not check the port, because that check could make the browser ask a second time. Check that serve runs on that port, that the token matches, that you did not block the site, and what serve's terminal says. If the page still cannot connect, use [local mode](#use-local-mode).
 
 ### "Port 9800 is already in use"

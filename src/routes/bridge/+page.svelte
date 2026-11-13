@@ -28,6 +28,7 @@
 
 	const DEFAULT_PORT = 9800;
 	const TOKEN_FILE = '~/.ropeman/bridge-token';
+	const START_SERVE = 'npm install -g @ropeman/bridge@0.3.0\nropeman serve --root .';
 
 	let port = $state(String(DEFAULT_PORT));
 	let token = $state('');
@@ -389,7 +390,8 @@
 							<AgentSetup connectHint={false} />
 						</details>
 						<p class="bridge-step">{i18nStore.t('bridge.startServe')}</p>
-						<pre class="bridge-command"><code>npx @ropeman/bridge serve --root .</code></pre>
+						<pre class="bridge-command" data-testid="bridge-start-command"><code>{START_SERVE}</code
+							></pre>
 						<form class="bridge-form" onsubmit={submit}>
 							<label class="bridge-field">
 								<span>{i18nStore.t('bridge.portLabel')}</span>

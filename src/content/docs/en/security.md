@@ -34,7 +34,7 @@ When you start an analysis, this is the pipeline:
 - **API Key** requests with a Gemini key go from your browser to Google, with the key in the request URL. Because of browser restrictions, Anthropic and OpenAI requests go to Ropeman's proxy Worker, which passes them through Cloudflare AI Gateway to the provider. The proxy does not store the summary, the response or your key. When the provider returns an error, the proxy logs that error response.
 - **WebGPU** mode needs the network only to download the model. After that, analysis runs offline.
 
-Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge) is separate from these modes. In Bridge mode, `ropeman serve` on your machine sends your own Claude Code or Gemini CLI the file paths, declared symbol names, and file and import counts of the folder you open. It never sends file contents. The CLI calls its provider with its own login, and Ropeman's servers are not on that path. See [Bridge Setup](/docs/en/bridge-setup).
+Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge) is separate from these modes. In Bridge mode, `ropeman serve` on your machine sends the headless `claude` worker (`gemini` only with `--cli gemini`) the file paths, declared symbol names, and file and import counts of the folder you open. It never sends file contents. The CLI calls its provider with its own login, and Ropeman's servers are not on that path. See [Bridge Setup](/docs/en/bridge-setup).
 
 ## API Key Handling
 

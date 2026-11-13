@@ -59,7 +59,7 @@ Yes. You can analyze your own code with Ropeman, personal or commercial. The too
 
 ### Can I use my own Claude Code or Gemini CLI?
 
-Not in the main app. Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to `ropeman serve` on your machine, and your CLI names the folders you open. See [Bridge Setup](/docs/en/bridge-setup).
+Not in the main app. Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to `ropeman serve` on your machine. Your coding agent names the top levels. A headless `claude` worker names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. serve runs `gemini` only with `--cli gemini`. See [Bridge Setup](/docs/en/bridge-setup).
 
 ### Does Ropeman work offline?
 

@@ -25,14 +25,15 @@ Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 �
 
 ## serve 실행
 
-지도를 만들 폴더에서 serve를 실행하세요.
+명령을 한 번 설치하고, 지도를 만들 폴더에서 serve를 실행하세요.
 
 ```bash
+npm install -g @ropeman/bridge@0.3.0
 cd ~/code/your-project
-npx @ropeman/bridge serve --root .
+ropeman serve --root .
 ```
 
-`npx`는 처음 한 번 패키지를 내려받습니다. `--cli`를 주지 않으면 serve는 `PATH`에 `claude`가 있을 때 그것을 씁니다. `gemini`는 스스로 고르지 않습니다. 실행하면 아래처럼 출력합니다.
+전역 설치 없이 `npx @ropeman/bridge@0.3.0 serve --root .`로도 같은 명령을 실행할 수 있습니다. 오래된 npm에서는 이 방법으로 실행 파일을 못 찾을 수 있습니다. `--cli`를 주지 않으면 serve는 `PATH`에 `claude`가 있을 때 그것을 씁니다. `gemini`는 스스로 고르지 않습니다. 실행하면 아래처럼 출력합니다.
 
 ```text
 [09:41:02] Workers naming opened folders: claude
@@ -88,7 +89,7 @@ serve가 연결을 받으면 지도가 나옵니다. 페이지는 토큰을 저�
 2. `--local`을 붙여 다시 켭니다.
 
    ```bash
-   npx @ropeman/bridge serve --root . --local
+   ropeman serve --root . --local
    ```
 
 3. serve가 출력한 주소 `http://127.0.0.1:9800/bridge#token=…`를 엽니다.
@@ -139,7 +140,7 @@ serve는 내 CLI를 실행하고 `--root` 안의 파일을 읽습니다. 그래�
 - **그 포트에서 아무것도 듣고 있지 않습니다.** serve가 꺼져 있거나 다른 포트에서 돌고 있습니다. serve를 켜고, **포트** 값이 터미널에 찍힌 포트와 같은지 확인하세요.
 - **serve가 연결을 거부했습니다.** 토큰이 틀렸거나 serve가 그 페이지 주소를 허용하지 않은 경우입니다. 어느 쪽인지는 serve를 실행한 터미널에 나옵니다.
   - `Rejected connection: missing or wrong token`: `cat ~/.ropeman/bridge-token`으로 토큰을 다시 복사하세요. 토큰 파일을 지웠거나 `ROPEMAN_BRIDGE_TOKEN`을 바꿨다면 토큰도 바뀌었습니다.
-  - `Rejected connection from origin "..." (not allowed)`: 카드에 나온 페이지 주소를 `--allow-origin`에 넣어 serve를 다시 실행하세요. 예: `npx @ropeman/bridge serve --root . --allow-origin https://preview.example.com`
+  - `Rejected connection from origin "..." (not allowed)`: 카드에 나온 페이지 주소를 `--allow-origin`에 넣어 serve를 다시 실행하세요. 예: `ropeman serve --root . --allow-origin https://preview.example.com`
 - **연결되지 않았고, 브라우저가 이유를 알려 주지 않습니다.** Firefox와 Safari에는 페이지가 읽을 수 있는 권한이 없습니다. 이때 페이지는 포트를 따로 확인하지 않습니다. 그 확인 때문에 브라우저가 한 번 더 물을 수 있어서입니다. serve가 그 포트에서 돌고 있는지, 토큰이 맞는지, 사이트를 차단하지 않았는지, serve 터미널에 무엇이 찍혔는지 확인하세요. 그래도 연결되지 않으면 [로컬 모드](#로컬-모드로-쓰기)를 쓰세요.
 
 ### "Port 9800 is already in use"

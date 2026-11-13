@@ -34,7 +34,7 @@ Ropeman의 가장 중요한 설계 원칙은 한 문장으로 요약됩니다. *
 - **API 키** 모드에서 Gemini 키 요청은 브라우저에서 Google로 바로 가고, 키는 요청 URL에 담깁니다. Anthropic·OpenAI 키 요청은 브라우저 제약 때문에 Ropeman 프록시 Worker로 가고, 프록시가 Cloudflare AI Gateway를 거쳐 제공자에게 넘깁니다. 프록시는 요약, 응답, 키를 저장하지 않습니다. 제공자가 오류를 돌려주면 그 오류 응답은 로그에 남깁니다.
 - **WebGPU** 모드는 모델을 내려받을 때만 네트워크를 씁니다. 그다음 분석은 오프라인에서 돕니다.
 
-[ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드는 이 세 모드와 별개입니다. 브리지 모드에서는 내 컴퓨터의 `ropeman serve`가 내가 연 폴더의 파일 경로, 선언된 심볼 이름, 파일 수와 import 수만 내 Claude Code나 Gemini CLI에 보내고, 파일 내용은 보내지 않습니다. CLI는 자기 로그인으로 제공자를 호출하고, 이 경로에 Ropeman 서버는 없습니다. 자세한 내용은 [브리지 설정](/docs/ko/bridge-setup)을 보세요.
+[ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드는 이 세 모드와 별개입니다. 브리지 모드에서는 내 컴퓨터의 `ropeman serve`가 내가 연 폴더의 파일 경로, 선언된 심볼 이름, 파일 수와 import 수만 헤드리스 `claude` 일꾼(`--cli gemini`를 주면 `gemini`)에 보내고, 파일 내용은 보내지 않습니다. CLI는 자기 로그인으로 제공자를 호출하고, 이 경로에 Ropeman 서버는 없습니다. 자세한 내용은 [브리지 설정](/docs/ko/bridge-setup)을 보세요.
 
 ## API 키 저장 및 처리
 

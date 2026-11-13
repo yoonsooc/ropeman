@@ -63,10 +63,36 @@ describe('onboardingStore', () => {
 		expect(onboardingStore.currentStep).toBe(4);
 	});
 
-	it('startPhase2 does not work if phase1 is not completed', () => {
+	it('startPhase2 does not interrupt a running Phase 1', () => {
 		onboardingStore.reset(); // starts phase1, phase1Completed=false
-		onboardingStore.startPhase2(); // should be ignored
-		expect(onboardingStore.phase).toBe('phase1'); // still phase1
+		expect(onboardingStore.canStartPhase2).toBe(false);
+
+		onboardingStore.startPhase2();
+
+		expect(onboardingStore.phase).toBe('phase1');
+	});
+
+	// Regression: the landing stopped starting Phase 1 (T2-7), so a new user never completed it
+	// and the graph tour never ran after their first analysis
+	it('starts Phase 2 on a first visit where neither phase ran', async () => {
+		vi.resetModules();
+		const { onboardingStore: fresh } = await import('./onboardingStore.svelte');
+		expect(fresh.phase1Completed).toBe(false);
+		expect(fresh.phase2Completed).toBe(false);
+		expect(fresh.canStartPhase2).toBe(true);
+
+		fresh.startPhase2();
+
+		expect(fresh.phase).toBe('phase2');
+		expect(fresh.currentStep).toBe(4);
+	});
+
+	it('does not offer Phase 2 again once it is completed', () => {
+		onboardingStore.skip();
+		onboardingStore.startPhase2();
+		onboardingStore.skip();
+
+		expect(onboardingStore.canStartPhase2).toBe(false);
 	});
 
 	it('Phase 2 next() advances from step 4 to 8', () => {

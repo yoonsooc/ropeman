@@ -9,9 +9,9 @@
 		connectHint?: boolean;
 	} = $props();
 
-	const INSTALL = 'npm install -g @ropeman/bridge';
+	const INSTALL = 'npm install -g @ropeman/bridge@0.3.0';
 	const SKILL_URL =
-		'https://raw.githubusercontent.com/yoonsooc/ropeman/main/skill/ropeman/SKILL.md';
+		'https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.0/skill/ropeman/SKILL.md';
 	const ADDRESS = 'http://127.0.0.1:9800/bridge#token=…';
 
 	/** Where each agent loads personal skills, as its own docs (host and path) say, checked 2026-11-13 */
@@ -53,18 +53,26 @@
 		`curl --create-dirs -fsSLo ${selected.dir}/ropeman/SKILL.md ${SKILL_URL}`
 	);
 
-	let copied = $state<string | null>(null);
-	let copiedTimer: ReturnType<typeof setTimeout> | undefined;
-	async function copy(text: string) {
+	/** The last copy, keyed by the command text so switching agents clears it */
+	let copy = $state<{ text: string; ok: boolean } | null>(null);
+	let copyTimer: ReturnType<typeof setTimeout> | undefined;
+	const copied = (text: string) => copy?.text === text && copy.ok;
+	const copyFailed = (text: string) => copy?.text === text && !copy.ok;
+
+	async function copyCommand(text: string, source: HTMLElement | undefined) {
+		clearTimeout(copyTimer);
 		try {
 			await navigator.clipboard.writeText(text);
+			copy = { text, ok: true };
+			copyTimer = setTimeout(() => (copy = null), 2000);
 		} catch {
-			return;
+			copy = { text, ok: false };
+			if (source) window.getSelection()?.selectAllChildren(source);
 		}
-		copied = text;
-		clearTimeout(copiedTimer);
-		copiedTimer = setTimeout(() => (copied = null), 2000);
 	}
+
+	let installCode = $state<HTMLElement>();
+	let skillCode = $state<HTMLElement>();
 
 	const tabs: HTMLButtonElement[] = [];
 	function onTabKey(e: KeyboardEvent, index: number) {
@@ -93,6 +101,16 @@
 		i18nStore.t(`agentSetup.${key}`, params);
 	/** The address renders as code inside the sentence, wherever the language puts it */
 	const [askBefore, askAfter] = $derived(t('askBody').split('{address}'));
+
+	const announcement = $derived(
+		copy === null
+			? ''
+			: !copy.ok
+				? t('copyFailed')
+				: copy.text === INSTALL
+					? t('copiedInstall')
+					: t('copiedSkill', { agent: selected.name })
+	);
 </script>
 
 <ol class="agent-setup" data-testid="agent-setup">
@@ -100,14 +118,22 @@
 		<h3>{t('installTitle')}</h3>
 		<p>{t('installBody')}</p>
 		<div class="command">
-			<pre data-testid="install-command"><code>{INSTALL}</code></pre>
-			<button type="button" class="copy" onclick={() => copy(INSTALL)}>
+			<pre data-testid="install-command"><code bind:this={installCode}>{INSTALL}</code></pre>
+			<button
+				type="button"
+				class="copy"
+				aria-label={t('copyInstall')}
+				onclick={() => copyCommand(INSTALL, installCode)}
+			>
 				<span aria-hidden="true" class="material-symbols-outlined"
-					>{copied === INSTALL ? 'check' : 'content_copy'}</span
+					>{copied(INSTALL) ? 'check' : 'content_copy'}</span
 				>
-				<span aria-live="polite">{copied === INSTALL ? t('copied') : t('copy')}</span>
+				<span>{copied(INSTALL) ? t('copied') : t('copy')}</span>
 			</button>
 		</div>
+		{#if copyFailed(INSTALL)}
+			<p class="copy-failed" data-testid="copy-failed">{t('copyFailed')}</p>
+		{/if}
 	</li>
 
 	<li class="step">
@@ -134,17 +160,26 @@
 			role="tabpanel"
 			id="{uid}-panel"
 			aria-labelledby="{uid}-tab-{selected.id}"
+			tabindex="0"
 		>
 			<p>{t('skillBody', { agent: selected.name })}</p>
 			<div class="command">
-				<pre data-testid="skill-command"><code>{skillCommand}</code></pre>
-				<button type="button" class="copy" onclick={() => copy(skillCommand)}>
+				<pre data-testid="skill-command"><code bind:this={skillCode}>{skillCommand}</code></pre>
+				<button
+					type="button"
+					class="copy"
+					aria-label={t('copySkill', { agent: selected.name })}
+					onclick={() => copyCommand(skillCommand, skillCode)}
+				>
 					<span aria-hidden="true" class="material-symbols-outlined"
-						>{copied === skillCommand ? 'check' : 'content_copy'}</span
+						>{copied(skillCommand) ? 'check' : 'content_copy'}</span
 					>
-					<span aria-live="polite">{copied === skillCommand ? t('copied') : t('copy')}</span>
+					<span>{copied(skillCommand) ? t('copied') : t('copy')}</span>
 				</button>
 			</div>
+			{#if copyFailed(skillCommand)}
+				<p class="copy-failed" data-testid="copy-failed">{t('copyFailed')}</p>
+			{/if}
 			<p class="note" data-testid="agent-support">
 				{#if selected.tested}
 					<span aria-hidden="true" class="material-symbols-outlined tested">check_circle</span>
@@ -182,6 +217,7 @@
 	</li>
 </ol>
 <p class="shell-note">{t('shellNote')}</p>
+<p class="visually-hidden" role="status" data-testid="copy-status">{announcement}</p>
 
 <style>
 	.agent-setup {
@@ -342,6 +378,27 @@
 
 	.agent-panel {
 		margin-top: var(--spacing-3);
+		border-radius: var(--radius-element);
+	}
+
+	.agent-panel:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 4px;
+	}
+
+	.copy-failed {
+		margin-top: var(--spacing-2);
+		font-size: var(--font-size-sm);
+		color: var(--color-text-primary);
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 
 	.note {

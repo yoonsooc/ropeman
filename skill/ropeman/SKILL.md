@@ -16,7 +16,7 @@ Ropeman builds the folder hierarchy, symbols and imports of a repository without
 
 ## 1. Check the tool
 
-Run `ropeman --version`. It must print 0.3.0 or later. If the command is not found or the version is older, tell the user to run `npm install -g @ropeman/bridge` (Node 22 or later) and stop.
+Run `ropeman --version`. It must print 0.3.0 or later. If the command is not found or the version is older, tell the user to run `npm install -g @ropeman/bridge@0.3.0` (Node 22 or later) and stop.
 
 ## 2. Choose the output folder
 

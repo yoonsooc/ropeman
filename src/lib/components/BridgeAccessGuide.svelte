@@ -26,8 +26,8 @@
 	const browserName = $derived(
 		browser === 'chrome' ? 'Chrome' : browser === 'edge' ? 'Edge' : t('yourBrowser')
 	);
-	const SERVE = 'npx @ropeman/bridge serve --root .';
-	const LOCAL = 'npx @ropeman/bridge serve --root . --local';
+	const SERVE = 'ropeman serve --root .';
+	const LOCAL = 'ropeman serve --root . --local';
 	const TOKEN = 'cat ~/.ropeman/bridge-token';
 	const allowThisPage = $derived(`${SERVE} --allow-origin ${origin}`);
 

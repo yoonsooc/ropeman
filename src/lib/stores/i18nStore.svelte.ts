@@ -480,6 +480,11 @@ interface TranslationSet {
 		| 'shellNote'
 		| 'copy'
 		| 'copied'
+		| 'copyInstall'
+		| 'copySkill'
+		| 'copiedInstall'
+		| 'copiedSkill'
+		| 'copyFailed'
 	>;
 	bridgeAccess: Strings<
 		| 'yourBrowser'
@@ -1239,7 +1244,12 @@ const translations: Record<Locale, TranslationSet> = {
 			connectLink: '연결 페이지 열기',
 			shellNote: '명령은 macOS, Linux, WSL 셸 기준입니다. Windows는 테스트하지 않았습니다.',
 			copy: '복사',
-			copied: '복사됨'
+			copied: '복사됨',
+			copyInstall: '설치 명령 복사',
+			copySkill: '{agent}용 스킬 명령 복사',
+			copiedInstall: '설치 명령을 복사했습니다.',
+			copiedSkill: '{agent}용 스킬 명령을 복사했습니다.',
+			copyFailed: '클립보드에 복사하지 못했습니다. 명령을 선택해 두었으니 Ctrl+C나 ⌘C로 복사하세요.'
 		},
 		bridgeAccess: {
 			yourBrowser: '브라우저',
@@ -1312,7 +1322,7 @@ const translations: Record<Locale, TranslationSet> = {
 		bridge: {
 			pageTitle: '브리지',
 			title: 'ropeman serve에 연결',
-			desc: 'ropeman serve는 내 컴퓨터에서 돌면서 폴더 하나의 지도를 내줍니다. 폴더를 누르면 로컬 CLI가 그 안의 부분에 이름을 붙이고, 파일을 누르면 serve가 디스크에서 그 파일만 읽어 옵니다. Ropeman 서버는 거치지 않습니다.',
+			desc: 'ropeman serve는 내 컴퓨터에서 돌면서 폴더 하나의 지도를 내줍니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 claude 일꾼이 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. serve는 --cli gemini를 줄 때만 gemini를 씁니다. 파일을 누르면 serve가 디스크에서 그 파일만 읽어 옵니다. 코드는 Ropeman 서버로 가지 않습니다.',
 			agentSummary: '코딩 에이전트를 쓰면 에이전트가 serve를 띄웁니다',
 			startServe: '직접 띄우려면 지도를 만들 폴더에서 serve를 실행하세요.',
 			portLabel: '포트',
@@ -2024,7 +2034,13 @@ const translations: Record<Locale, TranslationSet> = {
 			connectLink: 'Open the connection page',
 			shellNote: 'The commands are for macOS, Linux and WSL shells. Windows is not tested.',
 			copy: 'Copy',
-			copied: 'Copied'
+			copied: 'Copied',
+			copyInstall: 'Copy install command',
+			copySkill: 'Copy skill command for {agent}',
+			copiedInstall: 'Copied the install command.',
+			copiedSkill: 'Copied the skill command for {agent}.',
+			copyFailed:
+				"Couldn't copy to the clipboard. The command is selected, so copy it with Ctrl+C or ⌘C."
 		},
 		bridgeAccess: {
 			yourBrowser: 'your browser',
@@ -2098,7 +2114,7 @@ const translations: Record<Locale, TranslationSet> = {
 		bridge: {
 			pageTitle: 'Bridge',
 			title: 'Connect to ropeman serve',
-			desc: "ropeman serve runs on your machine and serves the map of one folder. Click a folder and your local CLI names its parts. Click a file and serve reads just that file from disk. Nothing goes through Ropeman's servers.",
+			desc: "ropeman serve runs on your machine and serves the map of one folder. Your coding agent names the top levels. A headless claude worker names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. serve runs gemini only with --cli gemini. Click a file and serve reads just that file from disk. Your code does not go to Ropeman's servers.",
 			agentSummary: 'With a coding agent, the agent starts serve for you',
 			startServe: 'Or start serve yourself in the folder you want to map:',
 			portLabel: 'Port',

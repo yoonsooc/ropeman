@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
-const SKILL_URL = 'https://raw.githubusercontent.com/yoonsooc/ropeman/main/skill/ropeman/SKILL.md';
+const SKILL_URL =
+	'https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.0/skill/ropeman/SKILL.md';
 
 async function useLanguage(page: Page, language: 'en' | 'ko') {
 	await page.addInitScript((lang) => {
@@ -19,7 +20,9 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 
 		const setup = page.locator('#agent-setup');
 		await expect(setup.getByRole('heading', { name: 'Set it up in three steps' })).toBeVisible();
-		await expect(setup.getByTestId('install-command')).toHaveText('npm install -g @ropeman/bridge');
+		await expect(setup.getByTestId('install-command')).toHaveText(
+			'npm install -g @ropeman/bridge@0.3.0'
+		);
 		await expect(setup.getByTestId('skill-command')).toHaveText(
 			`curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md ${SKILL_URL}`
 		);
@@ -115,6 +118,9 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 		// This page is the connection page, so the step does not link back to it
 		await expect(agent.getByTestId('connect-hint')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Connect' })).toBeVisible();
+		await expect(page.getByTestId('bridge-start-command')).toHaveText(
+			'npm install -g @ropeman/bridge@0.3.0\nropeman serve --root .'
+		);
 	});
 });
 
@@ -125,12 +131,57 @@ test('copy puts the exact command on the clipboard', async ({ page, context }) =
 	const setup = page.locator('#agent-setup');
 
 	await setup.getByRole('tab', { name: 'Codex' }).click();
-	await setup.getByTestId('skill-command').locator('..').getByRole('button').click();
+	const button = setup.getByRole('button', { name: 'Copy skill command for Codex' });
+	await button.click();
 
-	await expect(setup.getByRole('button', { name: 'Copied' })).toBeVisible();
+	await expect(button).toHaveText(/Copied/);
+	// The announcement lives outside the button, so the button keeps its name while it changes
+	await expect(page.getByTestId('copy-status')).toHaveText('Copied the skill command for Codex.');
 	expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
 		`curl --create-dirs -fsSLo ~/.agents/skills/ropeman/SKILL.md ${SKILL_URL}`
 	);
+});
+
+test('each copy button names the command it copies', async ({ page }) => {
+	await useLanguage(page, 'ko');
+	await page.goto('/');
+	const setup = page.locator('#agent-setup');
+
+	await expect(setup.getByRole('button', { name: '설치 명령 복사' })).toBeVisible();
+	await setup.getByRole('tab', { name: 'Cursor' }).click();
+	await expect(setup.getByRole('button', { name: 'Cursor용 스킬 명령 복사' })).toBeVisible();
+});
+
+test('a blocked clipboard selects the command and says to copy it by hand', async ({ page }) => {
+	await useLanguage(page, 'en');
+	await page.addInitScript(() => {
+		Object.defineProperty(navigator, 'clipboard', {
+			value: { writeText: () => Promise.reject(new DOMException('denied', 'NotAllowedError')) }
+		});
+	});
+	await page.goto('/');
+	const setup = page.locator('#agent-setup');
+
+	await setup.getByRole('button', { name: 'Copy install command' }).click();
+
+	await expect(setup.getByTestId('copy-failed')).toHaveText(
+		"Couldn't copy to the clipboard. The command is selected, so copy it with Ctrl+C or ⌘C."
+	);
+	await expect(page.getByTestId('copy-status')).toHaveText(/Couldn't copy/);
+	expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(
+		'npm install -g @ropeman/bridge@0.3.0'
+	);
+});
+
+test('Tab moves from the selected agent tab into its panel', async ({ page }) => {
+	await useLanguage(page, 'en');
+	await page.goto('/');
+	const setup = page.locator('#agent-setup');
+
+	await setup.getByRole('tab', { name: 'Claude Code' }).focus();
+	await page.keyboard.press('Tab');
+
+	await expect(setup.getByRole('tabpanel', { name: 'Claude Code' })).toBeFocused();
 });
 
 test('a first visit does not start the browser-path tour over the setup steps', async ({

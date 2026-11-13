@@ -11,7 +11,7 @@ The skill uses only shell commands and file writes. It does not need subagents, 
 The skill runs `ropeman` from the `@ropeman/bridge` package, 0.3.0 or later, on Node 22 or later.
 
 ```bash
-npm install -g @ropeman/bridge
+npm install -g @ropeman/bridge@0.3.0
 ropeman --version                # 0.3.0 or later
 ```
 
@@ -37,10 +37,10 @@ The skill is one file, `ropeman/SKILL.md`. Save it as `ropeman/SKILL.md` in the 
 For Claude Code (put the folder from the table in place of `~/.claude/skills` for another agent):
 
 ```bash
-curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/main/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.0/skill/ropeman/SKILL.md
 ```
 
-From a checkout, `cp -R skill/ropeman ~/.claude/skills/ropeman` does the same. The command takes the skill from the main branch of this repository, and the skill's first step checks that `ropeman --version` is new enough. An agent without skill support can follow the same steps: paste the text of `ropeman/SKILL.md` into the conversation.
+From a checkout, `cp -R skill/ropeman ~/.claude/skills/ropeman` does the same. The command takes the skill from the `bridge-v0.3.0` tag, the release that matches the package you installed, and the skill's first step checks that `ropeman --version` is new enough. An agent without skill support can follow the same steps: paste the text of `ropeman/SKILL.md` into the conversation.
 
 ## 3. Use it
 

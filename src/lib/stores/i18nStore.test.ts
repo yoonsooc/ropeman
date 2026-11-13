@@ -249,6 +249,24 @@ describe('i18nStore', () => {
 			}
 		});
 
+		// Regression: /bridge said "your local CLI (Claude Code or Gemini) names the parts", but the
+		// agent names the top levels, a claude worker names opened folders, and gemini needs --cli
+		it('says on /bridge who names each part, in both languages', () => {
+			for (const language of ['ko', 'en'] as const) {
+				// Arrange
+				settingsStore.language = language;
+
+				// Act
+				const desc = i18nStore.t('bridge.desc');
+
+				// Assert
+				expect(desc).toMatch(language === 'ko' ? /코딩 에이전트/ : /coding agent/);
+				expect(desc).toContain('claude');
+				expect(desc).toContain('--cli gemini');
+				expect(desc).not.toMatch(/local CLI|로컬 CLI|Nothing goes through|거치지 않습니다/);
+			}
+		});
+
 		it('words every ropeman.json rejection in both languages with its detail filled', () => {
 			const rejections: [string, Record<string, string | number>][] = [
 				['openMap.tooLarge', { limit: 16 }],
