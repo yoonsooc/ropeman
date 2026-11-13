@@ -28,7 +28,7 @@
 
 	const DEFAULT_PORT = 9800;
 	const TOKEN_FILE = '~/.ropeman/bridge-token';
-	const START_SERVE = 'npm install -g @ropeman/bridge@0.3.0\nropeman serve --root .';
+	const START_SERVE = 'npm install -g @ropeman/bridge@0.3.1\nropeman serve --root .';
 
 	let port = $state(String(DEFAULT_PORT));
 	let token = $state('');

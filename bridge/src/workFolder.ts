@@ -5,9 +5,12 @@ import path from 'path';
  * The folder (`--out`) the agent and serve share. Each file has one writer, so nothing needs a
  * lock: the agent writes `names.json` and `brief.md`; `ropeman map` writes `ropeman.json` and
  * `work.json`; serve writes `queue.json` (folders the user opened that have no names and no
- * worker to name them) and `naming-log.jsonl` (what its workers named); `ropeman inbox` writes
- * `inbox-read.json`, the last log entry the agent has seen. Any other channel to the agent (a
- * Claude Code channel, later) reads and writes the same files.
+ * worker to name them), `naming-log.jsonl` (what its workers named) and `serve.json` (which
+ * process serves this folder, see `background.ts`); `ropeman serve --detach` writes `serve.log`,
+ * the output of the serve it starts, and holds `serve.lock` while it checks for a running serve
+ * and starts one (the one file two writers race for); `ropeman inbox` writes `inbox-read.json`,
+ * the last log entry the agent has seen. Any other channel to the agent (a Claude Code channel,
+ * later) reads and writes the same files.
  *
  * A cloned repository can ship any of these files, so every read here treats them as untrusted.
  */
@@ -18,6 +21,9 @@ export const WORK_FILE = 'work.json';
 export const QUEUE_FILE = 'queue.json';
 export const LOG_FILE = 'naming-log.jsonl';
 export const INBOX_READ_FILE = 'inbox-read.json';
+export const SERVE_FILE = 'serve.json';
+export const SERVE_LOG_FILE = 'serve.log';
+export const SERVE_LOCK_FILE = 'serve.lock';
 
 /** The most of `brief.md` a worker prompt carries; the rest is cut and says so. */
 export const MAX_BRIEF_BYTES = 4_000;
@@ -28,19 +34,36 @@ const MAX_QUEUE_BYTES = 1024 * 1024;
 export const MAX_LOG_BYTES = 1_000_000;
 const MAX_CURSOR_BYTES = 1024;
 
-export type OutRead = { text: string; cut: boolean } | { refused: string } | null;
+/** `exposed`, asked for with `owned`, says why others could read or replace the file. */
+export type OutRead = { text: string; cut: boolean; exposed?: string } | { refused: string } | null;
 
 const linkRefused = (name: string) => ({
 	refused: `${name} is a link; Ropeman reads only the folder's own files.`
 });
 
+/** Why others could read or replace a file; undefined for a private file of this user, and on Windows. */
+function exposure(stat: fs.Stats): string | undefined {
+	const uid = process.getuid?.();
+	if (uid === undefined) return undefined;
+	if (stat.uid !== uid) return `owned by uid ${stat.uid}`;
+	if (stat.mode & 0o077) return `mode ${(stat.mode & 0o777).toString(8)}`;
+	return undefined;
+}
+
 /**
  * One file of `--out`, which is a real path: only a regular file directly in it, never a link,
  * so the bytes read are the folder's own. At most `maxBytes` of it; `cut` says there was more.
  * null when the file is missing; `refused` says why it was not read. It opens without blocking,
- * so a FIFO is refused instead of stopping serve.
+ * so a FIFO is refused instead of stopping serve. `owned` also sets `exposed`, on POSIX, for a file
+ * another user owns or others can read, which a file serve wrote itself (mode 0600) never is on a
+ * file system that keeps modes.
  */
-export function readOutFile(out: string, name: string, maxBytes: number): OutRead {
+export function readOutFile(
+	out: string,
+	name: string,
+	maxBytes: number,
+	{ owned = false } = {}
+): OutRead {
 	const file = path.join(out, name);
 	const { O_RDONLY, O_NOFOLLOW, O_NONBLOCK } = fs.constants;
 	// Windows has no O_NOFOLLOW; a link is refused before the open there
@@ -59,6 +82,7 @@ export function readOutFile(out: string, name: string, maxBytes: number): OutRea
 	try {
 		const stat = fs.fstatSync(fd);
 		if (!stat.isFile()) return { refused: `${name} is not a regular file.` };
+		const exposed = owned ? exposure(stat) : undefined;
 		const bytes = Buffer.alloc(Math.min(stat.size, maxBytes) + 1);
 		let read = 0;
 		for (let n = -1; n !== 0 && read < bytes.length; read += n) {
@@ -66,7 +90,8 @@ export function readOutFile(out: string, name: string, maxBytes: number): OutRea
 		}
 		return {
 			text: bytes.subarray(0, Math.min(read, maxBytes)).toString('utf8'),
-			cut: read > maxBytes
+			cut: read > maxBytes,
+			...(exposed && { exposed })
 		};
 	} finally {
 		fs.closeSync(fd);
@@ -83,10 +108,10 @@ function readWhole(out: string, name: string, maxBytes: number): string | null {
  * Writes beside the target and renames, so a reader never sees half a file and a link planted
  * at the target is replaced, not followed. The temporary file is created new for the same reason.
  */
-export function writeAtomic(file: string, text: string): void {
+export function writeAtomic(file: string, text: string, mode = 0o666): void {
 	const tmp = `${file}.${process.pid}.tmp`;
 	fs.rmSync(tmp, { force: true });
-	fs.writeFileSync(tmp, text, { flag: 'wx' });
+	fs.writeFileSync(tmp, text, { flag: 'wx', mode });
 	fs.renameSync(tmp, file);
 }
 

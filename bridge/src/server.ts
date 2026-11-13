@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { randomBytes, randomUUID } from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -11,6 +12,17 @@ import {
 	parseAllowedOrigins,
 	resolveToken
 } from './auth.js';
+import {
+	DEFAULT_IDLE_MINUTES,
+	DETACHED_CHILD,
+	type Running,
+	type ServeStatus,
+	findServe,
+	removeRecord,
+	runStop,
+	startDetached,
+	writeRecord
+} from './background.js';
 import { HOST, createBridgeServer } from './bridge.js';
 import { CliRunner, KILL_GRACE_MS, detectCLI } from './cli.js';
 import { resolveRoot } from './fileRead.js';
@@ -74,10 +86,24 @@ function bundledViewer(): string {
 
 const USAGE = `usage:
   ropeman serve [--root <repo>] [--out <folder>] [--local] [--port <n>] [--cli claude|gemini]
+                [--detach] [--idle-minutes <n>]
+  ropeman stop --out <folder>
   ropeman map --root <repo> --out <folder> [--depth <n>]
   ropeman verify --root <repo> --map <ropeman.json>
   ropeman inbox --out <folder>
   ropeman --version`;
+
+/** `--idle-minutes`: stop after this long with no page open; 0, the default here, never. */
+function parseIdleMinutes(args: string[]): number {
+	const idx = args.indexOf('--idle-minutes');
+	if (idx === -1) return 0;
+	const minutes = Number(args[idx + 1]);
+	if (!args[idx + 1] || !Number.isFinite(minutes) || minutes < 0) {
+		console.error('Cannot start: --idle-minutes needs a number of minutes, 0 for never.');
+		process.exit(1);
+	}
+	return minutes;
+}
 
 /** `--out`: the folder shared with the agent (`ropeman map --out`), created if missing. */
 function parseOutFlag(args: string[], root: string | null): string | null {
@@ -126,7 +152,7 @@ async function main() {
 		out: (text) => process.stdout.write(`${text}\n`),
 		err: (text) => process.stderr.write(`${text}\n`)
 	};
-	const commands = { map: runMap, verify: runVerify, inbox: runInbox };
+	const commands = { map: runMap, verify: runVerify, inbox: runInbox, stop: runStop };
 	if (Object.hasOwn(commands, argv[0] ?? '')) {
 		const command = commands[argv[0] as keyof typeof commands];
 		// exitCode, not exit(): exit() can cut a report still flushing to a pipe
@@ -142,17 +168,12 @@ async function main() {
 	const out = parseOutFlag(argv, root);
 	const viewerDir =
 		parseDirFlag(argv, '--viewer') ?? (argv.includes('--local') ? bundledViewer() : null);
-	// Headless naming starts a CLI with none of the conversation's context, so it is opt-in
-	const defaultCli = await namingCli(parseCLIFlag(argv));
-
-	if (defaultCli) log(`Workers naming opened folders: ${defaultCli}`);
-	if (defaultCli && out) log(`Worker prompts carry ${out}/brief.md; results go to its naming log`);
-	if (!defaultCli && out)
-		log(`No worker CLI: opened folders go on the queue in ${out} for your agent`);
-	if (!defaultCli && !out) {
-		log('Warning: claude not found, so opened folders keep folder names.');
-		log('Install Claude Code, pass --cli <claude|gemini>, or pass --out <folder> for your agent.');
-	}
+	const cliFlag = parseCLIFlag(argv);
+	const idleMinutes = parseIdleMinutes(argv);
+	// The instance id the `--detach` start chose for the serve it starts; null in any other start
+	const detachedChild = argv.includes(DETACHED_CHILD)
+		? (argv[argv.indexOf(DETACHED_CHILD) + 1] ?? null)
+		: null;
 
 	let token: string;
 	try {
@@ -168,13 +189,91 @@ async function main() {
 		: process.env[TOKEN_ENV]
 			? `the ${TOKEN_ENV} value`
 			: `stored in ${defaultTokenFile()}`;
+	// The address is HOST and the port the record names; the page is one the serve itself reported
+	const announce = ({ record, status }: Running) => {
+		if (status.entry)
+			log(`Local mode: open http://${HOST}:${record.port}${status.entry}#token=${token}`);
+		else log(`Open https://ropeman.dev/bridge and paste the token (${tokenSource}).`);
+	};
+
+	// One serve per --out for --detach: starting again reuses it, so the agent can rerun its start
+	// command anytime. A start without --detach (a terminal) runs as before and stops no other serve.
+	if (argv.includes('--detach')) {
+		if (!out) {
+			console.error(
+				'Cannot start: --detach needs --out, the folder that keeps its record and log.'
+			);
+			process.exit(1);
+		}
+		const args = ['serve', ...argv.filter((a) => a !== '--detach')];
+		if (!argv.includes('--idle-minutes')) args.push('--idle-minutes', String(DEFAULT_IDLE_MINUTES));
+		const result = await startDetached(out, {
+			root,
+			viewer: viewerDir !== null,
+			entry: fileURLToPath(import.meta.url),
+			args
+		});
+		if (result.kind === 'failed') {
+			const output = result.log ? ` Its output:\n${result.log}` : '';
+			console.error(`Cannot start: ${result.message}.${output}`);
+			process.exitCode = 1;
+			return;
+		}
+		const { status } = result.running;
+		if (result.kind === 'reused') {
+			log(`serve already runs for ${out} (pid ${status.pid}, port ${result.running.record.port}).`);
+		} else {
+			console.log(result.log);
+			if (result.replaced) {
+				log(
+					`Stopped the serve for ${out} that ran with other options (pid ${result.replaced.pid}).`
+				);
+			}
+			log(`serve runs in the background (pid ${status.pid}), its output in ${out}/serve.log.`);
+		}
+		const idle = status.idleMinutes
+			? `It stops after ${status.idleMinutes} minutes with no page open and no request, or with`
+			: 'Stop it with';
+		log(`${idle}: ropeman stop --out ${out}`);
+		announce(result.running);
+		return;
+	}
+
+	// Headless naming starts a CLI with none of the conversation's context, so it is opt-in
+	const defaultCli = await namingCli(cliFlag);
+
+	if (defaultCli) log(`Workers naming opened folders: ${defaultCli}`);
+	if (defaultCli && out) log(`Worker prompts carry ${out}/brief.md; results go to its naming log`);
+	if (!defaultCli && out)
+		log(`No worker CLI: opened folders go on the queue in ${out} for your agent`);
+	if (!defaultCli && !out) {
+		log('Warning: claude not found, so opened folders keep folder names.');
+		log('Install Claude Code, pass --cli <claude|gemini>, or pass --out <folder> for your agent.');
+	}
 
 	const identity = { name: pkg.name, version: pkg.version };
 	// The CLI runs in an empty folder, so even a CLI that reads files starts outside the project
 	const namingDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-naming-'));
 	const runner = new CliRunner(CLI_CONCURRENCY, namingDir);
+	const instance = detachedChild ?? randomUUID();
+	// Only a request carrying it reaches `control`; it is kept in OUT/serve.json (mode 0600)
+	const secret = randomBytes(32).toString('base64url');
+	// The Ropeman viewer opens at /bridge; another --viewer directory (the probe) at its index
+	const entry = viewerDir && fs.existsSync(path.join(viewerDir, 'bridge.html')) ? '/bridge' : '/';
+	const status: ServeStatus = {
+		instance,
+		pid: process.pid,
+		port,
+		root,
+		entry: viewerDir ? entry : null,
+		idleMinutes,
+		version: pkg.version
+	};
 	// Runs lead their own process groups, so a crash would leave them; this is the last resort
-	process.on('exit', () => runner.killNow());
+	process.on('exit', () => {
+		runner.killNow();
+		if (out) removeRecord(out, instance);
+	});
 	const session = root
 		? new MapSession({
 				root,
@@ -195,6 +294,9 @@ async function main() {
 			})
 		: null;
 
+	// Only what passed the token or the secret counts as use, so a page that polls the port, or the
+	// viewer's files loaded with no socket after them, does not keep serve running
+	let lastUse = Date.now();
 	const bridge = createBridgeServer({
 		port,
 		token,
@@ -204,6 +306,15 @@ async function main() {
 		session,
 		runner,
 		server: identity,
+		control: {
+			secret,
+			status,
+			stop: () => {
+				log('Asked to stop (ropeman stop).');
+				void shutdown();
+			}
+		},
+		onUse: () => (lastUse = Date.now()),
 		log
 	});
 
@@ -222,11 +333,11 @@ async function main() {
 		stopping = true;
 		log('Shutting down...');
 		// A CLI that ignores SIGTERM gets SIGKILL after the grace; this cap only covers a stuck close
-		setTimeout(() => process.exit(0), KILL_GRACE_MS + 3_000).unref();
+		setTimeout(() => process.exit(), KILL_GRACE_MS + 3_000).unref();
 		await bridge.close();
 		fs.rmSync(namingDir, { recursive: true, force: true });
 		log('Server stopped');
-		process.exit(0);
+		process.exit();
 	}
 
 	process.on('SIGINT', shutdown);
@@ -234,15 +345,61 @@ async function main() {
 	// Runs no longer share the terminal's process group, so a closed terminal reaches them only here
 	process.on('SIGHUP', shutdown);
 
+	if (idleMinutes > 0) {
+		const idleMs = idleMinutes * 60_000;
+		setInterval(
+			() => {
+				if (bridge.clients.size > 0) lastUse = Date.now();
+				else if (Date.now() - lastUse >= idleMs) {
+					log(`No page open for ${idleMinutes} minutes.`);
+					void shutdown();
+				}
+			},
+			Math.min(idleMs / 4, 60_000)
+		).unref();
+	}
+
 	server.listen(port, HOST, () => {
 		log(`Bridge server ready on ws://${HOST}:${port}`);
 		log(`Open https://ropeman.dev/bridge and paste the token (${tokenSource}).`);
 		log(`Map and file.read root: ${root ?? 'off (pass --root <dir>)'}`);
 		session?.start();
-		// The Ropeman viewer opens at /bridge; another --viewer directory (the probe) at its index
-		const entry = viewerDir && fs.existsSync(path.join(viewerDir, 'bridge.html')) ? '/bridge' : '/';
-		if (viewerDir) log(`Local mode: open http://${HOST}:${port}${entry}#token=${token}`);
+		const open = `http://${HOST}:${port}${entry}`;
+		// The detached serve's log is a file; the command that started it prints the token
+		if (viewerDir && !detachedChild) log(`Local mode: open ${open}#token=${token}`);
+		else if (viewerDir) log(`Local mode at ${open}`);
 		else log('Safari, or the browser blocked the connection? Start again with --local.');
+		if (!out) return;
+		const record = {
+			pid: process.pid,
+			port,
+			instance,
+			secret,
+			startedAt: new Date().toISOString(),
+			version: pkg.version
+		};
+		const keep = () => {
+			const exposed = writeRecord(out, record);
+			if (!exposed) return;
+			log(
+				`Cannot keep ${out}/serve.json private: this file system reports it as ${exposed}, so ropeman stop and serve --detach would not trust it. Use an --out folder on a disk that keeps file modes.`
+			);
+			// A detached serve nobody can reach or stop would only hold its port until idle
+			if (detachedChild) {
+				process.exitCode = 1;
+				void shutdown();
+			}
+		};
+		// The --detach start checked under its lock; a terminal's serve leaves another one's record
+		if (detachedChild) return keep();
+		void findServe(out).then((other) => {
+			if (other.kind === 'none' || other.kind === 'stale') return keep();
+			const which =
+				other.kind === 'running'
+					? `Another serve runs for ${out} (pid ${other.running.status.pid}, port ${other.running.record.port})`
+					: `${out}/serve.json may point to another serve (${other.problem})`;
+			log(`${which}; ropeman stop and serve --detach reach that one, not this one.`);
+		});
 	});
 }
 
