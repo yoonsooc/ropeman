@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { gotoApp } from './support/app';
 
 const SKILL_URL =
 	'https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.1/skill/ropeman/SKILL.md';
@@ -16,7 +17,7 @@ async function useLanguage(page: Page, language: 'en' | 'ko') {
 test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 	test('the landing leads with the three setup steps and fits the screen', async ({ page }) => {
 		await useLanguage(page, 'en');
-		await page.goto('/');
+		await gotoApp(page);
 
 		const setup = page.locator('#agent-setup');
 		await expect(setup.getByRole('heading', { name: 'Set it up in three steps' })).toBeVisible();
@@ -48,7 +49,7 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 		page
 	}) => {
 		await useLanguage(page, 'en');
-		await page.goto('/');
+		await gotoApp(page);
 		const setup = page.locator('#agent-setup');
 		const folders = {
 			Codex: '~/.agents/skills',
@@ -78,7 +79,7 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 
 	test('the agent tabs move with the arrow keys', async ({ page }) => {
 		await useLanguage(page, 'en');
-		await page.goto('/');
+		await gotoApp(page);
 		const setup = page.locator('#agent-setup');
 
 		await setup.getByRole('tab', { name: 'Claude Code' }).focus();
@@ -93,7 +94,7 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 
 	test('Korean shows the same steps with the untested note in Korean', async ({ page }) => {
 		await useLanguage(page, 'ko');
-		await page.goto('/');
+		await gotoApp(page);
 		const setup = page.locator('#agent-setup');
 
 		await expect(setup.getByRole('heading', { name: '세 단계로 시작하기' })).toBeVisible();
@@ -127,7 +128,7 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 test('copy puts the exact command on the clipboard', async ({ page, context }) => {
 	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 	await useLanguage(page, 'en');
-	await page.goto('/');
+	await gotoApp(page);
 	const setup = page.locator('#agent-setup');
 
 	await setup.getByRole('tab', { name: 'Codex' }).click();
@@ -144,7 +145,7 @@ test('copy puts the exact command on the clipboard', async ({ page, context }) =
 
 test('each copy button names the command it copies', async ({ page }) => {
 	await useLanguage(page, 'ko');
-	await page.goto('/');
+	await gotoApp(page);
 	const setup = page.locator('#agent-setup');
 
 	await expect(setup.getByRole('button', { name: '설치 명령 복사' })).toBeVisible();
@@ -159,7 +160,7 @@ test('a blocked clipboard selects the command and says to copy it by hand', asyn
 			value: { writeText: () => Promise.reject(new DOMException('denied', 'NotAllowedError')) }
 		});
 	});
-	await page.goto('/');
+	await gotoApp(page);
 	const setup = page.locator('#agent-setup');
 
 	await setup.getByRole('button', { name: 'Copy install command' }).click();
@@ -175,7 +176,7 @@ test('a blocked clipboard selects the command and says to copy it by hand', asyn
 
 test('Tab moves from the selected agent tab into its panel', async ({ page }) => {
 	await useLanguage(page, 'en');
-	await page.goto('/');
+	await gotoApp(page);
 	const setup = page.locator('#agent-setup');
 
 	await setup.getByRole('tab', { name: 'Claude Code' }).focus();
@@ -187,7 +188,7 @@ test('Tab moves from the selected agent tab into its panel', async ({ page }) =>
 test('a first visit does not start the browser-path tour over the setup steps', async ({
 	page
 }) => {
-	await page.goto('/');
+	await gotoApp(page);
 	await expect(page.locator('#agent-setup')).toBeVisible();
 
 	await page.waitForTimeout(1200);
