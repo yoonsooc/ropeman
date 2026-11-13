@@ -350,9 +350,9 @@ function subscriber(): Subscriber & { pushes: RpcPush[] } {
 }
 
 /**
- * Waits for `check`, rewriting `touch` with its own bytes every 200 ms meanwhile. On macOS a
- * `fs.watch` goes live some time after it returns, and each watcher the session opens restarts
- * the one stream all of them share, so a change made in that window is never reported.
+ * Waits for `check`, rewriting `touch` with its own bytes every 200 ms meanwhile. Observed on
+ * macOS under load: a change made right after the session opens its watchers can go unreported,
+ * so the test would wait forever for an event the change never produced.
  */
 const until = async (check: () => boolean, touch?: string) => {
 	const end = Date.now() + 5_000;
@@ -458,6 +458,8 @@ describe('serve --out', () => {
 		try {
 			const withExtra = await s.map();
 			fs.rmSync(extra, { recursive: true });
+			// The rewrite of src/index.ts also starts a re-extraction, so this proves the names
+			// come back once a rescan no longer sees extra/, not that serve noticed the removal
 			await until(
 				() => viewer.pushes.some((m) => m.type === 'map.changed'),
 				path.join(root, 'src/index.ts')
