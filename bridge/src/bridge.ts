@@ -26,6 +26,24 @@ export const HOST = '127.0.0.1';
 const MAX_FILE_READS_IN_FLIGHT = 8;
 /** Per connection: the namings it waits for. */
 export const MAX_NAMINGS_IN_FLIGHT = 4;
+/** Where `BridgeOptions.control` answers; the viewer has no file under a dot folder */
+export const CONTROL_PATH = '/.ropeman/serve';
+/** Carries `ServeControl.secret` */
+export const SECRET_HEADER = 'x-ropeman-serve-secret';
+
+/**
+ * How `ropeman stop` and `serve --detach` reach the serve `OUT/serve.json` names. Only a request
+ * with the record's secret gets an answer, so the record alone, which a cloned repository can
+ * ship, proves nothing, and no process is ever signalled by a pid from the file.
+ */
+export interface ServeControl {
+	/** Kept in `OUT/serve.json` (mode 0600) and nowhere else */
+	secret: string;
+	/** What GET answers, as JSON */
+	status: object;
+	/** POST answers 202, then calls this */
+	stop(): void;
+}
 
 export interface BridgeOptions {
 	port: number;
@@ -40,6 +58,9 @@ export interface BridgeOptions {
 	/** The session's naming runs here; `close` waits for its process trees */
 	runner: CliRunner;
 	server: { name: string; version: string };
+	control?: ServeControl;
+	/** Called for each socket that passed the token check and each request with the control secret */
+	onUse?: () => void;
 	log?: (msg: string) => void;
 }
 
@@ -64,6 +85,29 @@ function echo(text: string): { id: number; type: string } {
 	}
 }
 
+function answerControl(
+	control: ServeControl,
+	req: http.IncomingMessage,
+	res: http.ServerResponse,
+	onUse: () => void
+) {
+	const given = req.headers[SECRET_HEADER];
+	const head = { 'Content-Type': 'text/plain', Connection: 'close' };
+	if (!tokensMatch(typeof given === 'string' ? given : null, control.secret)) {
+		res.writeHead(403, head).end('Wrong secret');
+		return;
+	}
+	onUse();
+	if (req.method === 'GET') {
+		res.writeHead(200, { ...head, 'Content-Type': 'application/json' });
+		res.end(JSON.stringify(control.status));
+	} else if (req.method === 'POST') {
+		res.writeHead(202, head).end(() => control.stop());
+	} else {
+		res.writeHead(405, head).end();
+	}
+}
+
 /**
  * One loopback port carries the WebSocket and, in local mode, the viewer's static files, so the
  * served page and the socket share an origin. The server is returned unbound; call `listen`.
@@ -76,6 +120,7 @@ export function createBridgeServer(options: BridgeOptions): {
 } {
 	const { port, token, root, viewerDir, session, runner } = options;
 	const log = options.log ?? (() => {});
+	const onUse = options.onUse ?? (() => {});
 	const allowedOrigins = new Set(options.allowedOrigins);
 	if (viewerDir) for (const origin of localOrigins(port)) allowedOrigins.add(origin);
 	const clients = new Set<WebSocket>();
@@ -83,6 +128,10 @@ export function createBridgeServer(options: BridgeOptions): {
 	const server = http.createServer((req, res) => {
 		if (!isHostAllowed(req.headers.host, port)) {
 			res.writeHead(403, { 'Content-Type': 'text/plain' }).end('Host not allowed');
+			return;
+		}
+		if (options.control && req.url?.split('?')[0] === CONTROL_PATH) {
+			answerControl(options.control, req, res, onUse);
 			return;
 		}
 		if (!viewerDir) {
@@ -130,6 +179,7 @@ export function createBridgeServer(options: BridgeOptions): {
 	wss.on('connection', (ws, req) => {
 		const addr = req.socket.remoteAddress ?? 'unknown';
 		clients.add(ws);
+		onUse();
 		log(
 			`Client connected from ${addr} origin=${req.headers.origin ?? '-'} (${clients.size} total)`
 		);
