@@ -12,8 +12,16 @@ import {
 	resolveToken
 } from './auth.js';
 import { HOST, createBridgeServer } from './bridge.js';
-import { CliRunner, KILL_GRACE_MS, detectCLI } from './cli.js';
+import { CliRunner, KILL_GRACE_MS } from './cli.js';
 import { resolveRoot } from './fileRead.js';
+import {
+	type CommandEnv,
+	outFolder,
+	runCommand,
+	runMap,
+	runNext,
+	runVerify
+} from './mapCommand.js';
 import { MapSession } from './mapSession.js';
 import pkg from '../package.json';
 
@@ -63,6 +71,29 @@ function bundledViewer(): string {
 	return resolveRoot(dir);
 }
 
+const USAGE = `usage:
+  ropeman serve [--root <repo>] [--out <folder>] [--local] [--port <n>] [--cli claude|gemini]
+  ropeman map --root <repo> --out <folder> [--depth <n>]
+  ropeman verify --root <repo> --map <ropeman.json>
+  ropeman next --out <folder> [--timeout <seconds>]
+  ropeman --version`;
+
+/** `--out`: the folder shared with the agent (`ropeman map --out`), created if missing. */
+function parseOutFlag(args: string[], root: string | null): string | null {
+	const idx = args.indexOf('--out');
+	if (idx === -1 || !args[idx + 1]) return null;
+	if (!root) {
+		console.error('Cannot start: --out needs --root, the folder its map describes.');
+		process.exit(1);
+	}
+	try {
+		return outFolder(root, args[idx + 1]);
+	} catch (err) {
+		console.error(`Cannot start: ${(err as Error).message}`);
+		process.exit(1);
+	}
+}
+
 function log(msg: string): void {
 	const ts = new Date().toISOString().slice(11, 19);
 	console.log(`[${ts}] ${msg}`);
@@ -75,26 +106,38 @@ const CLI_CONCURRENCY = 2;
 const NAMING_MAX_OUTPUT_BYTES = 1_000_000;
 const WATCH_DEBOUNCE_MS = 300;
 
+const WASM_DIR = fileURLToPath(new URL('./wasm', import.meta.url));
+
 async function main() {
-	// `ropeman serve …` and `ropeman-bridge …` run the same server
 	const argv = process.argv.slice(2);
+	const env: CommandEnv = {
+		wasmDir: WASM_DIR,
+		generator: { name: pkg.name, version: pkg.version },
+		out: (text) => process.stdout.write(`${text}\n`),
+		err: (text) => process.stderr.write(`${text}\n`)
+	};
+	const commands = { map: runMap, verify: runVerify, next: runNext };
+	if (Object.hasOwn(commands, argv[0] ?? '')) {
+		const command = commands[argv[0] as keyof typeof commands];
+		// exitCode, not exit(): exit() can cut a report still flushing to a pipe
+		process.exitCode = await runCommand(command, argv.slice(1), env);
+		return;
+	}
+	if (argv[0] === '--version') return void console.log(pkg.version);
+	if (argv[0] === '--help' || argv[0] === '-h') return void console.log(USAGE);
+	// `ropeman serve …` and `ropeman-bridge …` run the same server
 	if (argv[0] === 'serve') argv.shift();
 	const port = parsePort(argv);
 	const root = parseDirFlag(argv, '--root');
+	const out = parseOutFlag(argv, root);
 	const viewerDir =
 		parseDirFlag(argv, '--viewer') ?? (argv.includes('--local') ? bundledViewer() : null);
-	let defaultCli: CLIType | null = parseCLIFlag(argv);
+	// Headless naming starts a CLI with none of the conversation's context, so it is opt-in
+	const defaultCli: CLIType | null = parseCLIFlag(argv);
 
-	if (!defaultCli) {
-		defaultCli = await detectCLI();
-	}
-
-	if (defaultCli) {
-		log(`Using CLI: ${defaultCli}`);
-	} else {
-		log('Warning: No CLI tool detected. Install Claude Code (claude) or Gemini CLI (gemini).');
-		log('You can also specify --cli <claude|gemini> flag.');
-	}
+	if (defaultCli) log(`Naming opened folders with: ${defaultCli} (--cli)`);
+	else if (out) log(`Opened folders without names go on the queue in ${out} for your agent`);
+	else log('No naming: opened folders keep folder names (pass --out <folder> or --cli).');
 
 	let token: string;
 	try {
@@ -120,7 +163,7 @@ async function main() {
 	const session = root
 		? new MapSession({
 				root,
-				wasmDir: fileURLToPath(new URL('./wasm', import.meta.url)),
+				wasmDir: WASM_DIR,
 				naming: defaultCli
 					? {
 							cli: defaultCli,
@@ -130,6 +173,7 @@ async function main() {
 							runner
 						}
 					: null,
+				out,
 				server: identity,
 				debounceMs: WATCH_DEBOUNCE_MS,
 				log

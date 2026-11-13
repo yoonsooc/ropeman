@@ -137,9 +137,11 @@ edge-proxy/                       # Cloudflare Workers
 
 bridge/                           # 로컬 Bridge와 `ropeman serve` (`@ropeman/bridge`, npm 패키지)
 ├── src/
-│   ├── server.ts                     # CLI 진입점(`ropeman serve`, `ropeman-bridge`): 플래그 해석, CLI 감지, 토큰, 지도 세션, listen
+│   ├── server.ts                     # CLI 진입점(`ropeman serve`·`map`·`verify`·`next`, `ropeman-bridge`): 플래그 해석, 토큰, 지도 세션, listen
+│   ├── mapCommand.ts                 # `ropeman map`·`verify`·`next`: 에이전트가 쓴 이름 적용 → 검증 → `ropeman.json`·`work.json`, 대기열 기다리기
+│   ├── workFolder.ts                 # 에이전트와 serve가 함께 쓰는 폴더(`--out`)의 파일 이름, 대기열 읽기·쓰기, 원자적 쓰기
 │   ├── bridge.ts                     # 한 포트에 HTTP(로컬 모드 정적 서빙)와 WebSocket. 들어온 메시지는 모두 `parseRpcRequest`를 거쳐 RPC 처리
-│   ├── mapSession.ts                 # `--root` 하나의 지도: 추출, `map.get`·`node.expand` 답, 이름 붙이기 작업, 파일 변경 감시 → `map.changed`
+│   ├── mapSession.ts                 # `--root` 하나의 지도: 추출, `map.get`·`node.expand` 답, `--out`의 이름과 대기열(또는 `--cli` 이름 작업), 파일 변경 감시 → `map.changed`
 │   ├── naming.ts                     # 이름 붙이기: 프롬프트(구조만), 답 읽기, 이름 입히기, 검증 실패 시 한 번 재시도
 │   ├── cli.ts                        # CLI 실행(argv만, 셸 없음): 시간·출력 상한, 취소, 감지
 │   ├── watch.ts                      # 추출이 순회한 폴더마다 `fs.watch` 하나
@@ -159,6 +161,11 @@ packages/core/                    # Node 추출 코어 (npm 워크스페이스 �
 │   └── cli.ts                        # `ropeman-extract <폴더> [--out 파일]`
 ├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙, 폴더로 묶은 지도의 검증(`mapVerifier.test.ts`)
 └── vite.config.ts                    # `npm run build:core` → `dist/cli.mjs` 하나와 `dist/wasm/`
+
+skill/                            # 에이전트 스킬 (T2-6, ADR-25)
+├── ropeman/SKILL.md                  # 정본(영어). 에이전트가 읽는 유일한 파일
+├── README.md                         # 설치와 쓰는 법(영어)
+└── README-KO.md                      # 설치와 쓰는 법, 절차 번역(한국어). 스킬 폴더 밖이라 스킬로 읽히지 않는다
 
 scripts/paseo-comparison/         # 실험: 같은 모델·프롬프트에 Ropeman 추출과 graph.json을 넣어 비교 (T1-12)
 ├── run.mjs                           # vite로 TS 모듈을 Node에서 연다 (`$lib` 별칭)
@@ -335,6 +342,7 @@ file.read(path)    → #72 그대로 (루트 안, 실제 .env 거부, 500KB, 연
 - 노드 id: `dir:<폴더>`는 하위 폴더, `files:<폴더>`(루트는 `files:.`)는 그 폴더에 바로 든 파일들이다. 단계는 id만으로 다시 만들 수 있어서 다시 추출해도 같은 폴더는 같은 id다. 펼칠 수 있는 것은 `dir:` 노드뿐이고 `files:` 노드는 `unknown-node`로 답한다(파일은 `file.read`로 연다). 관계는 계층 요약의 폴더 사이 import이고 근거 ref는 그 import 줄이다(`packages/core/src/groupedMap.ts`). `files`(커버리지)는 지도의 파일을 `sent`, 건너뛴 파일을 그 이유로 적는다.
 - 메시지 처리: 들어온 텍스트는 모두 `parseRpcRequest`가 먼저 읽는다. 거부되면 같은 id와 type(읽을 수 있으면)으로 `code: "bad-request"`를 돌려주고 연결은 유지한다. 모르는 type, JSON이 아닌 텍스트, 필드가 빠진 요청이 다 이렇다. 연결마다 첫 메시지는 `hello`(스키마 버전과 서버 이름·버전)다. 옛 `status: connected` 인사는 없앴다(앱은 그것을 읽지 않았다). ADR-24 이전의 중계(`chat`, `analyze`, `ping`, `status`)는 T2-5에서 앱의 Bridge AI 트랙과 함께 지웠다. 이제 그 메시지도 다른 모르는 type처럼 `bad-request`로 답한다. 클라이언트가 고른 프롬프트로 CLI를 돌리는 길은 이제 없고, CLI에 가는 프롬프트는 모두 서버가 지도에서 만든다.
 - CLI에 보내는 것(그대로): 영어 지시문, 프로젝트 이름(`--root` 폴더 이름), 펼친 폴더 경로, 그리고 부분마다 id, 종류(하위 폴더 또는 바로 든 파일), 파일 수, 파일 경로 최대 12개, 선언한 최상위 심볼 최대 24개(`function add`처럼 종류와 이름. 종류는 function·class·interface·type·variable·service·target·job·resource만), 부분 사이 import 수. 재시도면 지난 답이 거부된 이유(검증기 문장, 최대 20개)가 더해진다. 파일 내용은 한 줄도 보내지 않는다. 실제 값이 든 `.env`는 코드 지도에 없고, 프롬프트를 만들 때 한 번 더 걸러 이름도 나가지 않는다. 설정 파일의 `command`·`key`처럼 값을 담을 수 있는 심볼 종류는 뺐다. 프롬프트는 100,000바이트를 넘지 않는다(넘으면 표본을 반씩 줄인다. Linux가 argv 문자열 하나를 128KiB로 자르므로 `gemini -p <프롬프트>`도 들어간다). 부분이 80개를 넘는 단계는 이름을 붙이지 않고 `naming-failed`로 알린다.
+- (2026-11-13, T2-6, ADR-25) 아래 CLI 이름 붙이기는 `--cli`를 줄 때만 돈다. 기본은 사용자가 대화 중인 에이전트가 이름을 붙이고, serve는 이름 없는 폴더를 `--out`의 대기열에 넣는다(다음 절).
 - CLI 실행: `spawn(cli, argv)`이고 셸 문자열을 만들지 않는다. CLI 감지도 `execFile(cli, ['--version'])`이다. argv는 `cli.ts`의 `headlessCommand` 한 곳에서 만든다. `claude`는 `-p --output-format json --no-session-persistence --strict-mcp-config --tools ""`(도구·MCP 서버 없음, 세션 저장 안 함)로 돌리고 프롬프트는 stdin으로 준다. JSON 출력에서 답과 토큰 수를 읽는다. `gemini`는 `-p <프롬프트> --approval-mode default --allowed-mcp-server-names ropeman-none -e none`이고 토큰 수가 없다. gemini 0.33에는 도구를 모두 끄는 플래그가 없다(`gemini --help`와 설치된 소스 `dist/src/config/config.js`로 확인). `--approval-mode default`는 사용자 설정이 yolo여도 덮어써서, 헤드리스 모드에서 셸·편집·쓰기·웹 가져오기 도구를 뺀다. 아무도 쓰지 않는 MCP 서버 이름만 허용해 사용자의 MCP 서버를 하나도 띄우지 않고, `-e none`으로 확장을 끈다. 읽기·검색 도구(`read_file`, `glob`, `grep_search` 등)는 남는데, 이 도구들은 작업 폴더(빈 임시 폴더) 안만 본다. 이 한계 때문에 gemini가 쓴 이름도 검증기를 통과해야만 보낸다는 점이 마지막 방어선이다. 플래그가 파싱되는지는 인증 없는 환경에서 실행해 인증 단계까지 가는지(종료 코드 41, 모르는 플래그면 1)로 확인했고 모델은 부르지 않았다. 작업 폴더는 시작할 때 만든 빈 임시 폴더라, 파일을 읽는 CLI라도 프로젝트 밖에서 시작한다. 한 번에 180초, 출력 1MB를 넘으면 멈춘다.
 - 프로세스 트리 종료: CLI가 셸 래퍼나 npm 심이면 실제 CLI는 손자 프로세스다. POSIX에서는 CLI를 `detached`로 띄워 자기 프로세스 그룹의 리더로 만들고, 멈출 때 그룹 전체에 SIGTERM, 2초 뒤 SIGKILL을 보낸다(`process.kill(-pid)`). 취소(기다리는 연결이 모두 닫힘), 시간 초과, 출력 초과, 서버 종료가 모두 이 길을 탄다. 자식이 stdio를 놓고 SIGTERM을 무시해도 그룹에 누가 남아 있으면 SIGKILL 타이머를 유지한다. Windows에서는 `taskkill /pid <pid> /T /F`로 트리를 한 번에 끝낸다. 이 Windows 경로는 실행해 보지 않았다. 그룹이 터미널의 포그라운드 그룹에서 빠지므로 Ctrl-C(SIGINT)와 터미널 닫힘(SIGHUP)은 서버의 종료 처리만 CLI에 전한다. 서버가 예외로 죽는 경우를 위해 `process.on('exit')`에서 남은 그룹에 SIGKILL을 동기로 보낸다.
 - 서버 종료: SIGINT·SIGTERM·SIGHUP을 받으면 소켓을 닫고 모든 CLI 실행(대기 포함)을 취소한 뒤, 모든 프로세스 그룹이 사라질 때까지 기다리고(SIGTERM을 무시하는 트리는 2초 뒤 SIGKILL) 서버가 닫히면 끝낸다. 무엇이 걸려도 5초 뒤에는 끝낸다(`createBridgeServer().close()`, `server.ts`의 `shutdown`).
@@ -345,6 +353,33 @@ file.read(path)    → #72 그대로 (루트 안, 실제 .env 거부, 500KB, 연
 - 번들: `bridge/vite.config.ts`가 `server.ts`부터 코어(`packages/core`), 파서, 검증기, `web-tree-sitter`까지 ES 모듈 하나(`dist/server.mjs`, 약 340KB)로 묶고 `$lib` 별칭을 푼다. 문법 `.wasm` 20개는 `dist/wasm/`에 복사한다. 런타임 의존성은 `ws` 하나다. `npm pack`이 `prepack`으로 빌드한다. 타입 검사는 `npm run check:bridge`(`npm ci --prefix bridge` 뒤, `@types/ws`가 거기 있다). 패키지 0.3.0은 아직 npm에 올리지 않았다(배포는 사용자 승인).
 - 검증: `bridge/test/serve.test.ts`가 임시 프로젝트에 `serve`를 띄우고 WebSocket으로 `map.get → node.expand → node.named → file.read → 파일 수정 → map.changed`를 돈다. 받은 메시지는 모두 뷰어의 `parseServerMessage`로 읽고, `map.get` 결과는 새로 추출한 코드 지도로 `verifyMap`해 위반 0을 본다. 가짜 CLI(`test/fixtures/fake-cli.mjs`)가 계획대로 답해서 재시도, 두 번 실패, CLI 오류, 시간 초과, 두 연결의 작업 공유, `busy`, `no-cli`, 잘못된 메시지를 본다. 손자 프로세스를 띄우는 가짜 CLI로 연결이 닫힐 때, 시간 초과 때, 서버 종료 때 손자까지 사라지는지 보고, 서버 종료는 SIGTERM을 무시하는 트리의 SIGKILL까지 기다린 뒤에 끝나는지 본다. 가짜 CLI가 받은 stdin에는 파일 경로와 심볼 이름이 있고, 함수 본문 문자열과 `.env` 값과 `.env` 이름은 없다. CI는 번들을 빌드해 `scripts/smoke.mjs`로 픽스처 한 바퀴를 돈다.
 - PASEO 실측(`e0f545fed`, Apple M4, Node 26, 2026-11-13, `ROPEMAN_SERVE_DIR=<폴더> ROPEMAN_SERVE_NODE=<id> npx vitest run bridge/test/realCli.test.ts`, 실제 `claude -p` 2회): 첫 추출 7.1~7.7초(지도 6,171개). 추출이 끝난 뒤 `node.expand`의 grouped 답은 프로세스 안에서 1ms 이하, 소켓 너머(번들, 가짜 CLI)로 21ms다. `dir:packages`(부분 11개, 프롬프트 16,286바이트)는 이름이 15.7초 뒤에 왔고 토큰은 입력 11,281(캐시 포함), 출력 1,651이었다. `dir:packages/server`(부분 3개, 4,148바이트)는 5.3초, 입력 2 + 캐시 읽기 649 + 캐시 쓰기 5,690, 출력 336, $0.0528(CLI가 보고한 값, 사용자 기본 모델)이다. 두 번 다 첫 답이 검증을 통과했고, 그 지도를 새로 추출한 코드 지도로 다시 검증해도 위반 0이다. 이름이 오는 시간은 출력 토큰 수와 함께 늘어서(1,651개 15.7초, 336개 5.3초) 모델 생성이 대부분으로 본다(나눠 재지 않은 추정). 서버는 추출 뒤 쉬는 동안 CPU 0%, RSS 약 976MB이고, 다시 추출하는 동안에는 이전 지도를 들고 있어 그보다 커진다(재지 않음). 증분 갱신은 이 단계에 넣지 않았다(A-13 SQLite).
+
+### 스킬과 작업 폴더 (T2-6, ADR-25)
+
+`skill/ropeman/SKILL.md`는 사용자가 대화 중인 에이전트가 지도에 이름을 붙이게 한다. 에이전트는 셸 명령 넷과 파일 쓰기만 쓴다. 서브에이전트, 훅, 특정 모델명에 기대지 않는다.
+
+```
+ropeman map --root R --out O     → 추출 → O/names.json 적용 → 단계마다 검증 → O/ropeman.json, O/work.json, 보고(JSON)
+에이전트                          → work.json을 읽고 부분마다 label·description·keySymbols를 O/names.json에 쓴다
+ropeman map (다시)               → 문제(코드·단계·노드)를 고칠 때까지 반복, 끝나면 다음 단계
+ropeman verify --root R --map F  → 아무 ropeman.json이나 새 추출과 대조, 위반 JSON
+ropeman serve --root R --out O   → O/ropeman.json의 이름을 내주고, 이름 없는 폴더는 O/queue.json에 쌓는다
+ropeman next --out O             → 대기열에 이름 없는 폴더가 생길 때까지 기다린다(브라우저 따라 탐색)
+```
+
+- 작업 폴더의 파일은 쓰는 쪽이 하나씩이다. 에이전트는 `names.json`, `ropeman map`은 `ropeman.json`·`work.json`, serve는 `queue.json`만 쓴다. 쓰기는 임시 파일에 쓰고 이름을 바꿔서, 읽는 쪽이 반쯤 쓴 파일을 보지 않는다. 다음 작업인 Claude Code 채널도 같은 파일을 쓴다.
+- `names.json`: 노드 id마다 `{ label, description, keySymbols }`. serve가 CLI에 묻던 필드이고 검사도 같다(`parseNamingAnswer`, `applyNames`). 한 단계는 부분 전부에 이름이 있고 `verifyMap`을 통과해야 이름이 붙는다. 나머지는 `grouped`로 남기므로 쓰인 `ropeman.json`은 늘 통과한다. 파서가 거부한 단계도 그 단계만 되돌린다.
+- 단계: 깊이다. 1단계는 최상위, 2단계는 그 안의 폴더이고 기본은 2단계까지(`--depth`). `work.json`에는 이름이 없는 가장 얕은 단계와 대기열의 폴더(`queued: true`)만 나온다. 부분마다 종류, 파일 수, 경로 12개, 선언한 이름 24개(serve 프롬프트와 같은 `summarizePart`), 부분 사이 import 수, 위 단계에서 붙인 이름이 들어간다. 파일 내용과 실제 `.env`는 없다.
+- `ropeman.json`에는 모든 폴더 단계가 들어간다(이름이 없으면 `grouped`). JSON 열기로도 끝까지 드릴다운할 수 있다. PASEO는 735단계, 5.1MB다.
+- 문제 코드: 검증기의 17개에 `names-unreadable`(JSON 객체가 아님), `node-unknown`(지도에 없는 id), `name-missing`(단계의 일부만 이름), `name-invalid`(길이·형식), `map-invalid`(파서 거부)를 더했다. 종료 코드는 0(문제 없음), 1(문제 있음), 2(인자 오류)다.
+- `--out`: 저장소 밖이어도 된다(읽기 전용 저장소). 저장소 안이면 순회가 건너뛰는 폴더(`.ropeman`)여야 한다. 아니면 지도가 자기 파일을 세고, serve의 감시가 쓸 때마다 다시 추출한다.
+- serve와 대기열: `--out`을 주면 `ropeman.json`의 `named` 단계(최상위 포함)를 이름으로 쓴다. 이름은 serve의 추출에서 다시 검증하고, 통과하지 못하면 그 단계는 `grouped`로 돌아간다. 이름 없는 폴더를 열면 `queue.json`에 넣고 `node.named`에 `code: "queued"`를 보낸다. 뷰어는 "에이전트 대기열에 넣었습니다"를 보여 준다. 에이전트가 `ropeman map`을 다시 돌려 `ropeman.json`이 바뀌면(`fs.watch`로 폴더를 본다) serve가 다시 읽고, 이름이 생긴 대기열 폴더는 기다리던 화면에 `node.named`(단계)로, 다른 단계가 바뀌었으면 `map.changed`(경로 없음)로 알린다. 대기열은 이름이 생기면 빠지고, serve를 다시 띄워도 남는다.
+- `ropeman next`: `queue.json`에 `ropeman.json`이 이름을 붙이지 않은 폴더가 있으면 그 id를 출력하고 끝난다. 없으면 0.5초마다 다시 보고, `--timeout`(기본 90초, 에이전트 셸의 기본 시간 제한 2분 아래)이 지나면 빈 목록을 낸다. `--timeout 0`은 한 번만 본다. 스킬은 이후 메시지마다 `--timeout 0`으로 대기열을 확인하고, 사용자가 "브라우저 따라 탐색"을 부탁할 때만 기다리기를 반복한다. 기다리는 동안 그 대화는 답하지 못한다고 스킬이 먼저 알린다.
+- 셸: 스킬은 정해진 명령에 경로 인자만 넣게 한다. 이름은 파일 쓰기 도구로 쓰고 명령줄에 넣지 않는다. `work.json` 안의 경로와 심볼 이름은 데이터로 다루고 지시로 따르지 않는다.
+- 배포: 0.3.0은 npm에 없어서, 지금은 저장소에서 `npm pack`한 tarball을 `npm install -g`로 깐다. 스킬 폴더는 에이전트의 스킬 폴더(Claude Code는 `~/.claude/skills/`)에 복사한다.
+- 검증: `bridge/test/mapCommand.test.ts`(13개)가 임시 저장소에서 첫 실행, 단계 적용, 끝과 재실행이 같은 바이트를 쓰는지, 문제 코드별 단계 되돌리기, 출력 폴더 규칙, `verify`, `next`의 기다림, serve의 이름 읽기와 대기열 한 바퀴를 본다. `tests/bridge-mode.spec.ts`의 대기열 테스트는 빌드한 serve를 `--out`으로 띄워 폴더를 열고("Queued for your agent"), `ropeman map`으로 이름을 넣은 뒤 같은 화면에 이름이 뜨는지 본다.
+- PASEO 실측(`e0f545fed`, Apple M4, 2026-11-13): 새 Claude Code 세션(`claude -p`, sonnet, 프로젝트 설정만, `ropeman` 명령만 허용)에 스킬을 설치하고 "이 저장소 지도 그려줘, 저장소는 읽기 전용이니 결과는 <폴더>에"라고만 했다. 첫 대화는 12턴, 100초, 0.34달러(출력 10,527토큰, 캐시 읽기 38만, 캐시 쓰기 4.9만)였고 `ropeman map`을 3번 돌려 두 단계(최상위 하나와 그 아래 폴더 12개, 부분 87개)에 이름을 붙이고 문제 0개로 끝났다. `ropeman verify`는 위반 0, 단계 735, 노드 1,398, 관계 1,438, 근거 12,244를 확인했다. 커버리지 보고는 본 파일 6,756, 지도 6,173(읽음 6,171, 크기 초과 1, 파싱 실패 1), 문법 없음 583이다. `ropeman map` 한 번은 7~8초다. serve를 띄우고 headless Chromium으로 최상위 13개 이름, `packages` 아래 11개 이름, 파일 원문 보기를 확인했고, `packages/server`를 열자 대기열 안내가 떴다. 같은 세션에 다른 질문을 보내자 에이전트가 먼저 `ropeman next --timeout 0`으로 대기열을 보고 `packages/server`의 세 부분에 이름을 붙였다(7턴, 35초, 0.43달러). 열려 있던 화면에 51초 뒤 이름이 떴다. 앞선 스킬 판(파이프 금지 규칙 전)의 실행은 14턴, 113초, 0.52달러였고, 에이전트가 보고를 `sed`로 자르려다 권한에 막혔다. 그래서 명령을 파이프 없이 하나씩 돌리라는 규칙을 넣었다.
+- 확인하지 않은 것: Claude Code 밖의 에이전트(Codex, Gemini CLI, Cursor), Windows, "브라우저 따라 탐색" 반복을 실제 에이전트로 돌린 것(`ropeman next`의 기다림은 단위 테스트만).
 
 ### 뷰어 Bridge 모드 (`/bridge`, T2-5)
 

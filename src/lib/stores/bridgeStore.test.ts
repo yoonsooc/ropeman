@@ -186,6 +186,19 @@ describe('bridgeStore', () => {
 		});
 	});
 
+	it('shows a folder queued for the agent as waiting, then swaps in its names when they come', async () => {
+		const server = await connected();
+		await expandSrc(server);
+
+		server.push({ type: 'node.named', nodeId: 'dir:src', code: 'queued', error: 'Queued.' });
+		const queued = bridgeStore.namingOf('dir:src');
+		server.push({ type: 'node.named', nodeId: 'dir:src', level: SRC_NAMED });
+
+		expect(queued).toEqual({ state: 'queued' });
+		expect(labels()).toEqual(['Named api', 'Named src']);
+		expect(bridgeStore.namingOf('dir:src')).toBeNull();
+	});
+
 	it('opens the file list of a node serve does not expand', async () => {
 		const server = await connected();
 

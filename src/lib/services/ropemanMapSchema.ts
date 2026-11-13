@@ -11,7 +11,7 @@ import {
 	MAP_FORMAT,
 	MAP_SCHEMA,
 	MAX_MAP_BYTES,
-	NAMING_FAILURES,
+	NAMING_CODES,
 	RELATION_KINDS,
 	RESERVED_NODE_ID,
 	RPC_ERROR_CODES,
@@ -396,8 +396,8 @@ export function parseServerMessage(text: string): ParseResult<ServerMessage> {
 					return {
 						type,
 						nodeId,
-						code: (NAMING_FAILURES as readonly string[]).includes(code)
-							? (code as (typeof NAMING_FAILURES)[number])
+						code: (NAMING_CODES as readonly string[]).includes(code)
+							? (code as (typeof NAMING_CODES)[number])
 							: 'unknown',
 						error: str(field(o, 'error'), 'error')
 					};

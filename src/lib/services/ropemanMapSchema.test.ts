@@ -363,6 +363,18 @@ describe('parseServerMessage', () => {
 		expect(result.ok && result.value).toMatchObject({ code: 'verification-failed' });
 	});
 
+	it('reads a node queued for the agent, and a code it does not know as unknown', () => {
+		const queued = parseServerMessage(
+			'{"type":"node.named","nodeId":"sem:api","code":"queued","error":"Queued."}'
+		);
+		const newer = parseServerMessage(
+			'{"type":"node.named","nodeId":"sem:api","code":"asked-elsewhere","error":"Later."}'
+		);
+
+		expect(queued.ok && queued.value).toMatchObject({ code: 'queued' });
+		expect(newer.ok && newer.value).toMatchObject({ code: 'unknown', error: 'Later.' });
+	});
+
 	it('refuses an expansion without the node it expands', () => {
 		const result = parseServerMessage(
 			JSON.stringify({ id: 2, type: 'node.expand', result: { ...groupedApi(), parentId: null } })

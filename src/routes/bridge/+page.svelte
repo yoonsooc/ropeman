@@ -290,6 +290,10 @@
 							<span class="bridge-pulse" aria-hidden="true"></span>
 							<span>{i18nStore.t('bridge.namingPending')}</span>
 						</div>
+					{:else if naming?.state === 'queued'}
+						<div class="bridge-strip" role="status" data-testid="naming-status">
+							<span>{i18nStore.t('bridge.namingQueued')}</span>
+						</div>
 					{:else if naming?.state === 'failed'}
 						<div class="bridge-strip warning" role="status" data-testid="naming-status">
 							<span>

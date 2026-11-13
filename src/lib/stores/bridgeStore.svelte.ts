@@ -16,7 +16,7 @@ import { toViewerLevel, toViewerLevels } from '$lib/services/mapViewer';
 import {
 	RESERVED_NODE_ID,
 	type MapLevel,
-	type NAMING_FAILURES,
+	type NAMING_CODES,
 	type RopemanMap,
 	type RpcErrorCode
 } from '$lib/types/ropemanMap';
@@ -33,11 +33,15 @@ export type BridgeStatus =
 	/** Was connected; the map stays on screen until the viewer reconnects or leaves. */
 	| { state: 'lost'; host: string };
 
-export type NamingFailureCode = (typeof NAMING_FAILURES)[number] | 'unknown';
+export type NamingFailureCode = Exclude<(typeof NAMING_CODES)[number], 'queued'> | 'unknown';
 
-/** What serve said about naming a node's children. A named level clears the entry. */
+/**
+ * What serve said about naming a node's children. `queued`: the user's agent names them the
+ * next time it runs, and a named level follows then. A named level clears the entry.
+ */
 export type Naming =
 	| { state: 'pending' }
+	| { state: 'queued' }
 	| { state: 'failed'; code: NamingFailureCode; error: string };
 
 /** The last request that failed, for the banner. */
@@ -153,7 +157,12 @@ function createBridgeStore() {
 
 	function onNamed(push: Extract<BridgePush, { type: 'node.named' }>) {
 		if (!('level' in push)) {
-			setNaming(push.nodeId, { state: 'failed', code: push.code, error: push.error });
+			setNaming(
+				push.nodeId,
+				push.code === 'queued'
+					? { state: 'queued' }
+					: { state: 'failed', code: push.code, error: push.error }
+			);
 			return;
 		}
 		setNaming(push.nodeId, null);

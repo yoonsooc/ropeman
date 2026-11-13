@@ -534,6 +534,7 @@ interface TranslationSet {
 		| 'loadingMap'
 		| 'localMode'
 		| 'namingPending'
+		| 'namingQueued'
 		| 'namingNoCli'
 		| 'namingFailed'
 		| 'namingRejected'
@@ -1282,9 +1283,11 @@ const translations: Record<Locale, TranslationSet> = {
 			reconnect: '다시 연결',
 			loadingMap: 'serve에서 지도를 받는 중...',
 			localMode: '로컬 모드',
-			namingPending: 'CLI가 이 부분들에 이름을 붙이는 중입니다. 그동안은 폴더 이름이 보입니다.',
+			namingPending: '이 부분들의 이름을 기다리는 중입니다. 그동안은 폴더 이름이 보입니다.',
+			namingQueued:
+				'에이전트 대기열에 넣었습니다. 다음에 에이전트와 대화할 때 이 부분들의 이름을 붙입니다. 그동안은 폴더 이름이 보입니다.',
 			namingNoCli:
-				'serve가 claude도 gemini도 찾지 못해 이름을 붙이지 못했습니다. 폴더 이름을 그대로 씁니다.',
+				'serve에 이름을 붙일 방법이 없습니다. Ropeman 스킬이 알려 준 --out을 붙이거나 --cli를 붙여 다시 시작하세요. 폴더 이름을 그대로 씁니다.',
 			namingFailed: 'CLI가 이름 붙이기를 끝내지 못했습니다. 폴더 이름을 그대로 씁니다.',
 			namingRejected:
 				'CLI가 붙인 이름이 두 번 다 검사를 통과하지 못했습니다. 폴더 이름을 그대로 씁니다.',
@@ -2033,9 +2036,11 @@ const translations: Record<Locale, TranslationSet> = {
 			reconnect: 'Reconnect',
 			loadingMap: 'Loading the map from serve...',
 			localMode: 'Local mode',
-			namingPending: 'Your CLI is naming these parts. Folder names show until then.',
+			namingPending: 'Waiting for names for these parts. Folder names show until then.',
+			namingQueued:
+				'Queued for your agent. It names these parts the next time you talk to it. Folder names show until then.',
 			namingNoCli:
-				'serve found neither claude nor gemini, so nothing names these parts. Folder names stay.',
+				'serve has no way to name these parts. Start it again with the --out folder from the Ropeman skill, or with --cli. Folder names stay.',
 			namingFailed: "The CLI didn't finish naming. Folder names stay.",
 			namingRejected: "The CLI's names failed the checks twice. Folder names stay.",
 			namingStopped: 'Naming stopped. Folder names stay.',

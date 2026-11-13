@@ -44,7 +44,7 @@ export interface NamingTarget {
 }
 
 /** What the prompt says about one part. Paths and names only, never a line of a file. */
-interface PartSummary {
+export interface PartSummary {
 	id: string;
 	kind: 'subfolder' | 'files directly in the folder';
 	files: number;
@@ -76,6 +76,10 @@ function summarize(
 		symbols: [...symbols]
 	};
 }
+
+/** One part at the starting sample sizes, for `ropeman map`'s work list. */
+export const summarizePart = (node: MapNode, codeMap: CodeMap) =>
+	summarize(node, codeMap, SAMPLE_FILES, SAMPLE_SYMBOLS);
 
 function render(target: NamingTarget, parts: PartSummary[], feedback: readonly string[]): string {
 	const links = target.level.edges.map((edge) => ({

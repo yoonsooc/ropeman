@@ -171,7 +171,11 @@ export type RpcResponse = {
 		| { id: number; type: M; code: RpcErrorCode<M>; error: string };
 }[RpcMethod];
 
-export const NAMING_FAILURES = ['no-cli', 'naming-failed', 'verification-failed'] as const;
+/**
+ * Why a `node.named` push carries no level. `queued`: serve put the node on the queue for the
+ * user's agent, and the named level follows once the agent names it. The rest end the naming.
+ */
+export const NAMING_CODES = ['queued', 'no-cli', 'naming-failed', 'verification-failed'] as const;
 
 /** Messages the server sends without a request. */
 export type RpcPush =
@@ -181,7 +185,7 @@ export type RpcPush =
 	| {
 			type: 'node.named';
 			nodeId: string;
-			code: (typeof NAMING_FAILURES)[number] | 'unknown';
+			code: (typeof NAMING_CODES)[number] | 'unknown';
 			error: string;
 	  }
 	/** Repo-relative paths that changed on disk; the viewer asks for `map.get` again. */

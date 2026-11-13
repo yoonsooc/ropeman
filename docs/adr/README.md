@@ -54,3 +54,4 @@
 | [ADR-22](0022-astryx-tokens-without-package.md)      | astryx 토큰과 규칙만 도입, 패키지 미설치                  | 2026-11-12 |
 | [ADR-23](0023-bridge-first-delivery.md)              | 전달은 Bridge 먼저, Safari·권한 거부는 로컬 모드          | 2026-11-12 |
 | [ADR-24](0024-ropeman-map-format.md)                 | `ropeman.json` 형식과 버전, Bridge RPC가 같은 타입을 쓴다 | 2026-11-12 |
+| [ADR-25](0025-agent-names-the-map.md)                | 지도의 이름은 사용자가 대화 중인 에이전트가 붙인다        | 2026-11-13 |
