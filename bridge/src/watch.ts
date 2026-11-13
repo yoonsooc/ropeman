@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { lstat, readdir } from 'fs/promises';
 import path from 'path';
 
 export interface TreeWatcher {
@@ -57,4 +58,56 @@ export function createTreeWatcher(
 			watchers.clear();
 		}
 	};
+}
+
+const gone = (err: unknown) => ['ENOENT', 'ENOTDIR'].includes((err as NodeJS.ErrnoException).code!);
+
+/**
+ * What changed after `since` (ms since the epoch) in the folders a walk entered: each entry
+ * whose change time falls between `since` and now, each folder the walk did not enter that was
+ * created since, and each of `files` that is gone. It finds what no watcher reports, a change
+ * made after the walk read a folder and before its watcher opened. Change time, not modified
+ * time, because a rename or a file moved in keeps its modified time. A change time past now (the
+ * clock was set back) is not counted, or every extraction would find it again.
+ */
+export async function changedSince(
+	root: string,
+	folders: readonly string[],
+	files: Iterable<string>,
+	since: number
+): Promise<string[]> {
+	const walked = new Set(folders);
+	const listed = new Map<string, Set<string>>();
+	const changed: string[] = [];
+	await Promise.all(
+		folders.map(async (folder) => {
+			let names: string[];
+			try {
+				names = await readdir(path.join(root, folder));
+			} catch (err) {
+				// A folder the user cannot list maps as empty on every walk; only a removed one changed
+				if (gone(err)) changed.push(folder || '.');
+				return;
+			}
+			listed.set(folder, new Set(names));
+			await Promise.all(
+				names.map(async (name) => {
+					const entry = folder ? `${folder}/${name}` : name;
+					if (walked.has(entry)) return;
+					try {
+						const { ctimeMs } = await lstat(path.join(root, entry));
+						if (ctimeMs >= since && ctimeMs <= Date.now()) changed.push(entry);
+					} catch (err) {
+						if (gone(err)) changed.push(entry);
+					}
+				})
+			);
+		})
+	);
+	for (const file of files) {
+		const cut = file.lastIndexOf('/');
+		const names = listed.get(cut < 0 ? '' : file.slice(0, cut));
+		if (names && !names.has(file.slice(cut + 1))) changed.push(file);
+	}
+	return changed.sort();
 }

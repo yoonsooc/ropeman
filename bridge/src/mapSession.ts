@@ -24,7 +24,7 @@ import {
 	type PartNames,
 	type TokenUsage
 } from './naming.js';
-import { createTreeWatcher, type TreeWatcher } from './watch.js';
+import { changedSince, createTreeWatcher, type TreeWatcher } from './watch.js';
 import {
 	LOG_FILE,
 	MAP_FILE,
@@ -90,6 +90,12 @@ interface NamingJob {
 export type ExpandResult =
 	| { ok: true; level: MapLevel }
 	| { ok: false; code: RpcErrorCode<'node.expand'>; error: string };
+
+/**
+ * When the folders are checked a second time after their watchers open: macOS can drop a change
+ * made in the first milliseconds of a watch (observed under load, 1 run in 150).
+ */
+const SETTLE_MS = 200;
 
 /** The key of the top level among levels kept by the node they expand; no node may use it. */
 const TOP = RESERVED_NODE_ID;
@@ -283,6 +289,7 @@ export class MapSession {
 	private extract(): Promise<Snapshot> {
 		if (this.extracting) return this.extracting;
 		const started = performance.now();
+		const since = Date.now();
 		const run = (async () => {
 			const extraction = await extractDirectory(this.options.root, {
 				wasmDir: this.options.wasmDir
@@ -296,7 +303,10 @@ export class MapSession {
 				refused: new Set()
 			};
 			this.snapshot = snapshot;
-			if (!this.closed) this.watcher.watch(extraction.folders);
+			if (!this.closed) {
+				this.watcher.watch(extraction.folders);
+				void this.catchUp(snapshot, since);
+			}
 			const seconds = ((performance.now() - started) / 1000).toFixed(2);
 			this.options.log(
 				`Extracted ${extraction.map.files.size} files of ${extraction.listed} listed in ${seconds}s`
@@ -312,6 +322,25 @@ export class MapSession {
 			}
 		);
 		return run;
+	}
+
+	/**
+	 * Reports what changed after the walk started and before the watchers opened, which no watcher
+	 * sees, as file events: right away, and once more after SETTLE_MS.
+	 */
+	private async catchUp(snap: Snapshot, since: number): Promise<void> {
+		for (const wait of [0, SETTLE_MS]) {
+			await new Promise((r) => setTimeout(r, wait));
+			const paths = await changedSince(
+				this.options.root,
+				snap.extraction.folders,
+				snap.extraction.map.files.keys(),
+				since
+			);
+			// An extraction that is running or due reads the disk after these changes and checks again
+			if (this.closed || this.snapshot !== snap || this.extracting || this.changed.size > 0) return;
+			for (const p of paths) this.onFileEvent(p);
+		}
 	}
 
 	async map(): Promise<RopemanMap> {
