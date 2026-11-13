@@ -3,6 +3,11 @@
 	"version": "0.3.0",
 	"license": "MIT",
 	"description": "Local server and commands for Ropeman: maps a folder, checks the names your coding agent gives it, and serves it to the viewer",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/yoonsooc/ropeman.git",
+		"directory": "bridge"
+	},
 	"type": "module",
 	"bin": {
 		"ropeman": "./dist/server.mjs",

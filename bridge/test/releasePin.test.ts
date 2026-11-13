@@ -5,7 +5,10 @@ import { fileURLToPath } from 'node:url';
 const repo = (path: string) => fileURLToPath(new URL(`../../${path}`, import.meta.url));
 const read = (path: string) => readFileSync(repo(path), 'utf8');
 
-const { version } = JSON.parse(read('bridge/package.json')) as { version: string };
+const { version, repository } = JSON.parse(read('bridge/package.json')) as {
+	version: string;
+	repository?: { type?: string; url?: string; directory?: string };
+};
 
 /** Every place that tells people how to install the command or the skill */
 const SURFACES = [
@@ -49,6 +52,16 @@ describe('the skill URL and the install command name one release', () => {
 		expect(commands.filter((command) => !command.endsWith(`@ropeman/bridge@${version}`))).toEqual(
 			[]
 		);
+	});
+
+	// npm rejects a trusted-publishing release whose repository.url is not the repository the
+	// provenance names (.github/workflows/release-bridge.yml)
+	it('names this repository, which npm checks against the provenance', () => {
+		expect(repository).toEqual({
+			type: 'git',
+			url: 'git+https://github.com/yoonsooc/ropeman.git',
+			directory: 'bridge'
+		});
 	});
 
 	it('has SKILL.md step 1 ask for that version and install it', () => {

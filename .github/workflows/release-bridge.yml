@@ -1,0 +1,142 @@
+name: Release bridge
+
+# Publishes @ropeman/bridge to npm with trusted publishing (OIDC): no npm token is stored in
+# GitHub, and npm attaches provenance pointing at this workflow and commit. The trusted publisher
+# on npmjs.com names this file, so renaming it breaks publishing.
+#
+# A `bridge-v<version>` tag pushed on a main commit publishes that commit. Run it by hand
+# (workflow_dispatch) for a tag pushed before this workflow existed, or to retry a failed run.
+
+on:
+  push:
+    tags: ['bridge-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish, e.g. bridge-v0.3.0'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-bridge
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # trusted publishing and provenance
+
+    steps:
+      - name: Read the tag
+        id: tag
+        env:
+          TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          if ! [[ "$TAG" =~ ^bridge-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::not a release tag: $TAG"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ steps.tag.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Only code that passed main CI ships, and the tag must name the version it publishes
+      - name: Check the tag is on main and matches the package
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          git fetch -q origin main
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::the tag is not on main"
+            exit 1
+          fi
+          actual=$(node -p "require('./bridge/package.json').version")
+          if [ "$actual" != "$VERSION" ]; then
+            echo "::error::bridge/package.json is $actual, the tag says $VERSION"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing needs npm 11.5.1 or later; Node 22 ships npm 10
+      - name: Install npm 11
+        run: npm install -g npm@11.17.0
+
+      # A version npm already has cannot be published again, so a rerun after success is a no-op
+      - name: Check npm does not have this version
+        id: npm
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          if npm view "@ropeman/bridge@$VERSION" version 2>/dev/null | grep -qx "$VERSION"; then
+            echo "::notice::@ropeman/bridge@$VERSION is already on npm"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.npm.outputs.publish == 'true'
+        run: |
+          npm ci
+          npm ci --prefix bridge
+
+      # prepack builds the app, the bridge and the viewer bundle into bridge/dist
+      - name: Pack
+        if: steps.npm.outputs.publish == 'true'
+        id: pack
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          npm run check:bridge
+          (cd bridge && npm pack --pack-destination "$RUNNER_TEMP")
+          # npm names a scoped tarball <scope>-<name>-<version>.tgz
+          file="$RUNNER_TEMP/ropeman-bridge-$VERSION.tgz"
+          test -f "$file"
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+
+      # The packed server must serve a fixture on its own, as in CI
+      - name: Serve a fixture from the package
+        if: steps.npm.outputs.publish == 'true'
+        env:
+          TARBALL: ${{ steps.pack.outputs.file }}
+        run: |
+          mkdir "$RUNNER_TEMP/pkg"
+          tar -xzf "$TARBALL" -C "$RUNNER_TEMP/pkg"
+          (cd "$RUNNER_TEMP/pkg/package" && npm install --omit=dev --ignore-scripts --no-audit --no-fund)
+          node bridge/scripts/smoke.mjs "$RUNNER_TEMP/pkg/package/dist/server.mjs" tests/fixtures/graphs/ts-monorepo
+
+      - name: Publish
+        if: steps.npm.outputs.publish == 'true'
+        env:
+          TARBALL: ${{ steps.pack.outputs.file }}
+        run: npm publish "$TARBALL" --access public
+
+      - name: Check npm serves it
+        if: steps.npm.outputs.publish == 'true'
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if npm view "@ropeman/bridge@$VERSION" version 2>/dev/null | grep -qx "$VERSION"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::npm does not list @ropeman/bridge@$VERSION after publishing"
+          exit 1
