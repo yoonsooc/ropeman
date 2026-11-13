@@ -13,7 +13,7 @@ src/
 ├── routes/
 │   ├── +page.svelte              # 메인 페이지 (레이아웃 + AnalyzeModal + testDir 감지)
 │   ├── +page.ts                  # 랜딩만 SSR로 프리렌더: 첫 HTML에 첫 화면이 있고 앱이 그 자리에서 hydrate한다 (영어로 굽고, 한국어 방문자는 hydrate까지 숨김)
-│   ├── +layout.svelte            # 전역 레이아웃 (테마 CSS 주입)
+│   ├── +layout.svelte            # 전역 레이아웃 (테마 CSS 주입). 마운트하면 <html data-hydrated>를 단다 (E2E가 클릭 전에 기다림)
 │   ├── open/+page.svelte         # JSON 열기: ropeman.json을 골라 읽기 전용 뷰어로 연다 (거부되면 이유와 다시 고르기)
 │   ├── bridge/+page.svelte       # Bridge 모드: ropeman serve에 붙어 지도·드릴다운·원문을 RPC로 (로컬 모드는 #token= 자동 연결)
 │   └── +layout.ts                # 기본은 SSR 끔 (브라우저 전용). 켜는 곳은 랜딩(+page.ts)과 /docs

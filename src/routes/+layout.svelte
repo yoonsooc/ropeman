@@ -22,6 +22,10 @@
 	});
 
 	onMount(() => {
+		// The prerendered landing shows its buttons before their handlers attach, so tests wait
+		// for this before they click
+		document.documentElement.dataset.hydrated = '';
+
 		// Analysis state survives SvelteKit route navigation because the store,
 		// AbortControllers, and in-flight fetch promises are module-level singletons.
 		// The global AnalysisStatus pill stays visible on every route, so no

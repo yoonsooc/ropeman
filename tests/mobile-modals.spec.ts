@@ -1,14 +1,15 @@
 import { test, expect, type Page } from '@playwright/test';
+import { gotoApp } from './support/app';
 
 async function openSettings(page: Page): Promise<void> {
-	await page.goto('/');
+	await gotoApp(page);
 	const settingsBtn = page.locator('header .header-btn[title]').last();
 	await settingsBtn.click();
 	await expect(page.locator('.modal-card.settings-card')).toBeVisible();
 }
 
 async function openHelp(page: Page): Promise<void> {
-	await page.goto('/');
+	await gotoApp(page);
 	const helpBtn = page.locator('header .header-btn').filter({ hasText: 'help_outline' });
 	await helpBtn.click();
 	await expect(page.locator('.modal-card.help-card')).toBeVisible();
@@ -76,7 +77,7 @@ test.describe('Mobile modal sheet pattern', { tag: '@responsive' }, () => {
 	});
 
 	test('html has overflow hidden to prevent background scroll', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 		// global.css applies overflow:hidden to both html and body — the SPA
 		// shell manages its own viewport.
 		await expect(page.locator('header.header')).toBeVisible();

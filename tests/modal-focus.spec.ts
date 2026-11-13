@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
+import { gotoApp } from './support/app';
 
 const MODALS = [
 	{
@@ -28,7 +29,7 @@ for (const modal of MODALS) {
 		`the ${modal.name} modal keeps keyboard focus until Escape returns it`,
 		{ tag: '@responsive' },
 		async ({ page }) => {
-			await page.goto('/');
+			await gotoApp(page);
 			const opener: Locator = modal.opener(page);
 			await opener.focus();
 			await page.keyboard.press('Enter');

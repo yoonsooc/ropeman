@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { gotoApp } from './support/app';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -23,7 +24,7 @@ test('opens a ropeman.json from the landing page and drills into a level it hold
 	page
 }) => {
 	await start(page, 'en');
-	await page.goto('/');
+	await gotoApp(page);
 
 	await page
 		.getByRole('link', { name: /Open a ropeman\.json/ })
@@ -76,7 +77,7 @@ test(
 
 test('speaks Korean on the open page and its errors', async ({ page }) => {
 	await start(page, 'ko');
-	await page.goto('/');
+	await gotoApp(page);
 
 	await page
 		.getByRole('link', { name: /ropeman\.json 열기/ })

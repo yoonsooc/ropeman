@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './support/app';
 
 test.describe('Settings Modal', () => {
 	test.beforeEach(async ({ page }) => {
@@ -14,7 +15,7 @@ test.describe('Settings Modal', () => {
 		'should open settings modal when settings button is clicked',
 		{ tag: '@responsive' },
 		async ({ page }) => {
-			await page.goto('/');
+			await gotoApp(page);
 
 			// Click the settings gear button (last button in header-right)
 			const settingsBtn = page.locator('header .header-right .header-btn').last();
@@ -29,7 +30,7 @@ test.describe('Settings Modal', () => {
 	);
 
 	test('should close settings modal on Escape', { tag: '@responsive' }, async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 
 		const settingsBtn = page.locator('header .header-right .header-btn').last();
 		await settingsBtn.click();
@@ -44,7 +45,7 @@ test.describe('Settings Modal', () => {
 		// so there is no visible backdrop to click outside of — close happens
 		// via the modal-close button instead.
 		test.skip(!!viewport && viewport.width <= 768, 'sheet mode — no backdrop click area');
-		await page.goto('/');
+		await gotoApp(page);
 
 		const settingsBtn = page.locator('header .header-right .header-btn').last();
 		await settingsBtn.click();
@@ -56,7 +57,7 @@ test.describe('Settings Modal', () => {
 	});
 
 	test('should have language select with ko and en options', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 
 		const settingsBtn = page.locator('header .header-right .header-btn').last();
 		await settingsBtn.click();
@@ -67,7 +68,7 @@ test.describe('Settings Modal', () => {
 	});
 
 	test('should have syntax theme select', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 
 		const settingsBtn = page.locator('header .header-right .header-btn').last();
 		await settingsBtn.click();
@@ -78,7 +79,7 @@ test.describe('Settings Modal', () => {
 	});
 
 	test('should persist language setting after reload', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 
 		// Open settings
 		const settingsBtn = page.locator('header .header-right .header-btn').last();
@@ -104,7 +105,7 @@ test.describe('Settings Modal', () => {
 	});
 
 	test('should persist syntax theme setting after reload', async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 
 		// Open settings
 		const settingsBtn = page.locator('header .header-right .header-btn').last();

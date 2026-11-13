@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { waitForApp } from './support/app';
 
 const HEADLINE = /^Map a repo\s*from your coding agent$/;
 const INSTALL = 'npm install -g @ropeman/bridge@0.3.0';
@@ -27,14 +28,11 @@ async function headlineBox(page: Page) {
 	return page.getByRole('heading', { level: 1 }).boundingBox();
 }
 
-/** A copy that lands only once the app has hydrated, so it retries until the click takes */
 async function copyInstall(page: Page) {
 	await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 	const button = page.locator('#agent-setup').getByRole('button', { name: 'Copy install command' });
-	await expect(async () => {
-		await button.click();
-		await expect(button).toHaveText(/Copied/, { timeout: 500 });
-	}).toPass();
+	await button.click();
+	await expect(button).toHaveText(/Copied/);
 }
 
 test('the first HTML response already holds the landing', async ({ request }) => {
@@ -66,6 +64,7 @@ test('the app takes over the prerendered landing in place', async ({ page }) => 
 
 	await page.unrouteAll();
 	await page.reload();
+	await waitForApp(page);
 	await copyInstall(page);
 
 	await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
@@ -83,6 +82,7 @@ test('a Korean visitor never sees the English prerender', async ({ page }) => {
 
 	await page.unrouteAll();
 	await page.reload();
+	await waitForApp(page);
 
 	// Regression: {@html} keeps the prerendered markup on hydration, so the headline stayed English
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(
@@ -106,6 +106,7 @@ test('the stored light theme applies before the app boots', async ({ page }) => 
 
 	await page.unrouteAll();
 	await page.reload();
+	await waitForApp(page);
 	await copyInstall(page);
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 	await expect(page.locator('.hero-shot img:visible')).toHaveAttribute(
