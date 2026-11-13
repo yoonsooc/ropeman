@@ -198,16 +198,17 @@ jobs:
         run: npm publish "$RUNNER_TEMP/release/ropeman-bridge-$VERSION.tgz" --access public
 
       # npm says a new version "may take a few minutes to become available": 0.3.0 took about
-      # 7 minutes, so wait up to 15. --prefer-online skips npm's metadata cache
+      # 7 minutes, so wait up to 15. --prefer-online skips npm's metadata cache. A successful
+      # publish is the release; a listing that is still late only warns (a rerun is a no-op)
       - name: Check npm serves it
         env:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           for attempt in $(seq 1 45); do
-            if [ "$(npm view "@ropeman/bridge@$VERSION" version --prefer-online 2>/dev/null)" = "$VERSION" ]; then
+            out=$(timeout 30 npm view "@ropeman/bridge@$VERSION" version --registry https://registry.npmjs.org --prefer-online 2>&1) || true
+            if [ "$out" = "$VERSION" ]; then
               exit 0
             fi
-            sleep 20
+            [ "$attempt" -lt 45 ] && sleep 20
           done
-          echo "::error::npm does not list @ropeman/bridge@$VERSION 15 minutes after publishing"
-          exit 1
+          echo "::warning::npm did not list @ropeman/bridge@$VERSION within 15 minutes of publishing. Last answer: $(head -n 2 <<< "$out" | tr "\n" " ")"
