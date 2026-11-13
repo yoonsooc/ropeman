@@ -1,5 +1,5 @@
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
@@ -25,6 +25,8 @@ interface Serve {
 	port: number;
 	root: string;
 	cliDir: string;
+	/** The folder shared with the agent, when serve leaves naming to it */
+	out: string;
 	release(): void;
 	stop(): void;
 }
@@ -49,17 +51,21 @@ function freePort(): Promise<number> {
 	});
 }
 
-async function startServe(allowOrigin: string): Promise<Serve> {
+async function startServe(allowOrigin: string, naming: 'cli' | 'agent' = 'cli'): Promise<Serve> {
 	const work = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-bridge-e2e-'));
 	const root = path.join(work, 'shop');
 	fs.cpSync(FIXTURE, root, { recursive: true });
 	const bin = path.join(work, 'bin');
 	fs.mkdirSync(bin);
-	fs.symlinkSync(FAKE_CLI, path.join(bin, 'claude'));
+	// Agent mode needs no claude anywhere on PATH, or serve would pick it as the worker
+	if (naming === 'cli') fs.symlinkSync(FAKE_CLI, path.join(bin, 'claude'));
 	const cliDir = path.join(work, 'cli');
 	fs.mkdirSync(cliDir);
 	// Every naming run waits for the release file, so the pending state stays on screen
 	fs.writeFileSync(path.join(cliDir, 'plan.json'), JSON.stringify(Array(40).fill('gate')));
+
+	const out = path.join(work, 'out');
+	if (naming === 'agent') agentMap(root, out);
 
 	const port = await freePort();
 	const child = spawn(
@@ -73,8 +79,7 @@ async function startServe(allowOrigin: string): Promise<Serve> {
 			String(port),
 			'--token',
 			TOKEN,
-			'--cli',
-			'claude',
+			...(naming === 'cli' ? ['--cli', 'claude'] : ['--out', out]),
 			'--local',
 			'--allow-origin',
 			allowOrigin
@@ -82,7 +87,7 @@ async function startServe(allowOrigin: string): Promise<Serve> {
 		{
 			env: {
 				...process.env,
-				PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+				PATH: naming === 'cli' ? `${bin}${path.delimiter}${process.env.PATH}` : bin,
 				FAKE_CLI_DIR: cliDir
 			},
 			stdio: ['ignore', 'pipe', 'pipe']
@@ -109,9 +114,32 @@ async function startServe(allowOrigin: string): Promise<Serve> {
 		port,
 		root,
 		cliDir,
+		out,
 		release: () => fs.writeFileSync(path.join(cliDir, 'release'), ''),
 		stop: () => child.kill('SIGTERM')
 	};
+}
+
+/** What the agent runs after writing names: `ropeman map` on the shared folder. */
+function agentMap(root: string, out: string) {
+	const run = spawnSync(process.execPath, [SERVER, 'map', '--root', root, '--out', out], {
+		encoding: 'utf8'
+	});
+	expect(run.status, run.stderr).toBe(0);
+}
+
+/** The agent's names for every part `work.json` lists: `Agent <id>`. */
+function agentNames(out: string) {
+	const work = JSON.parse(fs.readFileSync(path.join(out, 'work.json'), 'utf8'));
+	const namesFile = path.join(out, 'names.json');
+	const names = fs.existsSync(namesFile) ? JSON.parse(fs.readFileSync(namesFile, 'utf8')) : {};
+	for (const level of work.levels) {
+		for (const part of level.parts) {
+			names[part.id] = { label: `Agent ${part.id}`, description: '', keySymbols: [] };
+		}
+	}
+	fs.writeFileSync(namesFile, JSON.stringify(names));
+	return work;
 }
 
 async function settings(page: Page, language: 'en' | 'ko') {
@@ -153,6 +181,7 @@ async function walkThrough(page: Page, serve: Serve, tag: string) {
 	serve.release();
 	await expect(node(page, 'Named apps/web')).toBeVisible({ timeout: 10_000 });
 	await expect(page.getByTestId('naming-status')).toHaveCount(0);
+	await expect(page.getByTestId('named-by')).toContainText(/claude/);
 	await expect(page.locator('.breadcrumb-bar .crumb.active')).toHaveText(/apps/);
 	await shot(page, `${tag}-named`);
 
@@ -197,6 +226,34 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		// The tab keeps the token, so a reload reconnects without the hash
 		await page.reload();
 		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
+	});
+
+	test('agent naming: an opened folder waits on the queue until the agent names it', async ({
+		page
+	}) => {
+		const serve = await startServe('http://localhost:1', 'agent');
+		await settings(page, 'en');
+		await page.goto(`http://127.0.0.1:${serve.port}/bridge#token=${TOKEN}`);
+		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
+
+		await node(page, /^apps$/)
+			.locator('.open-btn')
+			.click();
+		await expect(node(page, /^web$/)).toBeVisible();
+		await expect(page.getByTestId('naming-status')).toContainText('Queued for your agent');
+		await shot(page, 'en-desktop-queued');
+
+		// The agent's turn: the queued folder joins the work list, then map keeps the names
+		agentMap(serve.root, serve.out);
+		const work = agentNames(serve.out);
+		expect(work.levels.find((l: { level: string }) => l.level === 'dir:apps')?.queued).toBe(true);
+		agentMap(serve.root, serve.out);
+
+		await expect(node(page, 'Agent dir:apps/web')).toBeVisible({ timeout: 10_000 });
+		await expect(page.getByTestId('naming-status')).toHaveCount(0);
+		await page.locator('.breadcrumb-bar .group-crumb').click();
+		await expect(node(page, 'Agent dir:apps')).toBeVisible({ timeout: 10_000 });
+		await shot(page, 'en-desktop-agent-named');
 	});
 
 	test('local mode in Korean on a phone', { tag: '@responsive' }, async ({ page }, testInfo) => {

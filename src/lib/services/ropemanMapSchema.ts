@@ -11,7 +11,7 @@ import {
 	MAP_FORMAT,
 	MAP_SCHEMA,
 	MAX_MAP_BYTES,
-	NAMING_FAILURES,
+	NAMING_CODES,
 	RELATION_KINDS,
 	RESERVED_NODE_ID,
 	RPC_ERROR_CODES,
@@ -396,8 +396,8 @@ export function parseServerMessage(text: string): ParseResult<ServerMessage> {
 					return {
 						type,
 						nodeId,
-						code: (NAMING_FAILURES as readonly string[]).includes(code)
-							? (code as (typeof NAMING_FAILURES)[number])
+						code: (NAMING_CODES as readonly string[]).includes(code)
+							? (code as (typeof NAMING_CODES)[number])
 							: 'unknown',
 						error: str(field(o, 'error'), 'error')
 					};
@@ -405,7 +405,17 @@ export function parseServerMessage(text: string): ParseResult<ServerMessage> {
 				const named = expansion(field(o, 'level'), 'level');
 				if (named.parentId !== nodeId) invalid('level.parentId', `the node ${nodeId}`);
 				if (named.naming !== 'named') invalid('level.naming', 'named');
-				return { type, nodeId, level: named };
+				if (!Object.hasOwn(o, 'namedBy')) return { type, nodeId, level: named };
+				const by = obj(field(o, 'namedBy'), 'namedBy');
+				return {
+					type,
+					nodeId,
+					level: named,
+					namedBy: {
+						worker: nonEmpty(field(by, 'worker'), 'namedBy.worker'),
+						runs: int(field(by, 'runs'), 'namedBy.runs', 0)
+					}
+				};
 			}
 			case 'map.changed':
 				return { type, paths: strings(field(o, 'paths'), 'paths') };

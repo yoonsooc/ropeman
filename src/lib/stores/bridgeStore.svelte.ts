@@ -16,7 +16,7 @@ import { toViewerLevel, toViewerLevels } from '$lib/services/mapViewer';
 import {
 	RESERVED_NODE_ID,
 	type MapLevel,
-	type NAMING_FAILURES,
+	type NAMING_CODES,
 	type RopemanMap,
 	type RpcErrorCode
 } from '$lib/types/ropemanMap';
@@ -33,11 +33,15 @@ export type BridgeStatus =
 	/** Was connected; the map stays on screen until the viewer reconnects or leaves. */
 	| { state: 'lost'; host: string };
 
-export type NamingFailureCode = (typeof NAMING_FAILURES)[number] | 'unknown';
+export type NamingFailureCode = Exclude<(typeof NAMING_CODES)[number], 'queued'> | 'unknown';
 
-/** What serve said about naming a node's children. A named level clears the entry. */
+/**
+ * What serve said about naming a node's children. `queued`: the user's agent names them the
+ * next time it runs, and a named level follows then. A named level clears the entry.
+ */
 export type Naming =
 	| { state: 'pending' }
+	| { state: 'queued' }
 	| { state: 'failed'; code: NamingFailureCode; error: string };
 
 /** The last request that failed, for the banner. */
@@ -57,6 +61,10 @@ function createBridgeStore() {
 	let status = $state<BridgeStatus>({ state: 'idle' });
 	let map = $state.raw<RopemanMap | null>(null);
 	let naming = $state(new Map<string, Naming>());
+	/** The worker serve said named each node's children, this connection */
+	let namedBy = $state(new Map<string, string>());
+	/** serve's count of worker runs this session, from its latest push */
+	let workerRuns = $state<number | null>(null);
 	let notice = $state<BridgeNotice | null>(null);
 	let revisions = $state(new Map<string, number>());
 
@@ -153,10 +161,19 @@ function createBridgeStore() {
 
 	function onNamed(push: Extract<BridgePush, { type: 'node.named' }>) {
 		if (!('level' in push)) {
-			setNaming(push.nodeId, { state: 'failed', code: push.code, error: push.error });
+			setNaming(
+				push.nodeId,
+				push.code === 'queued'
+					? { state: 'queued' }
+					: { state: 'failed', code: push.code, error: push.error }
+			);
 			return;
 		}
 		setNaming(push.nodeId, null);
+		if (push.namedBy) {
+			namedBy = new Map(namedBy).set(push.nodeId, push.namedBy.worker);
+			workerRuns = push.namedBy.runs;
+		}
 		const shown = semanticStore.getCachedLevel(push.nodeId);
 		// A level the map dropped meanwhile comes back named the next time it is expanded
 		if (!shown) return;
@@ -226,6 +243,8 @@ function createBridgeStore() {
 		connection = null;
 		map = null;
 		naming = new Map();
+		namedBy = new Map();
+		workerRuns = null;
 		notice = null;
 		revisions = new Map();
 		generation++;
@@ -249,6 +268,13 @@ function createBridgeStore() {
 		namingOf(nodeId: string): Naming | null {
 			return naming.get(nodeId) ?? null;
 		},
+		/** The worker that named this node's children, when serve said so */
+		namedByOf(nodeId: string): string | null {
+			return namedBy.get(nodeId) ?? null;
+		},
+		get workerRuns(): number | null {
+			return workerRuns;
+		},
 		/** Goes up by one each time serve reports the file changed, so an open view reads it again. */
 		revisionOf(path: string): number {
 			return revisions.get(path) ?? 0;
@@ -264,6 +290,8 @@ function createBridgeStore() {
 		async reconnect(): Promise<void> {
 			if (!last) return;
 			naming = new Map();
+			namedBy = new Map();
+			workerRuns = null;
 			await establish(last.host, last.token, last.open, true);
 		},
 

@@ -15,7 +15,7 @@ export const MAP_FORMAT = 'ropeman-map';
  * optional fields only. A new required field, a removed field, or a new value in a closed set
  * (coverage reason, edge type, relation kind, naming) is a new major (ADR-24).
  */
-export const MAP_SCHEMA = { major: 1, minor: 0 } as const;
+export const MAP_SCHEMA = { major: 1, minor: 1 } as const;
 export const MAP_SCHEMA_VERSION = `${MAP_SCHEMA.major}.${MAP_SCHEMA.minor}`;
 
 /** Same as the Bridge's WebSocket `maxPayload`, so a map that opens as a file also fits a message. */
@@ -171,17 +171,27 @@ export type RpcResponse = {
 		| { id: number; type: M; code: RpcErrorCode<M>; error: string };
 }[RpcMethod];
 
-export const NAMING_FAILURES = ['no-cli', 'naming-failed', 'verification-failed'] as const;
+/**
+ * Why a `node.named` push carries no level. `queued`: serve put the node on the queue for the
+ * user's agent, and the named level follows once the agent names it. The rest end the naming.
+ */
+export const NAMING_CODES = ['queued', 'no-cli', 'naming-failed', 'verification-failed'] as const;
 
 /** Messages the server sends without a request. */
 export type RpcPush =
 	/** First message on every connection. The viewer refuses a server of another major. */
 	| { type: 'hello'; schemaVersion: string; server: { name: string; version: string } }
-	| { type: 'node.named'; nodeId: string; level: MapLevel }
 	| {
 			type: 'node.named';
 			nodeId: string;
-			code: (typeof NAMING_FAILURES)[number] | 'unknown';
+			level: MapLevel;
+			/** 1.1: the headless worker that wrote the names, and its runs in this serve session */
+			namedBy?: { worker: string; runs: number };
+	  }
+	| {
+			type: 'node.named';
+			nodeId: string;
+			code: (typeof NAMING_CODES)[number] | 'unknown';
 			error: string;
 	  }
 	/** Repo-relative paths that changed on disk; the viewer asks for `map.get` again. */

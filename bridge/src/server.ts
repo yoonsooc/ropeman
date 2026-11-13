@@ -14,6 +14,15 @@ import {
 import { HOST, createBridgeServer } from './bridge.js';
 import { CliRunner, KILL_GRACE_MS, detectCLI } from './cli.js';
 import { resolveRoot } from './fileRead.js';
+import {
+	type CommandEnv,
+	outFolder,
+	runCommand,
+	runMap,
+	runInbox,
+	runVerify,
+	serveOutValue
+} from './mapCommand.js';
 import { MapSession } from './mapSession.js';
 import pkg from '../package.json';
 
@@ -63,6 +72,38 @@ function bundledViewer(): string {
 	return resolveRoot(dir);
 }
 
+const USAGE = `usage:
+  ropeman serve [--root <repo>] [--out <folder>] [--local] [--port <n>] [--cli claude|gemini]
+  ropeman map --root <repo> --out <folder> [--depth <n>]
+  ropeman verify --root <repo> --map <ropeman.json>
+  ropeman inbox --out <folder>
+  ropeman --version`;
+
+/** `--out`: the folder shared with the agent (`ropeman map --out`), created if missing. */
+function parseOutFlag(args: string[], root: string | null): string | null {
+	try {
+		const value = serveOutValue(args);
+		if (value === null) return null;
+		if (!root) {
+			console.error('Cannot start: --out needs --root, the folder its map describes.');
+			process.exit(1);
+		}
+		return outFolder(root, value);
+	} catch (err) {
+		console.error(`Cannot start: ${(err as Error).message}`);
+		process.exit(1);
+	}
+}
+
+/**
+ * The headless worker that names a folder the user opens without names: `--cli`, else `claude`
+ * when it runs (never gemini on its own, ADR-25). null leaves the folder to the user's agent
+ * through the queue in `--out`, or to nobody without one.
+ */
+async function namingCli(flag: CLIType | null): Promise<CLIType | null> {
+	return flag ?? detectCLI();
+}
+
 function log(msg: string): void {
 	const ts = new Date().toISOString().slice(11, 19);
 	console.log(`[${ts}] ${msg}`);
@@ -75,25 +116,42 @@ const CLI_CONCURRENCY = 2;
 const NAMING_MAX_OUTPUT_BYTES = 1_000_000;
 const WATCH_DEBOUNCE_MS = 300;
 
+const WASM_DIR = fileURLToPath(new URL('./wasm', import.meta.url));
+
 async function main() {
-	// `ropeman serve …` and `ropeman-bridge …` run the same server
 	const argv = process.argv.slice(2);
+	const env: CommandEnv = {
+		wasmDir: WASM_DIR,
+		generator: { name: pkg.name, version: pkg.version },
+		out: (text) => process.stdout.write(`${text}\n`),
+		err: (text) => process.stderr.write(`${text}\n`)
+	};
+	const commands = { map: runMap, verify: runVerify, inbox: runInbox };
+	if (Object.hasOwn(commands, argv[0] ?? '')) {
+		const command = commands[argv[0] as keyof typeof commands];
+		// exitCode, not exit(): exit() can cut a report still flushing to a pipe
+		process.exitCode = await runCommand(command, argv.slice(1), env);
+		return;
+	}
+	if (argv[0] === '--version') return void console.log(pkg.version);
+	if (argv[0] === '--help' || argv[0] === '-h') return void console.log(USAGE);
+	// `ropeman serve …` and `ropeman-bridge …` run the same server
 	if (argv[0] === 'serve') argv.shift();
 	const port = parsePort(argv);
 	const root = parseDirFlag(argv, '--root');
+	const out = parseOutFlag(argv, root);
 	const viewerDir =
 		parseDirFlag(argv, '--viewer') ?? (argv.includes('--local') ? bundledViewer() : null);
-	let defaultCli: CLIType | null = parseCLIFlag(argv);
+	// Headless naming starts a CLI with none of the conversation's context, so it is opt-in
+	const defaultCli = await namingCli(parseCLIFlag(argv));
 
-	if (!defaultCli) {
-		defaultCli = await detectCLI();
-	}
-
-	if (defaultCli) {
-		log(`Using CLI: ${defaultCli}`);
-	} else {
-		log('Warning: No CLI tool detected. Install Claude Code (claude) or Gemini CLI (gemini).');
-		log('You can also specify --cli <claude|gemini> flag.');
+	if (defaultCli) log(`Workers naming opened folders: ${defaultCli}`);
+	if (defaultCli && out) log(`Worker prompts carry ${out}/brief.md; results go to its naming log`);
+	if (!defaultCli && out)
+		log(`No worker CLI: opened folders go on the queue in ${out} for your agent`);
+	if (!defaultCli && !out) {
+		log('Warning: claude not found, so opened folders keep folder names.');
+		log('Install Claude Code, pass --cli <claude|gemini>, or pass --out <folder> for your agent.');
 	}
 
 	let token: string;
@@ -120,7 +178,7 @@ async function main() {
 	const session = root
 		? new MapSession({
 				root,
-				wasmDir: fileURLToPath(new URL('./wasm', import.meta.url)),
+				wasmDir: WASM_DIR,
 				naming: defaultCli
 					? {
 							cli: defaultCli,
@@ -130,6 +188,7 @@ async function main() {
 							runner
 						}
 					: null,
+				out,
 				server: identity,
 				debounceMs: WATCH_DEBOUNCE_MS,
 				log

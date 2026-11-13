@@ -52,6 +52,7 @@
 	const codeTab = $derived(tabStore.activeTab?.type === 'code' ? tabStore.activeTab : null);
 	const shownParent = $derived(semanticStore.currentLevel?.parentId ?? null);
 	const naming = $derived(shownParent ? bridgeStore.namingOf(shownParent) : null);
+	const namedBy = $derived(shownParent ? bridgeStore.namedByOf(shownParent) : null);
 	const hasSemanticSelection = $derived(
 		semanticStore.selectedSemanticNode !== null && !semanticStore.panelDismissed
 	);
@@ -289,6 +290,19 @@
 						<div class="bridge-strip" role="status" data-testid="naming-status">
 							<span class="bridge-pulse" aria-hidden="true"></span>
 							<span>{i18nStore.t('bridge.namingPending')}</span>
+						</div>
+					{:else if naming?.state === 'queued'}
+						<div class="bridge-strip" role="status" data-testid="naming-status">
+							<span>{i18nStore.t('bridge.namingQueued')}</span>
+						</div>
+					{:else if namedBy}
+						<div class="bridge-strip" role="status" data-testid="named-by">
+							<span
+								>{i18nStore.t('bridge.namedByWorker', {
+									worker: namedBy,
+									runs: bridgeStore.workerRuns ?? 0
+								})}</span
+							>
 						</div>
 					{:else if naming?.state === 'failed'}
 						<div class="bridge-strip warning" role="status" data-testid="naming-status">

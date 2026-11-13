@@ -269,9 +269,10 @@ function answers(cli: CLIType): Promise<boolean> {
 	});
 }
 
-/** The first CLI that runs, claude before gemini. */
+/**
+ * `claude` when it runs. gemini is never picked on its own: whether a wrapper may run it headless
+ * is unclear and accounts have been banned for it, so only `--cli gemini` uses it (ADR-25).
+ */
 export async function detectCLI(): Promise<CLIType | null> {
-	if (await answers('claude')) return 'claude';
-	if (await answers('gemini')) return 'gemini';
-	return null;
+	return (await answers('claude')) ? 'claude' : null;
 }

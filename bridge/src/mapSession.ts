@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import { extractDirectory, type Extraction } from '../../packages/core/src/extract';
 import { groupExtraction, type GroupedMap } from '../../packages/core/src/groupedMap';
@@ -6,6 +7,8 @@ import { DEFAULT_PATH_FILTER, shouldSkipPath } from '../../src/lib/utils/filePri
 import {
 	MAP_FORMAT,
 	MAP_SCHEMA_VERSION,
+	MAX_MAP_BYTES,
+	RESERVED_NODE_ID,
 	type MapLevel,
 	type RopemanMap,
 	type RpcErrorCode,
@@ -22,6 +25,16 @@ import {
 	type TokenUsage
 } from './naming.js';
 import { createTreeWatcher, type TreeWatcher } from './watch.js';
+import {
+	LOG_FILE,
+	MAP_FILE,
+	appendLog,
+	readBrief,
+	readOutFile,
+	readQueue,
+	writeQueue
+} from './workFolder.js';
+import { parseRopemanMap } from '../../src/lib/services/ropemanMapSchema';
 
 /** One open socket, as the session sees it: somewhere to push. */
 export interface Subscriber {
@@ -42,8 +55,15 @@ export interface SessionOptions {
 	/** Real path of `--root` */
 	root: string;
 	wasmDir: string;
-	/** null when no CLI was found: every expansion stays grouped and says so */
+	/** The headless worker CLI that names an expanded node; null leaves it to the agent's queue */
 	naming: NamingOptions | null;
+	/**
+	 * The folder shared with the user's agent (`--out`, see `workFolder.ts`): the named levels of
+	 * its `ropeman.json` are served while they pass the verifier. A node expanded without names
+	 * goes to the worker CLI with the agent's `brief.md`, and the result to `naming-log.jsonl`;
+	 * with no CLI it goes on the queue. null with no CLI: every expansion stays grouped.
+	 */
+	out?: string | null;
 	server: { name: string; version: string };
 	/** Quiet time after the last file event before the root is extracted again */
 	debounceMs: number;
@@ -58,6 +78,8 @@ interface Snapshot {
 	generatedAt: string;
 	/** Named levels verified against this extraction, by the node they expand */
 	named: Map<string, MapLevel>;
+	/** Levels whose kept names failed on this extraction; the next extraction checks them again */
+	refused: Set<string>;
 }
 
 interface NamingJob {
@@ -68,6 +90,9 @@ interface NamingJob {
 export type ExpandResult =
 	| { ok: true; level: MapLevel }
 	| { ok: false; code: RpcErrorCode<'node.expand'>; error: string };
+
+/** The key of the top level among levels kept by the node they expand; no node may use it. */
+const TOP = RESERVED_NODE_ID;
 
 /** The folder a `dir:` node holds, repo-relative. */
 const folderOfNode = (grouped: GroupedMap, nodeId: string) => grouped.group(nodeId)?.path ?? '';
@@ -83,8 +108,16 @@ export class MapSession {
 	private snapshot: Snapshot | null = null;
 	private extracting: Promise<Snapshot> | null = null;
 	private version = 0;
-	/** The last verified names of each node, by node id */
+	/** The last verified names of each level, by the node it expands (TOP for the top level) */
 	private readonly names = new Map<string, PartNames[]>();
+	/** Queued node ids, oldest first, with the sockets waiting for their names */
+	private readonly queue = new Map<string, Set<Subscriber>>();
+	/** CLI runs this session, retries included, for the viewer's count */
+	private workerRuns = 0;
+	/** The levels `--out/ropeman.json` named when it was last read */
+	private fromFile = new Set<string>();
+	private outWatcher: fs.FSWatcher | null = null;
+	private outDebounce: NodeJS.Timeout | undefined;
 	private readonly jobs = new Map<string, NamingJob>();
 	private readonly listeners = new Set<Subscriber>();
 	private readonly watcher: TreeWatcher;
@@ -95,12 +128,115 @@ export class MapSession {
 
 	constructor(private readonly options: SessionOptions) {
 		this.project = path.basename(options.root);
+		if (options.out) {
+			for (const id of readQueue(options.out)) this.queue.set(id, new Set());
+			this.readNames();
+		}
 		this.watcher = createTreeWatcher(options.root, (p) => this.onFileEvent(p), options.log);
 	}
 
-	/** Starts the first extraction without waiting for a request. */
+	/** Starts the first extraction without waiting for a request, and watches `--out`. */
 	start(): void {
-		this.ready().catch(() => {});
+		const out = this.options.out;
+		if (out) {
+			this.outWatcher = fs.watch(out, (_event, file) => {
+				// Some platforms report no file name; reading the map again is then the safe guess
+				if (file && file !== MAP_FILE) return;
+				clearTimeout(this.outDebounce);
+				this.outDebounce = setTimeout(() => this.onNamesWritten(), this.options.debounceMs);
+			});
+			// A removed --out folder must not crash serve; names stop updating until a restart
+			this.outWatcher.on('error', (err) =>
+				this.options.log(`Stopped watching ${out}: ${err.message}`)
+			);
+		}
+		this.ready().then(
+			(snap) => {
+				if (!out) return;
+				this.settleQueue(snap);
+				if (this.names.size === 0) return;
+				const kept = [...this.names.keys()].filter((id) => this.namedLevel(snap, id)).length;
+				this.options.log(`Serving the names of ${kept} of ${this.names.size} levels from ${out}`);
+			},
+			() => {}
+		);
+	}
+
+	/**
+	 * Takes the named levels of `--out/ropeman.json`, which only `ropeman map` writes and only
+	 * with names the verifier passed. Returns the levels whose names changed.
+	 */
+	private readNames(): string[] {
+		const file = path.join(this.options.out!, MAP_FILE);
+		const read = readOutFile(this.options.out!, MAP_FILE, MAX_MAP_BYTES);
+		if (!read) return [];
+		const parsed = 'text' in read && !read.cut ? parseRopemanMap(read.text) : null;
+		if (!parsed?.ok) {
+			const why =
+				parsed?.message ?? ('refused' in read ? read.refused : `over ${MAX_MAP_BYTES} bytes`);
+			this.options.log(`${file}: ${why}`);
+			return [];
+		}
+		const changed: string[] = [];
+		const inFile = new Set<string>();
+		for (const level of parsed.value.levels) {
+			if (level.naming !== 'named') continue;
+			const key = level.parentId ?? TOP;
+			inFile.add(key);
+			const names = level.nodes.map(({ id, label, description, keySymbols }) => ({
+				id,
+				label,
+				description,
+				keySymbols
+			}));
+			if (JSON.stringify(this.names.get(key)) === JSON.stringify(names)) continue;
+			this.names.set(key, names);
+			this.snapshot?.named.delete(key);
+			changed.push(key);
+		}
+		// A level the agent's last run left grouped stops showing the names it had before
+		for (const key of this.fromFile) {
+			if (inFile.has(key)) continue;
+			this.names.delete(key);
+			this.snapshot?.named.delete(key);
+			changed.push(key);
+		}
+		this.fromFile = inFile;
+		return changed;
+	}
+
+	/**
+	 * Answers each queued node that now has names and drops each one the map no longer expands
+	 * (a deleted folder), so the agent is never asked for a folder it cannot name. Returns the
+	 * answered nodes.
+	 */
+	private settleQueue(snap: Snapshot): Set<string> {
+		const answered = new Set<string>();
+		const before = this.queue.size;
+		for (const [nodeId, waiting] of this.queue) {
+			const level = this.namedLevel(snap, nodeId);
+			if (level) {
+				for (const subscriber of waiting) subscriber.push({ type: 'node.named', nodeId, level });
+				answered.add(nodeId);
+			} else if (snap.grouped.expand(nodeId)) continue;
+			this.queue.delete(nodeId);
+		}
+		if (this.queue.size !== before) writeQueue(this.options.out!, [...this.queue.keys()]);
+		return answered;
+	}
+
+	/** The agent ran `ropeman map`: answer the queued nodes it named, and reload the rest. */
+	private onNamesWritten(): void {
+		if (this.closed) return;
+		const changed = this.readNames();
+		const snap = this.snapshot;
+		if (changed.length === 0 || !snap) return;
+		const answered = this.settleQueue(snap);
+		this.options.log(`Names for ${changed.length} levels from ${MAP_FILE}`);
+		if (changed.some((key) => !answered.has(key))) {
+			const message: RpcPush = { type: 'map.changed', paths: [] };
+			for (const listener of this.listeners) listener.push(message);
+		}
 	}
 
 	/** Pushes `map.changed` to this subscriber until `leave`. */
@@ -111,6 +247,7 @@ export class MapSession {
 	/** Drops the subscriber everywhere and cancels each naming no other socket waits for. */
 	leave(subscriber: Subscriber): void {
 		this.listeners.delete(subscriber);
+		for (const waiting of this.queue.values()) waiting.delete(subscriber);
 		for (const [key, job] of this.jobs) {
 			if (job.subscribers.delete(subscriber) && job.subscribers.size === 0) {
 				job.abort.abort();
@@ -129,6 +266,8 @@ export class MapSession {
 	close(): void {
 		this.closed = true;
 		clearTimeout(this.debounce);
+		clearTimeout(this.outDebounce);
+		this.outWatcher?.close();
 		this.watcher.close();
 		for (const job of this.jobs.values()) job.abort.abort();
 		this.jobs.clear();
@@ -153,7 +292,8 @@ export class MapSession {
 				extraction,
 				grouped: groupExtraction(extraction, this.project),
 				generatedAt: new Date().toISOString(),
-				named: new Map()
+				named: new Map(),
+				refused: new Set()
 			};
 			this.snapshot = snapshot;
 			if (!this.closed) this.watcher.watch(extraction.folders);
@@ -187,6 +327,7 @@ export class MapSession {
 	private compose(snap: Snapshot, extra: ReadonlyMap<string, MapLevel>): RopemanMap {
 		const expanded = new Set<string>();
 		for (const id of [...snap.named.keys(), ...extra.keys()]) {
+			if (id === TOP) continue;
 			for (let at: string | null | undefined = id; at; at = snap.grouped.parentOf(at)) {
 				expanded.add(at);
 			}
@@ -202,7 +343,7 @@ export class MapSession {
 			generator: this.options.server,
 			generatedAt: snap.generatedAt,
 			files: snap.grouped.files,
-			levels: [snap.grouped.top, ...levels]
+			levels: [extra.get(TOP) ?? snap.named.get(TOP) ?? snap.grouped.top, ...levels]
 		};
 	}
 
@@ -213,8 +354,19 @@ export class MapSession {
 		return result.violations.map((v) => `${v.at}: ${v.message}`);
 	}
 
+	/** The worker's task, with the agent's brief and the name the folder got one level up. */
 	private target(snap: Snapshot, nodeId: string, level: MapLevel): NamingTarget {
-		return { project: this.project, nodeId, folder: folderOfNode(snap.grouped, nodeId), level };
+		const above = snap.grouped.parentOf(nodeId);
+		const parentLevel = above === undefined ? null : this.namedLevel(snap, above ?? TOP);
+		const self = parentLevel?.nodes.find((n) => n.id === nodeId);
+		return {
+			project: this.project,
+			nodeId,
+			folder: folderOfNode(snap.grouped, nodeId),
+			level,
+			brief: this.options.out ? readBrief(this.options.out) : null,
+			parent: self ? { label: self.label, description: self.description } : null
+		};
 	}
 
 	/**
@@ -223,8 +375,6 @@ export class MapSession {
 	 */
 	async expand(nodeId: string): Promise<ExpandResult> {
 		const snap = await this.ready();
-		const named = this.namedLevel(snap, nodeId);
-		if (named) return { ok: true, level: named };
 		const grouped = snap.grouped.expand(nodeId);
 		if (!grouped) {
 			return {
@@ -233,7 +383,7 @@ export class MapSession {
 				error: `${nodeId} is not a folder node of the map. Files open with file.read.`
 			};
 		}
-		return { ok: true, level: grouped };
+		return { ok: true, level: this.namedLevel(snap, nodeId) ?? grouped };
 	}
 
 	/** The node's named level on this extraction, from its kept names if they still pass. */
@@ -241,11 +391,12 @@ export class MapSession {
 		const known = snap.named.get(nodeId);
 		if (known) return known;
 		const names = this.names.get(nodeId);
-		const grouped = snap.grouped.expand(nodeId);
-		if (!names || !grouped) return null;
+		const grouped = nodeId === TOP ? snap.grouped.top : snap.grouped.expand(nodeId);
+		if (!names || !grouped || snap.refused.has(nodeId)) return null;
 		const level = applyNames(grouped, names);
+		// Kept, not deleted: a folder added and removed again, or a branch switched back, passes later
 		if (this.problems(snap, nodeId, level).length > 0) {
-			this.names.delete(nodeId);
+			snap.refused.add(nodeId);
 			return null;
 		}
 		snap.named.set(nodeId, level);
@@ -274,13 +425,28 @@ export class MapSession {
 			return;
 		}
 		const naming = this.options.naming;
+		if (!naming && this.options.out) {
+			const waiting = this.queue.get(nodeId);
+			if (waiting) waiting.add(subscriber);
+			else {
+				this.queue.set(nodeId, new Set([subscriber]));
+				writeQueue(this.options.out, [...this.queue.keys()]);
+			}
+			subscriber.push({
+				type: 'node.named',
+				nodeId,
+				code: 'queued',
+				error: 'Queued for your agent; it names this folder the next time it runs ropeman map.'
+			});
+			return;
+		}
 		if (!naming) {
 			subscriber.push({
 				type: 'node.named',
 				nodeId,
 				code: 'no-cli',
 				error:
-					'No CLI found, so the folder names stay. Install Claude Code or Gemini CLI, or pass --cli.'
+					'Nothing names this folder, so the folder names stay. Start serve with --out (the folder the Ropeman skill uses) or --cli.'
 			});
 			return;
 		}
@@ -309,6 +475,7 @@ export class MapSession {
 			const outcome = await nameLevel(target, {
 				codeMap: snap.extraction.map,
 				run: (prompt) => {
+					this.workerRuns++;
 					const { args, stdin } = headlessCommand(naming.cli, prompt);
 					return naming.runner.run({
 						command: naming.command,
@@ -325,12 +492,39 @@ export class MapSession {
 			this.options.log(
 				`node.named ${nodeId}: ${outcome.ok ? 'named' : outcome.code} after ${outcome.attempts} run(s), ${ms} ms${tokens(outcome.usage)}`
 			);
-			if (outcome.ok) {
+			// Names the agent wrote while the worker ran win: they carry the conversation
+			const agent = this.fromFile.has(nodeId)
+				? this.namedLevel(this.snapshot ?? snap, nodeId)
+				: null;
+			if (agent) {
+				push({ type: 'node.named', nodeId, level: agent });
+			} else if (outcome.ok) {
 				this.names.set(nodeId, outcome.names);
 				snap.named.set(nodeId, outcome.level);
-				push({ type: 'node.named', nodeId, level: outcome.level });
+				push({
+					type: 'node.named',
+					nodeId,
+					level: outcome.level,
+					namedBy: { worker: naming.cli, runs: this.workerRuns }
+				});
 			} else {
 				push({ type: 'node.named', nodeId, code: outcome.code, error: outcome.error });
+			}
+			if (this.options.out) {
+				// The log is for the agent; the page already has its answer, so a failed write only logs here
+				try {
+					appendLog(this.options.out, {
+						at: new Date().toISOString(),
+						nodeId,
+						folder: target.folder,
+						worker: naming.cli,
+						outcome: agent ? 'agent-named' : outcome.ok ? 'named' : outcome.code,
+						names: !agent && outcome.ok ? outcome.names : [],
+						ms
+					});
+				} catch (err) {
+					this.options.log(`Could not add to ${LOG_FILE}: ${(err as Error).message}`);
+				}
 			}
 		} catch (err) {
 			if (err instanceof CliError && err.reason === 'aborted') {
@@ -365,8 +559,9 @@ export class MapSession {
 		this.changed.clear();
 		this.extract()
 			.then(
-				() => {
+				(snap) => {
 					if (this.closed) return;
+					if (this.options.out) this.settleQueue(snap);
 					const message: RpcPush = { type: 'map.changed', paths };
 					for (const listener of this.listeners) listener.push(message);
 				},

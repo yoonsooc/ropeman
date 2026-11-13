@@ -28,29 +28,30 @@
 
 ## 목록
 
-| 번호                                                 | 결정                                                      | 날짜       |
-| ---------------------------------------------------- | --------------------------------------------------------- | ---------- |
-| [ADR-1](0001-state-raw-for-svelteflow.md)            | $state.raw for SvelteFlow 통합                            | -          |
-| [ADR-2](0002-single-writer-effects.md)               | Single-Writer 패턴 for Effects                            | -          |
-| [ADR-3](0003-untrack-effect-dependencies.md)         | untrack()로 의존성 차단                                   | -          |
-| [ADR-4](0004-dev-filesystem-middleware.md)           | Dev 전용 파일시스템 미들웨어                              | -          |
-| [ADR-5](0005-state-raw-for-project-store.md)         | $state.raw for projectStore Maps                          | -          |
-| [ADR-6](0006-fallback-file-handle.md)                | Fallback File Handle 래퍼                                 | -          |
-| [ADR-7](0007-prism-theme-css-injection.md)           | Prism 테마 동적 CSS 주입                                  | -          |
-| [ADR-8](0008-ai-track-adapter.md)                    | AI Track 어댑터 패턴                                      | 2026-03-19 |
-| [ADR-9](0009-edge-worker-split.md)                   | Edge Worker 분리                                          | 2026-03-18 |
-| [ADR-10](0010-close-brackets-stack.md)               | closeBrackets 스택 기반                                   | 2026-03-18 |
-| [ADR-11](0011-webgpu-background-download.md)         | WebGPU 다중 모델 + 백그라운드 다운로드                    | 2026-03-24 |
-| [ADR-12](0012-ai-error-classification.md)            | AI 에러 유형 분류 시스템                                  | 2026-03-24 |
-| [ADR-13](0013-skeleton-path-suffix-lookup.md)        | 코드 구조 요약 경로 매칭 (suffix lookup)                  | 2026-04-03 |
-| [ADR-14](0014-onboarding-tour-cutout.md)             | 온보딩 투어 cutout 패턴                                   | 2026-04-03 |
-| [ADR-15](0015-modal-tooltip-portal.md)               | 모달 내부 툴팁 포털 패턴                                  | 2026-04-03 |
-| [ADR-16](0016-docs-route-mdsvex.md)                  | SvelteKit 내장 /docs 라우트 + mdsvex                      | 2026-04-09 |
-| [ADR-17](0017-html-export-svg-inline.md)             | HTML 내보내기 — SvelteFlow SVG 인라인                     | 2026-04-13 |
-| [ADR-18](0018-pdf-export-window-print.md)            | PDF 내보내기 — window.print() + @media print              | 2026-04-13 |
-| [ADR-19](0019-explore-manual-refresh.md)             | 공개 갤러리 — 수동 갱신 + explore KV namespace            | 2026-04-13 |
-| [ADR-20](0020-markdown-outline-and-include-paths.md) | Markdown 개요를 코드 구조 요약에 + 포함 경로 우선         | 2026-11-10 |
-| [ADR-21](0021-skeleton-v2-local-code-map.md)         | 스켈레톤 v2는 로컬 코드 지도, AI 전송 형식은 v1 고정      | 2026-11-12 |
-| [ADR-22](0022-astryx-tokens-without-package.md)      | astryx 토큰과 규칙만 도입, 패키지 미설치                  | 2026-11-12 |
-| [ADR-23](0023-bridge-first-delivery.md)              | 전달은 Bridge 먼저, Safari·권한 거부는 로컬 모드          | 2026-11-12 |
-| [ADR-24](0024-ropeman-map-format.md)                 | `ropeman.json` 형식과 버전, Bridge RPC가 같은 타입을 쓴다 | 2026-11-12 |
+| 번호                                                 | 결정                                                                   | 날짜       |
+| ---------------------------------------------------- | ---------------------------------------------------------------------- | ---------- |
+| [ADR-1](0001-state-raw-for-svelteflow.md)            | $state.raw for SvelteFlow 통합                                         | -          |
+| [ADR-2](0002-single-writer-effects.md)               | Single-Writer 패턴 for Effects                                         | -          |
+| [ADR-3](0003-untrack-effect-dependencies.md)         | untrack()로 의존성 차단                                                | -          |
+| [ADR-4](0004-dev-filesystem-middleware.md)           | Dev 전용 파일시스템 미들웨어                                           | -          |
+| [ADR-5](0005-state-raw-for-project-store.md)         | $state.raw for projectStore Maps                                       | -          |
+| [ADR-6](0006-fallback-file-handle.md)                | Fallback File Handle 래퍼                                              | -          |
+| [ADR-7](0007-prism-theme-css-injection.md)           | Prism 테마 동적 CSS 주입                                               | -          |
+| [ADR-8](0008-ai-track-adapter.md)                    | AI Track 어댑터 패턴                                                   | 2026-03-19 |
+| [ADR-9](0009-edge-worker-split.md)                   | Edge Worker 분리                                                       | 2026-03-18 |
+| [ADR-10](0010-close-brackets-stack.md)               | closeBrackets 스택 기반                                                | 2026-03-18 |
+| [ADR-11](0011-webgpu-background-download.md)         | WebGPU 다중 모델 + 백그라운드 다운로드                                 | 2026-03-24 |
+| [ADR-12](0012-ai-error-classification.md)            | AI 에러 유형 분류 시스템                                               | 2026-03-24 |
+| [ADR-13](0013-skeleton-path-suffix-lookup.md)        | 코드 구조 요약 경로 매칭 (suffix lookup)                               | 2026-04-03 |
+| [ADR-14](0014-onboarding-tour-cutout.md)             | 온보딩 투어 cutout 패턴                                                | 2026-04-03 |
+| [ADR-15](0015-modal-tooltip-portal.md)               | 모달 내부 툴팁 포털 패턴                                               | 2026-04-03 |
+| [ADR-16](0016-docs-route-mdsvex.md)                  | SvelteKit 내장 /docs 라우트 + mdsvex                                   | 2026-04-09 |
+| [ADR-17](0017-html-export-svg-inline.md)             | HTML 내보내기 — SvelteFlow SVG 인라인                                  | 2026-04-13 |
+| [ADR-18](0018-pdf-export-window-print.md)            | PDF 내보내기 — window.print() + @media print                           | 2026-04-13 |
+| [ADR-19](0019-explore-manual-refresh.md)             | 공개 갤러리 — 수동 갱신 + explore KV namespace                         | 2026-04-13 |
+| [ADR-20](0020-markdown-outline-and-include-paths.md) | Markdown 개요를 코드 구조 요약에 + 포함 경로 우선                      | 2026-11-10 |
+| [ADR-21](0021-skeleton-v2-local-code-map.md)         | 스켈레톤 v2는 로컬 코드 지도, AI 전송 형식은 v1 고정                   | 2026-11-12 |
+| [ADR-22](0022-astryx-tokens-without-package.md)      | astryx 토큰과 규칙만 도입, 패키지 미설치                               | 2026-11-12 |
+| [ADR-23](0023-bridge-first-delivery.md)              | 전달은 Bridge 먼저, Safari·권한 거부는 로컬 모드                       | 2026-11-12 |
+| [ADR-24](0024-ropeman-map-format.md)                 | `ropeman.json` 형식과 버전, Bridge RPC가 같은 타입을 쓴다              | 2026-11-12 |
+| [ADR-25](0025-agent-names-the-map.md)                | 맥락은 사용자의 에이전트가 쥐고, 깊은 폴더는 일꾼이 동시에 이름 붙인다 | 2026-11-13 |
