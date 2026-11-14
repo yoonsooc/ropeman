@@ -1,4 +1,4 @@
-# ropeman-agent
+# code-qa-eval (`ropeman-agent` package)
 
 An experiment, not part of the shipped app, bridge or workers: nothing outside this folder imports it and CI does not run it.
 
