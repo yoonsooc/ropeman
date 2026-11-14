@@ -3,6 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { waitForApp } from './support/app';
 
 const HEADLINE = /^Map a repo\s*from your coding agent$/;
+const KO_HEADLINE = /^코딩 에이전트로\s*저장소 지도를 그리세요$/;
 const { version } = JSON.parse(
 	readFileSync(new URL('../bridge/package.json', import.meta.url), 'utf8')
 );
@@ -60,12 +61,20 @@ test.describe('without JavaScript', () => {
 	test.describe('in a Korean browser', () => {
 		test.use({ locale: 'ko-KR' });
 
-		test('the English landing still shows, since nothing hides it', async ({ page }) => {
+		test('`/` shows the Korean landing, picked before any script runs', async ({ page }) => {
 			await page.goto('/');
 
 			await expect(page.locator('#app')).toBeVisible();
-			await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+			await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
+			await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
 		});
+	});
+
+	test('`/ko` shows the Korean landing in an English browser', async ({ page }) => {
+		await page.goto('/ko');
+
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
+		await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
 	});
 });
 
@@ -120,7 +129,42 @@ test('the app takes over the prerendered landing in place', async ({ page }) => 
 	expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(INSTALL);
 });
 
-test('a Korean visitor never sees the English prerender', async ({ page }) => {
+test.describe('in a Korean browser', () => {
+	test.use({ locale: 'ko-KR' });
+
+	test('`/` paints in Korean with no English frame before the app boots', async ({ page }) => {
+		await withoutAppScripts(page);
+		const response = await page.goto('/');
+
+		expect(await response!.text()).not.toContain('Map a repo');
+		await expect(page.locator('#app')).toBeVisible();
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
+
+		await page.unrouteAll();
+		await page.reload();
+		await waitForApp(page);
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
+		await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
+	});
+
+	test('`/` serves the language picked in the app', async ({ page }) => {
+		await useSettings(page, {});
+		await page.goto('/');
+		await waitForApp(page);
+		await page.locator('header .lang-toggle').click();
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+
+		await withoutAppScripts(page);
+		await page.reload();
+
+		await expect(page.locator('#app')).toBeVisible();
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+	});
+});
+
+test('a language saved before the cookie existed never shows the other language', async ({
+	page
+}) => {
 	await useSettings(page, { language: 'ko' });
 	await withoutAppScripts(page);
 	await page.goto('/');
@@ -131,14 +175,18 @@ test('a Korean visitor never sees the English prerender', async ({ page }) => {
 	await waitForApp(page);
 
 	// Regression: {@html} keeps the prerendered markup on hydration, so the headline stayed English
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-		/^코딩 에이전트로\s*저장소 지도를 그리세요$/
-	);
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
 	await expect(page.locator('#app')).toBeVisible();
 	await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
+
+	// The app wrote the cookie, so the next visit gets Korean from the first byte
+	await withoutAppScripts(page);
+	await page.reload();
+	await expect(page.locator('#app')).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
 });
 
-test('a Korean visitor whose app never loads gets the English landing, not a blank page', async ({
+test('a saved language whose app never loads gets the served landing, not a blank page', async ({
 	page
 }) => {
 	await useSettings(page, { language: 'ko' });
@@ -151,6 +199,31 @@ test('a Korean visitor whose app never loads gets the English landing, not a bla
 
 	await expect(page.locator('#app')).toBeVisible();
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+});
+
+test('`/ko` stays Korean over a saved English choice and leaves the choice alone', async ({
+	page
+}) => {
+	await useSettings(page, { language: 'en' });
+	await page.goto('/ko');
+	await waitForApp(page);
+
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
+	await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
+	const saved = await page.evaluate(() => localStorage.getItem('ropeman-settings'));
+	expect(JSON.parse(saved!).language).toBe('en');
+});
+
+test('picking English on `/ko` moves to `/` in English', async ({ page }) => {
+	await useSettings(page, {});
+	await page.goto('/ko');
+	await waitForApp(page);
+
+	await page.locator('header .lang-toggle').click();
+
+	await expect(page).toHaveURL(/\/$/);
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+	await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 });
 
 test('the stored light theme applies before the app boots', async ({ page }) => {

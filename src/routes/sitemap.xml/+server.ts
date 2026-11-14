@@ -12,6 +12,7 @@ export function GET() {
 
 	const urls: Array<{ loc: string; priority: string }> = [
 		{ loc: `${SITE}/`, priority: '1.0' },
+		{ loc: `${SITE}/ko`, priority: '1.0' },
 		{ loc: `${SITE}/docs`, priority: '0.9' },
 		{ loc: `${SITE}/explore`, priority: '0.9' }
 	];
