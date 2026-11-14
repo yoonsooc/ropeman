@@ -90,8 +90,8 @@
 			"repo": "gin",
 			"title": "Gin",
 			"language": "Go",
-			"description": "HTTP web framework written in Go (Golang) — fast and minimal.",
-			"descriptionKo": "Go로 작성한 빠르고 가벼운 HTTP 웹 프레임워크입니다.",
+			"description": "A fast, minimal HTTP web framework for Go, with a Martini-like API built on httprouter.",
+			"descriptionKo": "httprouter 위에 Martini와 비슷한 API를 얹은, 빠르고 가벼운 Go HTTP 웹 프레임워크입니다.",
 			"stars": "89k+",
 			"ref": "d3ffc9985281dcf4d3bef604cce4e662b1a327a6"
 		},
@@ -101,10 +101,30 @@
 			"repo": "tokio",
 			"title": "Tokio",
 			"language": "Rust",
-			"description": "A runtime for writing reliable asynchronous applications with Rust — the de-facto async standard.",
-			"descriptionKo": "Rust로 신뢰할 수 있는 비동기 애플리케이션을 만드는 런타임. 사실상 표준 비동기 런타임입니다.",
+			"description": "A runtime for writing reliable asynchronous applications in Rust, with I/O, networking, scheduling and timers.",
+			"descriptionKo": "Rust로 신뢰할 수 있는 비동기 애플리케이션을 만드는 런타임으로, I/O, 네트워킹, 스케줄링, 타이머를 제공합니다.",
 			"stars": "33k+",
 			"ref": "905c146aeda741ea2202f942a7c3a606dda13da5"
+		},
+		{
+			"slug": "polars",
+			"owner": "pola-rs",
+			"repo": "polars",
+			"title": "Polars",
+			"language": "Rust",
+			"description": "An extremely fast DataFrame query engine written in Rust, with a Python API.",
+			"descriptionKo": "Rust로 작성한 매우 빠른 DataFrame 쿼리 엔진으로, Python API를 함께 제공합니다.",
+			"stars": "40k+"
+		},
+		{
+			"slug": "dbt",
+			"owner": "dbt-labs",
+			"repo": "dbt",
+			"title": "dbt",
+			"language": "Rust",
+			"description": "dbt v2, the Rust rewrite of the tool that lets analysts and engineers transform data with software engineering practices.",
+			"descriptionKo": "분석가와 엔지니어가 소프트웨어 개발 방식으로 데이터를 변환하게 하는 도구 dbt를 Rust로 다시 쓴 v2입니다.",
+			"stars": "14k+"
 		}
 	]
 }

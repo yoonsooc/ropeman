@@ -28,7 +28,8 @@
 		"owner": "tokio-rs",
 		"repo": "tokio",
 		"commit": "ab0814fc8c62b3d8be40aad068e2fed6562cfeb0",
-		"batch": 2
+		"batch": 2,
+		"depth": 4
 	},
 	"graphify": {
 		"owner": "Graphify-Labs",
@@ -68,12 +69,14 @@
 		"owner": "dbt-labs",
 		"repo": "dbt",
 		"commit": "bf7d341f34c7f08dd1323f2abb9690be4146da5e",
-		"batch": 2
+		"batch": 2,
+		"depth": 4
 	},
 	"polars": {
 		"owner": "pola-rs",
 		"repo": "polars",
 		"commit": "5c36cdd75a30a8ab12a9f70e251c0f267235b2a7",
-		"batch": 2
+		"batch": 2,
+		"depth": 4
 	}
 }
