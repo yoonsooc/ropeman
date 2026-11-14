@@ -9,8 +9,7 @@
 			"language": "Python",
 			"description": "State-of-the-art machine learning for JAX, PyTorch and TensorFlow — pretrained models for NLP, CV and audio.",
 			"descriptionKo": "JAX, PyTorch, TensorFlow를 위한 최신 머신러닝 라이브러리. 자연어, 비전, 오디오용 사전학습 모델을 제공합니다.",
-			"stars": "169k+",
-			"ref": "9b1a47c6a589044de1e03f8a23b468f8d5668a24"
+			"stars": "169k+"
 		},
 		{
 			"slug": "fastapi",
@@ -20,8 +19,7 @@
 			"language": "Python",
 			"description": "Modern, fast (high-performance) web framework for building APIs with Python type hints.",
 			"descriptionKo": "Python 타입 힌트로 API를 만드는 현대적이고 빠른 웹 프레임워크입니다.",
-			"stars": "104k+",
-			"ref": "2fa00db8581bb4e74b2d00d859c8469b6da296c4"
+			"stars": "104k+"
 		},
 		{
 			"slug": "react",
@@ -31,8 +29,7 @@
 			"language": "JavaScript",
 			"description": "A declarative, efficient, and flexible JavaScript library for building user interfaces.",
 			"descriptionKo": "사용자 인터페이스를 만드는 선언적이고 효율적이며 유연한 JavaScript 라이브러리입니다.",
-			"stars": "252k+",
-			"ref": "00f063c31d60308f8e4e0fd349b89ed043b9ea54"
+			"stars": "252k+"
 		},
 		{
 			"slug": "graphify",
@@ -92,8 +89,7 @@
 			"language": "Go",
 			"description": "A fast, minimal HTTP web framework for Go, with a Martini-like API built on httprouter.",
 			"descriptionKo": "httprouter 위에 Martini와 비슷한 API를 얹은, 빠르고 가벼운 Go HTTP 웹 프레임워크입니다.",
-			"stars": "89k+",
-			"ref": "d3ffc9985281dcf4d3bef604cce4e662b1a327a6"
+			"stars": "89k+"
 		},
 		{
 			"slug": "tokio",
@@ -103,8 +99,7 @@
 			"language": "Rust",
 			"description": "A runtime for writing reliable asynchronous applications in Rust, with I/O, networking, scheduling and timers.",
 			"descriptionKo": "Rust로 신뢰할 수 있는 비동기 애플리케이션을 만드는 런타임으로, I/O, 네트워킹, 스케줄링, 타이머를 제공합니다.",
-			"stars": "33k+",
-			"ref": "905c146aeda741ea2202f942a7c3a606dda13da5"
+			"stars": "33k+"
 		},
 		{
 			"slug": "polars",

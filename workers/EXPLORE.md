@@ -83,9 +83,7 @@ batch. Needs Node 22+, git and a logged-in `claude` CLI.
 4. **Verify** at https://ropeman.dev/explore/react in English and Korean, then
    open a file from a node's panel.
 
-Snapshots uploaded before `commit` existed fall back to the entry's `ref` in
-`src/lib/data/explore-curated.json`. Once a slug's new snapshot is uploaded,
-its `ref` can be deleted.
+The detail page opens files only from a snapshot that records `commit`.
 
 ## Adding a new curated entry
 
