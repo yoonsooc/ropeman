@@ -7,8 +7,9 @@
  *
  * The card shows the best connected named level (every part described) of 4 to 16 parts: the
  * most relations, weighted by the share of parts they touch, so a hub with a column of leaves
- * loses to a web. It is served to the page as the top level, because the real top level is often
- * a column of folders with no arrows.
+ * loses to a web. Relations past two per part count no more, and every part past ten shrinks the
+ * cards, so a card of ten readable parts beats one of fifteen tangled ones. It is served to the
+ * page as the top level, because the real top level is often a column of folders with no arrows.
  * `--base` is a running production build (`npx wrangler pages dev .svelte-kit/cloudflare`).
  * The snapshot is served to the page from the work folder, so nothing is uploaded. With no
  * slug it draws every built snapshot. CHROME_PATH picks the browser binary when Playwright's
@@ -55,8 +56,9 @@ function cardSnapshot(text) {
 		([, l]) => l.nodes.length >= 4 && l.nodes.length <= 16 && l.nodes.every((n) => n.description)
 	);
 	const score = (l) => {
+		const n = l.nodes.length;
 		const touched = new Set(l.edges.flatMap((e) => [e.source, e.target]));
-		return (l.edges.length * touched.size) / l.nodes.length;
+		return ((Math.min(l.edges.length, 2 * n) * touched.size) / n) * (10 / Math.max(n, 10)) ** 2;
 	};
 	const [key, level] = readable.sort(([, a], [, b]) => score(b) - score(a))[0] ?? [];
 	if (!level || level.edges.length === 0 || key === '__root__') return text;
