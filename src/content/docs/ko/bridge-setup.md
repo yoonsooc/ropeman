@@ -28,12 +28,12 @@ Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 �
 명령을 한 번 설치하고, 지도를 만들 폴더에서 serve를 실행하세요.
 
 ```bash
-npm install -g @ropeman/bridge@0.3.1
+npm install -g @ropeman/bridge@0.4.0
 cd ~/code/your-project
 ropeman serve --root .
 ```
 
-전역 설치 없이 `npx @ropeman/bridge@0.3.1 serve --root .`로도 같은 명령을 실행할 수 있습니다. 오래된 npm에서는 이 방법으로 실행 파일을 못 찾을 수 있습니다. `--cli`를 주지 않으면 serve는 `PATH`에 `claude`가 있을 때 그것을 씁니다. `gemini`는 스스로 고르지 않습니다. 실행하면 아래처럼 출력합니다.
+전역 설치 없이 `npx @ropeman/bridge@0.4.0 serve --root .`로도 같은 명령을 실행할 수 있습니다. 오래된 npm에서는 이 방법으로 실행 파일을 못 찾을 수 있습니다. `--cli`를 주지 않으면 serve는 `PATH`에 `claude`가 있을 때 그것을 씁니다. `gemini`는 스스로 고르지 않습니다. 실행하면 아래처럼 출력합니다.
 
 ```text
 [09:41:02] Workers naming opened folders: claude

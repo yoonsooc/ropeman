@@ -18,8 +18,8 @@ Try it now at [ropeman.dev](https://ropeman.dev) — no signup required.
 The main way to use Ropeman is from a coding agent through the Ropeman skill. You need Node 22 or later.
 
 ```bash
-npm install -g @ropeman/bridge@0.3.1
-curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.1/skill/ropeman/SKILL.md
+npm install -g @ropeman/bridge@0.4.0
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.4.0/skill/ropeman/SKILL.md
 ```
 
 Then ask the agent to "map this repo". It builds the map, names the top two levels, checks the names against the code, starts `ropeman serve` and gives you a `http://127.0.0.1:9800/bridge#token=…` address to open. The second command is for Claude Code, where the skill is tested. Codex, Gemini CLI and Cursor load skills from other folders according to their documentation; the setup on the [home page](/) shows the command for each, and Ropeman has not been tested with them yet.
