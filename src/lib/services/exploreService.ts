@@ -12,6 +12,8 @@
  */
 import { EXPLORE_URL } from '$lib/config';
 import type { SemanticLevel } from '$lib/types/semantic';
+import type { Locale } from '$lib/utils/locale';
+import { i18nStore } from '$lib/stores/i18nStore.svelte';
 import curatedRaw from '$lib/data/explore-curated.json';
 import { MAX_FILE_SIZE } from '$lib/utils/filePriority';
 
@@ -41,6 +43,14 @@ export interface CuratedManifest {
 	entries: CuratedEntry[];
 }
 
+export interface NodeText {
+	label: string;
+	description: string;
+}
+
+/** A node's label and description in one locale, by node id */
+export type SnapshotTranslation = Record<string, NodeText>;
+
 export interface ExploreSnapshot {
 	projectName: string;
 	owner?: string;
@@ -50,6 +60,8 @@ export interface ExploreSnapshot {
 	analyzedAt?: string;
 	/** Commit the snapshot was analyzed at. A snapshot that records it stores repository paths. */
 	commit?: string;
+	/** The levels are English; a node missing from a locale's map shows its English text */
+	translations?: Partial<Record<Exclude<Locale, 'en'>, SnapshotTranslation>>;
 }
 
 /** Build-time bundled curated manifest, validated once at module load. */
@@ -149,6 +161,10 @@ export function validateSnapshot(data: unknown): ExploreSnapshot | null {
 		}
 	}
 
+	const translations = obj.translations as Record<string, unknown> | undefined;
+	const ko =
+		translations && typeof translations === 'object' ? validateTranslation(translations.ko) : null;
+
 	return {
 		projectName: obj.projectName,
 		owner: typeof obj.owner === 'string' ? obj.owner : undefined,
@@ -156,8 +172,40 @@ export function validateSnapshot(data: unknown): ExploreSnapshot | null {
 		semanticLevels: levels,
 		filePaths: Array.isArray(obj.filePaths) ? (obj.filePaths as string[]) : undefined,
 		analyzedAt: typeof obj.analyzedAt === 'string' ? obj.analyzedAt : undefined,
-		commit: commitOrUndefined(obj.commit)
+		commit: commitOrUndefined(obj.commit),
+		translations: ko ? { ko } : undefined
 	};
+}
+
+/** Keeps the entries with a string label and description and drops the rest. */
+function validateTranslation(data: unknown): SnapshotTranslation | null {
+	if (!data || typeof data !== 'object') return null;
+	const out: SnapshotTranslation = {};
+	for (const [id, value] of Object.entries(data)) {
+		const t = value as Record<string, unknown> | null;
+		if (t && typeof t.label === 'string' && typeof t.description === 'string') {
+			out[id] = { label: t.label, description: t.description };
+		}
+	}
+	return out;
+}
+
+/**
+ * The snapshot with its node labels and descriptions in `locale`, falling back to English per
+ * node. A level's breadcrumb is the label of the node it expands, so it follows that node.
+ */
+export function localizeSnapshot(snapshot: ExploreSnapshot, locale: Locale): ExploreSnapshot {
+	const texts = locale === 'en' ? undefined : snapshot.translations?.[locale];
+	if (!texts) return snapshot;
+	const semanticLevels: Record<string, SemanticLevel> = {};
+	for (const [key, level] of Object.entries(snapshot.semanticLevels)) {
+		semanticLevels[key] = {
+			...level,
+			breadcrumbLabel: texts[key]?.label ?? level.breadcrumbLabel,
+			nodes: level.nodes.map((n) => (texts[n.id] ? { ...n, ...texts[n.id] } : n))
+		};
+	}
+	return { ...snapshot, semanticLevels };
 }
 
 export type FetchSnapshotResult =
@@ -203,7 +251,10 @@ export async function uploadExploreSnapshot(
 	}
 }
 
-export async function fetchExploreSnapshot(slug: string): Promise<FetchSnapshotResult> {
+export async function fetchExploreSnapshot(
+	slug: string,
+	locale: Locale = i18nStore.locale
+): Promise<FetchSnapshotResult> {
 	// If EXPLORE_URL is not configured, the worker is not deployed yet —
 	// treat it as "not analyzed" so the viewer shows the friendly fallback
 	// instead of a confusing error screen.
@@ -236,7 +287,7 @@ export async function fetchExploreSnapshot(slug: string): Promise<FetchSnapshotR
 		if (!snapshot) {
 			return { ok: false, status: 'error', message: 'Invalid snapshot payload.' };
 		}
-		return { ok: true, snapshot };
+		return { ok: true, snapshot: localizeSnapshot(snapshot, locale) };
 	} catch {
 		// Network-level failure (DNS, CORS, offline) — most likely the
 		// explore worker is unreachable. Degrade gracefully to the
