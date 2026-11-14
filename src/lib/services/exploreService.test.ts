@@ -521,6 +521,10 @@ describe('getCuratedManifest', () => {
 		}
 		const live = Object.keys(repos).filter((slug) => liveBatches.includes(repos[slug].batch));
 		expect(entries.map((e) => e.slug).sort()).toEqual(live.sort());
+		// A missing or quoted batch would drop a repository from both lists without a failure
+		for (const [slug, entry] of Object.entries(repos)) {
+			expect(Number.isInteger(entry.batch), slug).toBe(true);
+		}
 	});
 
 	it('slugs are unique', () => {

@@ -102,7 +102,7 @@
 			"title": "Tokio",
 			"language": "Rust",
 			"description": "A runtime for writing reliable asynchronous applications in Rust, with I/O, networking, scheduling and timers.",
-			"descriptionKo": "I/O, 네트워킹, 스케줄링, 타이머를 갖추고 신뢰할 수 있는 비동기 애플리케이션을 Rust로 만드는 런타임입니다.",
+			"descriptionKo": "Rust로 신뢰할 수 있는 비동기 애플리케이션을 만드는 런타임으로, I/O, 네트워킹, 스케줄링, 타이머를 제공합니다.",
 			"stars": "33k+",
 			"ref": "905c146aeda741ea2202f942a7c3a606dda13da5"
 		},
