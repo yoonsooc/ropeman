@@ -118,6 +118,11 @@ interface RefBase {
 	from: SymbolId | null;
 	/** As written: 'foo', 'this.save', 'z.object'. null when the source did not record it (graph.json). */
 	written: string | null;
+	/**
+	 * The callee's first name is a parameter or a local of an enclosing function (`next` in
+	 * `function f(next) { next() }`), so the file's imports and declarations do not say what it is
+	 */
+	local?: true;
 }
 
 /** Every relation other than imports, named and shaped as graphify's ast edges so T1-10 maps one to one. */

@@ -1,0 +1,422 @@
+{
+	"kinds": [
+		"calls",
+		"inherits",
+		"implements"
+	],
+	"edges": [
+		{
+			"kind": "inherits",
+			"from": "java/src/com/shop/model/Item.java",
+			"line": 3,
+			"written": "Entity",
+			"to": "java/src/com/shop/model/Entity.java#Entity"
+		},
+		{
+			"kind": "implements",
+			"from": "java/src/com/shop/model/Item.java",
+			"line": 3,
+			"written": "Priced",
+			"to": "java/src/com/shop/model/Priced.java#Priced"
+		},
+		{
+			"kind": "calls",
+			"from": "java/src/com/shop/model/Item.java",
+			"line": 5,
+			"written": "round",
+			"to": "java/src/com/shop/model/Item.java#Item.round"
+		},
+		{
+			"kind": "calls",
+			"from": "java/src/com/shop/model/Item.java",
+			"line": 5,
+			"written": "base",
+			"to": "java/src/com/shop/model/Entity.java#Entity.base"
+		},
+		{
+			"kind": "calls",
+			"from": "java/src/com/shop/Checkout.java",
+			"line": 7,
+			"written": "Item",
+			"to": "java/src/com/shop/model/Item.java#Item"
+		},
+		{
+			"kind": "calls",
+			"from": "java/src/com/shop/Checkout.java",
+			"line": 8,
+			"written": "item.cents",
+			"to": "java/src/com/shop/model/Item.java#Item.cents"
+		},
+		{
+			"kind": "calls",
+			"from": "java/src/com/shop/Checkout.java",
+			"line": 8,
+			"written": "Pricing.fee",
+			"to": "java/src/com/shop/Pricing.java#Pricing.fee"
+		},
+		{
+			"kind": "inherits",
+			"from": "kotlin/src/shop/Basket.kt",
+			"line": 9,
+			"written": "Container",
+			"to": "kotlin/src/shop/Basket.kt#Container"
+		},
+		{
+			"kind": "implements",
+			"from": "kotlin/src/shop/Basket.kt",
+			"line": 9,
+			"written": "Shippable",
+			"to": "kotlin/src/shop/Basket.kt#Shippable"
+		},
+		{
+			"kind": "calls",
+			"from": "kotlin/src/shop/Basket.kt",
+			"line": 10,
+			"written": "size",
+			"to": "kotlin/src/shop/Basket.kt#Container.size"
+		},
+		{
+			"kind": "calls",
+			"from": "kotlin/src/shop/Basket.kt",
+			"line": 10,
+			"written": "Scale.unit",
+			"to": "kotlin/src/shop/Scale.kt#Scale.unit"
+		},
+		{
+			"kind": "calls",
+			"from": "kotlin/src/shop/Scale.kt",
+			"line": 7,
+			"written": "Basket",
+			"to": "kotlin/src/shop/Basket.kt#Basket"
+		},
+		{
+			"kind": "inherits",
+			"from": "csharp/Shop/Order.cs",
+			"line": 3,
+			"written": "Document",
+			"to": "csharp/Shop/Document.cs#Document"
+		},
+		{
+			"kind": "inherits",
+			"from": "csharp/Shop/Order.cs",
+			"line": 3,
+			"written": "IPriced",
+			"to": "csharp/Shop/Document.cs#IPriced"
+		},
+		{
+			"kind": "calls",
+			"from": "csharp/Shop/Order.cs",
+			"line": 5,
+			"written": "Round",
+			"to": "csharp/Shop/Order.cs#Order.Round"
+		},
+		{
+			"kind": "calls",
+			"from": "csharp/Shop/Order.cs",
+			"line": 5,
+			"written": "Base",
+			"to": "csharp/Shop/Document.cs#Document.Base"
+		},
+		{
+			"kind": "implements",
+			"from": "csharp/Shop/Order.cs",
+			"line": 9,
+			"written": "IPriced",
+			"to": "csharp/Shop/Document.cs#IPriced"
+		},
+		{
+			"kind": "calls",
+			"from": "csharp/Shop/Document.cs",
+			"line": 7,
+			"written": "Tax.Rate",
+			"to": "csharp/Shop/Document.cs#Tax.Rate"
+		},
+		{
+			"kind": "inherits",
+			"from": "ruby/lib/cart.rb",
+			"line": 1,
+			"written": "Collection",
+			"to": "ruby/lib/collection.rb#Collection"
+		},
+		{
+			"kind": "calls",
+			"from": "ruby/lib/cart.rb",
+			"line": 3,
+			"written": "Tax.rate",
+			"to": "ruby/lib/collection.rb#Tax.rate"
+		},
+		{
+			"kind": "calls",
+			"from": "ruby/lib/cart.rb",
+			"line": 7,
+			"written": "self.total",
+			"to": "ruby/lib/cart.rb#Cart.total"
+		},
+		{
+			"kind": "calls",
+			"from": "ruby/lib/cart.rb",
+			"line": 8,
+			"written": "Receipt.new",
+			"to": "ruby/lib/collection.rb#Receipt"
+		},
+		{
+			"kind": "inherits",
+			"from": "php/src/Invoice.php",
+			"line": 4,
+			"written": "Document",
+			"to": "php/src/Document.php#Document"
+		},
+		{
+			"kind": "implements",
+			"from": "php/src/Invoice.php",
+			"line": 4,
+			"written": "Payable",
+			"to": "php/src/Document.php#Payable"
+		},
+		{
+			"kind": "calls",
+			"from": "php/src/Invoice.php",
+			"line": 8,
+			"written": "$this->base",
+			"to": "php/src/Document.php#Document.base"
+		},
+		{
+			"kind": "calls",
+			"from": "php/src/Invoice.php",
+			"line": 8,
+			"written": "Tax::rate",
+			"to": "php/src/Document.php#Tax.rate"
+		},
+		{
+			"kind": "calls",
+			"from": "php/src/Invoice.php",
+			"line": 8,
+			"written": "helper",
+			"to": "php/src/Document.php#helper"
+		},
+		{
+			"kind": "calls",
+			"from": "php/src/Document.php",
+			"line": 27,
+			"written": "Tax",
+			"to": "php/src/Document.php#Tax"
+		},
+		{
+			"kind": "inherits",
+			"from": "swift/Sources/Shop/Cart.swift",
+			"line": 1,
+			"written": "Container",
+			"to": "swift/Sources/Shop/Container.swift#Container"
+		},
+		{
+			"kind": "inherits",
+			"from": "swift/Sources/Shop/Cart.swift",
+			"line": 1,
+			"written": "Payable",
+			"to": "swift/Sources/Shop/Container.swift#Payable"
+		},
+		{
+			"kind": "calls",
+			"from": "swift/Sources/Shop/Cart.swift",
+			"line": 3,
+			"written": "count",
+			"to": "swift/Sources/Shop/Container.swift#Container.count"
+		},
+		{
+			"kind": "calls",
+			"from": "swift/Sources/Shop/Cart.swift",
+			"line": 3,
+			"written": "Tax.rate",
+			"to": "swift/Sources/Shop/Container.swift#Tax.rate"
+		},
+		{
+			"kind": "implements",
+			"from": "swift/Sources/Shop/Cart.swift",
+			"line": 7,
+			"written": "Payable",
+			"to": "swift/Sources/Shop/Container.swift#Payable"
+		},
+		{
+			"kind": "inherits",
+			"from": "scala/src/shop/Order.scala",
+			"line": 3,
+			"written": "Entity",
+			"to": "scala/src/shop/Entity.scala#Entity"
+		},
+		{
+			"kind": "implements",
+			"from": "scala/src/shop/Order.scala",
+			"line": 3,
+			"written": "Priced",
+			"to": "scala/src/shop/Entity.scala#Priced"
+		},
+		{
+			"kind": "calls",
+			"from": "scala/src/shop/Order.scala",
+			"line": 4,
+			"written": "base",
+			"to": "scala/src/shop/Entity.scala#Entity.base"
+		},
+		{
+			"kind": "calls",
+			"from": "scala/src/shop/Order.scala",
+			"line": 4,
+			"written": "Fees.flat",
+			"to": "scala/src/shop/Entity.scala#Fees.flat"
+		},
+		{
+			"kind": "inherits",
+			"from": "cpp/src/cart.cpp",
+			"line": 3,
+			"written": "Store",
+			"to": "cpp/src/store.hpp#Store"
+		},
+		{
+			"kind": "inherits",
+			"from": "cpp/src/cart.cpp",
+			"line": 3,
+			"written": "Auditable",
+			"to": "cpp/src/store.hpp#Auditable"
+		},
+		{
+			"kind": "calls",
+			"from": "cpp/src/cart.cpp",
+			"line": 5,
+			"written": "count",
+			"to": "cpp/src/store.hpp#Store.count()"
+		},
+		{
+			"kind": "calls",
+			"from": "cpp/src/cart.cpp",
+			"line": 5,
+			"written": "fee",
+			"to": "cpp/src/cart.cpp#fee"
+		},
+		{
+			"kind": "calls",
+			"from": "cpp/src/cart.cpp",
+			"line": 10,
+			"written": "cart.total",
+			"to": "cpp/src/cart.cpp#Cart.total()"
+		},
+		{
+			"kind": "calls",
+			"from": "c/src/util.c",
+			"line": 3,
+			"written": "clamp",
+			"to": "c/src/util.c#clamp"
+		},
+		{
+			"kind": "calls",
+			"from": "c/src/main.c",
+			"line": 3,
+			"written": "scale",
+			"to": "c/src/util.c#scale"
+		},
+		{
+			"kind": "inherits",
+			"from": "python/billing/errors.py",
+			"line": 6,
+			"written": "ShopError",
+			"to": "python/billing/errors.py#ShopError"
+		},
+		{
+			"kind": "calls",
+			"from": "python/billing/errors.py",
+			"line": 12,
+			"written": "self.describe",
+			"to": "python/billing/errors.py#ShopError.describe"
+		},
+		{
+			"kind": "inherits",
+			"from": "python/billing/premium.py",
+			"line": 5,
+			"written": "models.Order",
+			"to": "python/billing/models.py#Order"
+		},
+		{
+			"kind": "calls",
+			"from": "python/billing/premium.py",
+			"line": 7,
+			"written": "super().total",
+			"to": "python/billing/models.py#Order.total"
+		},
+		{
+			"kind": "inherits",
+			"from": "python/billing/premium.py",
+			"line": 10,
+			"written": "ShopError",
+			"to": "python/billing/errors.py#ShopError"
+		},
+		{
+			"kind": "calls",
+			"from": "python/billing/premium.py",
+			"line": 16,
+			"written": "PaymentError",
+			"to": "python/billing/premium.py#PaymentError"
+		},
+		{
+			"kind": "inherits",
+			"from": "typescript/src/errors.ts",
+			"line": 11,
+			"written": "AppError",
+			"to": "typescript/src/errors.ts#AppError"
+		},
+		{
+			"kind": "implements",
+			"from": "typescript/src/errors.ts",
+			"line": 11,
+			"written": "Reporter",
+			"to": "typescript/src/errors.ts#Reporter"
+		},
+		{
+			"kind": "calls",
+			"from": "typescript/src/errors.ts",
+			"line": 13,
+			"written": "this.describe",
+			"to": "typescript/src/errors.ts#AppError.describe"
+		},
+		{
+			"kind": "calls",
+			"from": "typescript/src/report.ts",
+			"line": 4,
+			"written": "LoggedError",
+			"to": "typescript/src/errors.ts#LoggedError"
+		},
+		{
+			"kind": "calls",
+			"from": "typescript/src/report.ts",
+			"line": 5,
+			"written": "error.report",
+			"to": "typescript/src/errors.ts#LoggedError.report"
+		},
+		{
+			"kind": "calls",
+			"from": "typescript/src/run.ts",
+			"line": 8,
+			"written": "next",
+			"to": "typescript/src/steps.ts#next"
+		},
+		{
+			"kind": "calls",
+			"from": "python/billing/use.py",
+			"line": 9,
+			"written": "models.Order",
+			"to": "python/billing/models.py#Order"
+		},
+		{
+			"kind": "calls",
+			"from": "java/integration/com/shop/CheckoutTest.java",
+			"line": 5,
+			"written": "Checkout",
+			"to": "java/src/com/shop/Checkout.java#Checkout"
+		},
+		{
+			"kind": "calls",
+			"from": "java/integration/com/shop/CheckoutTest.java",
+			"line": 6,
+			"written": "Pricing.fee",
+			"to": "java/src/com/shop/Pricing.java#Pricing.fee"
+		}
+	]
+}

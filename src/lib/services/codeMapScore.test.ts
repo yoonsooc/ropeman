@@ -194,6 +194,38 @@ describe('scoreCodeMap', () => {
 	});
 });
 
+describe('scoreCodeMap: class bases', () => {
+	it('scores inherits and implements apart, each against its own truth', () => {
+		// Arrange
+		const base = (kind: 'inherits' | 'implements', line: number, to: Endpoint) =>
+			({
+				kind,
+				line,
+				from: `${ROOT}/src/main.ts#Store`,
+				written: '',
+				target: bound(to)
+			}) as RefSite;
+		const map = mapOf('src/main.ts', {
+			refs: [
+				base('inherits', 1, symbol('src/base.ts#Base')),
+				base('implements', 1, symbol('src/saver.ts#Loader'))
+			]
+		});
+		const truth = truthOf(
+			['inherits', 'implements'],
+			edge('inherits', 1, 'src/base.ts#Base'),
+			edge('implements', 1, 'src/saver.ts#Saver')
+		);
+
+		// Act
+		const score = scoreCodeMap(map, truth);
+
+		// Assert
+		expect(score.inherits).toMatchObject({ precision: 1, recall: 1 });
+		expect(score.implements).toMatchObject({ precision: 0, recall: 0, siteRecall: 1 });
+	});
+});
+
 describe('codeMapEdges', () => {
 	it('names endpoints relative to the root, with external modules and members apart', () => {
 		// Arrange

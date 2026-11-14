@@ -1,14 +1,15 @@
 # 정답 그래프 픽스처
 
-추출기(호출 T1-5, import 해석 T1-6, 추론 관계 T1-8, graph.json 어댑터 T1-10)를 바꿀 때마다 정답과 비교해 점수를 매기려고 둔 작은 저장소 다섯 개다.
+추출기(호출 T1-5, import 해석 T1-6, 추론 관계 T1-8, graph.json 어댑터 T1-10, 참조 해석)를 바꿀 때마다 정답과 비교해 점수를 매기려고 둔 작은 저장소 여섯 개다.
 
 | 저장소 | 파일 | 정답 관계 | 담은 경우 |
 | --- | --- | --- | --- |
 | `ts-monorepo/` | 24 (TS 19) | 79 | 워크스페이스 패키지(`@acme/core`), tsconfig `paths`(`@shared/*`, 앱 tsconfig가 base의 paths를 덮어씀), `$lib` 별칭, 배럴 `index.ts`, `export *`, `export { default as … }`, `export type`, default·namespace·type-only import, side-effect import, 동적 `import()`, 순환 import(`store.ts` ↔ `events.ts`), 배럴을 거친 호출, `new` 생성자 호출, 클래스 인스턴스 메서드 호출, 설치되지 않은 외부 패키지(`lodash-es`), `plugins.ts`와 `plugins/index.ts`가 함께 있는 경로 |
 | `svelte-app/` | 16 (코드 14) | 51 | `.svelte` 컴포넌트가 TS 모듈을 import, 설정 없는 SvelteKit `$lib`, `$lib` 루트 배럴, `cart.svelte` → `cart.svelte.ts`, 컴포넌트 default import, 룬 |
 | `py-shop/` | 10 (py 9) | 39 | 상대 import(`.`, `..`), 패키지 `__init__.py`를 거친 import, 자기 패키지 절대 import(`from shop import …`), 클래스 호출, `self.repo.save` 같은 속성 메서드 호출, 표준 라이브러리(`json`) |
-| `go-shop/` | 19 (go 17) | 26 | 묶은 import와 묶지 않은 import, 빈 `import ()`, 별칭·`_`·`.` import, 이름이 패키지와 같은 파일이 없는 패키지(`web/api`는 `doc.go`와 `handlers.go`, `internal/ids`는 `gen.go`), `_test.go`와 `package x_test`, 폴더 이름과 모듈 경로가 다른 중첩 모듈(`tooling/go.mod`의 `example.com/shop/tools`), 표준 라이브러리와 외부 모듈, 폴더가 없는 모듈 안 경로(`legacy`), 중첩 모듈 폴더를 바깥 모듈 경로로 쓴 import(`example.com/shop/tooling/rules`, 연결 없음), `_`로 시작하는 파일과 생성 파일(`codec.pb.go`)을 건너뛴 대표 파일(`codec/wire.go`) |
-| `rust-shop/` | 13 (rs 9) | 46 | 가상 워크스페이스, 이름의 `-`가 `_`인 크레이트(`shop-core` → `shop_core`), `[lib] name`·`path`로 바꾼 라이브러리(`cli_kit`, `src/kit.rs`), 그래서 쓸 수 없는 이름(`shop_cli`), `src/`를 함께 쓰는 `kit.rs`와 `main.rs`, `crate`·`self`·`super`·`super::super`, uniform path(`use model::Item`), 묶음 안의 묶음, `{self, X as Y}`, 글롭, `pub use`를 거친 이름, `pub(crate) use ::std::io`, 이름을 바꾼 의존성(`[target.'cfg(unix)'.dependencies]`의 `core-lib = { package = "shop-core" }`, `[dependencies.kit] package = "shop-cli"`), 인라인 `mod tests { use super::*; }`(관계 없음) |
+| `go-shop/` | 22 (go 20) | 52 | 묶은 import와 묶지 않은 import, 빈 `import ()`, 별칭·`_`·`.` import, 이름이 패키지와 같은 파일이 없는 패키지(`web/api`는 `doc.go`와 `handlers.go`, `internal/ids`는 `gen.go`), `_test.go`와 `package x_test`, 폴더 이름과 모듈 경로가 다른 중첩 모듈(`tooling/go.mod`의 `example.com/shop/tools`), 표준 라이브러리와 외부 모듈, 폴더가 없는 모듈 안 경로(`legacy`), 중첩 모듈 폴더를 바깥 모듈 경로로 쓴 import(`example.com/shop/tooling/rules`, 연결 없음), `_`로 시작하는 파일과 생성 파일(`codec.pb.go`)을 건너뛴 대표 파일(`codec/wire.go`), 같은 패키지의 다른 파일 함수 호출, `_test.go`에서 본 패키지 함수, 받는 변수로 부른 메서드(`m.all()`), `.` import로 부른 함수, 표준 라이브러리 패키지 호출(`json.Marshal`), 이름이 둘인 메서드(`store.NewMemory().Put`, 연결 없음) |
+| `rust-shop/` | 14 (rs 10) | 66 | 가상 워크스페이스, 이름의 `-`가 `_`인 크레이트(`shop-core` → `shop_core`), `[lib] name`·`path`로 바꾼 라이브러리(`cli_kit`, `src/kit.rs`), 그래서 쓸 수 없는 이름(`shop_cli`), `src/`를 함께 쓰는 `kit.rs`와 `main.rs`, `crate`·`self`·`super`·`super::super`, uniform path(`use model::Item`), 묶음 안의 묶음, `{self, X as Y}`, 글롭, `pub use`를 거친 이름, `pub(crate) use ::std::io`, 이름을 바꾼 의존성(`[target.'cfg(unix)'.dependencies]`의 `core-lib = { package = "shop-core" }`, `[dependencies.kit] package = "shop-cli"`), 인라인 `mod tests { use super::*; }`(관계 없음), `Self::`·`crate::util::slug`·`shop_core::pricing::Cart::new` 경로 호출, 트레이트 메서드 호출(`store.put`), `impl Trait for Type`(`fmt::Display`는 외부), 표준 타입 메서드(`self.items.len()`, 정답 없음) |
+| `poly-shop/` | 32 | 59 | 언어마다 파일 둘이나 셋: Java(같은 `package`, import 폴더, `extends`·`implements`, 부모 메서드를 맨이름으로 호출), Kotlin(생성자를 부르는 상위 타입과 인터페이스, `object`), C#(base list, struct), Ruby(`<`, `Foo.new`, `self.m`), PHP(`$this->`, `Tax::rate`, 함수), Swift(class·struct·extension), Scala(`extends`·`with`, 개요가 멤버를 적지 않아 호출은 연결 없음), C++(base class, `.hpp`, `this` 없는 멤버 호출), C(다른 파일 함수), Python(부모 메서드 `self.describe`, `super().total`, `models.Order` 상속), TS(`extends`·`implements`, interface는 심볼이 아니라 연결 없음). 같은 이름(`Cart`, `Tax`)이 여러 언어에 있어 언어가 섞이지 않는지 본다 |
 
 - 각 저장소는 `?testDir=<절대 경로>`로 앱에서 그대로 열린다. 저장소 안에는 로더가 건너뛰는 이름(`tests`, `fixtures`, `docs`, 점으로 시작하는 이름 등, `scripts/vite-dev-fs-plugin.js`의 `SKIP_PATTERNS`)을 쓰지 않는다.
 - `<저장소>.truth.json`이 정답이고 `baseline.json`이 지금 추출기의 기록이다. 둘 다 저장소 폴더 밖에 있어서 로더가 읽지 않는다.
@@ -26,14 +27,14 @@
 - `written`은 그 줄에 보이는 글자(모듈 이름, 가져온 이름, 호출식)다. 비교에는 쓰지 않고, 줄 번호가 맞는지 테스트가 확인하는 데 쓴다.
 - `kinds`에 적은 종류는 빠짐없이 적는다. 적지 않은 종류(`references`, `inherits` 등)는 채점하지 않는다.
 
-코드 지도(`src/lib/types/codeMap.ts`)와는 이렇게 대응한다.
+코드 지도(`src/lib/types/codeMap.ts`)와는 이렇게 대응한다. `poly-shop`은 `calls`·`inherits`·`implements`만 적는다.
 
 | 종류 | 코드 지도 위치 |
 | --- | --- |
 | `imports_from` | `FileRecord.imports[].module` |
 | `imports` | `FileRecord.imports[].specifiers[].target` |
 | `re_exports` | `FileRecord.reexports[]`의 `module`과 `specifiers[].target` 둘 다 |
-| `dynamic_import`, `calls` | `FileRecord.refs[]`의 같은 `kind` |
+| `dynamic_import`, `calls`, `inherits`, `implements` | `FileRecord.refs[]`의 같은 `kind` |
 
 ## 정답을 정한 규칙
 
@@ -47,6 +48,9 @@
 8. 같은 종류·파일·줄·대상인 관계는 하나로 센다.
 9. Go import는 패키지(폴더)를 가리키지만 위치의 모듈 대상은 하나라서, 정답은 그 패키지의 대표 파일이다. 패키지 이름과 같은 파일(`store/store.go`), 없으면 경로 순서로 `doc.go`도 생성 파일(`*.pb.go`, `*_gen.go`, `zz_generated*`)도 아닌 첫 파일(`web/api/handlers.go`, `internal/ids/gen.go`, `codec/wire.go`)이다. `_test.go`와 `_`·`.`로 시작하는 파일은 패키지에 들지 않는다. Go에는 가져온 이름이 없어서 `imports_from`만 적는다. 표준 라이브러리와 외부 모듈은 `ext:경로`(`ext:net/http`)다.
 10. Rust `use`의 모듈 대상은 `{…}`나 `*` 앞의 경로가 가리키는 모듈 파일이고, 묶음이 없으면 경로의 마지막 모듈이다(`use crate::util::slug`는 `util.rs`, `use shop_core::model`은 `model.rs`). 이름 대상은 잎마다 하나다. 잎이 모듈이면 그 파일, 아니면 재수출(`pub use`)을 끝까지 따라간 선언이다(규칙 2). 외부 크레이트는 크레이트 이름(`ext:std`, `ext:std#fmt`)이다. 글롭은 이름 대상이 없다. `pub use`는 이름을 그 파일에 들여오기도 하므로 `imports_from`·`imports`로 적고 `re_exports`는 쓰지 않는다. `mod x;` 선언은 관계가 아니다.
+11. 상속(`inherits`, `implements`)의 대상은 그 머리말이 적은 타입의 선언이다. 종류는 파서 규칙을 따른다(Swift·C# 클래스의 목록은 모두 `inherits`, Kotlin은 생성자를 부르면 `inherits`, Scala `with`와 Rust `impl Trait for`는 `implements`). 내장 타입(`Exception`, `Comparable<T>`, `Clone`, `Sendable`)은 규칙 5처럼 정답이 없다. 외부 패키지에서 이름으로 가져온 타입은 `ext:`다(`ext:std#fmt::Display`).
+12. 표준 라이브러리 타입의 메서드를 저장소 값에서 부른 호출(`m.mu.Lock()`, `self.items.len()`, `t.Fatal`)은 규칙 5처럼 정답이 없다. 받는 값의 실제 타입이 정하는 대상은 그 타입의 선언이다(`store.NewMemory().Put`은 `Memory.Put`). 해석기가 받는 타입을 몰라 못 잇는 것이 정답에 그대로 남는다.
+13. 호출을 감싼 함수의 인자나 지역 변수가 이름을 가리면(`function run(next) { next() }`, Python `def build(models): models.Order()`, Go `func label(PriceOf func(Item) int)`, Rust `fn apply(total: fn(u32) -> u32)`) import나 같은 파일 선언으로 잇지 않는다. 그런 호출은 정답이 없다. 같은 이름을 가리지 않는 옆 함수의 호출은 정답이 있다(`go()`의 `next`). Go·Rust는 선언 뒤부터 가린다(`store := store.NewMemory()`의 오른쪽은 패키지다).
 
 ## 점수
 
@@ -77,9 +81,28 @@
 - 처음 세 저장소 모두 import `siteRecall`은 1이다. 파서는 최상위 import 문을 시작 줄과 함께 모두 내보낸다. `.svelte` 안의 import도 파일 기준 줄이다.
 - 놓친 `imports` 20개 중 6개는 TS 배럴을 거친 이름이다. 파서가 `export … from` 문을 내보내지 않아서 해석기가 따라갈 재수출 위치가 없다. 같은 이유로 `re_exports`의 `siteRecall`은 0이다. `__init__.py`의 import를 거친 Python 이름은 연결된다.
 - 나머지 14개는 아래 파서 한계 때문이다.
-- `calls`·`dynamic_import`의 `siteRecall`은 1이다. 파서가 위치를 모두 읽지만 대상은 아직 `pending`이라 recall은 0이다.
+- `calls`·`dynamic_import`의 `siteRecall`은 1이다. 2026-11-12에는 대상이 `pending`이라 recall이 0이었다.
 
 T1-5와 T1-6이 넘어야 할 파서 한계도 있다. 파서는 interface, type 별칭, 함수가 아닌 `const`(`cart`), Python 모듈 변수(`ROUND`)를 심볼로 내보내지 않는다. 이런 이름을 가리키는 정답(`types.ts#Entity`, `shared/config.ts#AppConfig`, `cart.svelte.ts#cart`, `pricing.py#ROUND` 등)은 파서가 그 심볼을 만들기 전에는 연결할 수 없다.
+
+2026-11-14 기록 (참조 해석 `refResolver.ts` 이후). 호출과 상속 precision / recall이다. precision은 모두 1이다.
+
+| 저장소 | `calls` | `inherits` | `implements` |
+| --- | --- | --- | --- |
+| ts-monorepo | 1 / 0.73 (19/26) | 해당 없음 | 해당 없음 |
+| svelte-app | 1 / 0.75 (9/12) | 해당 없음 | 해당 없음 |
+| py-shop | 1 / 1 (14/14) | 해당 없음 | 해당 없음 |
+| go-shop | 1 / 1 (24/24) | 해당 없음 | 해당 없음 |
+| rust-shop | 1 / 1 (13/13) | 정답 없음 | 1 / 1 (3/3) |
+| poly-shop | 1 / 0.95 (35/37) | 1 / 1 (15/15) | 1 / 0.86 (6/7) |
+
+- 리뷰 수정(같은 날)에서 가린 이름(규칙 13), Rust `self::total`, Java의 둘째 소스 루트(`java/integration`, 다른 패키지에 같은 이름 `Pricing`이 있어 이름만으로는 못 고른다)를 더했다. 가린 이름 네 곳은 지역 이름을 끄면 모두 오탐이 된다(`handlers.go:22`, `pricing.rs:49`, `run.ts:4`, `use.py:5`). 같은 이름 중첩 클래스는 개요가 중첩 클래스를 적지 않아 픽스처로 만들 수 없고 `refResolver.test.ts`가 본다.
+
+- ts-monorepo·svelte-app에서 놓친 호출 10개 중 6개는 배럴을 거친 이름이다(위 파서 한계). `@acme/core`·`api/index.ts`·`$lib` 배럴로 가져온 `Logger` 둘, `createId`, `formatDate`, `fetchUser`, `formatPrice`.
+- 3개는 표준 타입의 메서드 이름이라 이름만으로 잇지 않은 것이다(`store.set`, `cart.add`, `cart.clear`). 대신 `this.values.set`을 `Store.set`에 잇는 함정도 피한다.
+- `mod.register`는 `import()` 결과를 담은 변수라 대상 모듈을 모른다. poly-shop의 2개는 Scala 개요가 클래스·object 멤버를 적지 않아서이고, 놓친 `implements`는 TS interface다.
+- 이 정답도 해석 규칙을 정한 뒤 손으로 적었으므로 precision 1은 규칙대로 구현했다는 뜻이다. 실제 저장소의 정확도는 `docs/ARCH.md`의 "참조 해석 실측"(표본 대조, Graphify 비교)에 있다.
+- 언어별 수는 `SHOW_LANGUAGE_SCORES=1`, 놓친 관계와 오탐은 `SHOW_GRAPH_SCORES=1`을 붙여 같은 테스트를 돌리면 나온다.
 
 추출기를 고쳐 점수가 오르면 기준선을 다시 기록하고 같은 PR에 넣는다. 참조 대상을 잇는 PR은 `calls`·`dynamic_import`의 recall과 precision을 새로 기록해야 한다. CI에서 `UPDATE_GRAPH_BASELINE`을 켜면 테스트가 실패한다.
 

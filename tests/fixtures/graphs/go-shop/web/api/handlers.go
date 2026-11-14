@@ -13,3 +13,11 @@ func Routes(s store.Store) http.Handler {
 	_ = rules.Check(Item{ID: ids.Next()})
 	return http.NewServeMux()
 }
+
+func price(item Item) int {
+	return PriceOf(item)
+}
+
+func label(PriceOf func(Item) int, item Item) int {
+	return PriceOf(item)
+}
