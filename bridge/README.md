@@ -126,3 +126,7 @@ node bridge/scripts/smoke.mjs bridge/dist/server.mjs tests/fixtures/graphs/ts-mo
 ## Compatibility
 
 Bridge 0.4.0 writes and serves schema 1.2, which adds `fileLevel` to a level. A viewer that reads 1.1 drops the field and shows a file level as a level whose names are still coming, with the files and their imports drawn as usual. Merging to the Ropeman repository deploys ropeman.dev before a bridge release goes out, and `serve --local` hosts the viewer of its own build, so this shows only in a ropeman.dev tab opened before the deploy. Reloading the tab fixes it.
+
+## Changelog
+
+Changes in each release are in [CHANGELOG.md](CHANGELOG.md). How a release is cut is in [RELEASING.md](https://github.com/yoonsooc/ropeman/blob/main/RELEASING.md).
