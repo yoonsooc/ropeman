@@ -1,4 +1,10 @@
-import { browserLanguages, detectLocale, parseLocale, type Locale } from '$lib/utils/locale';
+import {
+	LANGUAGE_COOKIE,
+	browserLanguages,
+	detectLocale,
+	parseLocale,
+	type Locale
+} from '$lib/utils/locale';
 
 export type AIProviderId = 'google' | 'anthropic' | 'openai';
 
@@ -10,6 +16,14 @@ function loadStoredSettings() {
 	} catch {
 		return {};
 	}
+}
+
+/** Mirrors the saved language into a cookie for the edge, which picks the language `/` serves */
+function writeLanguageCookie(language: Locale | null) {
+	if (typeof document === 'undefined') return;
+	document.cookie = language
+		? `${LANGUAGE_COOKIE}=${language}; Path=/; Max-Age=31536000; SameSite=Lax`
+		: `${LANGUAGE_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
 function createSettingsStore() {
@@ -26,6 +40,9 @@ function createSettingsStore() {
 	let cacheEnabled = $state<boolean>(initial.cacheEnabled ?? true);
 	// null means the user never picked a language, so the browser's preference applies
 	let language = $state<Locale | null>(parseLocale(initial.language));
+	// A language the page's URL names (/ko, /en). It beats the saved choice while that page is open
+	// and is never saved, so following a /ko link leaves the visitor's setting alone.
+	let urlLanguage = $state<Locale | null>(null);
 	let syntaxTheme = $state<string>(initial.syntaxTheme ?? 'tomorrow');
 	let skipDrilldownConfirm = $state<boolean>(initial.skipDrilldownConfirm ?? false);
 	let showSymbols = $state<boolean>(initial.showSymbols ?? false);
@@ -62,6 +79,8 @@ function createSettingsStore() {
 
 	// The removed Local Bridge track kept serve's token here, where any script on the origin reads it
 	if ('bridgeToken' in initial || 'bridgeCli' in initial) persist();
+	// A choice saved before the cookie existed, or a cookie left after the setting was cleared
+	writeLanguageCookie(language);
 
 	return {
 		get geminiApiKey() {
@@ -129,11 +148,17 @@ function createSettingsStore() {
 		},
 
 		get language(): Locale {
-			return language ?? browserLocale;
+			return urlLanguage ?? language ?? browserLocale;
 		},
+		/** Saves an explicit choice. It also ends a language the URL named, so the choice shows at once. */
 		set language(v: Locale) {
 			language = v;
+			urlLanguage = null;
 			persist();
+			writeLanguageCookie(v);
+		},
+		set urlLanguage(v: Locale | null) {
+			urlLanguage = v;
 		},
 
 		get syntaxTheme() {
@@ -216,6 +241,7 @@ function createSettingsStore() {
 			skeletonUnlimited = false;
 			cacheEnabled = true;
 			language = null;
+			urlLanguage = null;
 			syntaxTheme = 'tomorrow';
 			skipDrilldownConfirm = false;
 			showSymbols = false;
@@ -226,6 +252,7 @@ function createSettingsStore() {
 			if (typeof window !== 'undefined') {
 				localStorage.removeItem('ropeman-settings');
 			}
+			writeLanguageCookie(null);
 		}
 	};
 }

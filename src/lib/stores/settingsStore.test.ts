@@ -259,8 +259,12 @@ describe('settingsStore', () => {
 		const STORAGE_KEY = 'ropeman-settings';
 		let storage: Map<string, string>;
 
+		let doc: { cookie: string };
+
 		function stubBrowser(nav: { languages?: string[]; language?: string } | undefined) {
 			vi.stubGlobal('window', {});
+			doc = { cookie: '' };
+			vi.stubGlobal('document', doc);
 			vi.stubGlobal('navigator', nav);
 			vi.stubGlobal('localStorage', {
 				getItem: (key: string) => storage.get(key) ?? null,
@@ -304,6 +308,96 @@ describe('settingsStore', () => {
 			expect(saved).not.toHaveProperty('bridgeCli');
 			expect(saved.geminiApiKey).toBe('kept');
 			expect(store.geminiApiKey).toBe('kept');
+		});
+
+		it('shows the language the URL names over the saved one, without saving it', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			storage.set(STORAGE_KEY, JSON.stringify({ language: 'en' }));
+			const store = await loadStore();
+
+			// Act
+			store.urlLanguage = 'ko';
+
+			// Assert
+			expect(store.language).toBe('ko');
+			expect(JSON.parse(storage.get(STORAGE_KEY) ?? '{}').language).toBe('en');
+		});
+
+		it('falls back to the saved language, then the browser, once the URL names none', async () => {
+			// Arrange
+			stubBrowser({ languages: ['ko-KR'], language: 'ko-KR' });
+			const store = await loadStore();
+			store.urlLanguage = 'en';
+
+			// Act
+			store.urlLanguage = null;
+
+			// Assert
+			expect(store.language).toBe('ko');
+		});
+
+		it('switches at once when the visitor picks a language on a page whose URL names one', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			const store = await loadStore();
+			store.urlLanguage = 'ko';
+
+			// Act
+			store.language = 'en';
+
+			// Assert
+			expect(store.language).toBe('en');
+			expect(JSON.parse(storage.get(STORAGE_KEY) ?? '{}').language).toBe('en');
+		});
+
+		it('writes the chosen language to the cookie the edge reads for `/`', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			const store = await loadStore();
+
+			// Act
+			store.language = 'ko';
+
+			// Assert
+			expect(doc.cookie).toMatch(/^ropeman-lang=ko; Path=\/; Max-Age=31536000/);
+		});
+
+		it('writes the cookie for a language saved before the cookie existed', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			storage.set(STORAGE_KEY, JSON.stringify({ language: 'ko' }));
+
+			// Act
+			await loadStore();
+
+			// Assert
+			expect(doc.cookie).toMatch(/^ropeman-lang=ko;/);
+		});
+
+		it('never writes a language the URL named to the cookie', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			const store = await loadStore();
+
+			// Act
+			store.urlLanguage = 'ko';
+
+			// Assert
+			expect(doc.cookie).toMatch(/^ropeman-lang=; Path=\/; Max-Age=0/);
+		});
+
+		it('deletes the cookie when the settings are cleared', async () => {
+			// Arrange
+			stubBrowser({ languages: ['en-US'], language: 'en-US' });
+			const store = await loadStore();
+			store.language = 'ko';
+
+			// Act
+			store.clearAll();
+
+			// Assert
+			expect(doc.cookie).toMatch(/^ropeman-lang=; Path=\/; Max-Age=0/);
 		});
 
 		it('starts in Korean when the browser prefers ko-KR', async () => {
