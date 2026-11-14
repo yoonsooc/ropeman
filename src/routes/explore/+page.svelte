@@ -3,9 +3,19 @@
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { filterEntries, listLanguages } from '$lib/services/exploreService';
-	import type { PageProps } from './$types';
+	import type { PageProps, Snapshot } from './$types';
 
 	let { data }: PageProps = $props();
+
+	let pageEl = $state<HTMLDivElement>();
+
+	// The page scrolls inside its own box, which SvelteKit's scroll restoration does not see
+	export const snapshot: Snapshot<number> = {
+		capture: () => pageEl?.scrollTop ?? 0,
+		restore: (top) => {
+			if (pageEl) pageEl.scrollTop = top;
+		}
+	};
 
 	let query = $state('');
 	let language = $state('all');
@@ -30,7 +40,15 @@
 	<link rel="canonical" href="https://ropeman.dev/explore" />
 </svelte:head>
 
-<div class="explore-page" data-theme={themeStore.current}>
+<!-- Focused on arrival so arrow keys, Page Down and Space scroll the gallery -->
+<!-- svelte-ignore a11y_autofocus -->
+<div
+	class="explore-page"
+	data-theme={themeStore.current}
+	bind:this={pageEl}
+	tabindex="-1"
+	autofocus
+>
 	<header class="explore-header">
 		<a href={resolve('/')} class="explore-logo">Ropeman</a>
 		<nav class="explore-nav">
@@ -128,8 +146,13 @@
 </div>
 
 <style>
+	/* Global CSS pins html and body with overflow hidden for the app canvas, so the
+	   gallery scrolls inside its own box (the sticky header sticks to it) */
 	.explore-page {
-		min-height: 100vh;
+		height: 100vh;
+		height: 100dvh;
+		overflow-y: auto;
+		outline: none;
 		background: var(--color-background-body);
 		color: var(--color-text-primary);
 		display: flex;

@@ -434,6 +434,12 @@ interface TranslationSet {
 		| 'analyzeFromHome'
 		| 'viewOnGithub'
 		| 'backToGallery'
+		| 'fileNoCommit'
+		| 'fileInvalidPath'
+		| 'fileNotFound'
+		| 'fileTooLarge'
+		| 'fileBinary'
+		| 'fileRateLimited'
 	>;
 	shareView: Strings<
 		| 'badge'
@@ -1197,7 +1203,14 @@ const translations: Record<Locale, TranslationSet> = {
 				'{title}의 스냅샷은 아직 없습니다. 지금 분석하려면 홈에서 GitHub URL을 붙여 넣으세요.',
 			analyzeFromHome: '홈에서 분석하기',
 			viewOnGithub: 'GitHub에서 보기',
-			backToGallery: '갤러리로'
+			backToGallery: '갤러리로',
+			fileNoCommit: '이 스냅샷은 분석한 커밋을 기록하지 않아 파일을 열 수 없습니다.',
+			fileInvalidPath: '파일 경로가 올바르지 않아 열 수 없습니다.',
+			fileNotFound: '분석한 커밋의 저장소에 이 파일이 없습니다.',
+			fileTooLarge: '500KB가 넘는 파일입니다. GitHub에서 열어 보세요.',
+			fileBinary: '바이너리 파일이라 여기서 보여 줄 수 없습니다. GitHub에서 열어 보세요.',
+			fileRateLimited:
+				'GitHub가 지금 요청을 제한하고 있습니다. 잠시 후 다시 시도하거나 GitHub에서 열어 보세요.'
 		},
 		shareView: {
 			badge: '공유됨',
@@ -1993,7 +2006,15 @@ const translations: Record<Locale, TranslationSet> = {
 				'There is no snapshot for {title} yet. To analyze it now, paste its GitHub URL on the home page.',
 			analyzeFromHome: 'Analyze from home',
 			viewOnGithub: 'View on GitHub',
-			backToGallery: 'Back to Explore'
+			backToGallery: 'Back to Explore',
+			fileNoCommit:
+				'This snapshot does not record the commit it was analyzed at, so its files cannot be opened.',
+			fileInvalidPath: 'This file path is not valid, so it cannot be opened.',
+			fileNotFound: 'This file is not in the repository at the analyzed commit.',
+			fileTooLarge: 'This file is larger than 500 KB. Open it on GitHub to read it.',
+			fileBinary: 'This is a binary file, so it cannot be shown here. Open it on GitHub.',
+			fileRateLimited:
+				'GitHub is limiting requests right now. Try again in a minute, or open the file on GitHub.'
 		},
 		shareView: {
 			badge: 'Shared',

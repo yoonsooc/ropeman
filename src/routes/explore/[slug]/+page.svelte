@@ -5,10 +5,22 @@
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
+	import { tabStore } from '$lib/stores/tabStore.svelte';
 	import ZUICanvas from '$lib/components/ZUICanvas.svelte';
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
-	import { fetchExploreSnapshot } from '$lib/services/exploreService';
+	import TabBar from '$lib/components/TabBar.svelte';
+	import CodeViewer from '$lib/components/CodeViewer.svelte';
+	import {
+		exploreFileUrl,
+		exploreRepoPaths,
+		exploreSource,
+		fetchExploreFile,
+		fetchExploreSnapshot,
+		type ExploreFileFailure,
+		type ExploreSource
+	} from '$lib/services/exploreService';
+	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -16,10 +28,53 @@
 	let loading = $state(true);
 	let status = $state<'ok' | 'not-analyzed' | 'error'>('ok');
 	let errorMessage = $state('');
+	let source = $state<ExploreSource | null>(null);
 
-	const hasSemanticSelection = $derived(
-		semanticStore.selectedSemanticNode !== null && !semanticStore.panelDismissed
+	const breakpoint = useBreakpoint();
+	const openFile = $derived(
+		tabStore.activeTab?.type === 'code' ? (tabStore.activeTab.filePath ?? null) : null
 	);
+	// On phones the detail is a bottom sheet that would cover the open file
+	const hasSemanticSelection = $derived(
+		semanticStore.selectedSemanticNode !== null &&
+			!semanticStore.panelDismissed &&
+			!(openFile && !breakpoint.isDesktop)
+	);
+
+	// A legacy path can resolve to either of two repository paths; the link follows the one that loaded
+	let resolvedPaths = $state<Record<string, string>>({});
+	const fileOnGitHub = $derived.by(() => {
+		if (!source || !openFile) return null;
+		const repoPath = resolvedPaths[openFile] ?? exploreRepoPaths(source, openFile)[0];
+		return repoPath ? exploreFileUrl(source, repoPath, 'blob') : null;
+	});
+
+	function failureMessage(failure: ExploreFileFailure): string {
+		switch (failure.reason) {
+			case 'invalid-path':
+				return i18nStore.t('explore.fileInvalidPath');
+			case 'not-found':
+				return i18nStore.t('explore.fileNotFound');
+			case 'too-large':
+				return i18nStore.t('explore.fileTooLarge');
+			case 'binary':
+				return i18nStore.t('explore.fileBinary');
+			case 'rate-limited':
+				return i18nStore.t('explore.fileRateLimited');
+			case 'unavailable':
+				return failure.status
+					? i18nStore.t('codeViewer.loadFailed', { error: `HTTP ${failure.status}` })
+					: i18nStore.t('codeViewer.notAccessible');
+		}
+	}
+
+	async function readSnapshotFile(path: string) {
+		if (!source) return { ok: false as const, message: i18nStore.t('explore.fileNoCommit') };
+		const got = await fetchExploreFile(source, path);
+		if (!got.ok) return { ok: false as const, message: failureMessage(got) };
+		resolvedPaths[path] = got.repoPath;
+		return { ok: true as const, content: got.content };
+	}
 
 	const ldJson = $derived(
 		JSON.stringify({
@@ -54,6 +109,7 @@
 
 		const snapshot = result.snapshot;
 		projectStore.projectName = snapshot.projectName;
+		source = exploreSource(data.entry, snapshot);
 
 		const cacheEntries = Object.entries(snapshot.semanticLevels);
 		for (const [key, level] of cacheEntries) {
@@ -66,6 +122,9 @@
 		if (root) {
 			semanticStore.currentLevel = root;
 		}
+		// The diagram is a tab, so a file opened from the detail panel has a tab to return to
+		tabStore.clear();
+		tabStore.openDiagramTab([], 'Project');
 
 		loading = false;
 	});
@@ -160,11 +219,41 @@
 				</a>
 			</div>
 		{:else}
-			<div class="canvas-breadcrumb">
-				<Breadcrumb />
-			</div>
 			<div class="canvas-area">
-				<ZUICanvas />
+				<TabBar
+					tabs={tabStore.tabs}
+					activeTabId={tabStore.activeTabId}
+					onactivate={(id) => tabStore.activateTab(id)}
+					onclose={(id) => tabStore.closeTab(id)}
+				/>
+				<div class="canvas-content">
+					<!-- Stays mounted under an open file so zoom, pan and drill-down survive -->
+					<div class="diagram-view" class:covered={openFile !== null}>
+						<div class="canvas-breadcrumb">
+							<Breadcrumb />
+						</div>
+						<ZUICanvas />
+					</div>
+					{#if openFile}
+						<div class="file-view">
+							{#if fileOnGitHub}
+								<div class="source-bar">
+									<a
+										href={fileOnGitHub}
+										target="_blank"
+										rel="external noopener noreferrer"
+										class="source-link"
+									>
+										{i18nStore.t('explore.viewOnGithub')} ↗
+									</a>
+								</div>
+							{/if}
+							<div class="file-body">
+								<CodeViewer filePath={openFile} read={readSnapshotFile} />
+							</div>
+						</div>
+					{/if}
+				</div>
 			</div>
 			{#if hasSemanticSelection}
 				<aside class="detail-panel">
@@ -305,14 +394,57 @@
 	.canvas-area {
 		--canvas-toolbar-top: 56px;
 		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.canvas-content {
+		flex: 1;
 		min-height: 0;
 		position: relative;
 	}
 
-	/* Sits above the floating breadcrumb so the node title stays visible */
+	.diagram-view {
+		position: absolute;
+		inset: 0;
+	}
+
+	/* Hidden rather than display: none, so the canvas keeps its size and viewport */
+	.diagram-view.covered {
+		visibility: hidden;
+	}
+
+	.file-view {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		background: var(--color-background-body);
+	}
+
+	.source-bar {
+		display: flex;
+		justify-content: flex-end;
+		padding: var(--spacing-1-5) var(--spacing-4);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.source-link {
+		font-size: var(--font-size-sm);
+		color: var(--color-text-secondary);
+		text-decoration: none;
+	}
+	.source-link:hover {
+		color: var(--color-text-primary);
+	}
+
+	.file-body {
+		flex: 1;
+		min-height: 0;
+	}
+
 	.detail-panel {
-		position: relative;
-		z-index: 11;
 		width: 320px;
 		border-left: 1px solid var(--color-border);
 		overflow-y: auto;
