@@ -7,8 +7,8 @@
 | `ts-monorepo/` | 24 (TS 19) | 79 | 워크스페이스 패키지(`@acme/core`), tsconfig `paths`(`@shared/*`, 앱 tsconfig가 base의 paths를 덮어씀), `$lib` 별칭, 배럴 `index.ts`, `export *`, `export { default as … }`, `export type`, default·namespace·type-only import, side-effect import, 동적 `import()`, 순환 import(`store.ts` ↔ `events.ts`), 배럴을 거친 호출, `new` 생성자 호출, 클래스 인스턴스 메서드 호출, 설치되지 않은 외부 패키지(`lodash-es`), `plugins.ts`와 `plugins/index.ts`가 함께 있는 경로 |
 | `svelte-app/` | 16 (코드 14) | 51 | `.svelte` 컴포넌트가 TS 모듈을 import, 설정 없는 SvelteKit `$lib`, `$lib` 루트 배럴, `cart.svelte` → `cart.svelte.ts`, 컴포넌트 default import, 룬 |
 | `py-shop/` | 10 (py 9) | 39 | 상대 import(`.`, `..`), 패키지 `__init__.py`를 거친 import, 자기 패키지 절대 import(`from shop import …`), 클래스 호출, `self.repo.save` 같은 속성 메서드 호출, 표준 라이브러리(`json`) |
-| `go-shop/` | 15 (go 13) | 24 | 묶은 import와 묶지 않은 import, 별칭·`_`·`.` import, 이름이 패키지와 같은 파일이 없는 패키지(`web/api`는 `doc.go`와 `handlers.go`, `internal/ids`는 `gen.go`), `_test.go`와 `package x_test`, 폴더 이름과 모듈 경로가 다른 중첩 모듈(`tooling/go.mod`의 `example.com/shop/tools`), 표준 라이브러리와 외부 모듈, 폴더가 없는 모듈 안 경로(`legacy`) |
-| `rust-shop/` | 13 (rs 9) | 42 | 가상 워크스페이스, 이름의 `-`가 `_`인 크레이트(`shop-core` → `shop_core`), `[lib] name`·`path`로 바꾼 라이브러리(`cli_kit`, `src/kit.rs`), 그래서 쓸 수 없는 이름(`shop_cli`), `src/`를 함께 쓰는 `kit.rs`와 `main.rs`, `crate`·`self`·`super`·`super::super`, uniform path(`use model::Item`), 묶음 안의 묶음, `{self, X as Y}`, 글롭, `pub use`를 거친 이름, `pub(crate) use ::std::io` |
+| `go-shop/` | 19 (go 17) | 26 | 묶은 import와 묶지 않은 import, 빈 `import ()`, 별칭·`_`·`.` import, 이름이 패키지와 같은 파일이 없는 패키지(`web/api`는 `doc.go`와 `handlers.go`, `internal/ids`는 `gen.go`), `_test.go`와 `package x_test`, 폴더 이름과 모듈 경로가 다른 중첩 모듈(`tooling/go.mod`의 `example.com/shop/tools`), 표준 라이브러리와 외부 모듈, 폴더가 없는 모듈 안 경로(`legacy`), 중첩 모듈 폴더를 바깥 모듈 경로로 쓴 import(`example.com/shop/tooling/rules`, 연결 없음), `_`로 시작하는 파일과 생성 파일(`codec.pb.go`)을 건너뛴 대표 파일(`codec/wire.go`) |
+| `rust-shop/` | 13 (rs 9) | 46 | 가상 워크스페이스, 이름의 `-`가 `_`인 크레이트(`shop-core` → `shop_core`), `[lib] name`·`path`로 바꾼 라이브러리(`cli_kit`, `src/kit.rs`), 그래서 쓸 수 없는 이름(`shop_cli`), `src/`를 함께 쓰는 `kit.rs`와 `main.rs`, `crate`·`self`·`super`·`super::super`, uniform path(`use model::Item`), 묶음 안의 묶음, `{self, X as Y}`, 글롭, `pub use`를 거친 이름, `pub(crate) use ::std::io`, 이름을 바꾼 의존성(`[target.'cfg(unix)'.dependencies]`의 `core-lib = { package = "shop-core" }`, `[dependencies.kit] package = "shop-cli"`), 인라인 `mod tests { use super::*; }`(관계 없음) |
 
 - 각 저장소는 `?testDir=<절대 경로>`로 앱에서 그대로 열린다. 저장소 안에는 로더가 건너뛰는 이름(`tests`, `fixtures`, `docs`, 점으로 시작하는 이름 등, `scripts/vite-dev-fs-plugin.js`의 `SKIP_PATTERNS`)을 쓰지 않는다.
 - `<저장소>.truth.json`이 정답이고 `baseline.json`이 지금 추출기의 기록이다. 둘 다 저장소 폴더 밖에 있어서 로더가 읽지 않는다.
@@ -45,7 +45,7 @@
 6. `.svelte` 마크업 안의 식(`{priceOf(i)}`, `{@render children()}`)은 범위 밖이다. 파서는 `<script>`만 읽는다.
 7. `.svelte` 컴포넌트의 default import(`import Button from './Button.svelte'`)는 파일 관계(`imports_from`, `re_exports`)만 적는다. 컴포넌트는 심볼이 아니라서 코드 지도에 가리킬 대상이 없다.
 8. 같은 종류·파일·줄·대상인 관계는 하나로 센다.
-9. Go import는 패키지(폴더)를 가리키지만 위치의 모듈 대상은 하나라서, 정답은 그 패키지의 대표 파일이다. 패키지 이름과 같은 파일(`store/store.go`), 없으면 경로 순서로 `doc.go`가 아닌 첫 파일(`web/api/handlers.go`, `internal/ids/gen.go`)이다. `_test.go`는 대표가 아니다. Go에는 가져온 이름이 없어서 `imports_from`만 적는다. 표준 라이브러리와 외부 모듈은 `ext:경로`(`ext:net/http`)다.
+9. Go import는 패키지(폴더)를 가리키지만 위치의 모듈 대상은 하나라서, 정답은 그 패키지의 대표 파일이다. 패키지 이름과 같은 파일(`store/store.go`), 없으면 경로 순서로 `doc.go`도 생성 파일(`*.pb.go`, `*_gen.go`, `zz_generated*`)도 아닌 첫 파일(`web/api/handlers.go`, `internal/ids/gen.go`, `codec/wire.go`)이다. `_test.go`와 `_`·`.`로 시작하는 파일은 패키지에 들지 않는다. Go에는 가져온 이름이 없어서 `imports_from`만 적는다. 표준 라이브러리와 외부 모듈은 `ext:경로`(`ext:net/http`)다.
 10. Rust `use`의 모듈 대상은 `{…}`나 `*` 앞의 경로가 가리키는 모듈 파일이고, 묶음이 없으면 경로의 마지막 모듈이다(`use crate::util::slug`는 `util.rs`, `use shop_core::model`은 `model.rs`). 이름 대상은 잎마다 하나다. 잎이 모듈이면 그 파일, 아니면 재수출(`pub use`)을 끝까지 따라간 선언이다(규칙 2). 외부 크레이트는 크레이트 이름(`ext:std`, `ext:std#fmt`)이다. 글롭은 이름 대상이 없다. `pub use`는 이름을 그 파일에 들여오기도 하므로 `imports_from`·`imports`로 적고 `re_exports`는 쓰지 않는다. `mod x;` 선언은 관계가 아니다.
 
 ## 점수
@@ -73,7 +73,7 @@
 | go-shop | 1 / 1 | 해당 없음 |
 | rust-shop | 1 / 1 | 1 / 1 |
 
-- `go-shop`·`rust-shop` 줄은 2026-11-14에 Go·Rust import 해석과 함께 기록했다. 두 정답은 해석 규칙(규칙 9, 10)을 정한 뒤 손으로 적었으므로, 이 1은 규칙대로 구현했다는 뜻이다. 실제 저장소에서 규칙이 맞는지는 PR에 적은 Graphify 비교로 따로 봤다.
+- `go-shop`·`rust-shop` 줄은 2026-11-14에 Go·Rust import 해석과 함께 기록했다. 2026-11-14 리뷰 수정에서 정답 6개를 더했고 점수는 그대로 1이다. 두 정답은 해석 규칙(규칙 9, 10)을 정한 뒤 손으로 적었으므로, 이 1은 규칙대로 구현했다는 뜻이다. 실제 저장소에서 규칙이 맞는지는 PR에 적은 Graphify 비교로 따로 봤다.
 - 처음 세 저장소 모두 import `siteRecall`은 1이다. 파서는 최상위 import 문을 시작 줄과 함께 모두 내보낸다. `.svelte` 안의 import도 파일 기준 줄이다.
 - 놓친 `imports` 20개 중 6개는 TS 배럴을 거친 이름이다. 파서가 `export … from` 문을 내보내지 않아서 해석기가 따라갈 재수출 위치가 없다. 같은 이유로 `re_exports`의 `siteRecall`은 0이다. `__init__.py`의 import를 거친 Python 이름은 연결된다.
 - 나머지 14개는 아래 파서 한계 때문이다.

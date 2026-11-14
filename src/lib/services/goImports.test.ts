@@ -28,6 +28,21 @@ describe('readGoModules', () => {
 	});
 });
 
+describe('readGoModules duplicates', () => {
+	it('skips go.mod copies under testdata and vendor, and keeps the shallowest of one module path', () => {
+		// Arrange
+		const texts = new Map([
+			['a/b/go.mod', 'module example.com/x'],
+			['a/go.mod', 'module example.com/x'],
+			['a/testdata/mod/go.mod', 'module example.com/fixture'],
+			['a/vendor/example.com/y/go.mod', 'module example.com/y']
+		]);
+
+		// Act & Assert
+		expect(readGoModules(texts)).toEqual([{ path: 'example.com/x', dir: 'a' }]);
+	});
+});
+
 describe('readGoImport', () => {
 	it('reads the path of a single import and of each spec form in a group', () => {
 		// Act
@@ -72,12 +87,18 @@ describe('resolveGoImport', () => {
 		'app/web/api/handlers.go',
 		'app/only/only_test.go',
 		'app/codec/v2/codec.go',
-		'app/tooling/rules/rules.go'
+		'app/tooling/rules/rules.go',
+		'app/gen/_draft.go',
+		'app/gen/api.pb.go',
+		'app/gen/zz_generated.deepcopy.go',
+		'app/gen/types.go',
+		'app/plugin/sub/sub.go'
 	];
 	const modules = readGoModules(
 		new Map([
 			['app/go.mod', 'module example.com/shop'],
-			['app/tooling/go.mod', 'module example.com/shop/tools']
+			['app/tooling/go.mod', 'module example.com/shop/tools'],
+			['app/plugin/go.mod', 'module other.org/plugin']
 		])
 	);
 	const packages = goPackages(files);
@@ -99,11 +120,20 @@ describe('resolveGoImport', () => {
 		expect(resolve('example.com/shop')).toMatchObject({ paths: ['app/main.go'] });
 	});
 
-	it('lets a nested module own the paths under it', () => {
+	it('lets a nested module own the paths under it, whatever its module path', () => {
 		// Act & Assert
 		expect(resolve('example.com/shop/tools/rules')).toMatchObject({
 			paths: ['app/tooling/rules/rules.go']
 		});
+		expect(resolve('example.com/shop/tooling/rules')).toMatchObject({ status: 'unresolved' });
+		expect(resolve('example.com/shop/plugin/sub')).toMatchObject({ status: 'unresolved' });
+		expect(resolve('other.org/plugin/sub')).toMatchObject({ paths: ['app/plugin/sub/sub.go'] });
+	});
+
+	it('passes over files the go tool ignores and generated files when it picks a file', () => {
+		// Act & Assert
+		expect(resolve('example.com/shop/gen')).toMatchObject({ paths: ['app/gen/types.go'] });
+		expect(packages.get('app/gen')).not.toContain('app/gen/_draft.go');
 	});
 
 	it('calls the standard library and other modules external, and a folder with no package a miss', () => {

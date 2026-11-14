@@ -297,6 +297,34 @@
 			"line": 3,
 			"written": "Args",
 			"to": "ext:shop_cli#Args"
+		},
+		{
+			"kind": "imports_from",
+			"from": "app/src/main.rs",
+			"line": 4,
+			"written": "core_lib",
+			"to": "crates/shop-core/src/store/mod.rs"
+		},
+		{
+			"kind": "imports",
+			"from": "app/src/main.rs",
+			"line": 4,
+			"written": "Store",
+			"to": "crates/shop-core/src/store/mod.rs#Store"
+		},
+		{
+			"kind": "imports_from",
+			"from": "app/src/main.rs",
+			"line": 5,
+			"written": "kit",
+			"to": "crates/shop-cli/src/kit.rs"
+		},
+		{
+			"kind": "imports",
+			"from": "app/src/main.rs",
+			"line": 5,
+			"written": "banner",
+			"to": "crates/shop-cli/src/kit.rs#banner"
 		}
 	]
 }

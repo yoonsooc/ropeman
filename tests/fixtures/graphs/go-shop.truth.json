@@ -170,6 +170,20 @@
 			"line": 5,
 			"written": "example.com/shop/tools/rules",
 			"to": "tooling/rules/rules.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "codec/wire.go",
+			"line": 3,
+			"written": "encoding/json",
+			"to": "ext:encoding/json"
+		},
+		{
+			"kind": "imports_from",
+			"from": "cmd/check/check.go",
+			"line": 6,
+			"written": "example.com/shop/codec",
+			"to": "codec/wire.go"
 		}
 	]
 }

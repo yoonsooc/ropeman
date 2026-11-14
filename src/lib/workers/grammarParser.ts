@@ -188,9 +188,10 @@ function extractGoSymbols(rootNode: any): ASTSymbol[] {
 		} else if (child.type === 'import_declaration') {
 			// A grouped `import ( … )` holds one import per spec, and a site names one package
 			const list = child.children.find((c: any) => c.type === 'import_spec_list');
-			const specs = list ? list.children.filter((c: any) => c.type === 'import_spec') : [];
-			if (specs.length === 0) symbols.push(buildImportSymbol(child));
-			for (const spec of specs) symbols.push(buildImportSymbol(spec));
+			if (!list) symbols.push(buildImportSymbol(child));
+			else
+				for (const spec of list.children.filter((c: any) => c.type === 'import_spec'))
+					symbols.push(buildImportSymbol(spec));
 		} else if (child.type === 'function_declaration') {
 			symbols.push(buildFunctionSymbol(child, 'function', 'go'));
 		} else if (child.type === 'method_declaration') {

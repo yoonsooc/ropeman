@@ -41,17 +41,73 @@ describe('readCargoPackages', () => {
 		expect(packages).toEqual([
 			{
 				dir: 'ws/crates/shop-core',
+				name: 'shop-core',
 				libName: 'shop_core',
 				libPath: 'ws/crates/shop-core/src/lib.rs',
-				roots: []
+				roots: [],
+				renames: new Map(),
+				edition2015: true
 			},
 			{
 				dir: 'ws/crates/shop-cli',
+				name: 'shop-cli',
 				libName: 'cli_kit',
 				libPath: 'ws/crates/shop-cli/src/kit.rs',
-				roots: ['ws/crates/shop-cli/tools/admin.rs']
+				roots: ['ws/crates/shop-cli/tools/admin.rs'],
+				renames: new Map(),
+				edition2015: true
 			}
 		]);
+	});
+
+	it('reads dependency renames from every dependency table form, and quoted table headers', () => {
+		// Arrange
+		const manifest = [
+			'[package]',
+			'name = "app"',
+			'edition.workspace = true',
+			'',
+			'[dependencies]',
+			'core-lib = { version = "1", package = "shop-core" }',
+			'plain = "1"',
+			'',
+			"[target.'cfg(unix)'.dependencies]",
+			'unix-io = { package = "io-unix" }',
+			'',
+			'[target."cfg(windows)".dev-dependencies.win]',
+			'package = "io-win"',
+			'',
+			'[build-dependencies]',
+			'gen.package = "codegen"',
+			'',
+			'[lib]',
+			'path = "src/app.rs"'
+		].join('\n');
+		const texts = new Map([
+			[
+				'ws/Cargo.toml',
+				'[workspace]\n[workspace.package]\nedition = "2021"\n[workspace.dependencies]\nlog2 = { package = "logger" }\n'
+			],
+			['ws/app/Cargo.toml', manifest],
+			['ws/vendor/dep/Cargo.toml', '[package]\nname = "dep"\n'],
+			['ws/target/debug/x/Cargo.toml', '[package]\nname = "x"\n']
+		]);
+
+		// Act
+		const packages = readCargoPackages(texts);
+
+		// Assert
+		expect(packages).toHaveLength(1);
+		expect(packages[0]).toMatchObject({ libPath: 'ws/app/src/app.rs', edition2015: false });
+		expect(packages[0].renames).toEqual(
+			new Map([
+				['log2', 'logger'],
+				['core_lib', 'shop-core'],
+				['unix_io', 'io-unix'],
+				['win', 'io-win'],
+				['gen', 'codegen']
+			])
+		);
 	});
 });
 
@@ -105,10 +161,10 @@ describe('Rust crates and module paths', () => {
 	]);
 	const packages = readCargoPackages(
 		new Map([
-			['ws/crates/shop-core/Cargo.toml', '[package]\nname = "shop-core"'],
+			['ws/crates/shop-core/Cargo.toml', '[package]\nname = "shop-core"\nedition = "2021"'],
 			[
 				'ws/crates/shop-cli/Cargo.toml',
-				'[package]\nname = "shop-cli"\n[lib]\nname = "cli_kit"\npath = "src/kit.rs"'
+				'[package]\nname = "shop-cli"\nedition = "2021"\n[lib]\nname = "cli_kit"\npath = "src/kit.rs"'
 			]
 		])
 	);
@@ -135,6 +191,55 @@ describe('Rust crates and module paths', () => {
 		);
 		expect(crates.rootOf('elsewhere/a.rs')).toBeNull();
 		expect([...crates.libs.keys()]).toEqual(['shop_core', 'cli_kit']);
+	});
+
+	it('resolves a renamed dependency to its package, and a shared library name to the shallowest package', () => {
+		// Arrange
+		const tree = new Set([
+			'ws/app/src/main.rs',
+			'ws/core/src/lib.rs',
+			'ws/examples/copy/core/src/lib.rs'
+		]);
+		const manifests = readCargoPackages(
+			new Map([
+				[
+					'ws/app/Cargo.toml',
+					'[package]\nname = "app"\nedition = "2021"\n[dependencies]\nengine = { package = "core" }'
+				],
+				['ws/core/Cargo.toml', '[package]\nname = "core"'],
+				['ws/examples/copy/core/Cargo.toml', '[package]\nname = "core"']
+			])
+		);
+		const found = rustCrates(manifests, tree, () => false);
+
+		// Act & Assert
+		expect(found.libFor('ws/app/src/main.rs', 'engine')).toBe('ws/core/src/lib.rs');
+		expect(found.libFor('ws/app/src/main.rs', 'core')).toBe('ws/core/src/lib.rs');
+		expect(found.libFor('ws/core/src/lib.rs', 'engine')).toBeNull();
+	});
+
+	it('reads a plain path from the crate root in edition 2015 and from the current module after', () => {
+		// Arrange
+		const tree = new Set([
+			'old/src/lib.rs',
+			'old/src/a.rs',
+			'old/src/b.rs',
+			'new/src/lib.rs',
+			'new/src/a.rs',
+			'new/src/b.rs'
+		]);
+		const manifests = readCargoPackages(
+			new Map([
+				['old/Cargo.toml', '[package]\nname = "old"'],
+				['new/Cargo.toml', '[package]\nname = "new"\nedition = "2018"']
+			])
+		);
+		const found = rustCrates(manifests, tree, () => false);
+		const walkFrom = (from: string) => resolveUsePath(['b', 'X'], from, found, tree, () => false);
+
+		// Act & Assert
+		expect(walkFrom('old/src/a.rs')).toMatchObject({ kind: 'local', file: 'old/src/b.rs' });
+		expect(walkFrom('new/src/a.rs')).toEqual({ kind: 'external', crate: 'b' });
 	});
 
 	it('names a file by its path from the root, a mod.rs by its folder', () => {
