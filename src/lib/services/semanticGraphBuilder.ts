@@ -1,6 +1,6 @@
 import type { SemanticLevel } from '$lib/types/semantic';
 import type { Node, Edge, MarkerType } from '@xyflow/svelte';
-import dagre from '@dagrejs/dagre';
+import { layoutLevel, type ViewportShape } from './levelLayout';
 
 const SEMANTIC_NODE_WIDTH = 256;
 const SEMANTIC_NODE_HEIGHT = 176;
@@ -13,38 +13,18 @@ const EDGE_TYPE_COLORS: Record<string, string> = {
 	uses: 'var(--color-edge-uses)'
 };
 
-export type LayoutDirection = 'LR' | 'TB';
-
 /**
- * Lay out a level with dagre. `TB` stacks ranks vertically for narrow screens,
- * where a left-to-right graph would shrink to an unreadable strip.
+ * Lay out a level for a screen of the given shape: `wide` for a laptop canvas, `tall` for a
+ * phone or a portrait tablet. Each component's edges run along the axis that fits the screen,
+ * and the node's `direction` tells the card which sides carry its handles.
  */
-export function toSemanticFlowNodes(
-	level: SemanticLevel,
-	direction: LayoutDirection = 'LR'
-): Node[] {
-	const g = new dagre.graphlib.Graph();
-	g.setGraph({
-		rankdir: direction,
-		nodesep: direction === 'LR' ? 80 : 40,
-		ranksep: direction === 'LR' ? 200 : 120,
-		marginx: 40,
-		marginy: 40
-	});
-	g.setDefaultEdgeLabel(() => ({}));
-
-	for (const node of level.nodes) {
-		g.setNode(node.id, {
-			width: SEMANTIC_NODE_WIDTH,
-			height: SEMANTIC_NODE_HEIGHT
-		});
-	}
-
-	for (const edge of level.edges) {
-		g.setEdge(edge.source, edge.target);
-	}
-
-	dagre.layout(g);
+export function toSemanticFlowNodes(level: SemanticLevel, shape: ViewportShape = 'wide'): Node[] {
+	const placements = layoutLevel(
+		level.nodes.map((n) => n.id),
+		level.edges,
+		{ width: SEMANTIC_NODE_WIDTH, height: SEMANTIC_NODE_HEIGHT },
+		shape
+	);
 
 	// Count source/target connections per node for handle distribution
 	const sourceCount = new Map<string, number>();
@@ -55,14 +35,11 @@ export function toSemanticFlowNodes(
 	}
 
 	return level.nodes.map((node) => {
-		const pos = g.node(node.id);
+		const { x, y, direction } = placements.get(node.id)!;
 		return {
 			id: node.id,
 			type: 'semanticNode',
-			position: {
-				x: pos.x - SEMANTIC_NODE_WIDTH / 2,
-				y: pos.y - SEMANTIC_NODE_HEIGHT / 2
-			},
+			position: { x, y },
 			data: {
 				label: node.label,
 				description: node.description,

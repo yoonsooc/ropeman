@@ -14,6 +14,8 @@
 	const targetHandleCount: number = $derived(data.targetHandleCount ?? 1);
 	const sourceHandleCount: number = $derived(data.sourceHandleCount ?? 1);
 	const vertical = $derived(data.direction === 'TB');
+	// A zoomed-out title wraps; file and folder names break after _ - / and before a dot
+	const labelParts: string[] = $derived(String(data.label ?? '').split(/(?<=[_\-/])|(?=\.)/));
 
 	function handleOpen(e: MouseEvent) {
 		e.stopPropagation();
@@ -46,7 +48,9 @@
 >
 	<div class="node-header">
 		<span class="node-dot" aria-hidden="true"></span>
-		<span class="node-label">{data.label}</span>
+		<span class="node-label"
+			>{#each labelParts as part, i (i)}{#if i > 0}<wbr />{/if}{part}{/each}</span
+		>
 		<span class="node-badge"
 			>{i18nStore.t(data.fileCount === 1 ? 'node.fileOne' : 'node.fileMany', {
 				n: data.fileCount
@@ -325,8 +329,26 @@
 		}
 	}
 
-	/* Zoomed out: titles and descriptions carry the map, symbol chips step aside */
-	:global(.zui-canvas[data-zoom='far']) .node-symbols {
+	/* Zoomed out: the title grows to stay legible on screen and may take two lines, and the
+	   symbol chips step aside; further out the description and file count do too */
+	:global(.zui-canvas:not([data-zoom='near'])) .node-symbols,
+	:global(.zui-canvas[data-zoom='distant']) .node-description,
+	:global(.zui-canvas[data-zoom='distant']) .node-badge {
 		display: none;
+	}
+
+	:global(.zui-canvas:not([data-zoom='near'])) .node-header {
+		align-items: flex-start;
+	}
+
+	:global(.zui-canvas:not([data-zoom='near'])) .node-label {
+		font-size: var(--far-title-size, 15px);
+		line-height: 1.15;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
 	}
 </style>

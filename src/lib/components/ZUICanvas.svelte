@@ -127,8 +127,8 @@
 	let userPositions = $state(new Map<string, { x: number; y: number }>());
 	let prevLevelParentId = $state<string | null | undefined>(undefined);
 
-	// Crossing the compact breakpoint switches LR <-> TB: positions dragged in the
-	// old layout no longer apply, and the new layout needs a fresh fit
+	// Crossing the compact breakpoint re-packs the level for the other screen shape: positions
+	// dragged in the old layout no longer apply, and the new layout needs a fresh fit
 	let prevCompact: boolean | undefined;
 	$effect(() => {
 		const compact = isCompact;
@@ -139,11 +139,13 @@
 		prevCompact = compact;
 	});
 
-	// Clear userPositions when drill-down/drill-up changes the level
+	// A drill-down or drill-up shows another level: dragged positions belong to the old one,
+	// and the old viewport would crop the new layout, so the new level is fit to the screen
 	$effect(() => {
 		const currentParentId = semanticStore.currentLevel?.parentId ?? null;
 		if (prevLevelParentId !== undefined && currentParentId !== prevLevelParentId) {
 			userPositions = new Map();
+			requestAnimationFrame(() => exportFns?.fitView());
 		}
 		prevLevelParentId = currentParentId;
 	});
@@ -309,7 +311,7 @@
 		const neighbors = highlightedNodeId
 			? neighborNodeIds(level, highlightedNodeId)
 			: new Set<string>();
-		const nodes = toSemanticFlowNodes(level, isCompact ? 'TB' : 'LR');
+		const nodes = toSemanticFlowNodes(level, isCompact ? 'tall' : 'wide');
 		for (const n of nodes) {
 			// U1-6: Apply user-dragged position if available
 			const userPos = userPositions.get(n.id);
@@ -464,12 +466,24 @@
 		if (node) handleNodeDblClick(node);
 	}
 
-	// Below this zoom the cards are too small for symbol chips to read
-	const FAR_ZOOM = 0.7;
-	let zoomFar = $state(false);
+	// How much of a card is legible at the current zoom. Below 0.7 the symbol chips are too
+	// small to read and the title starts to grow; below 0.5 the description and file count are too
+	type ZoomBand = 'near' | 'far' | 'distant';
+	const zoomBandAt = (zoom: number): ZoomBand =>
+		zoom < 0.5 ? 'distant' : zoom < 0.7 ? 'far' : 'near';
+	// Zoomed out, card titles grow to stay about this size on screen, up to what two lines of
+	// a card can hold, so a level fit to the screen keeps its names legible
+	const TITLE_SCREEN_PX = 11;
+	const TITLE_MAX_PX = 36;
+	let zoomBand = $state<ZoomBand>('near');
+	let farTitlePx = $state(16);
 	function handleMove(_: MouseEvent | TouchEvent | null, viewport: { zoom: number }) {
-		const far = viewport.zoom < FAR_ZOOM;
-		if (far !== zoomFar) zoomFar = far;
+		const band = zoomBandAt(viewport.zoom);
+		if (band !== zoomBand) zoomBand = band;
+		// Even steps, so a pinch re-flows the titles a few times rather than on every frame
+		const title = 2 * Math.round(TITLE_SCREEN_PX / viewport.zoom / 2);
+		const clamped = Math.min(TITLE_MAX_PX, Math.max(16, title));
+		if (clamped !== farTitlePx) farTitlePx = clamped;
 	}
 
 	function handlePaneClick(_: { event: MouseEvent }) {
@@ -488,7 +502,12 @@
 	}
 </script>
 
-<div class="zui-canvas" data-tour-step="5" data-zoom={zoomFar ? 'far' : 'near'}>
+<div
+	class="zui-canvas"
+	data-tour-step="5"
+	data-zoom={zoomBand}
+	style="--far-title-size: {farTitlePx}px"
+>
 	<SvelteFlow
 		nodes={flowNodes}
 		edges={flowEdges}

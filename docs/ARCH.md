@@ -64,6 +64,7 @@ src/
 │   │   ├── markdownOutline.ts        # Markdown → frontmatter·제목·링크 심볼 (tree-sitter 없이)
 │   │   ├── configParsers.ts          # Dockerfile·Terraform·env 템플릿·Makefile → 구조 심볼 (줄 단위 파서, 값은 읽지 않음)
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
+│   │   ├── levelLayout.ts            # 단계 배치: 화면 비율에 맞춰 연결 요소를 층으로 놓고 블록을 줄로 쌓는다
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
 │   │   ├── parserService.ts          # Web Worker 통신 (parseFile → { symbols, refs }, parseAllFiles → { astMap, refs, skipped }). 순서와 한도는 sourceExtraction
 │   │   ├── webllmService.ts          # WebLLM Worker 래퍼
@@ -483,6 +484,19 @@ map.changed    → 바뀐 경로의 revision을 올리고(열린 원문을 제�
 
 재분석: 노드 hover 시 리프레시 버튼 → invalidateCache() → 새로 AI 호출
 ```
+
+### 단계 배치 (`levelLayout.ts`)
+
+한 단계(level)의 노드 위치는 `layoutLevel` 하나가 정한다. 앱, Bridge 뷰어, explore, share, JSON 열기가 모두 `ZUICanvas` → `semanticGraphBuilder.toSemanticFlowNodes` → `layoutLevel` 경로를 쓴다. 입력이 같으면 위치도 같다.
+
+- 목표: 단계 전체를 화면에 맞췄을 때(fitView) 배율이 가장 크게 나오는 배치. 화면 모양은 `isCompact`(폭 768px 이하)면 `tall`(가로세로비 0.55), 아니면 `wide`(1.75)다. 후보의 점수는 `max(폭, 높이 × 가로세로비)`이고 작을수록 크게 보인다.
+- 연결 요소(엣지로 이어진 노드 묶음)마다 dagre에서 랭크(층)와 랭크 안 순서만 받고 좌표는 직접 정한다. 방향(LR, TB), 한 줄에 놓을 최대 노드 수, 한 밴드에 넣을 랭크 수를 모두 점수 매겨 고른다. 긴 랭크는 여러 줄로 감고(파일 40개가 한 파일을 import하는 경우), 랭크가 많으면 랭크 열을 밴드로 접어 나란히 놓는다(거의 일렬인 의존 사슬). 감기와 접기는 엣지를 따라가기 어렵게 하므로 점수에 1.1배, 1.25배를 곱해 이득이 클 때만 고른다.
+- 엣지 없는 노드는 입력 순서대로 격자 블록 하나가 된다.
+- 연결 요소(높은 것부터)와 격자(맨 뒤)를 왼쪽부터 줄에 채우고, 넘치면 다음 줄로 간다. 격자 열 수와 줄 폭 후보를 모두 시도해 점수가 가장 좋은 것을 쓴다.
+- 노드의 `data.direction`은 그 노드가 속한 요소의 방향이다. 카드는 LR이면 좌우에, TB면 위아래에 손잡이를 단다.
+- 드릴다운이나 드릴업으로 단계가 바뀌면 캔버스가 새 단계를 화면에 맞춘다. 맞추지 않으면 이전 단계의 뷰포트가 새 배치를 잘라 보인다.
+- 줌 구간: 캔버스가 `data-zoom`을 `near`(0.7 이상), `far`(0.5 이상), `distant`(0.5 미만)로 단다. `far`부터 심볼 칩을 숨기고, 제목은 화면에서 약 11px로 보이도록 키운다(카드 기준 36px까지, 두 줄, `_` `-` `/` 뒤와 `.` 앞에서 줄을 바꾼다). `distant`에서는 설명과 파일 수도 숨긴다. 12px 글자가 6px 아래로 작아지는 구간이다.
+- 검증: `levelLayout.test.ts`가 결정성, 카드 간격, 화면 비율(자유도가 있는 모양에서 목표의 1.5배 안), 한 줄로 늘어서던 모양의 회귀를 본다.
 
 ### 분석 결과 캐시
 

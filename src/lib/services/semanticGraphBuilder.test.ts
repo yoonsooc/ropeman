@@ -79,7 +79,7 @@ describe('toSemanticFlowNodes', () => {
 		}
 	});
 
-	it('positions nodes with dagre layout', () => {
+	it('positions every node at its own place', () => {
 		const level = makeLevel();
 		const flowNodes = toSemanticFlowNodes(level);
 
@@ -225,17 +225,18 @@ describe('neighborNodeIds', () => {
 });
 
 describe('toSemanticFlowNodes direction', () => {
-	it('stacks connected nodes vertically for TB and horizontally for LR', () => {
+	it('runs edges left to right on a wide screen and top to bottom on a tall one', () => {
 		// Arrange: sem:api -> sem:auth
 		const level = makeLevel();
 		// Act
 		const lr = toSemanticFlowNodes(level);
-		const tb = toSemanticFlowNodes(level, 'TB');
+		const tb = toSemanticFlowNodes(level, 'tall');
 		const at = (nodes: ReturnType<typeof toSemanticFlowNodes>, id: string) =>
 			nodes.find((n) => n.id === id)!.position;
 		// Assert
 		expect(at(lr, 'sem:auth').x).toBeGreaterThan(at(lr, 'sem:api').x);
 		expect(at(tb, 'sem:auth').y).toBeGreaterThan(at(tb, 'sem:api').y);
+		expect(lr[0].data.direction).toBe('LR');
 		expect(tb[0].data.direction).toBe('TB');
 	});
 });
