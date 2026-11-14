@@ -181,6 +181,39 @@ describe('ropeman map', () => {
 		expect(fs.readFileSync(path.join(out, MAP_FILE), 'utf8')).toBe(first);
 	});
 
+	it('writes the files of a folder as a level with their imports, which the agent never names', async () => {
+		await map();
+		writeNames({
+			...nameWork(read<Work>(WORK_FILE)),
+			'file:src/app/main.ts': { label: 'Main', description: 'Starts.', keySymbols: [] }
+		});
+
+		const run = await map();
+
+		const written = read<RopemanMap>(MAP_FILE);
+		const app = written.levels.find((l) => l.parentId === 'files:src/app')!;
+		expect(app).toMatchObject({ naming: 'grouped', assignment: null, fileLevel: true });
+		expect(app.nodes.map((n) => [n.id, n.label, n.filePaths]).toSorted()).toEqual([
+			['file:src/app/main.ts', 'main.ts', ['src/app/main.ts']],
+			['file:src/app/routes.ts', 'routes.ts', ['src/app/routes.ts']]
+		]);
+		expect(app.edges.map((e) => [e.source, e.target, e.evidence?.confidence])).toEqual([
+			['file:src/app/routes.ts', 'file:src/app/main.ts', 'EXTRACTED']
+		]);
+		expect(written.levels.find((l) => l.parentId === 'files:src/lib')?.edges).toEqual([]);
+		expect(written.levels.some((l) => l.parentId === 'files:src')).toBe(false);
+		const result = await verified(written);
+		expect(result.parsed && result.violations).toEqual([]);
+		expect(run.report.problems).toEqual([
+			expect.objectContaining({ code: 'node-unknown', nodeId: 'file:src/app/main.ts' })
+		]);
+		expect(run.report.stages).toEqual([
+			{ depth: 1, levels: 1, named: 1 },
+			{ depth: 2, levels: 2, named: 0 }
+		]);
+		expect(JSON.stringify(read<Work>(WORK_FILE))).not.toContain('file:');
+	});
+
 	it('keeps a level grouped and says why when its names fail, and the map still verifies', async () => {
 		await map();
 		writeNames(nameWork(read<Work>(WORK_FILE)));

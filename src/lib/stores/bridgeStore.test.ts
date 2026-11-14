@@ -3,6 +3,7 @@ import { bridgeStore } from './bridgeStore.svelte';
 import { semanticStore } from './semanticStore.svelte';
 import { projectStore } from './projectStore.svelte';
 import type { BridgeSocket } from '$lib/services/bridgeClient';
+import type { FilePath } from '$lib/types/codeMap';
 import type { MapLevel, RopemanMap } from '$lib/types/ropemanMap';
 
 /** The far end of the socket: the test answers each request the store sends. */
@@ -226,6 +227,58 @@ describe('bridgeStore', () => {
 		expect(semanticStore.selectedSemanticNode?.id).toBe('files:.');
 		expect(semanticStore.panelDismissed).toBe(false);
 		expect(semanticStore.drilldownPath).toEqual([]);
+	});
+
+	it('drills into the files of a node with the imports between them, with no names pending', async () => {
+		// Arrange
+		const server = await connected(
+			mapOf([
+				{
+					...TOP,
+					nodes: [node('dir:src', ['src/api/a.ts', 'src/b.ts']), node('files:.', ['a.ts', 'b.ts'])]
+				}
+			])
+		);
+		const files: MapLevel = {
+			parentId: 'files:.',
+			naming: 'grouped',
+			fileLevel: true,
+			nodes: [node('file:a.ts', ['a.ts']), node('file:b.ts', ['b.ts'])],
+			edges: [
+				{
+					source: 'file:a.ts',
+					target: 'file:b.ts',
+					type: 'depends_on',
+					label: null,
+					evidence: {
+						confidence: 'EXTRACTED',
+						refs: [
+							{
+								path: 'a.ts' as FilePath,
+								line: 1,
+								relation: 'imports_from',
+								toPath: 'b.ts' as FilePath,
+								confidence: 'EXTRACTED'
+							}
+						]
+					}
+				}
+			],
+			assignment: null
+		};
+
+		// Act
+		const expanding = bridgeStore.expand(topNode('files:.'));
+		await flush();
+		server.answer('node.expand', { result: files });
+
+		// Assert
+		expect(await expanding).toBe('opened');
+		expect(labels()).toEqual(['a.ts', 'b.ts']);
+		expect(semanticStore.currentLevel?.edges.map((e) => [e.source, e.target])).toEqual([
+			['file:a.ts', 'file:b.ts']
+		]);
+		expect(bridgeStore.namingOf('files:.')).toBeNull();
 	});
 
 	it('shows why an expand failed and stays on the level', async () => {

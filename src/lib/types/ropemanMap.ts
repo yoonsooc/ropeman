@@ -15,7 +15,7 @@ export const MAP_FORMAT = 'ropeman-map';
  * optional fields only. A new required field, a removed field, or a new value in a closed set
  * (coverage reason, edge type, relation kind, naming) is a new major (ADR-24).
  */
-export const MAP_SCHEMA = { major: 1, minor: 1 } as const;
+export const MAP_SCHEMA = { major: 1, minor: 2 } as const;
 export const MAP_SCHEMA_VERSION = `${MAP_SCHEMA.major}.${MAP_SCHEMA.minor}`;
 
 /** Same as the Bridge's WebSocket `maxPayload`, so a map that opens as a file also fits a message. */
@@ -71,7 +71,16 @@ export interface MapLevel {
 	edges: MapEdge[];
 	/** How the LLM's answer matched the files it was given; null for a grouped level */
 	assignment: AssignmentCounts | null;
+	/**
+	 * 1.2: the files of the node it expands, one node each, labelled by file name, with the
+	 * imports between them. Always grouped: no agent or worker names such a level.
+	 */
+	fileLevel?: true;
 }
+
+/** A level whose names are still to come: grouped by folder, and not a file level. */
+export const awaitsNames = (level: MapLevel): boolean =>
+	level.naming === 'grouped' && !level.fileLevel;
 
 export interface RopemanMap {
 	format: typeof MAP_FORMAT;

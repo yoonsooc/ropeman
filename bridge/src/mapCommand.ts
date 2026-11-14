@@ -120,17 +120,20 @@ export interface MapReport {
 
 const SKIPPED_EXAMPLES = 20;
 
-function slotsOf(grouped: GroupedMap): Slot[] {
+/** The folder levels the agent names, and the file levels below them, which stay grouped. */
+function slotsOf(grouped: GroupedMap): { slots: Slot[]; fileLevels: MapLevel[] } {
 	const slots: Slot[] = [];
+	const fileLevels: MapLevel[] = [];
 	const visit = (level: MapLevel, depth: number, folder: string) => {
 		slots.push({ parentId: level.parentId, depth, folder, grouped: level });
 		for (const node of level.nodes) {
 			const child = grouped.expand(node.id);
-			if (child) visit(child, depth + 1, grouped.group(node.id)!.path);
+			if (child?.fileLevel) fileLevels.push(child);
+			else if (child) visit(child, depth + 1, grouped.group(node.id)!.path);
 		}
 	};
 	visit(grouped.top, 1, '');
-	return slots;
+	return { slots, fileLevels };
 }
 
 /** `names.json` as read from the output folder; null when the agent has not written one yet. */
@@ -253,7 +256,7 @@ export function buildNamedMap(input: {
 	const { extraction, project, names, depth } = input;
 	const codeMap: CodeMap = extraction.map;
 	const grouped = groupExtraction(extraction, project);
-	const slots = slotsOf(grouped);
+	const { slots, fileLevels } = slotsOf(grouped);
 	const problems: Problem[] = [...input.nameProblems];
 
 	const known = new Set(slots.flatMap((s) => s.grouped.nodes.map((n) => n.id)));
@@ -269,11 +272,14 @@ export function buildNamedMap(input: {
 	}
 
 	const states = slots.map((slot) => stateOf(slot, names));
-	const levels = () =>
-		slots.map((slot, i) => {
+	// File levels follow the folder levels, so a verifier violation's index still finds its slot
+	const levels = () => [
+		...slots.map((slot, i) => {
 			const state = states[i];
 			return state.kind === 'named' ? state.level : slot.grouped;
-		});
+		}),
+		...fileLevels
+	];
 	const reject = (i: number, found: Problem[]) => {
 		states[i] = { kind: 'rejected', problems: found };
 	};

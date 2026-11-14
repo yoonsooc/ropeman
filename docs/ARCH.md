@@ -46,6 +46,7 @@ src/
 │   │   ├── codeMapBuilder.ts         # AST → 스켈레톤 v2 코드 지도 (`buildCodeMap`, `fileFromAst`). 스토어를 읽지 않아 Node에서도 돈다
 │   │   ├── sourceExtraction.ts       # 브라우저와 Node가 같이 쓰는 파싱 순서: 줄 단위 파서 고르기, 파일 순위, 크기 한도, 건너뛴 이유
 │   │   ├── hierarchySummary.ts       # 코드 지도 → 폴더 계층 요약 (파일·심볼 수, 폴더 사이 import 수). LLM 없음
+│   │   ├── codeRelations.ts          # 코드 지도 → 파일 하나로 해석된 관계 목록(`fileRelations`, 지도 관계의 근거 ref 모양). 지금은 import만
 │   │   ├── importResolver.ts         # 코드 지도의 import 위치를 파일·심볼·패키지에 연결 (상대 경로, tsconfig paths, 워크스페이스, $lib, Python)
 │   │   ├── codeMapScore.ts           # 코드 지도를 정답 그래프(`tests/fixtures/graphs/`)와 비교해 관계 종류별 precision·recall과 놓친 관계를 낸다
 │   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다 (T1-12 비교용)
@@ -165,7 +166,7 @@ packages/core/                    # Node 추출 코어 (npm 워크스페이스 �
 ├── src/
 │   ├── walk.ts                       # 폴더 순회: 브라우저와 같은 건너뛰기 규칙, 상한 없음. 파일 링크는 대상도 같은 규칙으로 확인, 폴더 링크는 따라가지 않음
 │   ├── extract.ts                    # 순회 → 해석 설정 → 파싱 → 코드 지도 → 계층 요약 (`extractDirectory`)
-│   ├── groupedMap.ts                 # 추출 → 폴더로 묶은 `grouped` 단계(노드 id가 폴더 부분을 가리켜 id만으로 단계를 다시 만든다)
+│   ├── groupedMap.ts                 # 추출 → 폴더로 묶은 `grouped` 단계와 파일 단계(노드 id가 폴더 부분을 가리켜 id만으로 단계를 다시 만든다)
 │   └── cli.ts                        # `ropeman-extract <폴더> [--out 파일]`
 ├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙, 폴더로 묶은 지도의 검증(`mapVerifier.test.ts`)
 └── vite.config.ts                    # `npm run build:core` → `dist/cli.mjs` 하나와 `dist/wasm/`
@@ -312,6 +313,7 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 
 - 파일: `format: "ropeman-map"`, `schemaVersion: "MAJOR.MINOR"`, 프로젝트 이름, 만든 도구와 시각, `files`(본 파일 전부와 행방, `FileCoverage`), `levels`(단계 목록).
 - 단계(`MapLevel`)는 펼친 노드(`parentId`, 최상위는 null), `naming`(`grouped`는 폴더로 묶은 결정론 결과, `named`는 검증을 통과한 LLM 이름), 노드, 관계, 배정 수를 담는다. 색, 깊이, 파일 수는 파일에 없고 뷰어가 정한다. 경로는 모두 저장소 기준이다.
+- 파일 단계(1.2의 `fileLevel: true`): 펼친 노드의 파일마다 노드 하나(`file:<경로>`, 라벨은 파일 이름, `filePaths`는 그 파일 하나)와 그 파일들 사이의 import 관계를 담는다. 늘 `grouped`이고 에이전트도 일꾼도 이름을 붙이지 않는다. 파서는 이 플래그가 있으면 `named` 단계와 파일이 둘 이상인 노드를 거부한다. 플래그가 없거나 `false`인 단계는 읽은 값에도 필드가 없다. 1.1 뷰어는 이 필드를 버리고 같은 단계를 보통 묶음 단계로 보여 준다.
 - 버전: 읽는 쪽은 자기 major만 읽고, 그 major의 minor는 모두 읽는다. minor는 선택 필드만 더하고, 모르는 필드는 버린다. 닫힌 값 목록(행방 이유, 관계 종류, 단계 이름 상태)에 값을 더하면 major가 바뀐다. 오류 코드만은 열린 목록이라, 모르는 코드는 `unknown`으로 읽고 함께 온 문장을 보여 준다.
 - 거부 코드: `too-large`(16MiB 초과, 파일은 읽기 전에 크기로), `not-json`, `not-a-map`(`format`이 다름), `newer-version`·`unsupported-version`(major가 다름, 구조보다 먼저 본다), `invalid`(틀린 필드 위치를 `at`에 `levels[1].nodes[0].label`처럼 준다).
 - 구조 검사: 노드 id는 지도 전체에서 하나, `__root__`은 못 쓴다(스토어가 최상위 키로 쓴다). 최상위 단계는 하나이고, 나머지 단계는 최상위에서 닿는 노드를 하나씩 펼친다. 그래서 고아 단계와 순환이 없다. 관계는 같은 단계의 두 노드를 잇는다. 배정 불변식, 경로 실재, 관계 근거는 아래 지도 검증기가 본다.
@@ -348,7 +350,8 @@ file.read(path)    → #72 그대로 (루트 안, 실제 .env 거부, 500KB, 연
 파일 변경          → 300ms 조용하면 다시 추출 → map.changed { paths } 푸시 → 뷰어가 map.get
 ```
 
-- 노드 id: `dir:<폴더>`는 하위 폴더, `files:<폴더>`(루트는 `files:.`)는 그 폴더에 바로 든 파일들이다. 단계는 id만으로 다시 만들 수 있어서 다시 추출해도 같은 폴더는 같은 id다. 펼칠 수 있는 것은 `dir:` 노드뿐이고 `files:` 노드는 `unknown-node`로 답한다(파일은 `file.read`로 연다). 관계는 계층 요약의 폴더 사이 import이고 근거 ref는 그 import 줄이다(`packages/core/src/groupedMap.ts`). `files`(커버리지)는 지도의 파일을 `sent`, 건너뛴 파일을 그 이유로 적는다.
+- 노드 id: `dir:<폴더>`는 하위 폴더, `files:<폴더>`(루트는 `files:.`)는 그 폴더에 바로 든 파일들이다. 단계는 id만으로 다시 만들 수 있어서 다시 추출해도 같은 폴더는 같은 id다. `dir:` 노드는 하위 폴더 단계로, 파일이 둘 이상인 `files:` 노드는 파일 단계로 펼친다. 파일이 하나인 `files:` 노드는 `unknown-node`로 답한다(파일은 `file.read`로 연다). 관계는 계층 요약의 폴더 사이 import이고 근거 ref는 그 import 줄이다(`packages/core/src/groupedMap.ts`). 한 폴더에 바로 든 두 파일 사이의 import는 어느 폴더 단계의 두 부분도 잇지 않아서(같은 `files:` 노드 안) 폴더 단계에서는 빠지고, 그 `files:` 노드의 파일 단계에 `file:` 노드 사이 관계로 들어간다. 두 단계 모두 `codeRelations.fileRelations()`가 내는 관계(지금은 파일 하나로 해석된 import)를 쓰고, 근거 모양(경로·줄·관계·대상 파일·신뢰도)과 EXTRACTED/INFERRED를 고르는 규칙도 같다(`dependsOn`). 자기 자신을 가리키는 import는 뺀다.
+- 이름 상한: 연결당 이름 작업 상한(`MAX_NAMINGS_IN_FLIGHT`, 4)은 이름을 붙일 단계에만 센다. 그래서 상한이 찼어도 이미 이름이 있는 단계와 파일 단계는 바로 열리고 `busy`가 아니다. 파일 단계는 `node.named` 푸시도 없다. `files`(커버리지)는 지도의 파일을 `sent`, 건너뛴 파일을 그 이유로 적는다.
 - 메시지 처리: 들어온 텍스트는 모두 `parseRpcRequest`가 먼저 읽는다. 거부되면 같은 id와 type(읽을 수 있으면)으로 `code: "bad-request"`를 돌려주고 연결은 유지한다. 모르는 type, JSON이 아닌 텍스트, 필드가 빠진 요청이 다 이렇다. 연결마다 첫 메시지는 `hello`(스키마 버전과 서버 이름·버전)다. 옛 `status: connected` 인사는 없앴다(앱은 그것을 읽지 않았다). ADR-24 이전의 중계(`chat`, `analyze`, `ping`, `status`)는 T2-5에서 앱의 Bridge AI 트랙과 함께 지웠다. 이제 그 메시지도 다른 모르는 type처럼 `bad-request`로 답한다. 클라이언트가 고른 프롬프트로 CLI를 돌리는 길은 이제 없고, CLI에 가는 프롬프트는 모두 서버가 지도에서 만든다.
 - CLI에 보내는 것(그대로): 영어 지시문, 프로젝트 이름(`--root` 폴더 이름), 펼친 폴더 경로, 그리고 부분마다 id, 종류(하위 폴더 또는 바로 든 파일), 파일 수, 파일 경로 최대 12개, 선언한 최상위 심볼 최대 24개(`function add`처럼 종류와 이름. 종류는 function·class·interface·type·variable·service·target·job·resource만), 부분 사이 import 수. 재시도면 지난 답이 거부된 이유(검증기 문장, 최대 20개)가 더해진다. 파일 내용은 한 줄도 보내지 않는다. 실제 값이 든 `.env`는 코드 지도에 없고, 프롬프트를 만들 때 한 번 더 걸러 이름도 나가지 않는다. 설정 파일의 `command`·`key`처럼 값을 담을 수 있는 심볼 종류는 뺐다. 프롬프트는 100,000바이트를 넘지 않는다(넘으면 표본을 반씩 줄인다. Linux가 argv 문자열 하나를 128KiB로 자르므로 `gemini -p <프롬프트>`도 들어간다). 부분이 80개를 넘는 단계는 이름을 붙이지 않고 `naming-failed`로 알린다.
 - (2026-11-13, T2-6, ADR-25) `--cli`가 없으면 `claude`만 찾는다(gemini는 `--cli gemini`로만). `--out`을 주면 일꾼 프롬프트에 사용자의 에이전트가 쓴 맥락 요약과 위 단계 이름이 더해지고, 결과는 기록에 남는다. 일꾼이 없으면 대기열로 간다(다음 절).
@@ -392,7 +395,8 @@ ropeman inbox --out O            → 남은 대기열 + 지난번 이후의 일�
 - 작업 폴더 읽기: 클론한 저장소는 `.ropeman/brief.md`를 자격 증명 파일로 가는 링크로, 또는 FIFO로 실어 보낼 수 있다. 그래서 `--out` 바로 아래의 일반 파일만 읽는다(`workFolder.ts`의 `readOutFile`). 링크를 따라가지 않고(`O_NOFOLLOW`, Windows는 `lstat`), 막히지 않게 열고(`O_NONBLOCK`, FIFO와 장치는 거부), 상한까지만 읽는다. 상한은 요약 4,000바이트(넘으면 잘라 쓴다), `names.json` 8MiB, `queue.json` 1MiB, `ropeman.json` 16MiB, 기록 1,000,000바이트이고, 요약 말고는 넘으면 읽지 않는다. `--out` 자체는 실제 경로라서 읽은 바이트는 늘 그 폴더 안의 것이다.
 - `names.json`: 노드 id마다 `{ label, description, keySymbols }`. 일꾼에게 묻는 필드이고 검사도 같다(`parseNamingAnswer`, `applyNames`). 한 단계는 부분 전부에 이름이 있고 `verifyMap`을 통과해야 이름이 붙는다. 나머지는 `grouped`로 남기므로 쓰인 `ropeman.json`은 늘 통과한다. 파서가 거부한 단계도 그 단계만 되돌린다.
 - 단계: 깊이다. 1단계는 최상위, 2단계는 그 안의 폴더이고 기본은 2단계까지(`--depth`). `work.json`에는 이름이 없는 가장 얕은 단계, 대기열의 폴더(`queued: true`), 이름이 거부된 단계가 나온다. 부분마다 종류, 파일 수, 경로 12개, 선언한 이름 24개(일꾼 프롬프트와 같은 `summarizePart`), 부분 사이 import 수, 위 단계에서 붙인 이름이 들어가고, 한 줄에 부분 하나다. 파일 내용과 실제 `.env`는 없다.
-- `ropeman.json`에는 모든 폴더 단계가 들어간다(이름이 없으면 `grouped`). JSON 열기로도 끝까지 드릴다운할 수 있다. PASEO는 735단계, 5.1MB다.
+- `ropeman.json`에는 모든 폴더 단계가 들어간다(이름이 없으면 `grouped`). JSON 열기로도 끝까지 드릴다운할 수 있다. PASEO는 735단계, 5.1MB다(파일 단계 이전 측정).
+- 파일 단계도 모두 `ropeman.json`에 들어가고 폴더 단계 뒤에 놓인다(검증기 위반의 단계 번호가 이름 단계를 그대로 가리키도록). 단계(stage) 수, `work.json`, 대기열에는 들어가지 않는다. `names.json`의 `file:` id는 `node-unknown`이다. 크기(2026-11-14, 같은 클론에서 전후): graphify 150KB → 289KB(파일 단계 36개, 관계 161개), fastapi 237KB → 378KB(101개, 75개), transformers 4.69MB → 5.99MB(577개, 1,266개), airflow 6.72MB → 9.26MB(1,052개, 2,382개, 가장 큰 단계 176개 파일). 파일 단계는 파일 하나에 약 425바이트를 더한다(airflow). 상한 16MiB까지 여유가 있어서 자르거나 요약하지 않는다.
 - 문제 코드: 검증기의 17개에 `names-unreadable`(JSON 객체가 아님), `node-unknown`(지도에 없는 id), `name-missing`(단계의 일부만 이름), `name-invalid`(길이·형식), `map-invalid`(파서 거부)를 더했다. 종료 코드는 0(문제 없음), 1(문제 있음), 2(인자 오류)다.
 - `--out`: 저장소 밖이어도 된다(읽기 전용 저장소). 저장소 안이면 순회가 건너뛰는 폴더(`.ropeman`)여야 한다. 아니면 지도가 자기 파일을 세고, serve의 감시가 쓸 때마다 다시 추출한다. 거부할 폴더는 만들지 않는다. 링크인 `--out`은 거부한다(저장소가 `.ropeman`을 사용자 폴더로 가는 링크로 실을 수 있다). 저장소 안의 작업 폴더에는 `*` 한 줄짜리 `.gitignore`를 넣어(이미 있으면 둔다) 요약과 기록이 커밋되지 않게 한다. 새로 만든 폴더나 이미 `ropeman.json`이 있는 폴더에만 넣는다. 사용자가 원래 쓰던 숨은 폴더(`.github` 같은)에 넣으면 그 파일들까지 숨기기 때문이다. 기본 `--out`을 저장소 밖으로 옮기는 안은 에이전트가 지시를 따를 때만 막고, 사용자가 저장소 안을 고르면 막지 못해서 고르지 않았다. serve의 `--out`에 값이 없거나 그 자리에 플래그가 오면 시작하지 않는다.
 - 일꾼: `--cli`가 없으면 serve는 `claude`만 찾는다(gemini는 `--cli gemini`일 때만, ADR-25). 갈림은 `server.ts`의 `namingCli` 한 곳이다. 프롬프트에 `brief.md`의 앞 4,000바이트(넘으면 잘랐다고 적는다)와 그 폴더가 위 단계에서 받은 이름이 더해진다. 검증과 재시도, 동시 2개, 취소는 위 `ropeman serve` 절 그대로다. 통과한 이름은 `node.named`에 `namedBy`(일꾼, serve가 켜진 뒤 모든 폴더를 합친 일꾼 실행 수, 스키마 1.1의 선택 필드)를 붙여 보내고, 뷰어는 어느 일꾼이 붙였는지와 실행 수를 띠에 보여 준다. `--out`이 있으면 결과마다(실패 포함) 노드, 폴더, 이름, 일꾼, 시각, 걸린 시간을 `naming-log.jsonl`에 한 줄 남긴다. 줄마다 `seq`가 붙는다. 시계에서 시작해 늘기만 하는 번호다. 기록이 1,000,000바이트를 넘으려 하면 최근 줄만 절반 크기까지 남긴다. 기록을 못 쓰면 이름은 그대로 화면에 보내고 serve 터미널에만 적는다(경로가 든 오류를 화면에 보내지 않는다). 일꾼이 도는 동안 에이전트가 `ropeman map`으로 그 폴더 이름을 쓰면 에이전트 이름을 보내고, 기록에는 `agent-named`로 남긴다.
@@ -426,7 +430,8 @@ map.changed    → 바뀐 경로의 revision을 올리고(열린 원문을 제�
   - 카드 상태(`accessState`): 연결 전에는 `unasked`·`granted`·`denied`·`unknown`(최근 Firefox는 물을 수 있다는 안내)·`safari`(혼합 콘텐츠로 막히므로 바로 로컬 모드 안내, "그래도 연결" 버튼), 연결 중 권한이 `prompt`면 `prompt-pending`(소켓이 CONNECTING으로 권한 창의 답을 기다린다. 400ms 뒤에 보여서 막히지 않는 브라우저에서는 번쩍이지 않는다), 실패 뒤에는 원인. `denied`는 브라우저별 권한 되돌리는 단계(Chrome·Edge는 사이트 설정 주소까지)와 로컬 모드 명령을 보여 준다. 브라우저 이름은 안내 문구에만 쓰고, 판단은 권한 상태와 실제 연결 결과로 한다(ADR-23).
   - 실측(Chrome for Testing, 2026-11-13): 148 headless는 권한 없이 막히고 질의가 곧 `denied`가 되어 카드가 `denied`다. 148 창 모드는 권한 창이 열린 동안 `prompt-pending`이다. CDP `Browser.setPermission`으로 허락하면 148과 145 모두 연결되고, 포트 확인이 틀린 토큰(요청 끝남)과 꺼진 포트(요청 실패)를 가른다. 145는 `denied`여도 소켓을 막지 않는다. 그런 브라우저에서 serve가 꺼져 있으면 카드는 `serve-down` 대신 `denied`라고 말한다. 다른 major의 serve는 `newer-server`·`older-server`다.
 - 제자리 유지: `map.get`은 이름이 붙은 단계만 담는다. 그래서 `map.changed` 뒤에는 사용자의 드릴다운 경로를 위에서부터 다시 걷고, 새 지도에 없는 단계는 `node.expand`로 다시 받는다. 경로의 노드가 사라졌거나 serve가 `unknown-node`로 답하면 남아 있는 가장 깊은 단계에서 멈춘다. 다시 받기가 `busy`(연결당 이름 작업 상한)나 다른 오류로 끝나면 사용자가 보던 단계(폴더 묶음 그대로)와 이름 상태를 지키고, 이미 돌고 있는 이름 작업의 `node.named`가 오면 그대로 받는다. 선택한 노드도 같은 id로 다시 잡는다. 이름 붙이기가 실패한 폴더는 다시 받을 때 serve가 이름을 다시 묻는다(파일이 바뀐 뒤라 다시 묻는 편이 맞다고 봤다).
-- 펼치지 않는 노드: serve는 `files:` 노드(폴더에 바로 든 파일들)를 `unknown-node`로 답한다. 뷰어는 id 모양에 기대지 않고 이 답을 받으면 상세 패널에 그 노드의 파일 목록을 연다. 파일이 하나인 노드는 원래대로 바로 원문을 연다.
+- 파일 단계: 파일이 둘 이상인 `files:` 노드를 열면 serve가 파일 단계를 돌려주고, 뷰어는 그 단계로 드릴다운해 파일 사이 import를 관계로 그린다. `fileLevel`인 단계는 이름을 기다리지 않는다(이름 상태 없음). 파일 노드를 열면 원문이 열린다.
+- 펼치지 않는 노드: serve가 `unknown-node`로 답하면(파일이 하나인 `files:` 노드처럼) 뷰어는 id 모양에 기대지 않고 상세 패널에 그 노드의 파일 목록을 연다. 파일이 하나인 노드는 원래대로 바로 원문을 연다.
 - 앱 AI와 분리: `ZUICanvas`의 `onexpand`가 있으면 캐시에 없는 노드는 그 함수로 가고, 확인 창과 앱의 AI 분석, 다시 분석 버튼은 나오지 않는다.
 - 추론 관계: INFERRED 관계는 `semanticGraphBuilder`가 점선으로 그리고 범례에 뜻을 적는다(A-6). 검증기의 `unverified`(refs가 빈 INFERRED)는 지도만 보고도 알 수 있고, 이름으로만 맞춘 ref를 든 INFERRED도 점선이라, 뷰어는 코드 지도 없이 `evidence.confidence`로 정한다.
 - 로컬 모드: 페이지가 `http://127.0.0.1:<port>`나 `http://localhost:<port>`에서 열리고 주소에 `#token=`이 있으면 같은 호스트로 바로 붙는다. 토큰은 읽자마자 `history.replaceState`로 주소에서 지운다(SvelteKit의 `replaceState`는 라우터가 붙기 전인 첫 페이지 `onMount`에서 예외를 던진다). 다시 고침을 위해 토큰은 그 탭의 `sessionStorage`에 둔다. 페이지가 루프백에서 열렸고 소켓이 그 호스트로 갈 때만 그렇다(`bridgeSession.ts`). ropeman.dev는 Cloudflare 분석 비콘 같은 제3자 스크립트를 실어서 저장소에 둔 토큰을 읽힐 수 있다. 그래서 거기서 넣은 토큰은 메모리에만 두고, 다시 고치면 다시 넣는다(폼이 그렇게 안내한다).

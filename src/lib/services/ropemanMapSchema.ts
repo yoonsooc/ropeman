@@ -183,13 +183,20 @@ function level(value: unknown, at: string): MapLevel {
 		if (ids.has(n.id)) invalid(`${at}.nodes[${i}].id`, 'an id no other node in the map has');
 		ids.add(n.id);
 	});
-	return {
+	const parsed: MapLevel = {
 		parentId: nullable(field(o, 'parentId'), (v) => nonEmpty(v, `${at}.parentId`)),
 		naming: oneOf(field(o, 'naming'), ['grouped', 'named'], `${at}.naming`),
 		nodes,
 		edges: arr(field(o, 'edges'), `${at}.edges`).map((e, i) => edge(e, ids, `${at}.edges[${i}]`)),
 		assignment: nullable(field(o, 'assignment'), (v) => assignment(v, `${at}.assignment`))
 	};
+	const fileLevel = field(o, 'fileLevel');
+	if (fileLevel === undefined || fileLevel === false) return parsed;
+	if (fileLevel !== true) invalid(`${at}.fileLevel`, 'true, false or absent');
+	if (parsed.naming !== 'grouped') invalid(`${at}.naming`, 'grouped on a file level');
+	const wide = nodes.findIndex((n) => n.filePaths.length !== 1);
+	if (wide !== -1) invalid(`${at}.nodes[${wide}].filePaths`, 'one file on a file level');
+	return { ...parsed, fileLevel: true };
 }
 
 /**

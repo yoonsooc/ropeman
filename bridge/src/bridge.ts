@@ -13,6 +13,7 @@ import type { MapSession, Subscriber } from './mapSession.js';
 import { parseRpcRequest } from '../../src/lib/services/ropemanMapSchema';
 import {
 	MAP_SCHEMA_VERSION,
+	awaitsNames,
 	MAX_MAP_BYTES,
 	type RpcRequest,
 	type RpcResponse,
@@ -211,25 +212,25 @@ export function createBridgeServer(options: BridgeOptions): {
 			'node.expand': (request) => {
 				if (!session) return notReady(request);
 				const { id, nodeId } = request;
-				if (session.pendingFor(subscriber) >= MAX_NAMINGS_IN_FLIGHT) {
-					send({
-						id,
-						type: 'node.expand',
-						code: 'busy',
-						error: `At most ${MAX_NAMINGS_IN_FLIGHT} nodes are named at a time per connection.`
-					});
-					return;
-				}
 				session.expand(nodeId).then(
 					(expanded) => {
 						if (!expanded.ok) {
 							send({ id, type: 'node.expand', code: expanded.code, error: expanded.error });
 							return;
 						}
-						send({ id, type: 'node.expand', result: expanded.level });
-						if (expanded.level.naming === 'grouped') {
-							session.name(nodeId, subscriber);
+						// Only a level still to name counts against the cap
+						const toName = awaitsNames(expanded.level);
+						if (toName && session.pendingFor(subscriber) >= MAX_NAMINGS_IN_FLIGHT) {
+							send({
+								id,
+								type: 'node.expand',
+								code: 'busy',
+								error: `At most ${MAX_NAMINGS_IN_FLIGHT} nodes are named at a time per connection.`
+							});
+							return;
 						}
+						send({ id, type: 'node.expand', result: expanded.level });
+						if (toName) session.name(nodeId, subscriber);
 					},
 					(err: Error) => send({ id, type: 'node.expand', code: 'internal', error: err.message })
 				);

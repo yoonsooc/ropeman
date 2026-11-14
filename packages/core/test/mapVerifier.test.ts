@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CodeMap } from '$lib/types/codeMap';
-import type { RopemanMap } from '$lib/types/ropemanMap';
+import type { MapLevel, RopemanMap } from '$lib/types/ropemanMap';
 import { parseRopemanMap } from '$lib/services/ropemanMapSchema';
 import { verifyMap } from '$lib/services/mapVerifier';
 import { extractDirectory, type Extraction } from '../src/extract';
@@ -21,24 +21,23 @@ function roundTrip(map: RopemanMap): { map: RopemanMap; bytes: number } {
 
 /**
  * One mistake per rule, each on its own copy of a real map, with the codes it must raise. The
- * mistakes go on `files:` nodes, which no level expands, so none spills into a child level.
+ * mistakes go on a file level, which expands no node, so none spills into a child level.
  */
 const FAULTS: { rule: string; codes: string[]; make: (map: RopemanMap) => void }[] = [
 	{
 		rule: 'assignment',
-		codes: ['file-duplicated'],
+		codes: ['file-duplicated', 'file-unassigned'],
 		make: (map) => {
-			const level = map.levels.find((l) => l.nodes.length > 1 && l.nodes.some(isLeaf))!;
-			const leaf = level.nodes.find(isLeaf)!;
-			leaf.filePaths.push(level.nodes.find((n) => n !== leaf)!.filePaths[0]);
+			const [first, second] = fileLevel(map).nodes;
+			first.filePaths = [...second.filePaths];
 		}
 	},
 	{
 		rule: 'path',
-		codes: ['path-invalid'],
+		codes: ['path-invalid', 'file-unassigned'],
 		make: (map) => {
-			const leaf = map.levels.flatMap((l) => l.nodes).find(isLeaf)!;
-			leaf.filePaths.push(`../${leaf.filePaths[0]}`);
+			const [file] = fileLevel(map).nodes;
+			file.filePaths = [`../${file.filePaths[0]}`];
 		}
 	},
 	{
@@ -51,7 +50,12 @@ const FAULTS: { rule: string; codes: string[]; make: (map: RopemanMap) => void }
 	}
 ];
 
-const isLeaf = (node: { id: string }) => node.id.startsWith('files:');
+/** The first file level, without its edges, so a fault in its files trips no evidence check. */
+function fileLevel(map: RopemanMap): MapLevel {
+	const level = map.levels.find((l) => l.fileLevel)!;
+	level.edges = [];
+	return level;
+}
 
 function check(map: RopemanMap, codeMap: CodeMap) {
 	const result = verifyMap(map, codeMap);

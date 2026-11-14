@@ -472,6 +472,52 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		client.close();
 	});
 
+	it('opens the files of a folder with their imports past the limit, and never names them', async () => {
+		// Arrange: every naming slot of the connection is taken by a run that hangs
+		const { port, calls } = await serve({ plan: Array(10).fill('hang') });
+		const client = await Client.open(port);
+		for (const nodeId of ['dir:src', 'dir:src/app', 'dir:src/lib', 'dir:tools']) {
+			await client.request({ type: 'node.expand', nodeId });
+		}
+
+		// Act
+		const level = result<MapLevel>(
+			await client.request({ type: 'node.expand', nodeId: 'files:src/app' })
+		);
+		await new Promise((r) => setTimeout(r, 300));
+
+		// Assert
+		expect(level).toMatchObject({ parentId: 'files:src/app', naming: 'grouped', fileLevel: true });
+		expect(level.nodes.map((n) => n.id).toSorted()).toEqual([
+			'file:src/app/main.ts',
+			'file:src/app/routes.ts'
+		]);
+		expect(level.edges).toEqual([
+			{
+				source: 'file:src/app/routes.ts',
+				target: 'file:src/app/main.ts',
+				type: 'depends_on',
+				label: null,
+				evidence: {
+					confidence: 'EXTRACTED',
+					refs: [
+						{
+							path: 'src/app/routes.ts',
+							line: 1,
+							relation: 'imports_from',
+							toPath: 'src/app/main.ts',
+							confidence: 'EXTRACTED'
+						}
+					]
+				}
+			}
+		]);
+		const pushed = client.messages.filter((m) => m.type === 'node.named');
+		expect(pushed.some((m) => m.nodeId === 'files:src/app')).toBe(false);
+		expect(calls()).toHaveLength(2);
+		client.close();
+	});
+
 	it('says no-cli when no CLI was found', async () => {
 		// Arrange
 		const { port } = await serve({ naming: null });
@@ -495,6 +541,7 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		const client = await Client.open(port);
 
 		// Act
+		// src holds one file directly, which opens as a file, so no level expands it
 		const unknown = await client.request({ type: 'node.expand', nodeId: 'files:src' });
 		client.sendRaw(JSON.stringify({ id: 41, type: 'map.delete' }));
 		client.sendRaw('{not json');
