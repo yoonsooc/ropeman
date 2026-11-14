@@ -1,0 +1,2024 @@
+{
+	"projectName": "gin",
+	"owner": "gin-gonic",
+	"repo": "gin",
+	"commit": "0f09c3a9b4626d9fe9979cf4d0521d6ae32ab646",
+	"analyzedAt": "2026-11-14",
+	"semanticLevels": {
+		"__root__": {
+			"parentId": null,
+			"breadcrumbLabel": "Project",
+			"assignment": {
+				"leftOut": 0,
+				"duplicated": 0,
+				"invented": 0,
+				"emptied": 0
+			},
+			"nodes": [
+				{
+					"id": "dir:.github",
+					"label": "CI workflows",
+					"description": "GitHub Actions workflows for testing, CodeQL, Trivy scanning and GoReleaser releases.",
+					"filePaths": [
+						".github/workflows/trivy-scan.yml",
+						".github/workflows/goreleaser.yml",
+						".github/workflows/gin.yml",
+						".github/workflows/codeql.yml"
+					],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": null,
+					"depth": 0,
+					"fileCount": 4
+				},
+				{
+					"id": "dir:binding",
+					"label": "Request data binding",
+					"description": "Decodes request bodies, queries and forms (JSON, XML, YAML, TOML, protobuf, multipart) into structs and validates them.",
+					"filePaths": [
+						"binding/yaml.go",
+						"binding/yaml_test.go",
+						"binding/xml.go",
+						"binding/xml_test.go",
+						"binding/validate_test.go",
+						"binding/uri.go",
+						"binding/toml.go",
+						"binding/toml_test.go",
+						"binding/query.go",
+						"binding/protobuf.go",
+						"binding/plain.go",
+						"binding/multipart_form_mapping.go",
+						"binding/multipart_form_mapping_test.go",
+						"binding/msgpack.go",
+						"binding/msgpack_test.go",
+						"binding/json.go",
+						"binding/json_test.go",
+						"binding/header.go",
+						"binding/form.go",
+						"binding/form_mapping.go",
+						"binding/form_mapping_test.go",
+						"binding/form_mapping_benchmark_test.go",
+						"binding/default_validator.go",
+						"binding/default_validator_test.go",
+						"binding/default_validator_benchmark_test.go",
+						"binding/bson.go",
+						"binding/binding.go",
+						"binding/binding_test.go",
+						"binding/binding_nomsgpack.go",
+						"binding/binding_msgpack_test.go"
+					],
+					"keySymbols": [
+						"yamlBinding",
+						"xmlBinding",
+						"uriBinding",
+						"tomlBinding",
+						"decodeYAML",
+						"decodeXML"
+					],
+					"color": "#a6e3a1",
+					"parentId": null,
+					"depth": 0,
+					"fileCount": 30
+				},
+				{
+					"id": "dir:codec",
+					"label": "Pluggable JSON codecs",
+					"description": "JSON encoder and decoder implementations (sonic, jsoniter, go-json, standard) behind a common API.",
+					"filePaths": [
+						"codec/json/sonic.go",
+						"codec/json/jsoniter.go",
+						"codec/json/json.go",
+						"codec/json/go_json.go",
+						"codec/json/api.go"
+					],
+					"keySymbols": ["sonicApi", "jsoniterApi", "jsonApi", "gojsonApi", "Encoder", "Decoder"],
+					"color": "#f9e2af",
+					"parentId": null,
+					"depth": 0,
+					"fileCount": 5
+				},
+				{
+					"id": "dir:ginS",
+					"label": "Global default engine API",
+					"description": "Package-level helpers that route, serve and run through a shared default Gin engine.",
+					"filePaths": ["ginS/README.md", "ginS/gins.go", "ginS/gins_test.go"],
+					"keySymbols": ["GET", "POST", "Run", "RunTLS", "Use", "Group"],
+					"color": "#f38ba8",
+					"parentId": null,
+					"depth": 0,
+					"fileCount": 3
+				},
+				{
+					"id": "dir:internal",
+					"label": "Internal utilities",
+					"description": "Private helpers for zero-copy string and byte conversion and a file system wrapper.",
+					"filePaths": [
+						"internal/bytesconv/bytesconv.go",
+						"internal/bytesconv/bytesconv_test.go",
+						"internal/fs/fs.go",
+						"internal/fs/fs_test.go"
+					],
+					"keySymbols": ["StringToBytes", "BytesToString", "FileSystem"],
+					"color": "#cba6f7",
+					"parentId": null,
+					"depth": 0,
+					"fileCount": 4
+				},
+				{
+					"id": "dir:render",
+					"label": "Response renderers",
+					"description": "Writes responses in formats such as JSON, XML, YAML, TOML, text, protobuf, redirects and streams.",
+					"filePaths": [
+						"render/yaml.go",
+						"render/xml.go",
+						"render/toml.go",
+						"render/text.go",
+						"render/render.go",
+						"render/render_test.go",
+						"render/render_msgpack_test.go",
+						"render/redirect.go",
+						"render/reader.go",
+						"render/reader_test.go",
+						"render/protobuf.go",
+						"render/pdf.go",
+						"render/msgpack.go",
+						"render/json.go",
+						"render/html.go",
+						"render/data.go",
+						"render/bson.go"
+					],
+					"keySymbols": ["Render", "YAML", "XML", "TOML", "String", "WriteString"],
+					"color": "#94e2d5",
+					"parentId": null,
+					"depth": 0,
+					"fileCount": 17
+				},
+				{
+					"id": "dir:testdata",
+					"label": "Test fixtures",
+					"description": "Generated protobuf example code used by the tests.",
+					"filePaths": ["testdata/protoexample/test.pb.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": null,
+					"depth": 0,
+					"fileCount": 1
+				},
+				{
+					"id": "files:.",
+					"label": "Core engine and routing",
+					"description": "The Gin engine, context, radix-tree router, route groups, middleware helpers, recovery and response writer.",
+					"filePaths": [
+						"version.go",
+						"utils.go",
+						"utils_test.go",
+						"tree.go",
+						"tree_test.go",
+						"test_helpers.go",
+						"routes_test.go",
+						"routergroup.go",
+						"routergroup_test.go",
+						"response_writer.go",
+						"response_writer_test.go",
+						"recovery.go",
+						"recovery_test.go",
+						"README.md",
+						"path.go",
+						"path_test.go",
+						"mode.go",
+						"mode_test.go",
+						"middleware_test.go",
+						"Makefile",
+						"logger.go",
+						"logger_test.go",
+						"githubapi_test.go",
+						"gin.go",
+						"gin_test.go",
+						"gin_integration_test.go",
+						"fs.go",
+						"fs_test.go",
+						"errors.go",
+						"errors_test.go",
+						"doc.go",
+						"deprecated.go",
+						"deprecated_test.go",
+						"debug.go",
+						"debug_test.go",
+						"context.go",
+						"context_test.go",
+						"context_file_test.go",
+						"context_appengine.go",
+						"codecov.yml",
+						"benchmarks_test.go",
+						"auth.go",
+						"auth_test.go",
+						"CONTRIBUTING.md",
+						"CODE_OF_CONDUCT.md",
+						"CHANGELOG.md",
+						"BENCHMARKS.md"
+					],
+					"keySymbols": ["Bind", "WrapF", "WrapH", "H", "joinPaths", "resolveAddress"],
+					"color": "#74c7ec",
+					"parentId": null,
+					"depth": 0,
+					"fileCount": 47
+				}
+			],
+			"edges": []
+		},
+		"dir:.github": {
+			"parentId": "dir:.github",
+			"breadcrumbLabel": "CI workflows",
+			"assignment": {
+				"leftOut": 0,
+				"duplicated": 0,
+				"invented": 0,
+				"emptied": 0
+			},
+			"nodes": [
+				{
+					"id": "dir:.github/workflows",
+					"label": "Pipeline definitions",
+					"description": "Workflow files for the test suite, CodeQL analysis, Trivy vulnerability scan and GoReleaser releases.",
+					"filePaths": [
+						".github/workflows/trivy-scan.yml",
+						".github/workflows/goreleaser.yml",
+						".github/workflows/gin.yml",
+						".github/workflows/codeql.yml"
+					],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "dir:.github",
+					"depth": 1,
+					"fileCount": 4
+				}
+			],
+			"edges": []
+		},
+		"dir:.github/workflows": {
+			"parentId": "dir:.github/workflows",
+			"breadcrumbLabel": "Pipeline definitions",
+			"nodes": [
+				{
+					"id": "files:.github/workflows",
+					"label": "workflows/*",
+					"description": "",
+					"filePaths": [
+						".github/workflows/trivy-scan.yml",
+						".github/workflows/goreleaser.yml",
+						".github/workflows/gin.yml",
+						".github/workflows/codeql.yml"
+					],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "dir:.github/workflows",
+					"depth": 2,
+					"fileCount": 4
+				}
+			],
+			"edges": []
+		},
+		"files:.github/workflows": {
+			"parentId": "files:.github/workflows",
+			"breadcrumbLabel": "workflows/*",
+			"nodes": [
+				{
+					"id": "file:.github/workflows/trivy-scan.yml",
+					"label": "trivy-scan.yml",
+					"description": "",
+					"filePaths": [".github/workflows/trivy-scan.yml"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:.github/workflows",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:.github/workflows/goreleaser.yml",
+					"label": "goreleaser.yml",
+					"description": "",
+					"filePaths": [".github/workflows/goreleaser.yml"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:.github/workflows",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:.github/workflows/gin.yml",
+					"label": "gin.yml",
+					"description": "",
+					"filePaths": [".github/workflows/gin.yml"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:.github/workflows",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:.github/workflows/codeql.yml",
+					"label": "codeql.yml",
+					"description": "",
+					"filePaths": [".github/workflows/codeql.yml"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:.github/workflows",
+					"depth": 3,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"dir:binding": {
+			"parentId": "dir:binding",
+			"breadcrumbLabel": "Request data binding",
+			"assignment": {
+				"leftOut": 0,
+				"duplicated": 0,
+				"invented": 0,
+				"emptied": 0
+			},
+			"nodes": [
+				{
+					"id": "files:binding",
+					"label": "Binding implementations",
+					"description": "One binding per format (JSON, XML, YAML, TOML, URI, query, form, protobuf), form mapping and the validator engine, with tests.",
+					"filePaths": [
+						"binding/yaml.go",
+						"binding/yaml_test.go",
+						"binding/xml.go",
+						"binding/xml_test.go",
+						"binding/validate_test.go",
+						"binding/uri.go",
+						"binding/toml.go",
+						"binding/toml_test.go",
+						"binding/query.go",
+						"binding/protobuf.go",
+						"binding/plain.go",
+						"binding/multipart_form_mapping.go",
+						"binding/multipart_form_mapping_test.go",
+						"binding/msgpack.go",
+						"binding/msgpack_test.go",
+						"binding/json.go",
+						"binding/json_test.go",
+						"binding/header.go",
+						"binding/form.go",
+						"binding/form_mapping.go",
+						"binding/form_mapping_test.go",
+						"binding/form_mapping_benchmark_test.go",
+						"binding/default_validator.go",
+						"binding/default_validator_test.go",
+						"binding/default_validator_benchmark_test.go",
+						"binding/bson.go",
+						"binding/binding.go",
+						"binding/binding_test.go",
+						"binding/binding_nomsgpack.go",
+						"binding/binding_msgpack_test.go"
+					],
+					"keySymbols": [
+						"yamlBinding",
+						"xmlBinding",
+						"uriBinding",
+						"tomlBinding",
+						"decodeYAML",
+						"decodeXML"
+					],
+					"color": "#89b4fa",
+					"parentId": "dir:binding",
+					"depth": 1,
+					"fileCount": 30
+				}
+			],
+			"edges": []
+		},
+		"files:binding": {
+			"parentId": "files:binding",
+			"breadcrumbLabel": "Binding implementations",
+			"nodes": [
+				{
+					"id": "file:binding/yaml.go",
+					"label": "yaml.go",
+					"description": "",
+					"filePaths": ["binding/yaml.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/yaml_test.go",
+					"label": "yaml_test.go",
+					"description": "",
+					"filePaths": ["binding/yaml_test.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/xml.go",
+					"label": "xml.go",
+					"description": "",
+					"filePaths": ["binding/xml.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/xml_test.go",
+					"label": "xml_test.go",
+					"description": "",
+					"filePaths": ["binding/xml_test.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/validate_test.go",
+					"label": "validate_test.go",
+					"description": "",
+					"filePaths": ["binding/validate_test.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/uri.go",
+					"label": "uri.go",
+					"description": "",
+					"filePaths": ["binding/uri.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/toml.go",
+					"label": "toml.go",
+					"description": "",
+					"filePaths": ["binding/toml.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/toml_test.go",
+					"label": "toml_test.go",
+					"description": "",
+					"filePaths": ["binding/toml_test.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/query.go",
+					"label": "query.go",
+					"description": "",
+					"filePaths": ["binding/query.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/protobuf.go",
+					"label": "protobuf.go",
+					"description": "",
+					"filePaths": ["binding/protobuf.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/plain.go",
+					"label": "plain.go",
+					"description": "",
+					"filePaths": ["binding/plain.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/multipart_form_mapping.go",
+					"label": "multipart_form_mapping.go",
+					"description": "",
+					"filePaths": ["binding/multipart_form_mapping.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/multipart_form_mapping_test.go",
+					"label": "multipart_form_mapping_test.go",
+					"description": "",
+					"filePaths": ["binding/multipart_form_mapping_test.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/msgpack.go",
+					"label": "msgpack.go",
+					"description": "",
+					"filePaths": ["binding/msgpack.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/msgpack_test.go",
+					"label": "msgpack_test.go",
+					"description": "",
+					"filePaths": ["binding/msgpack_test.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/json.go",
+					"label": "json.go",
+					"description": "",
+					"filePaths": ["binding/json.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/json_test.go",
+					"label": "json_test.go",
+					"description": "",
+					"filePaths": ["binding/json_test.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/header.go",
+					"label": "header.go",
+					"description": "",
+					"filePaths": ["binding/header.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/form.go",
+					"label": "form.go",
+					"description": "",
+					"filePaths": ["binding/form.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/form_mapping.go",
+					"label": "form_mapping.go",
+					"description": "",
+					"filePaths": ["binding/form_mapping.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/form_mapping_test.go",
+					"label": "form_mapping_test.go",
+					"description": "",
+					"filePaths": ["binding/form_mapping_test.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/form_mapping_benchmark_test.go",
+					"label": "form_mapping_benchmark_test.go",
+					"description": "",
+					"filePaths": ["binding/form_mapping_benchmark_test.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/default_validator.go",
+					"label": "default_validator.go",
+					"description": "",
+					"filePaths": ["binding/default_validator.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/default_validator_test.go",
+					"label": "default_validator_test.go",
+					"description": "",
+					"filePaths": ["binding/default_validator_test.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/default_validator_benchmark_test.go",
+					"label": "default_validator_benchmark_test.go",
+					"description": "",
+					"filePaths": ["binding/default_validator_benchmark_test.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/bson.go",
+					"label": "bson.go",
+					"description": "",
+					"filePaths": ["binding/bson.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/binding.go",
+					"label": "binding.go",
+					"description": "",
+					"filePaths": ["binding/binding.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/binding_test.go",
+					"label": "binding_test.go",
+					"description": "",
+					"filePaths": ["binding/binding_test.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/binding_nomsgpack.go",
+					"label": "binding_nomsgpack.go",
+					"description": "",
+					"filePaths": ["binding/binding_nomsgpack.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:binding/binding_msgpack_test.go",
+					"label": "binding_msgpack_test.go",
+					"description": "",
+					"filePaths": ["binding/binding_msgpack_test.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:binding",
+					"depth": 2,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"dir:codec": {
+			"parentId": "dir:codec",
+			"breadcrumbLabel": "Pluggable JSON codecs",
+			"assignment": {
+				"leftOut": 0,
+				"duplicated": 0,
+				"invented": 0,
+				"emptied": 0
+			},
+			"nodes": [
+				{
+					"id": "dir:codec/json",
+					"label": "JSON backend switch",
+					"description": "Selects the JSON library at build time and wraps each one in a shared Core, Encoder and Decoder interface.",
+					"filePaths": [
+						"codec/json/sonic.go",
+						"codec/json/jsoniter.go",
+						"codec/json/json.go",
+						"codec/json/go_json.go",
+						"codec/json/api.go"
+					],
+					"keySymbols": ["Core", "Encoder", "Decoder", "sonicApi", "jsoniterApi", "gojsonApi"],
+					"color": "#89b4fa",
+					"parentId": "dir:codec",
+					"depth": 1,
+					"fileCount": 5
+				}
+			],
+			"edges": []
+		},
+		"dir:codec/json": {
+			"parentId": "dir:codec/json",
+			"breadcrumbLabel": "JSON backend switch",
+			"nodes": [
+				{
+					"id": "files:codec/json",
+					"label": "json/*",
+					"description": "",
+					"filePaths": [
+						"codec/json/sonic.go",
+						"codec/json/jsoniter.go",
+						"codec/json/json.go",
+						"codec/json/go_json.go",
+						"codec/json/api.go"
+					],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "dir:codec/json",
+					"depth": 2,
+					"fileCount": 5
+				}
+			],
+			"edges": []
+		},
+		"files:codec/json": {
+			"parentId": "files:codec/json",
+			"breadcrumbLabel": "json/*",
+			"nodes": [
+				{
+					"id": "file:codec/json/sonic.go",
+					"label": "sonic.go",
+					"description": "",
+					"filePaths": ["codec/json/sonic.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:codec/json",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:codec/json/jsoniter.go",
+					"label": "jsoniter.go",
+					"description": "",
+					"filePaths": ["codec/json/jsoniter.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:codec/json",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:codec/json/json.go",
+					"label": "json.go",
+					"description": "",
+					"filePaths": ["codec/json/json.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:codec/json",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:codec/json/go_json.go",
+					"label": "go_json.go",
+					"description": "",
+					"filePaths": ["codec/json/go_json.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:codec/json",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:codec/json/api.go",
+					"label": "api.go",
+					"description": "",
+					"filePaths": ["codec/json/api.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:codec/json",
+					"depth": 3,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"dir:ginS": {
+			"parentId": "dir:ginS",
+			"breadcrumbLabel": "Global default engine API",
+			"assignment": {
+				"leftOut": 0,
+				"duplicated": 0,
+				"invented": 0,
+				"emptied": 0
+			},
+			"nodes": [
+				{
+					"id": "files:ginS",
+					"label": "Default engine wrappers",
+					"description": "Functions such as GET, POST, Use, Static and Run that forward to a single shared engine, plus a README.",
+					"filePaths": ["ginS/README.md", "ginS/gins.go", "ginS/gins_test.go"],
+					"keySymbols": ["GET", "POST", "Use", "Static", "Run", "RunTLS"],
+					"color": "#89b4fa",
+					"parentId": "dir:ginS",
+					"depth": 1,
+					"fileCount": 3
+				}
+			],
+			"edges": []
+		},
+		"files:ginS": {
+			"parentId": "files:ginS",
+			"breadcrumbLabel": "Default engine wrappers",
+			"nodes": [
+				{
+					"id": "file:ginS/README.md",
+					"label": "README.md",
+					"description": "",
+					"filePaths": ["ginS/README.md"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:ginS",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:ginS/gins.go",
+					"label": "gins.go",
+					"description": "",
+					"filePaths": ["ginS/gins.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:ginS",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:ginS/gins_test.go",
+					"label": "gins_test.go",
+					"description": "",
+					"filePaths": ["ginS/gins_test.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:ginS",
+					"depth": 2,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"dir:internal": {
+			"parentId": "dir:internal",
+			"breadcrumbLabel": "Internal utilities",
+			"assignment": {
+				"leftOut": 0,
+				"duplicated": 0,
+				"invented": 0,
+				"emptied": 0
+			},
+			"nodes": [
+				{
+					"id": "dir:internal/bytesconv",
+					"label": "Zero-copy conversions",
+					"description": "Converts between strings and byte slices without allocating, with tests and benchmarks.",
+					"filePaths": ["internal/bytesconv/bytesconv.go", "internal/bytesconv/bytesconv_test.go"],
+					"keySymbols": ["StringToBytes", "BytesToString"],
+					"color": "#89b4fa",
+					"parentId": "dir:internal",
+					"depth": 1,
+					"fileCount": 2
+				},
+				{
+					"id": "dir:internal/fs",
+					"label": "File system wrapper",
+					"description": "A FileSystem type that opens files for static serving, with a mock used in tests.",
+					"filePaths": ["internal/fs/fs.go", "internal/fs/fs_test.go"],
+					"keySymbols": ["FileSystem"],
+					"color": "#a6e3a1",
+					"parentId": "dir:internal",
+					"depth": 1,
+					"fileCount": 2
+				}
+			],
+			"edges": []
+		},
+		"dir:internal/bytesconv": {
+			"parentId": "dir:internal/bytesconv",
+			"breadcrumbLabel": "Zero-copy conversions",
+			"nodes": [
+				{
+					"id": "files:internal/bytesconv",
+					"label": "bytesconv/*",
+					"description": "",
+					"filePaths": ["internal/bytesconv/bytesconv.go", "internal/bytesconv/bytesconv_test.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "dir:internal/bytesconv",
+					"depth": 2,
+					"fileCount": 2
+				}
+			],
+			"edges": []
+		},
+		"files:internal/bytesconv": {
+			"parentId": "files:internal/bytesconv",
+			"breadcrumbLabel": "bytesconv/*",
+			"nodes": [
+				{
+					"id": "file:internal/bytesconv/bytesconv.go",
+					"label": "bytesconv.go",
+					"description": "",
+					"filePaths": ["internal/bytesconv/bytesconv.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:internal/bytesconv",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:internal/bytesconv/bytesconv_test.go",
+					"label": "bytesconv_test.go",
+					"description": "",
+					"filePaths": ["internal/bytesconv/bytesconv_test.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:internal/bytesconv",
+					"depth": 3,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"dir:internal/fs": {
+			"parentId": "dir:internal/fs",
+			"breadcrumbLabel": "File system wrapper",
+			"nodes": [
+				{
+					"id": "files:internal/fs",
+					"label": "fs/*",
+					"description": "",
+					"filePaths": ["internal/fs/fs.go", "internal/fs/fs_test.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "dir:internal/fs",
+					"depth": 2,
+					"fileCount": 2
+				}
+			],
+			"edges": []
+		},
+		"files:internal/fs": {
+			"parentId": "files:internal/fs",
+			"breadcrumbLabel": "fs/*",
+			"nodes": [
+				{
+					"id": "file:internal/fs/fs.go",
+					"label": "fs.go",
+					"description": "",
+					"filePaths": ["internal/fs/fs.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:internal/fs",
+					"depth": 3,
+					"fileCount": 1
+				},
+				{
+					"id": "file:internal/fs/fs_test.go",
+					"label": "fs_test.go",
+					"description": "",
+					"filePaths": ["internal/fs/fs_test.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:internal/fs",
+					"depth": 3,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"dir:render": {
+			"parentId": "dir:render",
+			"breadcrumbLabel": "Response renderers",
+			"assignment": {
+				"leftOut": 0,
+				"duplicated": 0,
+				"invented": 0,
+				"emptied": 0
+			},
+			"nodes": [
+				{
+					"id": "files:render",
+					"label": "Renderer implementations",
+					"description": "One renderer per output format (JSON variants, XML, YAML, TOML, text, protobuf, redirect, reader) behind the Render interface.",
+					"filePaths": [
+						"render/yaml.go",
+						"render/xml.go",
+						"render/toml.go",
+						"render/text.go",
+						"render/render.go",
+						"render/render_test.go",
+						"render/render_msgpack_test.go",
+						"render/redirect.go",
+						"render/reader.go",
+						"render/reader_test.go",
+						"render/protobuf.go",
+						"render/pdf.go",
+						"render/msgpack.go",
+						"render/json.go",
+						"render/html.go",
+						"render/data.go",
+						"render/bson.go"
+					],
+					"keySymbols": ["Render", "YAML", "XML", "TOML", "String", "WriteString"],
+					"color": "#89b4fa",
+					"parentId": "dir:render",
+					"depth": 1,
+					"fileCount": 17
+				}
+			],
+			"edges": []
+		},
+		"files:render": {
+			"parentId": "files:render",
+			"breadcrumbLabel": "Renderer implementations",
+			"nodes": [
+				{
+					"id": "file:render/yaml.go",
+					"label": "yaml.go",
+					"description": "",
+					"filePaths": ["render/yaml.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/xml.go",
+					"label": "xml.go",
+					"description": "",
+					"filePaths": ["render/xml.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/toml.go",
+					"label": "toml.go",
+					"description": "",
+					"filePaths": ["render/toml.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/text.go",
+					"label": "text.go",
+					"description": "",
+					"filePaths": ["render/text.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/render.go",
+					"label": "render.go",
+					"description": "",
+					"filePaths": ["render/render.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/render_test.go",
+					"label": "render_test.go",
+					"description": "",
+					"filePaths": ["render/render_test.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/render_msgpack_test.go",
+					"label": "render_msgpack_test.go",
+					"description": "",
+					"filePaths": ["render/render_msgpack_test.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/redirect.go",
+					"label": "redirect.go",
+					"description": "",
+					"filePaths": ["render/redirect.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/reader.go",
+					"label": "reader.go",
+					"description": "",
+					"filePaths": ["render/reader.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/reader_test.go",
+					"label": "reader_test.go",
+					"description": "",
+					"filePaths": ["render/reader_test.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/protobuf.go",
+					"label": "protobuf.go",
+					"description": "",
+					"filePaths": ["render/protobuf.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/pdf.go",
+					"label": "pdf.go",
+					"description": "",
+					"filePaths": ["render/pdf.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/msgpack.go",
+					"label": "msgpack.go",
+					"description": "",
+					"filePaths": ["render/msgpack.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/json.go",
+					"label": "json.go",
+					"description": "",
+					"filePaths": ["render/json.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/html.go",
+					"label": "html.go",
+					"description": "",
+					"filePaths": ["render/html.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/data.go",
+					"label": "data.go",
+					"description": "",
+					"filePaths": ["render/data.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				},
+				{
+					"id": "file:render/bson.go",
+					"label": "bson.go",
+					"description": "",
+					"filePaths": ["render/bson.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:render",
+					"depth": 2,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"dir:testdata": {
+			"parentId": "dir:testdata",
+			"breadcrumbLabel": "Test fixtures",
+			"assignment": {
+				"leftOut": 0,
+				"duplicated": 0,
+				"invented": 0,
+				"emptied": 0
+			},
+			"nodes": [
+				{
+					"id": "dir:testdata/protoexample",
+					"label": "Protobuf test message",
+					"description": "Generated Go code for a sample protobuf message used by binding and render tests.",
+					"filePaths": ["testdata/protoexample/test.pb.go"],
+					"keySymbols": ["Test", "Test_OptionalGroup"],
+					"color": "#89b4fa",
+					"parentId": "dir:testdata",
+					"depth": 1,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"dir:testdata/protoexample": {
+			"parentId": "dir:testdata/protoexample",
+			"breadcrumbLabel": "Protobuf test message",
+			"nodes": [
+				{
+					"id": "files:testdata/protoexample",
+					"label": "protoexample/*",
+					"description": "",
+					"filePaths": ["testdata/protoexample/test.pb.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "dir:testdata/protoexample",
+					"depth": 2,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		},
+		"files:.": {
+			"parentId": "files:.",
+			"breadcrumbLabel": "Core engine and routing",
+			"nodes": [
+				{
+					"id": "file:version.go",
+					"label": "version.go",
+					"description": "",
+					"filePaths": ["version.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:utils.go",
+					"label": "utils.go",
+					"description": "",
+					"filePaths": ["utils.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:utils_test.go",
+					"label": "utils_test.go",
+					"description": "",
+					"filePaths": ["utils_test.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:tree.go",
+					"label": "tree.go",
+					"description": "",
+					"filePaths": ["tree.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:tree_test.go",
+					"label": "tree_test.go",
+					"description": "",
+					"filePaths": ["tree_test.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:test_helpers.go",
+					"label": "test_helpers.go",
+					"description": "",
+					"filePaths": ["test_helpers.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:routes_test.go",
+					"label": "routes_test.go",
+					"description": "",
+					"filePaths": ["routes_test.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:routergroup.go",
+					"label": "routergroup.go",
+					"description": "",
+					"filePaths": ["routergroup.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:routergroup_test.go",
+					"label": "routergroup_test.go",
+					"description": "",
+					"filePaths": ["routergroup_test.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:response_writer.go",
+					"label": "response_writer.go",
+					"description": "",
+					"filePaths": ["response_writer.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:response_writer_test.go",
+					"label": "response_writer_test.go",
+					"description": "",
+					"filePaths": ["response_writer_test.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:recovery.go",
+					"label": "recovery.go",
+					"description": "",
+					"filePaths": ["recovery.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:recovery_test.go",
+					"label": "recovery_test.go",
+					"description": "",
+					"filePaths": ["recovery_test.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:README.md",
+					"label": "README.md",
+					"description": "",
+					"filePaths": ["README.md"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:path.go",
+					"label": "path.go",
+					"description": "",
+					"filePaths": ["path.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:path_test.go",
+					"label": "path_test.go",
+					"description": "",
+					"filePaths": ["path_test.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:mode.go",
+					"label": "mode.go",
+					"description": "",
+					"filePaths": ["mode.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:mode_test.go",
+					"label": "mode_test.go",
+					"description": "",
+					"filePaths": ["mode_test.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:middleware_test.go",
+					"label": "middleware_test.go",
+					"description": "",
+					"filePaths": ["middleware_test.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:Makefile",
+					"label": "Makefile",
+					"description": "",
+					"filePaths": ["Makefile"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:logger.go",
+					"label": "logger.go",
+					"description": "",
+					"filePaths": ["logger.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:logger_test.go",
+					"label": "logger_test.go",
+					"description": "",
+					"filePaths": ["logger_test.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:githubapi_test.go",
+					"label": "githubapi_test.go",
+					"description": "",
+					"filePaths": ["githubapi_test.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:gin.go",
+					"label": "gin.go",
+					"description": "",
+					"filePaths": ["gin.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:gin_test.go",
+					"label": "gin_test.go",
+					"description": "",
+					"filePaths": ["gin_test.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:gin_integration_test.go",
+					"label": "gin_integration_test.go",
+					"description": "",
+					"filePaths": ["gin_integration_test.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:fs.go",
+					"label": "fs.go",
+					"description": "",
+					"filePaths": ["fs.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:fs_test.go",
+					"label": "fs_test.go",
+					"description": "",
+					"filePaths": ["fs_test.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:errors.go",
+					"label": "errors.go",
+					"description": "",
+					"filePaths": ["errors.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:errors_test.go",
+					"label": "errors_test.go",
+					"description": "",
+					"filePaths": ["errors_test.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:doc.go",
+					"label": "doc.go",
+					"description": "",
+					"filePaths": ["doc.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:deprecated.go",
+					"label": "deprecated.go",
+					"description": "",
+					"filePaths": ["deprecated.go"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:deprecated_test.go",
+					"label": "deprecated_test.go",
+					"description": "",
+					"filePaths": ["deprecated_test.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:debug.go",
+					"label": "debug.go",
+					"description": "",
+					"filePaths": ["debug.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:debug_test.go",
+					"label": "debug_test.go",
+					"description": "",
+					"filePaths": ["debug_test.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:context.go",
+					"label": "context.go",
+					"description": "",
+					"filePaths": ["context.go"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:context_test.go",
+					"label": "context_test.go",
+					"description": "",
+					"filePaths": ["context_test.go"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:context_file_test.go",
+					"label": "context_file_test.go",
+					"description": "",
+					"filePaths": ["context_file_test.go"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:context_appengine.go",
+					"label": "context_appengine.go",
+					"description": "",
+					"filePaths": ["context_appengine.go"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:codecov.yml",
+					"label": "codecov.yml",
+					"description": "",
+					"filePaths": ["codecov.yml"],
+					"keySymbols": [],
+					"color": "#74c7ec",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:benchmarks_test.go",
+					"label": "benchmarks_test.go",
+					"description": "",
+					"filePaths": ["benchmarks_test.go"],
+					"keySymbols": [],
+					"color": "#89b4fa",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:auth.go",
+					"label": "auth.go",
+					"description": "",
+					"filePaths": ["auth.go"],
+					"keySymbols": [],
+					"color": "#a6e3a1",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:auth_test.go",
+					"label": "auth_test.go",
+					"description": "",
+					"filePaths": ["auth_test.go"],
+					"keySymbols": [],
+					"color": "#f9e2af",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:CONTRIBUTING.md",
+					"label": "CONTRIBUTING.md",
+					"description": "",
+					"filePaths": ["CONTRIBUTING.md"],
+					"keySymbols": [],
+					"color": "#f38ba8",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:CODE_OF_CONDUCT.md",
+					"label": "CODE_OF_CONDUCT.md",
+					"description": "",
+					"filePaths": ["CODE_OF_CONDUCT.md"],
+					"keySymbols": [],
+					"color": "#cba6f7",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:CHANGELOG.md",
+					"label": "CHANGELOG.md",
+					"description": "",
+					"filePaths": ["CHANGELOG.md"],
+					"keySymbols": [],
+					"color": "#94e2d5",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				},
+				{
+					"id": "file:BENCHMARKS.md",
+					"label": "BENCHMARKS.md",
+					"description": "",
+					"filePaths": ["BENCHMARKS.md"],
+					"keySymbols": [],
+					"color": "#fab387",
+					"parentId": "files:.",
+					"depth": 1,
+					"fileCount": 1
+				}
+			],
+			"edges": []
+		}
+	},
+	"filePaths": [
+		"version.go",
+		"utils.go",
+		"utils_test.go",
+		"tree.go",
+		"tree_test.go",
+		"test_helpers.go",
+		"routes_test.go",
+		"routergroup.go",
+		"routergroup_test.go",
+		"response_writer.go",
+		"response_writer_test.go",
+		"recovery.go",
+		"recovery_test.go",
+		"README.md",
+		"path.go",
+		"path_test.go",
+		"mode.go",
+		"mode_test.go",
+		"middleware_test.go",
+		"Makefile",
+		"logger.go",
+		"logger_test.go",
+		"githubapi_test.go",
+		"gin.go",
+		"gin_test.go",
+		"gin_integration_test.go",
+		"fs.go",
+		"fs_test.go",
+		"errors.go",
+		"errors_test.go",
+		"doc.go",
+		"deprecated.go",
+		"deprecated_test.go",
+		"debug.go",
+		"debug_test.go",
+		"context.go",
+		"context_test.go",
+		"context_file_test.go",
+		"context_appengine.go",
+		"codecov.yml",
+		"benchmarks_test.go",
+		"auth.go",
+		"auth_test.go",
+		"render/yaml.go",
+		"render/xml.go",
+		"render/toml.go",
+		"render/text.go",
+		"render/render.go",
+		"render/render_test.go",
+		"render/render_msgpack_test.go",
+		"render/redirect.go",
+		"render/reader.go",
+		"render/reader_test.go",
+		"render/protobuf.go",
+		"render/pdf.go",
+		"render/msgpack.go",
+		"render/json.go",
+		"render/html.go",
+		"render/data.go",
+		"render/bson.go",
+		"ginS/README.md",
+		"ginS/gins.go",
+		"ginS/gins_test.go",
+		"binding/yaml.go",
+		"binding/yaml_test.go",
+		"binding/xml.go",
+		"binding/xml_test.go",
+		"binding/validate_test.go",
+		"binding/uri.go",
+		"binding/toml.go",
+		"binding/toml_test.go",
+		"binding/query.go",
+		"binding/protobuf.go",
+		"binding/plain.go",
+		"binding/multipart_form_mapping.go",
+		"binding/multipart_form_mapping_test.go",
+		"binding/msgpack.go",
+		"binding/msgpack_test.go",
+		"binding/json.go",
+		"binding/json_test.go",
+		"binding/header.go",
+		"binding/form.go",
+		"binding/form_mapping.go",
+		"binding/form_mapping_test.go",
+		"binding/form_mapping_benchmark_test.go",
+		"binding/default_validator.go",
+		"binding/default_validator_test.go",
+		"binding/default_validator_benchmark_test.go",
+		"binding/bson.go",
+		"binding/binding.go",
+		"binding/binding_test.go",
+		"binding/binding_nomsgpack.go",
+		"binding/binding_msgpack_test.go",
+		"testdata/protoexample/test.pb.go",
+		"internal/fs/fs.go",
+		"internal/fs/fs_test.go",
+		"internal/bytesconv/bytesconv.go",
+		"internal/bytesconv/bytesconv_test.go",
+		"codec/json/sonic.go",
+		"codec/json/jsoniter.go",
+		"codec/json/json.go",
+		"codec/json/go_json.go",
+		"codec/json/api.go",
+		".github/workflows/trivy-scan.yml",
+		".github/workflows/goreleaser.yml",
+		".github/workflows/gin.yml",
+		".github/workflows/codeql.yml",
+		"CONTRIBUTING.md",
+		"CODE_OF_CONDUCT.md",
+		"CHANGELOG.md",
+		"BENCHMARKS.md"
+	],
+	"translations": {
+		"ko": {
+			"dir:.github": {
+				"label": "CI 워크플로",
+				"description": "테스트, CodeQL, Trivy 스캔, GoReleaser 릴리스를 위한 GitHub Actions 워크플로이다."
+			},
+			"dir:binding": {
+				"label": "요청 데이터 바인딩",
+				"description": "요청 본문, 쿼리, 폼(JSON, XML, YAML, TOML, protobuf, multipart)을 구조체로 디코딩하고 검증한다."
+			},
+			"dir:codec": {
+				"label": "교체 가능한 JSON 코덱",
+				"description": "공통 API 뒤에서 동작하는 JSON 인코더와 디코더 구현체(sonic, jsoniter, go-json, 표준 라이브러리)이다."
+			},
+			"dir:ginS": {
+				"label": "전역 기본 엔진 API",
+				"description": "공유되는 기본 Gin 엔진을 통해 라우팅, 서빙, 실행을 수행하는 패키지 수준 헬퍼이다."
+			},
+			"dir:internal": {
+				"label": "내부 유틸리티",
+				"description": "문자열과 바이트의 제로카피 변환 및 파일 시스템 래퍼를 위한 비공개 헬퍼이다."
+			},
+			"dir:render": {
+				"label": "응답 렌더러",
+				"description": "JSON, XML, YAML, TOML, 텍스트, protobuf, 리다이렉트, 스트림 등의 형식으로 응답을 작성한다."
+			},
+			"dir:testdata": {
+				"label": "테스트 픽스처",
+				"description": "테스트에서 사용하는 생성된 protobuf 예제 코드이다."
+			},
+			"files:.": {
+				"label": "코어 엔진과 라우팅",
+				"description": "Gin 엔진, 컨텍스트, 래딕스 트리 라우터, 라우트 그룹, middleware 헬퍼, recovery, 응답 writer를 포함한다."
+			},
+			"dir:.github/workflows": {
+				"label": "파이프라인 정의",
+				"description": "테스트 스위트, CodeQL 분석, Trivy 취약점 스캔, GoReleaser 릴리스를 위한 워크플로 파일이다."
+			},
+			"files:binding": {
+				"label": "바인딩 구현체",
+				"description": "형식별(JSON, XML, YAML, TOML, URI, query, form, protobuf) 바인딩, 폼 매핑, 검증 엔진이 테스트와 함께 들어 있다."
+			},
+			"dir:codec/json": {
+				"label": "JSON 백엔드 전환",
+				"description": "빌드 시점에 JSON 라이브러리를 선택하고 각각을 공통 Core, Encoder, Decoder 인터페이스로 감싼다."
+			},
+			"files:ginS": {
+				"label": "기본 엔진 래퍼",
+				"description": "GET, POST, Use, Static, Run 같은 함수가 하나의 공유 엔진으로 요청을 전달하며, README도 포함한다."
+			},
+			"dir:internal/bytesconv": {
+				"label": "제로카피 변환",
+				"description": "할당 없이 문자열과 바이트 슬라이스를 상호 변환하며, 테스트와 벤치마크가 포함되어 있다."
+			},
+			"dir:internal/fs": {
+				"label": "파일 시스템 래퍼",
+				"description": "정적 파일 서빙을 위해 파일을 여는 FileSystem 타입이며, 테스트에 쓰이는 목(mock)도 있다."
+			},
+			"files:render": {
+				"label": "렌더러 구현체",
+				"description": "Render 인터페이스 뒤에 출력 형식별(JSON 변형, XML, YAML, TOML, 텍스트, protobuf, 리다이렉트, reader) 렌더러가 하나씩 있다."
+			},
+			"dir:testdata/protoexample": {
+				"label": "Protobuf 테스트 메시지",
+				"description": "바인딩과 렌더 테스트에 사용되는 샘플 protobuf 메시지의 생성된 Go 코드이다."
+			}
+		}
+	}
+}

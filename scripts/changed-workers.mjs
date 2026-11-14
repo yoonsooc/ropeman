@@ -4,7 +4,7 @@
  * 두 커밋 사이에 바뀐 edge 워커 이름을 출력한다 (ci.yml deploy job).
  * 워커 목록은 edge-proxy/wrangler.<name>.toml 파일에서 읽는다.
  *
- * - src/<name>.ts 또는 wrangler.<name>.toml 변경 → 그 워커
+ * - src/<name>.ts, src/<name>.<part>.ts(그 워커만 쓰는 모듈) 또는 wrangler.<name>.toml 변경 → 그 워커
  * - src/shared.ts, package.json, package-lock.json 변경 → 모든 워커
  * - 이전 커밋이 없거나(첫 push, 0000…) diff가 실패하면 → 모든 워커
  * - 설정에 자리표시자(REPLACE_WITH_…)가 남은 워커는 배포할 수 없으므로 빼고 경고한다.
@@ -56,7 +56,12 @@ if (files === null || files.some((f) => SHARED.has(f))) {
 	selected = workers;
 } else {
 	selected = workers.filter((w) =>
-		files.some((f) => f === `edge-proxy/src/${w}.ts` || f === `edge-proxy/wrangler.${w}.toml`)
+		files.some(
+			(f) =>
+				f === `edge-proxy/src/${w}.ts` ||
+				f.startsWith(`edge-proxy/src/${w}.`) ||
+				f === `edge-proxy/wrangler.${w}.toml`
+		)
 	);
 }
 

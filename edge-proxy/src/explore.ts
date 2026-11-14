@@ -9,6 +9,7 @@
  *   - GET is fully public, no rate limit.
  */
 import { getAllowedOrigin, corsHeaders, jsonResponse } from './shared';
+import { MAX_BODY_SIZE } from './explore.limits';
 
 interface Env {
 	ALLOWED_ORIGINS: string;
@@ -17,7 +18,6 @@ interface Env {
 }
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
-const MAX_BODY_SIZE = 2_097_152; // 2 MB — explore snapshots can be larger than share (no per-user quota)
 
 /**
  * Defensive structural validation of admin-uploaded snapshot payloads.
@@ -146,6 +146,34 @@ async function handleList(env: Env, cors: Record<string, string>): Promise<Respo
 	);
 }
 
+/**
+ * The request body, read until it passes `max` bytes and then dropped: null when it is larger,
+ * so a body without Content-Length never sits whole in memory past the cap.
+ */
+async function readCapped(request: Request, max: number): Promise<Uint8Array | null> {
+	if (!request.body) return new Uint8Array();
+	const reader = request.body.getReader();
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		size += value.byteLength;
+		if (size > max) {
+			await reader.cancel();
+			return null;
+		}
+		chunks.push(value);
+	}
+	const bytes = new Uint8Array(size);
+	let offset = 0;
+	for (const chunk of chunks) {
+		bytes.set(chunk, offset);
+		offset += chunk.byteLength;
+	}
+	return bytes;
+}
+
 async function handleUpsert(request: Request, env: Env, slug: string, cors: Record<string, string>): Promise<Response> {
 	if (!isAuthorized(request, env)) {
 		return jsonResponse({ error: 'Unauthorized' }, 401, cors);
@@ -155,28 +183,31 @@ async function handleUpsert(request: Request, env: Env, slug: string, cors: Reco
 		return jsonResponse({ error: 'Invalid slug' }, 400, cors);
 	}
 
+	const tooLarge = () => jsonResponse({ error: `Payload too large (max ${MAX_BODY_SIZE} bytes)` }, 413, cors);
 	const contentLength = request.headers.get('Content-Length');
 	if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
-		return jsonResponse({ error: 'Payload too large (max 2MB)' }, 413, cors);
+		return tooLarge();
 	}
 
-	let body: unknown;
+	// Bytes, not UTF-16 units: a Korean character is one unit but three bytes
+	const bytes = await readCapped(request, MAX_BODY_SIZE);
+	if (!bytes) {
+		return tooLarge();
+	}
+	const text = new TextDecoder().decode(bytes);
+	let valid: boolean;
 	try {
-		const text = await request.text();
-		if (text.length > MAX_BODY_SIZE) {
-			return jsonResponse({ error: 'Payload too large (max 2MB)' }, 413, cors);
-		}
-		body = JSON.parse(text);
+		valid = isValidSnapshot(JSON.parse(text));
 	} catch {
 		return jsonResponse({ error: 'Invalid JSON' }, 400, cors);
 	}
-
-	if (!isValidSnapshot(body)) {
+	if (!valid) {
 		return jsonResponse({ error: 'Invalid snapshot structure' }, 400, cors);
 	}
 
+	// The uploaded text as it came, so a read-back hashes to the same bytes.
 	// No TTL — explore entries persist until manually overwritten.
-	await env.ROPEMAN_EXPLORE_STORE.put(slug, JSON.stringify(body));
+	await env.ROPEMAN_EXPLORE_STORE.put(slug, text);
 
 	return jsonResponse({ slug, ok: true }, 200, cors);
 }

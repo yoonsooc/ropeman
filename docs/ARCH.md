@@ -53,6 +53,7 @@ src/
 │   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다 (T1-12 비교용)
 │   │   ├── ropemanMapSchema.ts       # `ropeman.json`과 Bridge RPC 메시지를 믿지 않는 입력으로 파싱 (크기, JSON, 형식, 버전, 구조, 단계 트리)
 │   │   ├── mapViewer.ts              # 파싱한 ropeman.json을 시맨틱 스토어가 캐시하는 단계 모양으로 펼친다
+│   │   ├── exploreSnapshotBuilder.ts # 검증한 ropeman.json → 갤러리 스냅샷(분석 커밋, 한국어 옆 사전)과 출고 검사. `scripts/explore/pipeline.mjs`만 쓴다
 │   │   ├── bridgeClient.ts           # ropeman serve RPC 클라이언트: hello 확인, id로 응답 맞추기, 푸시 전달
 │   │   ├── bridgeAccess.ts           # 연결 안내: loopback-network 권한, 포트 확인, 실패 원인과 안내 상태
 │   │   ├── bridgeSession.ts          # Bridge 토큰을 다시 고침 너머로 남길지: 루프백 로컬 모드만 sessionStorage, ropeman.dev는 메모리
@@ -176,6 +177,14 @@ skill/                            # 에이전트 스킬 (T2-6, ADR-25)
 ├── ropeman/SKILL.md                  # 정본(영어). 에이전트가 읽는 유일한 파일
 ├── README.md                         # 설치와 쓰는 법(영어)
 └── README-KO.md                      # 설치와 쓰는 법, 절차 번역(한국어). 스킬 폴더 밖이라 스킬로 읽히지 않는다
+
+scripts/explore/                  # 갤러리 스냅샷 만들기 (아래 "갤러리 스냅샷 파이프라인")
+├── repos.json                        # 슬러그 → 저장소, 고정한 커밋, 묶음, 이름 지을 단계 수
+├── pipeline.mjs                      # 저장소마다: 클론 → 스킬로 지도(claude -p) → 검증 → 한국어 → 스냅샷
+├── agent.mjs                         # 지도 에이전트 샌드박스: 도구·읽기·쓰기·명령·환경 변수 허용 목록
+├── probe-sandbox.mjs                 # 주입을 넣은 가짜 저장소로 샌드박스가 실제로 막는지 확인
+├── upload.mjs                        # 사용자가 토큰으로 KV에 올리고 다시 받아 sha256 비교 (`--dry-run`은 토큰 없이)
+└── thumbs.mjs                        # 갤러리 카드 이미지(`static/explore/thumbs/`)를 스냅샷에서 그린다
 
 scripts/paseo-comparison/         # 실험: 같은 모델·프롬프트에 Ropeman 추출과 graph.json을 넣어 비교 (T1-12)
 ├── run.mjs                           # vite로 TS 모듈을 Node에서 연다 (`$lib` 별칭)
@@ -412,6 +421,21 @@ ropeman inbox --out O            → 남은 대기열 + 지난번 이후의 일�
 - 검증: `bridge/test/mapCommand.test.ts`(30개)가 임시 저장소에서 첫 실행, 단계 적용, 끝과 재실행이 같은 바이트를 쓰는지, 문제 코드별 단계 되돌리기, 단계 밖의 거부된 단계, 출력 폴더 규칙, `verify`, 대기열 한 바퀴, 폴더가 생겼다 사라진 뒤 이름이 돌아오는지, 사라진 폴더의 대기열 정리, 가짜 일꾼이 요약과 위 단계 이름을 받아 이름 붙이고 기록하며 `inbox`가 그것을 한 번만 돌려주는지, 긴 요약 자르기를 본다. 심어 둔 파일(요약·이름·대기열 링크, FIFO 요약, 3GiB 희소 요약, 링크인 `--out`), git이 작업 폴더를 커밋하지 않는지와 사용자의 숨은 폴더에는 `.gitignore`를 넣지 않는지, 기록을 못 쓸 때, 일꾼보다 늦게 온 에이전트 이름, `--out` 모드의 동시 2개와 취소, 기록 자르기와 바뀐 기록의 `inbox`, serve `--out` 값과 `ropeman map` 없는 `inbox` 폴더도 본다. `bridge/test/detectCli.test.ts`(2개)는 PATH에 가짜 `gemini`만 있으면 일꾼을 고르지 않고, `claude`가 있으면 그것을 고르는지 본다. `tests/bridge-mode.spec.ts`는 일꾼 이름 뒤에 "claude 일꾼" 띠가 뜨는지, 일꾼이 없는 `--out` 모드에서 대기열 안내와 `ropeman map` 뒤의 이름이 같은 화면에 뜨는지 본다.
 - PASEO 실측(`e0f545fed`, Apple M4, 2026-11-13, 모델 비용 합계 2.24달러): 새 Claude Code 세션(`claude -p`, sonnet, 프로젝트 설정만, `ropeman` 명령만 허용)에 스킬을 설치하고 "이 저장소 지도 그려줘. 서버와 앱이 어떻게 통신하는지 알고 싶다. 저장소는 읽기 전용이니 결과는 <폴더>에"라고만 했다. 최종 스킬로 첫 대화는 16턴, 114초, 0.37달러였다. `ropeman map`을 3번 돌려 두 단계(최상위 하나와 그 아래 폴더 12개, 부분 87개)에 이름을 붙이고 문제 0개로 끝냈고, `brief.md`(사용자 목표, 용어 6개, 이름 규칙 "전송을 다루면 WebSocket·session을 쓴다", 위 단계 이름)를 썼다. `ropeman verify`는 위반 0, 단계 735, 노드 1,398, 관계 1,438, 근거 12,244를 확인했다. 커버리지 보고는 본 파일 6,756, 지도 6,173(읽음 6,171, 크기 초과 1, 파싱 실패 1), 문법 없음 583이다. `ropeman map` 한 번은 7~8초다. serve(`--out`, 일꾼 `claude` 자동 감지)를 띄우고 headless Chromium으로 최상위와 `packages` 아래 이름을 확인한 뒤 `packages/server`를 열자 claude 일꾼이 9.0초 뒤 이름을 보냈다("Daemon source and WebSocket sessions" 등, 요약의 규칙을 따랐다. 0.059달러). 그 안의 `src`는 12.5초(0.081달러)였고, 화면 띠는 "The claude worker named these parts. Worker runs this session: 2."였다. 같은 세션에 "뷰어에서 좀 눌러 봤어. WebSocket 세션은 어디서 다뤄?"를 보내자 에이전트가 먼저 `ropeman inbox`를 돌려 일꾼 기록 2줄을 읽고, 답에 "열어 본 `packages/server/src/server`를 일꾼이 'WebSocket sessions and request handlers'로 이름 붙였다"를 넣었다(5턴, 13초, 0.44달러). 앞선 판들: 파이프 금지 규칙 전 실행(14턴, 113초, 0.52달러, `sed`로 보고를 자르려다 막혀 규칙을 넣었다), 대기열만 있던 판(첫 대화 0.34달러, 대기열 처리 0.43달러).
 - 확인하지 않은 것: Claude Code 밖의 에이전트(Codex, Gemini CLI, Cursor), Windows, gemini 일꾼.
+
+### 갤러리 스냅샷 파이프라인 (`scripts/explore/`)
+
+`/explore/[slug]`이 보여 주는 스냅샷을 사용자가 스킬로 지도를 만드는 방식 그대로 만든다. `node scripts/explore/pipeline.mjs <slug...>` 또는 `--batch N`이 저장소를 하나씩 처리하고, 작업 폴더는 기본으로 `~/.cache/ropeman-explore`다. `repos.json`의 `batch`가 묶음을 정한다. Go·Rust 저장소(gin, tokio, polars, dbt)는 import 해석이 없어 관계선이 0개라 2묶음으로 미뤄 두었고, 갤러리 manifest에는 1묶음과 예전 스냅샷 다섯 개만 둔다(`exploreService.test.ts`가 manifest의 owner·repo가 `repos.json`과 같은지도 본다).
+
+- 클론: `repos.json`의 커밋 하나를 `git fetch --depth 1`로 받고 쓰기 권한을 뺀다.
+- 지도: 이 체크아웃의 bridge를 빌드해 `ropeman` 이름으로 PATH 앞에 두고, 스킬을 프로젝트 스킬로 둔 빈 폴더에서 `claude -p`(sonnet)를 띄운다. 프롬프트는 사용자가 하듯 "영어로 이름 짓고, 저장소는 읽기 전용이니 OUT에 쓰고, 8단계에서 멈춰라"다. 코드가 깊이 시작하는 저장소(`src/transformers/`)는 `repos.json`의 `depth`로 처음부터 이름 지을 단계 수를 늘린다(기본은 스킬의 2단계).
+- 에이전트 샌드박스(`scripts/explore/agent.mjs`): 지도에 쓰는 저장소는 남의 코드라, 그 안의 프롬프트 주입이 클론과 OUT 밖에 닿지 못하게 한다. 세션에는 `--tools`로 Bash·Read·Write·Edit·Skill만 둔다(Glob·Grep 없음). 읽기는 클론과 OUT, 쓰기는 OUT만 허용하고(절대 경로 규칙), `dontAsk` 모드라 나머지는 모두 거절된다. 신뢰하지 않은 작업 폴더에서는 `.claude/settings.json`의 허용 목록이 무시되므로 권한은 CLI 플래그로 준다. 클론을 `--add-dir`로 넣지 않아 클론의 `.claude/skills`·CLAUDE.md가 실리지 않고, 프로젝트 스킬은 에이전트 폴더에 복사한 ropeman 스킬 하나다. PATH의 `ropeman`은 `--version`, `map --root 클론 --out OUT [--depth N]`, `verify --root 클론 --map OUT/ropeman.json`만 실행하고 나머지 인자는 거절하는 셸 스크립트다. Bash 규칙은 `ropeman` 접두사만 허용하고, `&&`로 이어 붙인 명령은 Claude Code가 따로 검사해 거절한다. 환경 변수는 허용 목록(PATH, HOME, USER, LOGNAME, SHELL, TERM, TMPDIR, LANG, `LC_*`, `ANTHROPIC_*`, `CLAUDE_CONFIG_DIR`, 프록시·CA 변수)만 넘긴다. `node scripts/explore/probe-sandbox.mjs`가 README와 `.claude/skills`에 주입을 넣은 가짜 저장소로 클론 밖 파일 읽기, 홈 폴더 읽기, 다른 `--out`, 클론에 쓰기, 그리고 허용된 `ropeman` 접두사에 붙인 셸 형태 18가지(`;`, `|`, `&`, `>`, `>>`, `2>`, `&>`, `<`, `>(…)`, `<(…)`, 앞쪽 변수 대입, 주석, 따옴표 속 줄바꿈, `--out OUT/../..`, `&&`, `$(…)`, 백틱, 두 줄)를 시도하게 하고, 실제 부작용(OUT 밖에 생기거나 바뀐 파일)과 카나리 문자열이 어떤 출력에도 없는지로 판정한다(약 0.1달러). 2026-11-14 두 번 돌려 16가지는 Claude Code가 거절했고, 주석은 무해하게 실행됐고, `..` 경로는 셸 스크립트가 거절했다. 지도 단계의 입력 해시에는 `agent.mjs`도 들어가서, 샌드박스가 바뀌면 지도를 다시 만든다.
+- 검증: `ropeman verify`가 `ok`여야 한다.
+- 한국어: 에이전트가 이름 지은(`naming: "named"`) 노드의 라벨과 설명만 `claude -p --tools "" --json-schema`로 번역한다. 폴더 이름으로 묶인 단계는 번역하지 않는다. 영어 원문의 해시가 같으면 다시 부르지 않는다.
+- 스냅샷: 단계는 영어 그대로(`mapViewer.toViewerLevels()`), `commit`(분석한 커밋), 저장소 루트 기준 `filePaths`, `translations.ko`(노드 id → 라벨·설명)를 더한다. `SemanticLevel` 모양은 바꾸지 않는다. 여러 파일을 담은 `files:` 노드는 지도에 아래 단계가 없어 "스냅샷에 없음"이 되므로, 파일마다 노드 하나(`file:<경로>`)인 단계를 붙여 파일 노드처럼 코드를 열게 한다. 지금 이 단계는 관계선 없는 목록이다. bridge가 한 노드 안 파일 사이의 import를 지도에 남기지 않아서 그릴 근거가 없다(bridge가 남기게 되면 테스트가 실패해 알려 준다). 출고 검사는 요청한 단계가 모두 `named`인지, 16MiB(explore 워커 `MAX_BODY_SIZE`와 같은 값, 테스트가 같은지 본다), 40자리 커밋, 공개 텍스트(모든 노드의 라벨·설명·핵심 심볼, 빵부스러기, 한국어 번역)에 홈 경로(`/Users/`, `/home/`, `~/`), 저장소 밖 절대 경로(`/etc`, `/tmp`, `/var` 등), 비밀처럼 보이는 문자열(PEM 개인 키, AWS 키 id, `ghp_`·`github_pat_`, `sk-`, Slack 토큰, JWT, `password=…` 같은 대입)이 없는지(`contentLeaks()`), `validateSnapshot` 왕복에서 단계가 빠지지 않는지, 이름 지은 노드마다 한국어가 있고 길이 한도 안이며 설명에 한글이 있는지 본다.
+- 다시 돌리기: 단계마다 결과가 입력과 맞으면 건너뛴다(클론은 HEAD, 지도는 커밋과 SKILL.md·`agent.mjs`·프롬프트 해시, 번역은 원문 해시). `--redo map|translate`로 한 단계를 다시 한다. 비용, 시간, 크기, 출고 검사 결과는 검사에 걸려도 `WORK/<slug>/report.json`에 남는다.
+- 올리기: `scripts/explore/upload.mjs`는 사용자가 자기 터미널에서 돌린다. `report.json`의 검사가 통과했고 sha256이 같고 고정한 커밋에서 나온 스냅샷만 올리고, 올린 뒤 GET으로 다시 받아 sha256을 비교한다. `--url`은 https만 받는다(로컬 워커는 `http://localhost`·`127.0.0.1`). 응답 본문은 200자까지만 출력하고, 401이 오면 남은 slug를 보내지 않고 멈춘다. `report.json`이 없는 slug는 건너뛴다. 토큰은 `EXPLORE_ADMIN_TOKEN` 환경 변수에서만 읽고 출력하거나 쓰지 않는다. `--dry-run`은 토큰 없이 크기와 해시만 보여 준다. 워커는 본문을 UTF-16 단위가 아니라 바이트로 재고, 스트림으로 읽다가 16MiB를 넘는 순간 멈춘다. 검증할 때만 파싱하고, KV에는 받은 텍스트를 그대로 저장한다. 그래서 다시 받은 바이트가 올린 파일과 같다.
+- 카드 이미지: `scripts/explore/thumbs.mjs --base <프로덕션 빌드 주소>`가 작업 폴더의 스냅샷을 상세 페이지에 넣어 영어로 그리고, 캔버스 영역을 800x430 WebP로 밝은·어두운 테마 두 장씩 저장한다. WebP 인코딩은 브라우저 canvas가 해서 이미지 라이브러리가 필요 없다.
+- 뷰어: `fetchExploreSnapshot(slug, locale)`이 `localizeSnapshot()`으로 UI 언어의 라벨과 설명을 노드마다 덮고(없으면 영어), 단계의 빵부스러기도 그 노드의 번역 라벨을 따른다. 언어는 스냅샷을 받을 때 정해진다(상세 페이지에는 언어 전환이 없다).
 
 ### 뷰어 Bridge 모드 (`/bridge`, T2-5)
 
@@ -673,7 +697,7 @@ main push → ci job (lint, svelte-check, build, core·bridge 번들 확인, uni
 - main push는 E2E를 건너뛴다. PR CI는 PR을 그 시점의 main에 합친 트리로 E2E를 돌린다. 그 뒤 main이 움직였으면 병합 전에 PR 브랜치를 갱신해 CI를 다시 통과시킨다
 - E2E는 CI에서 워커 4개로 돈다. 모바일·태블릿 프로젝트는 `@responsive` 태그가 붙은 테스트(뷰포트에 따라 동작이 바뀌는 테스트)만 돈다. Playwright 브라우저(headless shell)는 Playwright 버전을 키로 캐시하고, apt 설치(`--with-deps`)는 하지 않는다. 러너 이미지에 Chromium 라이브러리가 이미 있다
 - 앱을 먼저 올린다. 새 앱은 예전 워커의 오류 문자열도 처리하지만, 예전 앱은 새 워커의 오류 코드를 처리하지 못한다
-- 워커는 `src/<name>.ts`나 `wrangler.<name>.toml`이 바뀐 것만 배포한다. `shared.ts`나 `edge-proxy/package*.json`이 바뀌면 전부 배포한다
+- 워커는 `src/<name>.ts`, 그 워커만 쓰는 `src/<name>.<part>.ts`(`explore.limits.ts`. 워커 진입 모듈은 핸들러만 export할 수 있다), `wrangler.<name>.toml`이 바뀐 것만 배포한다. `shared.ts`나 `edge-proxy/package*.json`이 바뀌면 전부 배포한다
 - 필요한 GitHub secret: `CLOUDFLARE_API_TOKEN` (Workers Scripts Edit, Cloudflare Pages Edit), `CLOUDFLARE_ACCOUNT_ID`
 - 워커 시크릿(`GEMINI_API_KEY`, `AI_GATEWAY_TOKEN`)은 wrangler로 따로 등록하며 배포가 덮어쓰지 않는다
 - 수동 배포(`npm run deploy`, `npm run deploy:edge:<worker>`)는 장애 대응용이다

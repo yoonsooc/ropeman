@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { env as bindings } from 'cloudflare:test';
 import worker from '../src/explore';
+import { MAX_BODY_SIZE } from '../src/explore.limits';
 
 const ORIGIN = 'https://ropeman.dev';
 const TOKEN = 'admin-secret';
@@ -66,6 +67,50 @@ describe('explore worker', () => {
 
 		expect(broken.status).toBe(400);
 		expect(noLevels.status).toBe(400);
+	});
+
+	it('stores a multi-megabyte snapshot and returns it byte for byte', async () => {
+		// The airflow snapshot is about 7 MB; the old 2 MB cap refused it
+		const big = { ...snapshot, filePaths: Array.from({ length: 150_000 }, (_, i) => `providers/파일-${i}/hook.py`) };
+		const body = JSON.stringify(big);
+
+		const stored = await worker.fetch(exploreRequest('POST', '/explore/airflow', { body, token: TOKEN }), env);
+		const fetched = await worker.fetch(exploreRequest('GET', '/explore/airflow'), env);
+
+		expect(new TextEncoder().encode(body).length).toBeGreaterThan(2 * 1024 * 1024);
+		expect(stored.status).toBe(200);
+		expect(await fetched.text()).toBe(body);
+	});
+
+	it('stores the uploaded text itself, so its read-back has the same sha256', async () => {
+		// Whitespace and \u escapes that JSON.stringify(JSON.parse(text)) would rewrite
+		const body = `{\n  "projectName": "react",  "label": "\\uD55C",\n  "semanticLevels": ${JSON.stringify(snapshot.semanticLevels, null, 4)}\n}\n`;
+
+		await worker.fetch(exploreRequest('POST', '/explore/react', { body, token: TOKEN }), env);
+		const fetched = await worker.fetch(exploreRequest('GET', '/explore/react'), env);
+
+		expect(await fetched.text()).toBe(body);
+	});
+
+	it('answers 413 to a body over the cap counted in bytes, before checking its shape', async () => {
+		// Hangul is one UTF-16 unit but three UTF-8 bytes, so a length check in units lets it through
+		const units = Math.floor(MAX_BODY_SIZE / 3) + 1;
+		const body = JSON.stringify({ ...snapshot, pad: '가'.repeat(units) });
+		const noToken = await worker.fetch(exploreRequest('POST', '/explore/react', { body }), env);
+
+		// A stream sends no Content-Length, so only the read body is measured
+		const streamed = new Request('https://explore.ropeman.dev/explore/react', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+			body: new Blob([body]).stream(),
+		});
+		const tooLarge = await worker.fetch(streamed, env);
+
+		expect(body.length).toBeLessThan(MAX_BODY_SIZE);
+		expect(noToken.status).toBe(401);
+		expect(streamed.headers.get('Content-Length')).toBeNull();
+		expect(tooLarge.status).toBe(413);
+		expect(await bindings.ROPEMAN_EXPLORE_STORE.get('react')).toBeNull();
 	});
 
 	it('deletes a snapshot for the admin', async () => {
