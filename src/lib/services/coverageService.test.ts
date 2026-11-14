@@ -295,7 +295,7 @@ describe('import coverage', () => {
 			]
 		],
 		['src/util.ts', [imp("export { a } from './app'", 1), fn('util')]],
-		['main.go', [imp('import "fmt"', 1)]]
+		['Main.java', [imp('import java.util.List;', 1)]]
 	]);
 
 	it('counts the statements the resolver bound to project files, to packages and to nothing', () => {
@@ -311,9 +311,9 @@ describe('import coverage', () => {
 	});
 
 	it('has no import counts when no statement is in a language the resolver reads', () => {
-		const goOnly = new Map([...astMap].filter(([path]) => path.endsWith('.go')));
+		const javaOnly = new Map([...astMap].filter(([path]) => path.endsWith('.java')));
 
-		expect(buildCoverage(input({ codeMap: buildCodeMap(goOnly, null) })).imports).toBeNull();
+		expect(buildCoverage(input({ codeMap: buildCodeMap(javaOnly, null) })).imports).toBeNull();
 	});
 });
 

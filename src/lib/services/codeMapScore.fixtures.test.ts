@@ -36,7 +36,9 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 
 const GRAPHS = fileURLToPath(new URL('../../../tests/fixtures/graphs', import.meta.url));
 const BASELINE_FILE = path.join(GRAPHS, 'baseline.json');
-const REPOS = ['ts-monorepo', 'svelte-app', 'py-shop'];
+const REPOS = ['ts-monorepo', 'svelte-app', 'py-shop', 'go-shop', 'rust-shop'];
+/** The repos `tests/fixtures/graphify` holds a Graphify graph.json for */
+const GRAPHIFY_REPOS = ['ts-monorepo', 'svelte-app', 'py-shop'];
 const GRAPHIFY = fileURLToPath(new URL('../../../tests/fixtures/graphify', import.meta.url));
 /** Overloads, accessors, nested functions and same-named methods, for SymbolId parity only */
 const ID_REPO = 'ids';
@@ -260,11 +262,14 @@ function idParity(repo: string) {
 }
 
 describe('SymbolIds from Graphify graph.json against the parser', () => {
-	it.each([...REPOS, ID_REPO])('match in %s, apart from what one side cannot emit', (repo) => {
-		const { matched, parserOnly, adapterOnly } = idParity(repo);
+	it.each([...GRAPHIFY_REPOS, ID_REPO])(
+		'match in %s, apart from what one side cannot emit',
+		(repo) => {
+			const { matched, parserOnly, adapterOnly } = idParity(repo);
 
-		expect(matched).toBeGreaterThan(0);
-		expect(parserOnly).toEqual(GRAPHIFY_MERGES[repo] ?? []);
-		expect(adapterOnly.filter((line) => line.endsWith(': unexplained'))).toEqual([]);
-	});
+			expect(matched).toBeGreaterThan(0);
+			expect(parserOnly).toEqual(GRAPHIFY_MERGES[repo] ?? []);
+			expect(adapterOnly.filter((line) => line.endsWith(': unexplained'))).toEqual([]);
+		}
+	);
 });

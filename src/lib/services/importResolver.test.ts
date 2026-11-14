@@ -645,18 +645,128 @@ describe('Python imports', () => {
 	});
 });
 
+describe('Go imports', () => {
+	it('binds each import spec to its package and keeps the package clause pending', () => {
+		// Arrange
+		const files = {
+			'cmd/main.go': {
+				imports: [
+					'package main',
+					'"fmt"',
+					'store "example.com/shop/store"',
+					'_ "example.com/shop/legacy"'
+				]
+			},
+			'store/store.go': { imports: ['package store'] },
+			'store/store_test.go': { imports: ['package store_test', 'import "example.com/shop/store"'] }
+		};
+		const configs = { 'go.mod': 'module example.com/shop\n' };
+
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(site(result, 'cmd/main.go', 0)).toMatchObject({ module: { state: 'pending' } });
+		expect(target(result, 'cmd/main.go', 1)).toBe('external:fmt');
+		expect(target(result, 'cmd/main.go', 2)).toBe('app/store/store.go');
+		expect(site(result, 'cmd/main.go', 2).specifiers).toEqual([]);
+		expect(target(result, 'cmd/main.go', 3)).toBe('unresolved');
+		// The package clause has no outcome, so the store import is the second
+		expect(outcome(result, 'cmd/main.go', 1)).toEqual({
+			status: 'file',
+			rule: 'go-module',
+			paths: ['app/store/store.go']
+		});
+		expect(target(result, 'store/store_test.go', 1)).toBe('app/store/store.go');
+		expect(result.outcomes.map((o) => o.written)).not.toContain('package main');
+	});
+});
+
+describe('Rust imports', () => {
+	const cls = (name: string) => fn(name, { kind: 'class' });
+	const files = {
+		'core/src/lib.rs': {
+			imports: ['pub use model::Item;', 'pub use store::*;'],
+			symbols: [fn('model'), fn('store')]
+		},
+		'core/src/model.rs': { imports: ['use std::fmt;'], symbols: [cls('Item')] },
+		'core/src/store/mod.rs': { symbols: [fn('memory'), cls('Store')] },
+		'core/src/store/memory.rs': {
+			imports: ['use super::{self as store, Store};', 'use crate::model::Item as Thing;'],
+			symbols: [cls('Memory')]
+		},
+		'cli/src/main.rs': {
+			imports: [
+				'use shop_core::{Item, Store, store::memory};',
+				'use shop_core::Missing;',
+				'use serde::Serialize;'
+			]
+		}
+	};
+	const configs = {
+		'core/Cargo.toml': '[package]\nname = "shop-core"\n',
+		'cli/Cargo.toml': '[package]\nname = "shop-cli"\n'
+	};
+	const names = (result: ReturnType<typeof resolve>, path: string, index: number) =>
+		site(result, path, index).specifiers!.map((spec) => {
+			const bound = spec.target.state === 'bound' ? spec.target.candidates[0].to : null;
+			const to = !bound
+				? spec.target.state
+				: bound.kind === 'file'
+					? bound.path
+					: bound.kind === 'symbol'
+						? bound.id
+						: `external:${bound.module}#${bound.name}`;
+			return `${spec.kind} ${spec.local} -> ${to}`;
+		});
+
+	it('binds a use to the module its path names and each name to the file that declares it', () => {
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'core/src/store/memory.rs', 0)).toBe('app/core/src/store/mod.rs');
+		expect(names(result, 'core/src/store/memory.rs', 0)).toEqual([
+			'namespace store -> app/core/src/store/mod.rs',
+			'named Store -> app/core/src/store/mod.rs#Store'
+		]);
+		expect(names(result, 'core/src/store/memory.rs', 1)).toEqual([
+			'named Thing -> app/core/src/model.rs#Item'
+		]);
+		expect(target(result, 'core/src/model.rs')).toBe('external:std');
+		expect(names(result, 'core/src/model.rs', 0)).toEqual(['named fmt -> external:std#fmt']);
+		expect(outcome(result, 'core/src/model.rs')).toEqual({ status: 'external', module: 'std' });
+	});
+
+	it('follows pub use and glob re-exports from another crate of the workspace', () => {
+		// Act
+		const result = resolve(files, configs);
+
+		// Assert
+		expect(target(result, 'cli/src/main.rs', 0)).toBe('app/core/src/lib.rs');
+		expect(outcome(result, 'cli/src/main.rs', 0)).toMatchObject({ rule: 'rust-crate' });
+		expect(names(result, 'cli/src/main.rs', 0)).toEqual([
+			'named Item -> app/core/src/model.rs#Item',
+			'named Store -> app/core/src/store/mod.rs#Store',
+			'namespace memory -> app/core/src/store/memory.rs'
+		]);
+		expect(names(result, 'cli/src/main.rs', 1)).toEqual(['named Missing -> unresolved']);
+		expect(target(result, 'cli/src/main.rs', 2)).toBe('external:serde');
+	});
+});
+
 describe('resolveImports', () => {
 	it('leaves imports of languages it does not resolve pending', () => {
 		// Arrange
-		const files = { 'main.go': { imports: ['import "fmt"'] } };
+		const files = { 'Main.java': { imports: ['import java.util.List;'] } };
 
 		// Act
 		const result = resolve(files);
 
 		// Assert
-		expect(site(result, 'main.go')).toEqual({
+		expect(site(result, 'Main.java')).toEqual({
 			line: 1,
-			text: 'import "fmt"',
+			text: 'import java.util.List;',
 			module: { state: 'pending' },
 			specifiers: null
 		});
@@ -739,15 +849,19 @@ describe('isResolverConfig', () => {
 			'app/package.json',
 			'app/pnpm-workspace.yaml',
 			'app/svelte.config.js',
+			'app/go.mod',
+			'app/crates/core/Cargo.toml',
 			'app/src/config.json',
-			'app/package-lock.json'
+			'app/package-lock.json',
+			'app/go.sum',
+			'app/Cargo.lock'
 		];
 
 		// Act
 		const picked = paths.filter(isResolverConfig);
 
 		// Assert
-		expect(picked).toEqual(paths.slice(0, 6));
+		expect(picked).toEqual(paths.slice(0, 8));
 	});
 });
 

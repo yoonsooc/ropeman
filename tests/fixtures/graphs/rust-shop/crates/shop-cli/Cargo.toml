@@ -1,0 +1,12 @@
+[package]
+name = "shop-cli"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "cli_kit"
+path = "src/kit.rs"
+
+[dependencies]
+shop-core = { path = "../shop-core" }
+serde = "1"

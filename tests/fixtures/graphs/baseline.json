@@ -64,5 +64,24 @@
 			"recall": 0,
 			"siteRecall": 1
 		}
+	},
+	"go-shop": {
+		"imports_from": {
+			"precision": 1,
+			"recall": 1,
+			"siteRecall": 1
+		}
+	},
+	"rust-shop": {
+		"imports_from": {
+			"precision": 1,
+			"recall": 1,
+			"siteRecall": 1
+		},
+		"imports": {
+			"precision": 1,
+			"recall": 1,
+			"siteRecall": 1
+		}
 	}
 }

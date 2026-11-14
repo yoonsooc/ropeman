@@ -150,6 +150,33 @@ export function second() {
 		expect(symbols.map((s) => s.name)).toContain('ok');
 	});
 
+	it('lists each spec of a grouped Go import as its own import at its line', async () => {
+		// Arrange
+		const source = [
+			'package store',
+			'',
+			'import "errors"',
+			'',
+			'import (',
+			'\t"fmt"',
+			'\tapi "example.com/shop/web/api"',
+			')',
+			'',
+			'func New() error { return errors.New(fmt.Sprint(api.X)) }'
+		].join('\n');
+
+		// Act
+		const symbols = await parseSymbols('store/store.go', source);
+
+		// Assert
+		expect(symbols.filter((s) => s.kind === 'import').map((s) => [s.lineStart, s.name])).toEqual([
+			[1, 'package store'],
+			[3, 'import "errors"'],
+			[6, '"fmt"'],
+			[7, 'api "example.com/shop/web/api"']
+		]);
+	});
+
 	it('returns no symbols for a valid file without definitions', async () => {
 		// Act
 		const symbols = await parse('src/pkg/__init__.py', '# package marker\n');
