@@ -11,7 +11,7 @@ job done a few times a year.
 1. Create the KV namespace:
 
    ```sh
-   cd edge-proxy
+   cd workers
    wrangler kv namespace create ROPEMAN_EXPLORE_STORE -c wrangler.explore.toml
    ```
 

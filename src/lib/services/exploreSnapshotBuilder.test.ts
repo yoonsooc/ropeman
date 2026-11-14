@@ -15,7 +15,7 @@ import {
 import { validateSnapshot, type SnapshotTranslation } from './exploreService';
 import type { FilePath } from '$lib/types/codeMap';
 import type { MapLevel } from '$lib/types/ropemanMap';
-import { MAX_BODY_SIZE } from '../../../edge-proxy/src/explore.limits';
+import { MAX_BODY_SIZE } from '../../../workers/src/explore.limits';
 
 const FIXTURE = fileURLToPath(
 	new URL('../../../tests/fixtures/ropeman-map/ropeman.json', import.meta.url)

@@ -143,13 +143,15 @@ src/
 │       ├── focusTrap.ts              # `role="dialog"` div 모달 카드가 모두 쓰는 액션: 열 때 포커스를 넣고 Tab을 안에 가두고 닫으면 연 버튼으로 돌려줌
 │       └── contextBuilder.ts         # 채팅용 코드 컨텍스트 구성
 
-edge-proxy/                       # Cloudflare Workers
+workers/                          # Cloudflare Workers
 ├── src/
 │   ├── shared.ts                     # CORS 헬퍼, callGemini, jsonResponse
 │   ├── demo.ts                       # ropeman-demo (rate limit + 서버키 + 모델 폴백)
-│   └── proxy.ts                      # ropeman-proxy (BYOK pass-through + 모델 목록)
-├── wrangler.demo.toml                # Demo Worker 배포 설정 (placement hint)
-└── wrangler.proxy.toml               # Proxy Worker 배포 설정
+│   ├── proxy.ts                      # ropeman-proxy (BYOK pass-through + 모델 목록)
+│   ├── share.ts                      # ropeman-share (공유 링크 스냅샷, KV)
+│   └── explore.ts                    # ropeman-explore (갤러리 스냅샷, KV. 상한은 explore.limits.ts)
+├── test/                             # workerd에서 도는 워커 테스트 (`npm test --prefix workers`)
+└── wrangler.<name>.toml              # 워커마다 배포 설정 (demo, proxy, share, explore)
 
 bridge/                           # 로컬 Bridge와 `ropeman serve` (`@ropeman/bridge`, npm 패키지)
 ├── src/
@@ -198,6 +200,9 @@ scripts/paseo-comparison/         # 실험: 같은 모델·프롬프트에 Ropem
 ├── view.ts                           # 폴더 → 부분과 부분 사이 관계(근거 줄) → 프롬프트
 ├── checks.ts                         # 답의 구조 검사, 조정 랜드 지수
 └── experiment.ts                     # `claude -p` 호출, 실행 기록(호출 시각·사전 등록 해시), 요약 (결과는 docs/measurements/)
+
+experiments/                      # 앱·bridge·워커에 들어가지 않는 실험. 폴더마다 따로 설치하고 돌린다
+└── code-qa-eval/                     # Python: tree-sitter 골격 위 코드 질의응답과 검색 전략(BM25·벡터·하이브리드) 평가 (uv, `agent` 패키지)
 ```
 
 ---
@@ -605,7 +610,7 @@ Bridge(`ropeman serve`)는 로컬 CLI를 실행하고 `--root` 아래 파일을 
 ### Edge Proxy 구조
 
 ```
-edge-proxy/src/
+workers/src/
 ├── shared.ts       # CORS 헬퍼 + callGemini (maxOutputTokens: 16384)
 ├── demo.ts         # rate limit (IP 분당 10, 일일 200) + 서버 Gemini API 키 (무료 등급)
 └── proxy.ts        # BYOK pass-through (Google/Anthropic/OpenAI) + `action: 'models'`
@@ -757,14 +762,14 @@ main push → ci job (lint, svelte-check, build, core·bridge 번들 확인, uni
           → deploy job
               1. npm run deploy                     앱 (Pages, --branch=main)
               2. scripts/changed-workers.mjs        바뀐 워커만 고름
-              3. npm --prefix edge-proxy run deploy:<worker>
+              3. npm --prefix workers run deploy:<worker>
               4. scripts/health-check.mjs           배포 직후 확인
 ```
 
 - main push는 E2E를 건너뛴다. PR CI는 PR을 그 시점의 main에 합친 트리로 E2E를 돌린다. 그 뒤 main이 움직였으면 병합 전에 PR 브랜치를 갱신해 CI를 다시 통과시킨다
 - E2E는 CI에서 워커 4개로 돈다. 모바일·태블릿 프로젝트는 `@responsive` 태그가 붙은 테스트(뷰포트에 따라 동작이 바뀌는 테스트)만 돈다. Playwright 브라우저(headless shell)는 Playwright 버전을 키로 캐시하고, apt 설치(`--with-deps`)는 하지 않는다. 러너 이미지에 Chromium 라이브러리가 이미 있다
 - 앱을 먼저 올린다. 새 앱은 예전 워커의 오류 문자열도 처리하지만, 예전 앱은 새 워커의 오류 코드를 처리하지 못한다
-- 워커는 `src/<name>.ts`, 그 워커만 쓰는 `src/<name>.<part>.ts`(`explore.limits.ts`. 워커 진입 모듈은 핸들러만 export할 수 있다), `wrangler.<name>.toml`이 바뀐 것만 배포한다. `shared.ts`나 `edge-proxy/package*.json`이 바뀌면 전부 배포한다
+- 워커는 `src/<name>.ts`, 그 워커만 쓰는 `src/<name>.<part>.ts`(`explore.limits.ts`. 워커 진입 모듈은 핸들러만 export할 수 있다), `wrangler.<name>.toml`이 바뀐 것만 배포한다. `shared.ts`나 `workers/package*.json`이 바뀌면 전부 배포한다
 - 필요한 GitHub secret: `CLOUDFLARE_API_TOKEN` (Workers Scripts Edit, Cloudflare Pages Edit), `CLOUDFLARE_ACCOUNT_ID`
 - 워커 시크릿(`GEMINI_API_KEY`, `AI_GATEWAY_TOKEN`)은 wrangler로 따로 등록하며 배포가 덮어쓰지 않는다
 - 수동 배포(`npm run deploy`, `npm run deploy:edge:<worker>`)는 장애 대응용이다

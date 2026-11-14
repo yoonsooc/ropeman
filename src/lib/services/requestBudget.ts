@@ -21,7 +21,7 @@ const BYTES_PER_TOKEN = 4;
 /**
  * Output tokens each BYOK path asks for, which the context window must leave room for.
  * Gemini is called from aiAdapter.ts; Anthropic (max_tokens) and OpenAI
- * (max_completion_tokens) go through edge-proxy/src/proxy.ts.
+ * (max_completion_tokens) go through workers/src/proxy.ts.
  */
 export const OUTPUT_RESERVE_TOKENS: Record<AIProviderId, number> = {
 	google: 16_384,
@@ -31,7 +31,7 @@ export const OUTPUT_RESERVE_TOKENS: Record<AIProviderId, number> = {
 
 /**
  * Demo request body above which the request is likely to fail. Not measured. The demo proxy
- * gives each Gemini model 40 s (MODEL_TIMEOUT_MS in edge-proxy/src/demo.ts), and the default
+ * gives each Gemini model 40 s (MODEL_TIMEOUT_MS in workers/src/demo.ts), and the default
  * 250 KB skeleton is the largest size the app ships with. JSON escaping and the system prompt
  * add about 15% on top of the skeleton (PASEO: 249,195 B skeleton, 285,955 B body), so the
  * limit leaves the default skeleton room.

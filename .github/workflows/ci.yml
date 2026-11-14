@@ -37,14 +37,14 @@ jobs:
 
       - name: Type check workers
         run: |
-          npm ci --prefix edge-proxy
-          edge-proxy/node_modules/.bin/tsc --noEmit -p edge-proxy/tsconfig.json
+          npm ci --prefix workers
+          workers/node_modules/.bin/tsc --noEmit -p workers/tsconfig.json
 
       - name: Type check core
         run: npm run check:core
 
       - name: Worker tests
-        run: npm test --prefix edge-proxy
+        run: npm test --prefix workers
 
       - name: Build
         run: npm run build
@@ -179,10 +179,10 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npm ci --prefix edge-proxy
+          npm ci --prefix workers
           failed=""
           for worker in ${{ steps.workers.outputs.list }}; do
-            npm --prefix edge-proxy run "deploy:$worker" || failed="$failed $worker"
+            npm --prefix workers run "deploy:$worker" || failed="$failed $worker"
           done
           if [ -n "$failed" ]; then
             echo "::error::worker deploy failed:$failed"

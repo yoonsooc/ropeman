@@ -52,9 +52,9 @@ playwright-report
 .mcp.json
 .stitch-html/
 
-# Python agent service
-agent/.venv/
-agent/.data/
+# Python experiments
+experiments/*/.venv/
+experiments/*/.data/
 __pycache__/
 .pytest_cache/
 .ruff_cache/

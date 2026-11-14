@@ -43,7 +43,7 @@ path\.join\s*\([^)]*(?:req\.|request\.|params\.|ctx\.)   # 사용자 입력 → 
 readFile(Sync)?\s*\(
 ```
 
-대상: `edge-proxy/src/`, `bridge/src/`, Node.js 스크립트.
+대상: `workers/src/`, `bridge/src/`, Node.js 스크립트.
 
 ### 외부 CDN / SRI 점검
 
@@ -59,7 +59,7 @@ integrity="                            # SRI 적용 확인
 
 ```sh
 bun pm audit                                    # 루트
-(cd edge-proxy && npm audit --production)
+(cd workers && npm audit --production)
 (cd bridge && npm audit --production)
 
 # 선택 (더 포괄적이지만 설치 필요)
@@ -80,7 +80,7 @@ osv-scanner --lockfile=bun.lock --lockfile=bridge/package-lock.json
 
 ```
 You are auditing the Ropeman Cloudflare Worker layer for security.
-Scope: edge-proxy/src/*.ts (demo, proxy, share, explore) + shared.ts
+Scope: workers/src/*.ts (demo, proxy, share, explore) + shared.ts
 Methodology: For each worker, walk OWASP API Top 10 and return Pass / Fail / N-A:
   1. Broken Object Level Authorization — slug/path parameter tampering
   2. Broken Authentication — Bearer token handling, admin endpoint guard
@@ -138,7 +138,7 @@ Output format same as Agent A. Under 900 words.
 
 ```
 You are auditing Ropeman's infrastructure, CI/CD, and build supply chain.
-Scope: .github/workflows/, wrangler*.toml, edge-proxy/wrangler.*.toml, bridge/src/server.ts, bun.lock, package.json (all three)
+Scope: .github/workflows/, wrangler*.toml, workers/wrangler.*.toml, bridge/src/server.ts, bun.lock, package.json (all three)
 Methodology:
   1. GitHub Actions supply chain
      - Are all third-party actions pinned to a commit SHA (strongest) or at least a major version?
@@ -153,7 +153,7 @@ Methodology:
   3. Lockfile policy
      - bun.lock is in .gitignore but committed — decision required: keep or remove?
      - package-lock.json vs bun.lock duplication — which is canonical?
-     - edge-proxy has no lockfile (devDeps only) — acceptable?
+     - workers/ has no lockfile (devDeps only) — acceptable?
   4. Bridge (bridge/src/server.ts)
      - WebSocket binding: localhost only? Any 0.0.0.0 risk?
      - Origin header verification on WebSocket upgrade?

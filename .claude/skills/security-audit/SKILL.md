@@ -25,8 +25,8 @@
    # 루트 (SvelteKit 앱)
    bun pm audit 2>&1 | tee /tmp/security-audit-deps-root.txt
 
-   # edge-proxy (Cloudflare Workers)
-   (cd edge-proxy && npm audit --production) 2>&1 | tee /tmp/security-audit-deps-edge.txt
+   # workers/ (Cloudflare Workers)
+   (cd workers && npm audit --production) 2>&1 | tee /tmp/security-audit-deps-edge.txt
 
    # bridge (로컬 CLI)
    (cd bridge && npm audit --production) 2>&1 | tee /tmp/security-audit-deps-bridge.txt
@@ -55,7 +55,7 @@
 
 Task 도구로 **Explore subagent 3개를 병렬 dispatch**. 각 agent 프롬프트는 `references/owasp_checklist.md`의 "Phase 2 agent prompt seeds" 섹션을 **반드시 그대로 포함**한다. 컨텍스트로 `references/attack_surface_map.md`와 `references/known_false_positives.md`를 함께 주입한다 (중복 지적 억제).
 
-- **Agent A "Edge Worker Auditor"**: `edge-proxy/src/*.ts`
+- **Agent A "Edge Worker Auditor"**: `workers/src/*.ts`
 - **Agent B "SPA Auditor"**: `src/**/*.{ts,svelte}`
 - **Agent C "Infra/CI Auditor"**: `.github/workflows/`, `wrangler*.toml`, `bridge/src/`, `bun.lock`, `package.json`
 

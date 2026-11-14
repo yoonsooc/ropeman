@@ -2,7 +2,7 @@
 
 /**
  * 두 커밋 사이에 바뀐 edge 워커 이름을 출력한다 (ci.yml deploy job).
- * 워커 목록은 edge-proxy/wrangler.<name>.toml 파일에서 읽는다.
+ * 워커 목록은 workers/wrangler.<name>.toml 파일에서 읽는다.
  *
  * - src/<name>.ts, src/<name>.<part>.ts(그 워커만 쓰는 모듈) 또는 wrangler.<name>.toml 변경 → 그 워커
  * - src/shared.ts, package.json, package-lock.json 변경 → 모든 워커
@@ -19,19 +19,19 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const SHARED = new Set([
-	'edge-proxy/src/shared.ts',
-	'edge-proxy/package.json',
-	'edge-proxy/package-lock.json'
+	'workers/src/shared.ts',
+	'workers/package.json',
+	'workers/package-lock.json'
 ]);
 
 const PLACEHOLDER = /REPLACE_WITH_/;
 
-const workers = readdirSync('edge-proxy')
+const workers = readdirSync('workers')
 	.map((name) => name.match(/^wrangler\.(\w+)\.toml$/)?.[1])
 	.filter(Boolean)
 	.sort()
 	.filter((w) => {
-		if (!PLACEHOLDER.test(readFileSync(`edge-proxy/wrangler.${w}.toml`, 'utf8'))) return true;
+		if (!PLACEHOLDER.test(readFileSync(`workers/wrangler.${w}.toml`, 'utf8'))) return true;
 		console.error(`::warning::skipping worker '${w}': wrangler.${w}.toml still has a placeholder`);
 		return false;
 	});
@@ -39,7 +39,7 @@ const workers = readdirSync('edge-proxy')
 function changedFiles(before, after) {
 	if (!before || /^0+$/.test(before)) return null;
 	try {
-		const out = execFileSync('git', ['diff', '--name-only', before, after, '--', 'edge-proxy'], {
+		const out = execFileSync('git', ['diff', '--name-only', before, after, '--', 'workers'], {
 			encoding: 'utf8'
 		});
 		return out.split('\n').filter(Boolean);
@@ -58,9 +58,9 @@ if (files === null || files.some((f) => SHARED.has(f))) {
 	selected = workers.filter((w) =>
 		files.some(
 			(f) =>
-				f === `edge-proxy/src/${w}.ts` ||
-				f.startsWith(`edge-proxy/src/${w}.`) ||
-				f === `edge-proxy/wrangler.${w}.toml`
+				f === `workers/src/${w}.ts` ||
+				f.startsWith(`workers/src/${w}.`) ||
+				f === `workers/wrangler.${w}.toml`
 		)
 	);
 }

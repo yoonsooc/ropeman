@@ -106,8 +106,11 @@ src/lib/
   types/        # TypeScript 인터페이스
   utils/        # 유틸리티 (언어 감지 등)
 
-edge-proxy/
-  src/          # Cloudflare Workers (demo, proxy, shared)
+workers/
+  src/          # Cloudflare Workers (proxy, demo, explore, share)
+
+experiments/
+  code-qa-eval/ # Python 검색 실험, 앱과 bridge에 들어가지 않음
 ```
 
 ### 데이터 흐름

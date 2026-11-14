@@ -385,7 +385,7 @@ SH — Share  (신규)
 
 **증상**: pgvector 테이블 이름을 `chunks_d768`처럼 차원만으로 정했다. 차원이 같은 다른 임베딩 모델(예: Gemini 768 축소판과 jina 768)로 바꾸면 서로 다른 좌표계의 벡터가 한 테이블에 섞이고, 오류 없이 검색 품질만 조용히 무너진다. 고친 뒤에도 63자 식별자 제한으로 이름을 자르면 `_d{dim}`이 잘려 같은 문제가 남았다
 **원인**: "차원이 같으면 호환된다"는 가정. 벡터는 모델마다 좌표계가 다르다
-**해결**: 저장소 키에 **모델 이름과 차원을 모두** 넣는다. 길이 제한이 있으면 자르지 말고 해시를 붙인다(`agent/src/agent/retrieval/vector.py` `table_name`). 회귀 테스트: `test_vector_tables_differ_per_model_even_with_same_dimension`, `test_long_model_names_keep_dimension_and_stay_distinct`
+**해결**: 저장소 키에 **모델 이름과 차원을 모두** 넣는다. 길이 제한이 있으면 자르지 말고 해시를 붙인다(`experiments/code-qa-eval/src/agent/retrieval/vector.py` `table_name`). 회귀 테스트: `test_vector_tables_differ_per_model_even_with_same_dimension`, `test_long_model_names_keep_dimension_and_stay_distinct`
 **관련 스프린트**: 2026-10-26-01
 
 ## AP-16: FastAPI 동기 엔드포인트에서 DB 연결 하나를 공유

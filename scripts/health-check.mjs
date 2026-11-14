@@ -13,7 +13,7 @@ import { appendFileSync } from 'node:fs';
 
 const ORIGIN = 'https://ropeman.dev';
 const TIMEOUT_MS = 60_000;
-// demo tries up to three models with a 40 s wait each (edge-proxy/src/demo.ts)
+// demo tries up to three models with a 40 s wait each (workers/src/demo.ts)
 const DEMO_TIMEOUT_MS = 150_000;
 
 function request(url, init = {}, timeoutMs = TIMEOUT_MS) {

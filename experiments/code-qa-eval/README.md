@@ -1,5 +1,7 @@
 # ropeman-agent
 
+An experiment, not part of the shipped app, bridge or workers: nothing outside this folder imports it and CI does not run it.
+
 Answers questions about a Python repository from its tree-sitter skeleton (symbols, signatures, docstrings, imports; function bodies are not indexed), and compares retrieval strategies: BM25, vector (pgvector), and hybrid (RRF).
 
 ```bash
