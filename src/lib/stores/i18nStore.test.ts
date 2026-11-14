@@ -132,6 +132,21 @@ describe('i18nStore', () => {
 			expect(text).toBe('파일 3 / {total}개');
 		});
 
+		it('names the 500 KB limit the explore file view enforces in both languages', () => {
+			// Arrange
+			const keys = ['explore.fileTooLarge'] as const;
+
+			// Act
+			settingsStore.language = 'en';
+			const en = keys.map((k) => i18nStore.t(k));
+			settingsStore.language = 'ko';
+			const ko = keys.map((k) => i18nStore.t(k));
+
+			// Assert
+			expect(en[0]).toContain('500 KB');
+			expect(ko[0]).toContain('500KB');
+		});
+
 		it('picks the English singular for a count of one and the plural otherwise', () => {
 			// Regression: the en UI showed "1 symbols" and "1 lines"
 			// Arrange

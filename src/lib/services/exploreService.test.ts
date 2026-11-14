@@ -7,6 +7,11 @@ import {
 	listLanguages,
 	fetchExploreSnapshot,
 	uploadExploreSnapshot,
+	exploreSource,
+	exploreRepoPaths,
+	exploreFileUrl,
+	fetchExploreFile,
+	type ExploreSource,
 	getCuratedManifest,
 	type CuratedEntry,
 	type ExploreSnapshot
@@ -387,9 +392,287 @@ describe('getCuratedManifest', () => {
 		}
 	});
 
+	// The five snapshots uploaded on 2026-04-16 record no commit, so their entries pin it.
+	// At default-branch HEAD 174 of FastAPI's 206 snapshot files were 404 on 2026-11-14.
+	it('pins the analyzed commit for every snapshot that does not record one', () => {
+		const legacy = ['transformers', 'fastapi', 'gin', 'react', 'tokio'];
+		const entries = getCuratedManifest().entries.filter((e) => legacy.includes(e.slug));
+
+		expect(entries).toHaveLength(legacy.length);
+		for (const e of entries) expect(e.ref, e.slug).toMatch(/^[0-9a-f]{40}$/);
+	});
+
 	it('slugs are unique', () => {
 		const m = getCuratedManifest();
 		const slugs = m.entries.map((e) => e.slug);
 		expect(new Set(slugs).size).toBe(slugs.length);
+	});
+});
+
+function snapshotWithPaths(paths: string[], commit?: string): ExploreSnapshot {
+	const level = {
+		parentId: null,
+		breadcrumbLabel: 'x',
+		edges: [],
+		nodes: [{ filePaths: paths }]
+	} as unknown as ExploreSnapshot['semanticLevels'][string];
+	return { projectName: 'x', semanticLevels: { __root__: level }, commit };
+}
+
+const PINNED = '00f063c31d60308f8e4e0fd349b89ed043b9ea54';
+const RECORDED = '2fa00db8581bb4e74b2d00d859c8469b6da296c4';
+const REACT_ENTRY: CuratedEntry = { ...SAMPLE_ENTRIES[0], ref: PINNED };
+const TOKIO_ENTRY: CuratedEntry = { ...REACT_ENTRY, owner: 'tokio-rs', repo: 'tokio' };
+
+function legacySource(repo: string, prefixed: boolean): ExploreSource {
+	return { owner: 'o', repo, commit: PINNED, paths: { kind: 'legacy', prefixed } };
+}
+
+describe('validateSnapshot commit', () => {
+	it('keeps a 40-hex commit and drops anything else', () => {
+		const base = { projectName: 'p', semanticLevels: {} };
+
+		expect(validateSnapshot({ ...base, commit: RECORDED })?.commit).toBe(RECORDED);
+		expect(validateSnapshot({ ...base, commit: 'main' })?.commit).toBeUndefined();
+		expect(validateSnapshot({ ...base, commit: '../../x' })?.commit).toBeUndefined();
+	});
+});
+
+describe('exploreSource', () => {
+	it('prefers the commit the snapshot records and reads its paths as repository paths', () => {
+		const snapshot = snapshotWithPaths(['react/index.js'], RECORDED);
+
+		expect(exploreSource(REACT_ENTRY, snapshot)).toEqual({
+			owner: 'facebook',
+			repo: 'react',
+			commit: RECORDED,
+			paths: { kind: 'repo' }
+		});
+	});
+
+	it('falls back to the curated ref for a snapshot without a commit', () => {
+		const snapshot = snapshotWithPaths(['react/packages/a.js', 'react/packages/b.js']);
+
+		expect(exploreSource(REACT_ENTRY, snapshot)).toEqual({
+			owner: 'facebook',
+			repo: 'react',
+			commit: PINNED,
+			paths: { kind: 'legacy', prefixed: true }
+		});
+	});
+
+	it('is null when neither the snapshot nor the entry names a commit', () => {
+		expect(exploreSource(SAMPLE_ENTRIES[0], snapshotWithPaths(['react/a.js']))).toBeNull();
+	});
+
+	// Regression: tokio's snapshot holds repository paths and has a real `tokio/` folder
+	it('marks a legacy snapshot unprefixed when any path lacks the repo prefix', () => {
+		const snapshot = snapshotWithPaths(['tokio/src/lib.rs', 'tokio-util/src/lib.rs']);
+
+		expect(exploreSource(TOKIO_ENTRY, snapshot)?.paths).toEqual({
+			kind: 'legacy',
+			prefixed: false
+		});
+	});
+});
+
+describe('exploreRepoPaths', () => {
+	it('never strips a snapshot that records its commit', () => {
+		const source: ExploreSource = { ...legacySource('tokio', true), paths: { kind: 'repo' } };
+
+		expect(exploreRepoPaths(source, 'tokio/src/lib.rs')).toEqual(['tokio/src/lib.rs']);
+	});
+
+	it('tries the stripped path first in a prefixed legacy snapshot, then the path as given', () => {
+		expect(exploreRepoPaths(legacySource('react', true), 'react/packages/a.js')).toEqual([
+			'packages/a.js',
+			'react/packages/a.js'
+		]);
+	});
+
+	it('tries a real folder named after the repo first in an unprefixed legacy snapshot', () => {
+		expect(exploreRepoPaths(legacySource('tokio', false), 'tokio/src/lib.rs')).toEqual([
+			'tokio/src/lib.rs',
+			'src/lib.rs'
+		]);
+		expect(exploreRepoPaths(legacySource('tokio', false), 'tokio-util/src/lib.rs')).toEqual([
+			'tokio-util/src/lib.rs'
+		]);
+	});
+
+	it('reads a single-file legacy snapshot both ways', () => {
+		const source = exploreSource(REACT_ENTRY, snapshotWithPaths(['react/README.md']));
+
+		expect(exploreRepoPaths(source!, 'react/README.md')).toEqual(['README.md', 'react/README.md']);
+	});
+
+	it('rejects empty, `.` and `..` segments', () => {
+		const source = legacySource('react', true);
+
+		for (const path of ['react/../../other/x', 'react/./a.js', 'react//a.js', '..', 'a/']) {
+			expect(exploreRepoPaths(source, path), path).toEqual([]);
+		}
+	});
+});
+
+describe('exploreFileUrl', () => {
+	const source = legacySource('react', true);
+
+	it('points raw and blob views at the commit', () => {
+		expect(exploreFileUrl(source, 'packages/react/index.js', 'raw')).toBe(
+			`https://raw.githubusercontent.com/o/react/${PINNED}/packages/react/index.js`
+		);
+		expect(exploreFileUrl(source, 'packages/react/index.js', 'blob')).toBe(
+			`https://github.com/o/react/blob/${PINNED}/packages/react/index.js`
+		);
+	});
+
+	it('encodes `#`, `?`, `%`, spaces and non-ASCII names', () => {
+		expect(exploreFileUrl(source, 'docs/a #1?.md', 'raw')).toBe(
+			`https://raw.githubusercontent.com/o/react/${PINNED}/docs/a%20%231%3F.md`
+		);
+		expect(exploreFileUrl(source, 'docs/100%.md', 'raw')).toBe(
+			`https://raw.githubusercontent.com/o/react/${PINNED}/docs/100%25.md`
+		);
+		expect(exploreFileUrl(source, 'docs/한글/é.md', 'raw')).toBe(
+			`https://raw.githubusercontent.com/o/react/${PINNED}/docs/%ED%95%9C%EA%B8%80/%C3%A9.md`
+		);
+	});
+});
+
+describe('fetchExploreFile', () => {
+	const source = legacySource('react', true);
+	const raw = (repoPath: string) =>
+		`https://raw.githubusercontent.com/o/react/${PINNED}/${repoPath}`;
+
+	beforeEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('returns the text and the repository path it came from', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(new Response('export {};', { status: 200 }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await fetchExploreFile(source, 'react/index.js');
+
+		expect(result).toEqual({ ok: true, content: 'export {};', repoPath: 'index.js' });
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock).toHaveBeenCalledWith(raw('index.js'));
+	});
+
+	it('tries the next reading of a legacy path after a 404', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(new Response('404', { status: 404 }))
+			.mockResolvedValueOnce(new Response('fn main() {}', { status: 200 }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await fetchExploreFile(source, 'react/react/src/a.rs');
+
+		expect(result).toEqual({ ok: true, content: 'fn main() {}', repoPath: 'react/react/src/a.rs' });
+		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+			raw('react/src/a.rs'),
+			raw('react/react/src/a.rs')
+		]);
+	});
+
+	it('reports not-found when no reading exists', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation(() => new Response('404', { status: 404 }))
+		);
+
+		expect(await fetchExploreFile(source, 'react/gone.js')).toEqual({
+			ok: false,
+			reason: 'not-found'
+		});
+	});
+
+	it('stops at a rate limit instead of trying the other reading', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(new Response('limit', { status: 429 }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		expect(await fetchExploreFile(source, 'react/a.js')).toEqual({
+			ok: false,
+			reason: 'rate-limited'
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('treats a 403 as a rate limit', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 403 })));
+
+		expect(await fetchExploreFile(source, 'react/a.js')).toMatchObject({ reason: 'rate-limited' });
+	});
+
+	it('refuses a file whose Content-Length is over 500 KB without reading it', async () => {
+		const response = new Response('x', {
+			status: 200,
+			headers: { 'content-length': '600000' }
+		});
+		const read = vi.spyOn(response, 'arrayBuffer');
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
+
+		expect(await fetchExploreFile(source, 'react/big.js')).toEqual({
+			ok: false,
+			reason: 'too-large'
+		});
+		expect(read).not.toHaveBeenCalled();
+	});
+
+	it('refuses a body over 500 KB even when the header is smaller', async () => {
+		const body = 'a'.repeat(500_001);
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockResolvedValue(
+					new Response(body, { status: 200, headers: { 'content-length': '1000' } })
+				)
+		);
+
+		expect(await fetchExploreFile(source, 'react/big.js')).toMatchObject({ reason: 'too-large' });
+	});
+
+	it('refuses binary content', async () => {
+		const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00]);
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(png, { status: 200 })));
+
+		expect(await fetchExploreFile(source, 'react/logo.png')).toEqual({
+			ok: false,
+			reason: 'binary'
+		});
+	});
+
+	it('decodes UTF-8 text', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('// 한글 é', { status: 200 })));
+
+		expect(await fetchExploreFile(source, 'react/a.js')).toMatchObject({ content: '// 한글 é' });
+	});
+
+	it('reports the status of another HTTP failure, and none when the request fails', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 502 })));
+		expect(await fetchExploreFile(source, 'react/a.js')).toEqual({
+			ok: false,
+			reason: 'unavailable',
+			status: 502
+		});
+
+		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+		expect(await fetchExploreFile(source, 'react/a.js')).toEqual({
+			ok: false,
+			reason: 'unavailable'
+		});
+	});
+
+	it('rejects a path that would leave the repository without fetching', async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		expect(await fetchExploreFile(source, 'react/../../x')).toEqual({
+			ok: false,
+			reason: 'invalid-path'
+		});
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });

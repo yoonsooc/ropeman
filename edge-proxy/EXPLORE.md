@@ -80,7 +80,14 @@ Repeat for each entry in `src/lib/data/explore-curated.json`.
    The worker accepts payloads up to 2 MB and validates JSON structure on the
    client side at fetch time (`exploreService.validateSnapshot`).
 
-4. **Verify** at https://ropeman.dev/explore/react.
+4. **Pin the commit**: put the analyzed commit SHA in the snapshot's `commit` field,
+   with repository paths (no `<repo>/` prefix) in each node's `filePaths`. Snapshots uploaded
+   before `commit` existed fall back to the entry's `ref` in
+   `src/lib/data/explore-curated.json`; keep it equal to the commit you analyzed. The detail page reads each file the visitor opens
+   from that commit on raw.githubusercontent.com, so a stale `ref` shows files
+   that differ from the diagram, or 404 when they moved.
+
+5. **Verify** at https://ropeman.dev/explore/react, then open a file from a node's panel.
 
 ## Adding a new curated entry
 
@@ -93,7 +100,8 @@ Repeat for each entry in `src/lib/data/explore-curated.json`.
    	"title": "Django",
    	"language": "Python",
    	"description": "The web framework for perfectionists with deadlines.",
-   	"stars": "82k+"
+   	"stars": "82k+",
+   	"ref": "<commit SHA the snapshot was analyzed at>"
    }
    ```
 2. Update `updatedAt` to today.
