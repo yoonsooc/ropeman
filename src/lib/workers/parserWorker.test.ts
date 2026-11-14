@@ -150,6 +150,57 @@ export function second() {
 		expect(symbols.map((s) => s.name)).toContain('ok');
 	});
 
+	it('lists each spec of a grouped Go import as its own import at its line', async () => {
+		// Arrange
+		const source = [
+			'package store',
+			'',
+			'import "errors"',
+			'',
+			'import ()',
+			'import (',
+			'\t"fmt"',
+			'\tapi "example.com/shop/web/api"',
+			')',
+			'',
+			'func New() error { return errors.New(fmt.Sprint(api.X)) }'
+		].join('\n');
+
+		// Act
+		const symbols = await parseSymbols('store/store.go', source);
+
+		// Assert
+		expect(symbols.filter((s) => s.kind === 'import').map((s) => [s.lineStart, s.name])).toEqual([
+			[1, 'package store'],
+			[3, 'import "errors"'],
+			[7, '"fmt"'],
+			[8, 'api "example.com/shop/web/api"']
+		]);
+	});
+
+	it('lists only the top-level uses of a Rust file, not those in an inline mod', async () => {
+		// Arrange
+		const source = [
+			'use crate::a::B;',
+			'pub struct Top;',
+			'#[cfg(test)]',
+			'mod tests {',
+			'    use super::*;',
+			'    mod deep {',
+			'        use super::super::Top;',
+			'    }',
+			'}'
+		].join('\n');
+
+		// Act
+		const symbols = await parseSymbols('src/foo.rs', source);
+
+		// Assert
+		expect(symbols.filter((s) => s.kind === 'import').map((s) => s.name)).toEqual([
+			'use crate::a::B;'
+		]);
+	});
+
 	it('returns no symbols for a valid file without definitions', async () => {
 		// Act
 		const symbols = await parse('src/pkg/__init__.py', '# package marker\n');
