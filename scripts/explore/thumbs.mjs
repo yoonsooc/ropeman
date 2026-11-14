@@ -5,9 +5,10 @@
  *
  *   node scripts/explore/thumbs.mjs --base http://localhost:PORT [slug...] [--work DIR]
  *
- * The card shows the named level (every part described) with the most relations among those of
- * 4 to 16 parts, served to the page as the top level: the real top level is often a column of
- * folders with no arrows.
+ * The card shows the best connected named level (every part described) of 4 to 16 parts: the
+ * most relations, weighted by the share of parts they touch, so a hub with a column of leaves
+ * loses to a web. It is served to the page as the top level, because the real top level is often
+ * a column of folders with no arrows.
  * `--base` is a running production build (`npx wrangler pages dev .svelte-kit/cloudflare`).
  * The snapshot is served to the page from the work folder, so nothing is uploaded. With no
  * slug it draws every built snapshot. CHROME_PATH picks the browser binary when Playwright's
@@ -53,7 +54,11 @@ function cardSnapshot(text) {
 	const readable = levels.filter(
 		([, l]) => l.nodes.length >= 4 && l.nodes.length <= 16 && l.nodes.every((n) => n.description)
 	);
-	const [key, level] = readable.sort(([, a], [, b]) => b.edges.length - a.edges.length)[0] ?? [];
+	const score = (l) => {
+		const touched = new Set(l.edges.flatMap((e) => [e.source, e.target]));
+		return (l.edges.length * touched.size) / l.nodes.length;
+	};
+	const [key, level] = readable.sort(([, a], [, b]) => score(b) - score(a))[0] ?? [];
 	if (!level || level.edges.length === 0 || key === '__root__') return text;
 	const nodes = level.nodes.map((n) => ({ ...n, parentId: null, depth: 0 }));
 	return JSON.stringify({

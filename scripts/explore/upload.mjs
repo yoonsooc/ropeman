@@ -45,8 +45,17 @@ function parseArgs(argv) {
 			fs.existsSync(path.join(args.work, slug, 'snapshot.json'))
 		);
 	}
+	// The token goes in a header, so it must never travel in the clear off this machine
+	const { protocol, hostname } = new URL(args.url);
+	const local = hostname === 'localhost' || hostname === '127.0.0.1';
+	if (protocol !== 'https:' && !(protocol === 'http:' && local)) {
+		throw new Error(`--url must be https (or http://localhost for a local worker): ${args.url}`);
+	}
 	return args;
 }
+
+/** A response body short enough to print: the worker's error, not a page of HTML. */
+const brief = (text) => (text.length > 200 ? `${text.slice(0, 200)}…` : text);
 
 /** The snapshot text when it is the one the pipeline checked, or why it is not. */
 function readChecked(work, slug) {
@@ -54,8 +63,10 @@ function readChecked(work, slug) {
 	const dir = path.join(work, slug);
 	const file = path.join(dir, 'snapshot.json');
 	if (!fs.existsSync(file)) return { error: 'no snapshot.json (run pipeline.mjs first)' };
+	const reportFile = path.join(dir, 'report.json');
+	if (!fs.existsSync(reportFile)) return { error: 'no report.json (run pipeline.mjs again)' };
 	const text = fs.readFileSync(file, 'utf8');
-	const report = JSON.parse(fs.readFileSync(path.join(dir, 'report.json'), 'utf8'));
+	const report = JSON.parse(fs.readFileSync(reportFile, 'utf8'));
 	const sha = sha256(text);
 	if (report.problems?.length) return { error: `report lists problems: ${report.problems[0]}` };
 	if (report.snapshotSha256 !== sha)
@@ -72,11 +83,16 @@ async function upload(args, slug, snap, token) {
 		headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
 		body: snap.text
 	});
-	if (!posted.ok) return `upload failed: HTTP ${posted.status} ${await posted.text()}`;
+	if (!posted.ok) {
+		return {
+			status: posted.status,
+			error: `upload failed: HTTP ${posted.status} ${brief(await posted.text())}`
+		};
+	}
 	const read = await fetch(endpoint, { cache: 'no-store' });
-	if (!read.ok) return `read-back failed: HTTP ${read.status}`;
+	if (!read.ok) return { error: `read-back failed: HTTP ${read.status}` };
 	const readSha = sha256(await read.text());
-	return readSha === snap.sha ? null : `read-back sha256 ${readSha.slice(0, 12)} differs`;
+	return readSha === snap.sha ? {} : { error: `read-back sha256 ${readSha.slice(0, 12)} differs` };
 }
 
 async function main() {
@@ -100,11 +116,18 @@ async function main() {
 			out(`${slug}\tREADY\t${facts}`);
 			continue;
 		}
-		const error = await upload(args, slug, snap, token).catch((err) => `network: ${err.message}`);
+		const { status, error } = await upload(args, slug, snap, token).catch((err) => ({
+			error: `network: ${brief(err.message)}`
+		}));
 		out(
 			`${slug}\t${error ? 'FAIL' : 'OK'}\t${facts}${error ? `\t${error}` : '\tread back identical'}`
 		);
 		if (error) failed++;
+		// A wrong token fails every slug the same way
+		if (status === 401) {
+			out(`stopped: the worker refused ${TOKEN_VAR}; nothing after ${slug} was sent`);
+			break;
+		}
 	}
 	if (failed) process.exit(1);
 }

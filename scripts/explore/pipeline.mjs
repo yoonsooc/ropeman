@@ -8,7 +8,8 @@
  * folder is ~/.cache/ropeman-explore; `upload.mjs` reads the snapshots from the same place.
  *
  * clone   shallow clone of `repos.json[slug].commit`, made read-only
- * map     `claude -p` with this repo's skill names the map in English (sonnet, writes only OUT)
+ * map     `claude -p` with this repo's skill names the map in English (sonnet), in the sandbox
+ *         of `agent.mjs`: it reads only the clone and OUT and writes only OUT
  * verify  `ropeman verify` on the result
  * ko      `claude -p` translates the named parts' labels and descriptions into Korean
  * build   ExploreSnapshot with the commit and the Korean side map at WORK/<slug>/snapshot.json, after
@@ -17,17 +18,16 @@
  * Every step skips when its output already matches its input, so a rerun after a crash or an
  * edit picks up where it stopped. `--redo` discards one step's output first.
  */
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { createServer } from 'vite';
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const MODEL = 'sonnet';
+import { ROOT, buildBridge, mapPermissions, prepareSandbox, runClaude, usageOf } from './agent.mjs';
+
 const REPOS = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/explore/repos.json'), 'utf8'));
 
 function parseArgs(argv) {
@@ -61,19 +61,6 @@ function run(cmd, args, opts = {}) {
 		stdio: ['ignore', 'pipe', 'inherit'],
 		...opts
 	});
-}
-
-/** A process' stdout, timing and exit code, without throwing on a non-zero exit. */
-function timed(cmd, args, opts) {
-	const started = Date.now();
-	const res = spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...opts });
-	if (res.error) throw res.error;
-	return {
-		stdout: res.stdout,
-		stderr: res.stderr,
-		status: res.status,
-		wallMs: Date.now() - started
-	};
 }
 
 function setWritable(dir, writable) {
@@ -111,54 +98,6 @@ function clone(ctx) {
 	);
 }
 
-/** A `ropeman` on PATH that runs this checkout's bridge, as `npm i -g @ropeman/bridge` would. */
-function installBridge(work) {
-	run('npm', ['run', '-s', 'build:bridge'], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
-	const bin = path.join(work, 'bin');
-	fs.mkdirSync(bin, { recursive: true });
-	const shim = path.join(bin, 'ropeman');
-	fs.writeFileSync(
-		shim,
-		`#!/bin/sh\nexec node ${JSON.stringify(path.join(ROOT, 'bridge/dist/server.mjs'))} "$@"\n`
-	);
-	fs.chmodSync(shim, 0o755);
-	return bin;
-}
-
-/** Absolute-path permission rule (`//` marks a filesystem path in Claude Code settings). */
-const absRule = (tool, dir) => `${tool}(/${dir}/**)`;
-
-/**
- * What the map agent may do, as CLI flags: a workspace never opened interactively is not
- * trusted, so Claude Code ignores the allow list of its `.claude/settings.json`.
- */
-const mapPermissions = (ctx) => [
-	'--permission-mode',
-	'dontAsk',
-	'--allowedTools',
-	'Skill',
-	'Read',
-	'Glob',
-	'Grep',
-	'Bash(ropeman --version)',
-	'Bash(ropeman map:*)',
-	'Bash(ropeman verify:*)',
-	absRule('Write', ctx.outDir),
-	absRule('Edit', ctx.outDir),
-	'--disallowedTools',
-	'Bash(ropeman serve:*)',
-	'WebFetch',
-	'WebSearch',
-	'Read(**/.env*)'
-];
-
-/** The folder the agent starts in, with the skill installed for the project. */
-function prepareAgentDir(ctx) {
-	const skillDir = path.join(ctx.agentDir, '.claude/skills/ropeman');
-	fs.mkdirSync(skillDir, { recursive: true });
-	fs.copyFileSync(path.join(ROOT, 'skill/ropeman/SKILL.md'), path.join(skillDir, 'SKILL.md'));
-}
-
 /** `repos.json` `depth`: stages named up front, for a repo whose code starts deep (`src/<pkg>/`) */
 const MAP_PROMPT = ({ repoDir, outDir, entry }) =>
 	[
@@ -170,64 +109,14 @@ const MAP_PROMPT = ({ repoDir, outDir, entry }) =>
 		.filter(Boolean)
 		.join(' ');
 
-/** The caller's environment without a parent Claude Code session's variables, as in a fresh terminal. */
-function agentEnv(bin) {
-	const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^CLAUDE/.test(k)));
-	return { ...env, PATH: `${bin}${path.delimiter}${process.env.PATH}` };
-}
-
-function claude(ctx, args, input) {
-	const res = timed(
-		'claude',
-		[
-			'-p',
-			'--model',
-			MODEL,
-			'--output-format',
-			'json',
-			'--setting-sources',
-			'project',
-			'--strict-mcp-config',
-			'--no-session-persistence',
-			...args
-		],
-		{
-			cwd: ctx.agentDir,
-			input,
-			env: agentEnv(ctx.bin)
-		}
-	);
-	let result;
-	try {
-		result = JSON.parse(res.stdout);
-	} catch {
-		throw new Error(
-			`claude -p printed no JSON (exit ${res.status}):\n${res.stderr}\n${res.stdout.slice(0, 2000)}`
-		);
-	}
-	return { result, wallMs: res.wallMs };
-}
-
-/** What a `claude -p` run cost, for the report. */
-function usageOf({ result, wallMs }) {
-	const u = result.usage ?? {};
-	return {
-		wallMs,
-		turns: result.num_turns,
-		costUsd: result.total_cost_usd,
-		inputTokens: u.input_tokens,
-		cacheReadTokens: u.cache_read_input_tokens,
-		cacheWriteTokens: u.cache_creation_input_tokens,
-		outputTokens: u.output_tokens
-	};
-}
-
 function mapStep(ctx) {
 	const marker = path.join(ctx.slugDir, 'map.json');
 	const prompt = MAP_PROMPT(ctx);
-	// Placeholders for the folders, so a moved work folder keeps its maps
+	// The skill, the sandbox and the prompt with placeholders for the folders, so a moved
+	// work folder keeps its maps and a changed sandbox makes new ones
 	const inputHash = sha256(
 		fs.readFileSync(path.join(ROOT, 'skill/ropeman/SKILL.md'), 'utf8') +
+			fs.readFileSync(path.join(ROOT, 'scripts/explore/agent.mjs'), 'utf8') +
 			MAP_PROMPT({ ...ctx, repoDir: 'REPO', outDir: 'OUT' })
 	);
 	const prior = readJson(marker);
@@ -242,13 +131,8 @@ function mapStep(ctx) {
 	}
 	fs.rmSync(ctx.outDir, { recursive: true, force: true });
 	fs.mkdirSync(ctx.outDir, { recursive: true });
-	prepareAgentDir(ctx);
 	log('map: running the agent (takes minutes)');
-	const res = claude(
-		ctx,
-		['--add-dir', ctx.repoDir, '--add-dir', ctx.outDir, ...mapPermissions(ctx)],
-		prompt
-	);
+	const res = runClaude(ctx.sandbox, mapPermissions(ctx), prompt);
 	fs.writeFileSync(
 		path.join(ctx.slugDir, 'map-agent.json'),
 		JSON.stringify(res.result, null, '\t')
@@ -265,12 +149,12 @@ function mapStep(ctx) {
 }
 
 function verifyStep(ctx) {
-	const res = timed(
-		path.join(ctx.bin, 'ropeman'),
+	const stdout = run(
+		path.join(ctx.sandbox.bin, 'ropeman'),
 		['verify', '--root', ctx.repoDir, '--map', ctx.mapFile],
-		{}
+		{ env: ctx.sandbox.env }
 	);
-	const report = JSON.parse(res.stdout);
+	const report = JSON.parse(stdout);
 	if (!report.ok) throw new Error(`verify: ${JSON.stringify(report.violations).slice(0, 2000)}`);
 	log('verify: ok');
 }
@@ -318,9 +202,8 @@ function translateStep(ctx, builder) {
 		return prior.nodes;
 	}
 	log(`ko: translating ${Object.keys(source).length} parts`);
-	prepareAgentDir(ctx);
-	const res = claude(
-		ctx,
+	const res = runClaude(
+		ctx.sandbox,
 		['--tools', '', '--json-schema', JSON.stringify(KO_SCHEMA)],
 		KO_PROMPT(ctx.entry.repo, source)
 	);
@@ -362,10 +245,10 @@ async function buildOne(args, slug, builder) {
 		outDir: path.join(slugDir, 'out'),
 		agentDir: path.join(slugDir, 'agent'),
 		mapFile: path.join(slugDir, 'out', 'ropeman.json'),
-		bin: path.join(args.work, 'bin'),
 		metrics: {}
 	};
 	fs.mkdirSync(slugDir, { recursive: true });
+	ctx.sandbox = { agentDir: ctx.agentDir, ...prepareSandbox(ctx) };
 	if (args.redo.includes('map')) fs.rmSync(path.join(slugDir, 'map.json'), { force: true });
 	if (args.redo.includes('translate')) fs.rmSync(path.join(slugDir, 'ko.json'), { force: true });
 
@@ -400,7 +283,7 @@ async function buildOne(args, slug, builder) {
 
 async function main() {
 	const args = parseArgs(process.argv.slice(2));
-	installBridge(args.work);
+	buildBridge();
 	const { mod: builder, close } = await loadBuilder();
 	const failed = [];
 	try {

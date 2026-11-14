@@ -116,6 +116,57 @@ export function buildExploreSnapshot(map: RopemanMap, source: SnapshotSource): E
 	};
 }
 
+/**
+ * What must never appear in public text. The names come from an agent that read third-party
+ * code, so a prompt injection could steer a file or secret it saw into a description; the
+ * sandbox keeps it from reading outside the clone, and this catches what a repository itself
+ * holds. Paths under the repository are fine, so only machine-level roots count.
+ */
+const LEAKS: [string, RegExp][] = [
+	['home path', /\/Users\/|\/home\/|\/root\/|(?:^|[\s"'`(])~\/|[A-Za-z]:\\Users\\/],
+	[
+		'absolute path outside the repository',
+		/(?:^|[\s"'`(=])\/(?:etc|var|tmp|private|opt|usr|Volumes|System|Library|proc|dev|mnt)\/\w/
+	],
+	['private key', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
+	['AWS access key id', /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/],
+	['GitHub token', /\bgh[pousr]_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{20,}/],
+	['API key', /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}|\bAIza[0-9A-Za-z_-]{35}/],
+	['Slack token', /\bxox[abprs]-[A-Za-z0-9-]{10,}/],
+	['JWT', /\beyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}/],
+	[
+		'assigned secret',
+		/\b(?:api[_-]?key|secret|token|passw(?:or)?d)\s*[:=]\s*["']?[A-Za-z0-9/+_=-]{12,}/i
+	]
+];
+
+/** Every text a visitor can read, in any locale, with where it sits. */
+function publicTexts(snapshot: ExploreSnapshot): [string, string][] {
+	const texts: [string, string][] = [];
+	for (const [key, level] of Object.entries(snapshot.semanticLevels)) {
+		texts.push([`${key} breadcrumb`, level.breadcrumbLabel]);
+		for (const n of level.nodes) {
+			texts.push([`${n.id} label`, n.label], [`${n.id} description`, n.description]);
+			for (const symbol of n.keySymbols) texts.push([`${n.id} keySymbol`, symbol]);
+		}
+	}
+	for (const [id, t] of Object.entries(snapshot.translations?.ko ?? {})) {
+		texts.push([`ko ${id} label`, t.label], [`ko ${id} description`, t.description]);
+	}
+	return texts;
+}
+
+/** A finding per text that looks like a local path or a secret; empty when none does. */
+export function contentLeaks(snapshot: ExploreSnapshot): string[] {
+	const found: string[] = [];
+	for (const [where, text] of publicTexts(snapshot)) {
+		for (const [kind, pattern] of LEAKS) {
+			if (pattern.test(text)) found.push(`content: ${kind} in ${where}`);
+		}
+	}
+	return found;
+}
+
 /** Every reason the snapshot must not ship; empty when it can. */
 export function checkSnapshot(snapshot: ExploreSnapshot, source: SnapshotTranslation): string[] {
 	const problems: string[] = [];
@@ -141,7 +192,7 @@ export function checkSnapshot(snapshot: ExploreSnapshot, source: SnapshotTransla
 		} else if (!HANGUL.test(t.description)) problems.push(`ko: ${id} description has no Korean`);
 	}
 	for (const id of Object.keys(ko)) if (!source[id]) problems.push(`ko: ${id} is not a named part`);
-	return problems;
+	return [...problems, ...contentLeaks(snapshot)];
 }
 
 export function snapshotStats(snapshot: ExploreSnapshot) {

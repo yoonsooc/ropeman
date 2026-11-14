@@ -53,8 +53,16 @@ batch. Needs Node 22+, git and a logged-in `claude` CLI.
    node scripts/explore/pipeline.mjs --batch 1    # every slug of a batch
    ```
 
+   The mapping agent runs in a sandbox (`scripts/explore/agent.mjs`): it reads
+   only the clone and its output folder, writes only the output folder, and its
+   `ropeman` runs only `map`/`verify` on those two folders. After changing the
+   sandbox, run `node scripts/explore/probe-sandbox.mjs` (about $0.10); it tries
+   each escape from a hostile repository and exits 1 if one gets through.
+
    Each `~/.cache/ropeman-explore/<slug>/` then holds `snapshot.json` and
-   `report.json` (cost, time, size, the checks). The snapshot records the
+   `report.json` (cost, time, size, the checks). The checks fail a snapshot
+   whose public text holds a home or system path or something shaped like a
+   secret (private key, AWS key id, GitHub or API token, JWT). The snapshot records the
    analyzed `commit`, repository paths, and Korean names in `translations.ko`.
 
 3. **Check, then upload** from your own terminal:
@@ -66,9 +74,11 @@ batch. Needs Node 22+, git and a logged-in `claude` CLI.
 
    With neither slugs nor `--batch` it takes every built snapshot. It refuses a snapshot whose
    checks failed, that changed after the build, or that is not from the pinned
-   commit, then reads each one back and compares its sha256. The token is read
+   commit, then reads each one back and compares its sha256. It stops at the
+   first 401, and `--url` must be https (or `http://localhost` for a local
+   worker). The token is read
    from the environment only and never printed. The worker accepts up to 16 MiB
-   per snapshot.
+   per snapshot and stores the uploaded text byte for byte.
 
 4. **Verify** at https://ropeman.dev/explore/react in English and Korean, then
    open a file from a node's panel.

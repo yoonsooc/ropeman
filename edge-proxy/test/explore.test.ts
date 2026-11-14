@@ -82,6 +82,16 @@ describe('explore worker', () => {
 		expect(await fetched.text()).toBe(body);
 	});
 
+	it('stores the uploaded text itself, so its read-back has the same sha256', async () => {
+		// Whitespace and \u escapes that JSON.stringify(JSON.parse(text)) would rewrite
+		const body = `{\n  "projectName": "react",  "label": "\\uD55C",\n  "semanticLevels": ${JSON.stringify(snapshot.semanticLevels, null, 4)}\n}\n`;
+
+		await worker.fetch(exploreRequest('POST', '/explore/react', { body, token: TOKEN }), env);
+		const fetched = await worker.fetch(exploreRequest('GET', '/explore/react'), env);
+
+		expect(await fetched.text()).toBe(body);
+	});
+
 	it('answers 413 to a body over the cap counted in bytes, before checking its shape', async () => {
 		// Hangul is one UTF-16 unit but three UTF-8 bytes, so a length check in units lets it through
 		const units = Math.floor(MAX_BODY_SIZE / 3) + 1;

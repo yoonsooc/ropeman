@@ -5,6 +5,7 @@ import {
 	MAX_SNAPSHOT_BYTES,
 	buildExploreSnapshot,
 	checkSnapshot,
+	contentLeaks,
 	namingGaps,
 	parseMap,
 	snapshotStats,
@@ -134,6 +135,12 @@ describe('file levels', () => {
 		expect(storage.breadcrumbLabel).toBe('Storage');
 	});
 
+	// The bridge drops imports between files of one node, so the map has no edges to put here.
+	// When it keeps them, this fails and the builder should carry them into the file level.
+	it('lists the files without relations between them, for now', () => {
+		expect(build().semanticLevels['sem:storage'].edges).toEqual([]);
+	});
+
 	it('leaves a one-file node and a node that already has a level alone', () => {
 		const levels = build().semanticLevels;
 
@@ -142,6 +149,45 @@ describe('file levels', () => {
 			'dir:src/api/routes.ts',
 			'dir:src/api/auth.ts'
 		]);
+	});
+});
+
+describe('contentLeaks', () => {
+	function withDescription(description: string, ko = KO) {
+		const snapshot = build(ko);
+		snapshot.semanticLevels.__root__.nodes[0].description = description;
+		return snapshot;
+	}
+
+	it.each([
+		['home path', 'Reads keys from /Users/alice/.ssh/id_ed25519.'],
+		['home path', 'Loads ~/.aws/credentials at start.'],
+		['absolute path outside the repository', 'Writes the cache to /tmp/build-cache.'],
+		['private key', '-----BEGIN OPENSSH PRIVATE KEY----- b3BlbnNzaC1rZXk'],
+		['AWS access key id', 'Uses AKIAIOSFODNN7EXAMPLE for uploads.'],
+		['GitHub token', 'Token ghp_abcdefghijklmnopqrstuvwxyz0123456789 is set.'],
+		['GitHub token', 'github_pat_11ABCDEFG0123456789_abcdefghij'],
+		['API key', 'Calls the API with sk-ant-api03-abcdefghijklmnopqrstuv.'],
+		['Slack token', 'Posts with xoxb-123456789012-abcdef.'],
+		['assigned secret', 'Config sets password = hunter2hunter2hunter2.']
+	])('fails on a %s', (kind, description) => {
+		expect(contentLeaks(withDescription(description))).toEqual([
+			`content: ${kind} in sem:api description`
+		]);
+	});
+
+	it('checks the Korean text too', () => {
+		const ko = { ...KO, 'sem:ui': { label: '화면', description: '/home/bob/notes.txt를 읽는다.' } };
+
+		expect(contentLeaks(build(ko))).toEqual(['content: home path in ko sem:ui description']);
+	});
+
+	it('passes routes, repository paths and words about tokens', () => {
+		const text =
+			'Serves /docs and /api/v1 routes from src/var/handlers, counts tokens and rotates the secret key.';
+
+		expect(contentLeaks(withDescription(text))).toEqual([]);
+		expect(checkSnapshot(withDescription(text), translationSource(map()))).toEqual([]);
 	});
 });
 
