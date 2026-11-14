@@ -1,3 +1,6 @@
+# Pinned so the volume keeps its name (agent_pgdata) when the folder moves
+name: agent
+
 services:
   db:
     image: pgvector/pgvector:pg17

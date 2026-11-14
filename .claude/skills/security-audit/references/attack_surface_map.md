@@ -4,7 +4,7 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 
 최종 갱신: 2026-04-16
 
-## 1. Cloudflare Edge Workers (`edge-proxy/src/`)
+## 1. Cloudflare Edge Workers (`workers/src/`)
 
 | Worker       | 도메인                | 엔드포인트                                                           | 인증                | KV                            | Secret                   |
 | ------------ | --------------------- | -------------------------------------------------------------------- | ------------------- | ----------------------------- | ------------------------ |
@@ -74,7 +74,7 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 ## 4. 인프라 / CI
 
 - Root `wrangler.toml`: Pages 설정, 변수 없음
-- `edge-proxy/wrangler.*.toml` 4종: `[vars] ALLOWED_ORIGINS` 평문 (공개 의도)
+- `workers/wrangler.*.toml` 4종: `[vars] ALLOWED_ORIGINS` 평문 (공개 의도)
 - `bun.lock`: `.gitignore`에 제외 선언됐지만 **실제로는 커밋됨** (정책 불일치)
 - `.github/workflows/ci.yml`: `actions/checkout@v4`, `setup-node@v4`, npm ci + lint + build + test:unit + test:e2e
 - Dependabot: **없음**
@@ -90,4 +90,4 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 
 - 루트 deps 15 (`@xyflow/svelte`, `@mlc-ai/web-llm`, `@dagrejs/dagre`, `marked`, `prismjs`, `web-tree-sitter`, 언어별 tree-sitter WASM)
 - `bridge` deps: `ws` 8.18
-- `edge-proxy` deps: 없음 (devDeps만)
+- `workers/` deps: 없음 (devDeps만)

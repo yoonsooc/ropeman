@@ -10,7 +10,7 @@ export default defineConfig({
 		}
 	},
 	test: {
-		// edge-proxy tests run in workerd through edge-proxy/vitest.config.mts
+		// Cloudflare Worker tests (workers/test/) run in workerd through workers/vitest.config.mts
 		include: [
 			'src/**/*.test.ts',
 			'bridge/test/**/*.test.ts',

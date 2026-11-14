@@ -33,7 +33,7 @@
 ```
 
 ```
-# edge-proxy npm audit 출력
+# workers/ npm audit 출력
 ...
 ```
 
@@ -121,9 +121,9 @@ Phase 1 secret patterns로 검색한 결과:
 
 | ID   | Severity | Area        | File:Line                              | Title                       | Owner | Due         | Status |
 | ---- | -------- | ----------- | -------------------------------------- | --------------------------- | ----- | ----------- | ------ |
-| F-01 | Critical | Edge / demo | edge-proxy/src/demo.ts:73              | Upstream error leak         | —     | sprint-NN+1 | Open   |
+| F-01 | Critical | Edge / demo | workers/src/demo.ts:73                 | Upstream error leak         | —     | sprint-NN+1 | Open   |
 | F-02 | High     | SPA         | src/lib/services/apiKeyValidator.ts:30 | Google API key in URL query | —     | sprint-NN+1 | Open   |
-| F-03 | Medium   | Infra       | edge-proxy/wrangler.share.toml:18      | KV id placeholder           | —     | sprint-NN   | Open   |
+| F-03 | Medium   | Infra       | workers/wrangler.share.toml:18         | KV id placeholder           | —     | sprint-NN   | Open   |
 | ...  |          |             |                                        |                             |       |             |        |
 
 **Status 종류**: Open / In-Progress / Mitigated / WontFix / Moved-to-FP

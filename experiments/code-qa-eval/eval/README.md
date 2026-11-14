@@ -1,6 +1,6 @@
 # eval
 
-Retrieval evaluation for `agent/`.
+Retrieval evaluation for the `agent` service in `src/agent/`.
 
 | file            | what                                                                                                  |
 | --------------- | ----------------------------------------------------------------------------------------------------- |
@@ -10,7 +10,7 @@ Retrieval evaluation for `agent/`.
 | `results/`      | per-question output of the last run                                                                   |
 | `reports/`      | write-ups (`W1.md`)                                                                                   |
 
-Setup, from `agent/`:
+Setup, from `experiments/code-qa-eval/`:
 
 ```bash
 mkdir -p .data/swe-qa .data/repos

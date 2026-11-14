@@ -86,7 +86,7 @@ Phase 1 Grep 히트나 Phase 2 Agent 보고 중 **실제로는 위험이 없다�
 
 ### FP-7: `ALLOWED_ORIGINS` 평문 wrangler.\*.toml
 
-- 파일: `edge-proxy/wrangler.{demo,proxy,share,explore}.toml` 의 `[vars]` 섹션
+- 파일: `workers/wrangler.{demo,proxy,share,explore}.toml` 의 `[vars]` 섹션
 - 소스: Phase 1 secret leak Grep (origin URL 패턴)
 - 판정 이유: `[vars]`는 Cloudflare에서 **public**으로 설계된 환경변수. ALLOWED_ORIGINS는 CORS 허용 목록이므로 노출 의도. secret이 아님.
 - 재평가 조건: `[vars]` 섹션에 Bearer 토큰, API 키 등 실제 비밀값이 추가되면 Critical.
@@ -95,8 +95,8 @@ Phase 1 Grep 히트나 Phase 2 Agent 보고 중 **실제로는 위험이 없다�
 ### FP-8: KV namespace ID 커밋
 
 - 파일:
-  - `edge-proxy/wrangler.share.toml` (`id = "cad76fde28e74586b497f3e27c80f448"`)
-  - `edge-proxy/wrangler.explore.toml` (`id = "5967bfaab9f54a83b0bc7b6f1559865e"`)
+  - `workers/wrangler.share.toml` (`id = "cad76fde28e74586b497f3e27c80f448"`)
+  - `workers/wrangler.explore.toml` (`id = "5967bfaab9f54a83b0bc7b6f1559865e"`)
 - 소스: Phase 1 secret leak Grep (고유 hex 문자열)
 - 판정 이유: KV namespace id는 Cloudflare 계정 내부 식별자로 **공개돼도 쓰기 불가** (wrangler 명령 + 계정 인증 필요). 의도된 노출.
 - 재평가 조건: Cloudflare가 KV id 의미론을 변경하거나 account 인증 체계가 약해지면.

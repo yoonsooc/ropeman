@@ -23,10 +23,10 @@
 		"gen": "wrangler types",
 		"deploy": "npm run build && npx wrangler pages deploy .svelte-kit/cloudflare --project-name=ropeman --branch=main --commit-dirty=false",
 		"deploy:app": "npm run deploy",
-		"deploy:edge:demo": "npm --prefix edge-proxy run deploy:demo",
-		"deploy:edge:proxy": "npm --prefix edge-proxy run deploy:proxy",
-		"deploy:edge:share": "npm --prefix edge-proxy run deploy:share",
-		"deploy:edge:explore": "npm --prefix edge-proxy run deploy:explore",
+		"deploy:edge:demo": "npm --prefix workers run deploy:demo",
+		"deploy:edge:proxy": "npm --prefix workers run deploy:proxy",
+		"deploy:edge:share": "npm --prefix workers run deploy:share",
+		"deploy:edge:explore": "npm --prefix workers run deploy:explore",
 		"cf-typegen": "wrangler types"
 	},
 	"devDependencies": {
