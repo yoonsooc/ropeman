@@ -19,7 +19,7 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 ### Fixed
 
-- Two serve processes starting at the same moment no longer race to create `~/.ropeman/bridge-token`; the token file is written in one atomic step ([#100](https://github.com/yoonsooc/ropeman/pull/100)).
+- Two serve processes starting at the same moment no longer race to create `~/.ropeman/bridge-token`; the token file is written in one atomic step (the token-file part of [#100](https://github.com/yoonsooc/ropeman/pull/100)).
 
 ## [0.3.1] - 2026-11-13
 
@@ -39,7 +39,6 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 - The `ropeman.json` map schema, which ropeman.dev opens ([#75](https://github.com/yoonsooc/ropeman/pull/75)).
 - `ropeman map`, `ropeman verify` and `ropeman inbox`, and the agent skill that uses them to name the top of a map and brief the workers ([#82](https://github.com/yoonsooc/ropeman/pull/82)).
 - Local mode. `--local` serves the bundled viewer at `http://127.0.0.1:<port>/bridge` for Safari and for browsers that block the local-network connection ([#72](https://github.com/yoonsooc/ropeman/pull/72), [#79](https://github.com/yoonsooc/ropeman/pull/79)).
-- Releases are published from GitHub Actions with npm trusted publishing and provenance ([#84](https://github.com/yoonsooc/ropeman/pull/84)).
 
 ### Changed
 

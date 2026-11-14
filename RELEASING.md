@@ -13,7 +13,7 @@ Merging a pull request to `main` runs the `deploy` job in [`.github/workflows/ci
 ### 1. Open a version bump pull request
 
 - Set `version` in `bridge/package.json` and `bridge/package-lock.json`.
-- Update every install command and skill URL to the new version. `bridge/test/releasePin.test.ts` fails until each surface it lists names `@ropeman/bridge@<version>` and `raw.githubusercontent.com/yoonsooc/ropeman/bridge-v<version>/skill/ropeman/SKILL.md`, and until step 1 of `skill/ropeman/SKILL.md` asks for that version. `tests/onboarding.spec.ts` (E2E) checks the same command and URL in the app.
+- Replace the old version with the new one in every file listed in `SURFACES` in [`bridge/test/releasePin.test.ts`](bridge/test/releasePin.test.ts) (the READMEs, the skill and its READMEs, the getting-started and bridge-setup docs in both languages, and three Svelte files). The test fails until each install command there reads `@ropeman/bridge@<version>`, each skill URL reads `raw.githubusercontent.com/yoonsooc/ropeman/bridge-v<version>/skill/ropeman/SKILL.md`, and step 1 of `skill/ropeman/SKILL.md` contains `It must print <version> or later.` and `npm install -g @ropeman/bridge@<version>`. The E2E specs (`tests/onboarding.spec.ts`, `tests/landing-first-paint.spec.ts`) read the version from `bridge/package.json`, so they need no edit.
 - Move the entries under Unreleased in [`bridge/CHANGELOG.md`](bridge/CHANGELOG.md) to a new section for the version and date, and update the compare links at the bottom.
 - If the map schema changed, update Compatibility in [`bridge/README.md`](bridge/README.md). A new viewer reads maps from an older bridge, but an older viewer drops the fields a newer schema adds.
 
@@ -27,7 +27,7 @@ git tag bridge-v<version> origin/main   # the merge commit of the bump PR
 git push origin bridge-v<version>
 ```
 
-Push the tag as soon as the pull request merges. You cannot tag first, because the workflow checks that the tagged commit is on `main`. You also do not need to wait for the deploy, because the workflow waits for it.
+Push the tag as soon as the pull request merges. You cannot tag first, because the workflow checks that the tagged commit is on `main`. You also do not need to wait for CI, because the workflow waits for it.
 
 ### 3. What the workflow checks
 
@@ -35,7 +35,7 @@ The `build` job has no OIDC token. In order, it:
 
 1. Checks the tag has the form `bridge-v<major>.<minor>.<patch>`.
 2. Checks the tagged commit is on `main` and `bridge/package.json` has the tag's version.
-3. Waits up to 30 minutes for the `ci.yml` run of that commit, including its `deploy` job, to succeed. So ropeman.dev always ships before the package.
+3. Waits up to 30 minutes for the `ci.yml` run of that commit, including its `deploy` job, to succeed. Normally that deploy puts the new ropeman.dev out before the package. If another pull request merges right after the bump, that run skips its deploy (only the newest `main` commit deploys) and still succeeds, so the release can go ahead while the newer run is still deploying. The bridge can then be on npm a few minutes before the site catches up.
 4. Stops without publishing if npm already has the version, so a rerun after success does nothing. Only an `E404` counts as missing; any other npm error fails the run.
 5. Runs `npm pack` (its `prepack` builds the app, the bridge and the bundled viewer), installs the tarball globally, checks `ropeman --version`, and runs `bridge/scripts/smoke.mjs` against a fixture with that binary.
 

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Search the existing issues first. For a security problem, do not file it here. Follow the [security policy](https://github.com/yoonsooc/ropeman/security/policy) instead.
+        Search the existing issues first. For a security problem, do not file it here. [Report it privately](https://github.com/yoonsooc/ropeman/security/advisories/new) instead.
 
   - type: dropdown
     id: surface
