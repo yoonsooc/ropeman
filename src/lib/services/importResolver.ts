@@ -15,6 +15,26 @@ import type {
 	Specifier,
 	SymbolEnd
 } from '$lib/types/codeMap';
+import {
+	goPackages,
+	isGoModFile,
+	isGoPackageClause,
+	readGoImport,
+	readGoModules,
+	resolveGoImport,
+	type GoModule
+} from './goImports';
+import {
+	endResolution,
+	isCargoManifest,
+	readCargoPackages,
+	readUse,
+	resolveUsePath,
+	rustCrates,
+	type CargoPackage,
+	type RustCrates,
+	type UseTree
+} from './rustImports';
 
 /** Which rule owns a specifier. It is decided before any lookup, so a miss still names its rule. */
 export type ImportRule =
@@ -25,7 +45,10 @@ export type ImportRule =
 	| 'workspace'
 	| 'package-imports'
 	| 'python-relative'
-	| 'python-package';
+	| 'python-package'
+	| 'go-module'
+	| 'rust-module'
+	| 'rust-crate';
 
 /**
  * Why a site that names something local found no file. `no-file`: the rule produced a path the
@@ -104,6 +127,9 @@ export interface ResolverConfig {
 	packages: ReadonlyMap<string, Package>;
 	/** Every package.json by folder, for `#imports` */
 	packageScopes: ReadonlyMap<string, Package>;
+	/** Every go.mod, longest module path first */
+	goModules: readonly GoModule[];
+	cargoPackages: readonly CargoPackage[];
 }
 
 const PROVENANCE: CodeProvenance = { source: 'resolver', confidence: 'EXTRACTED' };
@@ -137,18 +163,22 @@ const BUILD_DIRS = new Set(['dist', 'build', 'lib', 'out', 'esm', 'cjs']);
 /** `exports` and `imports` conditions the resolver follows, in the order the package wrote them */
 const CONDITIONS = new Set(['types', 'import', 'require', 'default', 'svelte', 'browser']);
 
-type Family = 'script' | 'python';
+type Family = 'script' | 'python' | 'go' | 'rust';
 
 function familyOf(path: string): Family | null {
 	const ext = path.slice(path.lastIndexOf('.')).toLowerCase();
 	if (ext === '.py') return 'python';
+	if (ext === '.go') return 'go';
+	if (ext === '.rs') return 'rust';
 	return SCRIPT_EXTS.includes(ext) ? 'script' : null;
 }
 
-/** The files a caller reads for `readResolverConfig`: tsconfig/jsconfig, package.json, pnpm and svelte config. */
+/** The files a caller reads for `readResolverConfig`: tsconfig/jsconfig, package.json, pnpm and svelte config, go.mod, Cargo.toml. */
 export function isResolverConfig(path: string): boolean {
 	const name = basename(path);
 	return (
+		isGoModFile(path) ||
+		isCargoManifest(path) ||
 		name === 'package.json' ||
 		name === 'pnpm-workspace.yaml' ||
 		/^[jt]sconfig(\..+)?\.json$/.test(name) ||
@@ -167,7 +197,9 @@ export function readResolverConfig(texts: ReadonlyMap<string, string>): Resolver
 		tsScopes: readTsScopes(json, packages),
 		kitScopes: readKitScopes(texts),
 		packages,
-		packageScopes
+		packageScopes,
+		goModules: readGoModules(texts),
+		cargoPackages: readCargoPackages(texts)
 	};
 }
 
@@ -234,6 +266,8 @@ function parseConfigs(texts: ReadonlyMap<string, string>): Map<string, Record<st
 }
 
 const UNPARSED: ModuleResolution = { status: 'unresolved', rule: null, reason: 'unparsed' };
+/** Where a name with no module to look in is found: nowhere */
+const NO_MODULE: ModuleResolution = { status: 'unresolved', rule: null, reason: 'no-file' };
 
 /**
  * Bind every import and re-export site the resolver understands; other languages keep
@@ -249,15 +283,16 @@ export function resolveImports(
 		const family = familyOf(path);
 		if (!family) continue;
 		const read = (site: ModuleSite): ReadSite => {
-			const statement =
-				family === 'python' ? readPythonImport(site.text) : readScriptImport(site.text);
-			const { resolution, pythonPackage } = !statement
-				? { resolution: UNPARSED, pythonPackage: null }
-				: family === 'python'
-					? resolvePythonModule(statement, path, ctx)
-					: { resolution: resolveScriptModule(statement.module, path, ctx), pythonPackage: null };
-			outcomes.push({ path, line: site.line, written: statement?.module ?? null, resolution });
-			return { site, statement, resolution, pythonPackage };
+			const found = readSite(family, site, path, ctx);
+			if (found.statement !== NOT_IMPORT) {
+				outcomes.push({
+					path,
+					line: site.line,
+					written: found.statement?.module ?? null,
+					resolution: found.resolution
+				});
+			}
+			return found;
 		};
 		ctx.sites.set(path, {
 			imports: record.imports.map(read),
@@ -282,12 +317,118 @@ export function resolveImports(
 	return { map: { ...map, files }, outcomes };
 }
 
+/** A site the parser lists with the imports that names no module: Go's `package x` clause. */
+const NOT_IMPORT = Symbol('not an import');
+
 interface ReadSite {
 	site: ModuleSite;
-	statement: Statement | null;
+	/** null when the text does not parse; NOT_IMPORT keeps the site pending */
+	statement: Statement | null | typeof NOT_IMPORT;
 	resolution: ModuleResolution;
-	/** The package a Python `from` names, whose submodules its listed names may load */
-	pythonPackage: PythonPackage | null;
+	/** The names the statement lists, each with where it is found */
+	names: ListedName[];
+	/** Modules every name of which the statement brings in: `export * from`, Rust `use a::*` */
+	stars: ModuleResolution[];
+}
+
+/**
+ * One listed name and where it is looked up. `submodule` is set when the name is itself a module
+ * file (`from pkg import mod`, Rust `use a::{b}` with `a/b.rs`), and the specifier binds that file.
+ * Otherwise the name is a declaration in `from`, which may differ per name in a Rust `use` tree.
+ */
+interface ListedName {
+	written: WrittenName;
+	submodule: FilePath | null;
+	from: ModuleResolution;
+}
+
+function readSite(family: Family, site: ModuleSite, path: FilePath, ctx: Context): ReadSite {
+	const unparsed = { site, statement: null, resolution: UNPARSED, names: [], stars: [] };
+	switch (family) {
+		case 'script': {
+			const statement = readScriptImport(site.text);
+			if (!statement) return unparsed;
+			const resolution = resolveScriptModule(statement.module, path, ctx);
+			const names = statement.named.map((written) => ({
+				written,
+				submodule: null,
+				from: resolution
+			}));
+			return { site, statement, resolution, names, stars: statement.star ? [resolution] : [] };
+		}
+		case 'python': {
+			const statement = readPythonImport(site.text);
+			if (!statement) return unparsed;
+			const { resolution, pythonPackage } = resolvePythonModule(statement, path, ctx);
+			// A namespace package has no module of its own, so a name that is not a submodule binds nothing
+			const from = pythonPackage?.namespace ? NO_MODULE : resolution;
+			const names = statement.named.map((written) => {
+				const submodule = pythonPackage && findSubmodule(pythonPackage, written.name, ctx.files);
+				return { written, submodule: (submodule as FilePath) || null, from };
+			});
+			return { site, statement, resolution, names, stars: [] };
+		}
+		case 'go': {
+			if (isGoPackageClause(site.text))
+				return { site, statement: NOT_IMPORT, resolution: UNPARSED, names: [], stars: [] };
+			const module = readGoImport(site.text);
+			if (module === null) return unparsed;
+			const resolution = resolveGoImport(module, ctx.config.goModules, ctx.goPackages);
+			return {
+				site,
+				statement: { module, named: [], split: false },
+				resolution,
+				names: [],
+				stars: []
+			};
+		}
+		case 'rust': {
+			const tree = readUse(site.text);
+			return tree ? readRustUse(site, tree, path, ctx) : unparsed;
+		}
+	}
+}
+
+/**
+ * A `use` tree as one site, the way Python reads `from a import b, c`: the site's module is the
+ * module the path before `{…}` or `*` names, or for a plain path its last module (`a::B` names
+ * `a`, `a::b` names `b` when `b.rs` exists). Each leaf is a listed name found in its own module.
+ */
+function readRustUse(site: ModuleSite, tree: UseTree, path: FilePath, ctx: Context): ReadSite {
+	const walk = (segments: readonly string[]) =>
+		resolveUsePath(segments, path, ctx.rustCrates, ctx.files, ctx.declaresType);
+	// `use {a::B, c::D}` writes no path before the group, so the site keeps the first leaf's module
+	const head = tree.group?.length ? tree.group : tree.leaves[0].path;
+	const resolution = endResolution(walk(head));
+	const names: ListedName[] = [];
+	const stars: ModuleResolution[] = [];
+	for (const leaf of tree.leaves) {
+		const segments =
+			leaf.path.length > 1 && leaf.path.at(-1) === 'self' ? leaf.path.slice(0, -1) : leaf.path;
+		const end = walk(segments);
+		const isModule = end.kind === 'local' && end.modules === end.rest.length;
+		if (leaf.glob) {
+			if (isModule) stars.push(endResolution(end));
+			continue;
+		}
+		const name = segments.at(-1)!;
+		if (end.kind === 'external' && segments.length === 1) continue;
+		const written = { name, local: leaf.alias ?? name, typeOnly: false };
+		const item =
+			end.kind === 'external' || (end.kind === 'local' && end.modules === end.rest.length - 1);
+		names.push({
+			written,
+			submodule: isModule ? (end.file as FilePath) : null,
+			// An item behind a module the layout does not show (an inline `mod`, an enum variant) is not looked up
+			from: isModule || item ? endResolution(end) : NO_MODULE
+		});
+	}
+	const statement: Statement = {
+		module: head.join('::'),
+		named: names.map((n) => n.written),
+		split: true
+	};
+	return { site, statement, resolution, names, stars };
 }
 
 /**
@@ -313,6 +454,10 @@ interface Context {
 	defaultKit: PathAlias[] | null;
 	/** Each file's sites with their modules resolved, filled before any name is bound */
 	sites: Map<FilePath, { imports: ReadSite[]; reexports: ReadSite[] }>;
+	goPackages: ReadonlyMap<string, readonly string[]>;
+	rustCrates: RustCrates;
+	/** A struct, enum, trait or other type-namespace item at the top of a file, for a Rust uniform path */
+	declaresType: (file: string, name: string) => boolean;
 }
 
 function createContext(map: CodeMap, config: ResolverConfig): Context {
@@ -322,6 +467,8 @@ function createContext(map: CodeMap, config: ResolverConfig): Context {
 		config.kitScopes.size === 0
 			? kitAliases(prefix.replace(/\/$/, ''), new Map([['$lib', 'src/lib']]))
 			: null;
+	const declares = (file: string, name: string) =>
+		map.files.get(file as FilePath)?.symbols.some((sym) => sym.name === name) ?? false;
 	return {
 		config,
 		files,
@@ -330,7 +477,15 @@ function createContext(map: CodeMap, config: ResolverConfig): Context {
 		pythonRoots: pythonRoots(files, prefix),
 		pythonDirs: pythonDirs(files),
 		defaultKit,
-		sites: new Map()
+		sites: new Map(),
+		goPackages: goPackages(files),
+		rustCrates: rustCrates(config.cargoPackages, files, declares),
+		declaresType: (file, name) =>
+			map.files
+				.get(file as FilePath)
+				?.symbols.some(
+					(sym) => sym.name === name && (sym.kind === 'class' || sym.kind === 'interface')
+				) ?? false
 	};
 }
 
@@ -816,10 +971,8 @@ function pythonRoots(files: ReadonlySet<string>, prefix: string): string[] {
 	return [...roots];
 }
 
-function bindSite(
-	{ site, statement, resolution, pythonPackage }: ReadSite,
-	ctx: Context
-): ModuleSite {
+function bindSite({ site, statement, resolution, names }: ReadSite, ctx: Context): ModuleSite {
+	if (statement === NOT_IMPORT) return site;
 	const module = moduleBinding(resolution);
 	if (!statement) return { ...site, module };
 	if (!statement.split) return { ...site, module, specifiers: [] };
@@ -835,27 +988,25 @@ function bindSite(
 	if (statement.namespaceLocal) {
 		specifiers.push({ ...statement.namespaceLocal, kind: 'namespace', target: module });
 	}
-	for (const item of statement.named) {
+	for (const { written, submodule, from } of names) {
+		const { local, typeOnly } = written;
 		// `from pkg import mod` binds a module when `pkg/mod.py` exists, which outranks a symbol
-		const submodule = pythonPackage && findSubmodule(pythonPackage, item.name, ctx.files);
 		if (submodule) {
 			specifiers.push({
-				local: item.local,
-				typeOnly: item.typeOnly,
+				local,
+				typeOnly,
 				kind: 'namespace',
-				target: bound({ kind: 'file', path: submodule as FilePath })
+				target: bound({ kind: 'file', path: submodule })
 			});
-			continue;
+		} else {
+			specifiers.push({
+				local,
+				typeOnly,
+				kind: 'named',
+				name: written.name,
+				target: symbolBinding(from, written.name, ctx)
+			});
 		}
-		specifiers.push({
-			local: item.local,
-			typeOnly: item.typeOnly,
-			kind: 'named',
-			name: item.name,
-			target: pythonPackage?.namespace
-				? { state: 'unresolved' }
-				: symbolBinding(resolution, item.name, ctx)
-		});
 	}
 	return { ...site, module, specifiers };
 }
@@ -914,14 +1065,15 @@ function exportedName(
 	const sites = ctx.sites.get(path);
 	if (!sites) return { state: 'unresolved' };
 	const all = [...sites.reexports, ...sites.imports];
-	for (const { statement, resolution } of all) {
-		const item = statement?.named.find((n) => n.local === name);
-		if (item) return symbolBinding(resolution, item.name, ctx, seen);
+	for (const { names } of all) {
+		const item = names.find((n) => n.written.local === name);
+		if (item) return symbolBinding(item.from, item.written.name, ctx, seen);
 	}
-	for (const { statement, resolution } of sites.reexports) {
-		if (!statement?.star) continue;
-		const target = symbolBinding(resolution, name, ctx, seen);
-		if (target.state === 'bound') return target;
+	for (const { stars } of all) {
+		for (const star of stars) {
+			const target = symbolBinding(star, name, ctx, seen);
+			if (target.state === 'bound') return target;
+		}
 	}
 	return { state: 'unresolved' };
 }

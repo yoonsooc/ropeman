@@ -1,0 +1,189 @@
+{
+	"kinds": [
+		"imports_from"
+	],
+	"edges": [
+		{
+			"kind": "imports_from",
+			"from": "main.go",
+			"line": 4,
+			"written": "fmt",
+			"to": "ext:fmt"
+		},
+		{
+			"kind": "imports_from",
+			"from": "main.go",
+			"line": 7,
+			"written": "example.com/shop/store",
+			"to": "store/store.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "main.go",
+			"line": 8,
+			"written": "example.com/shop/web/api",
+			"to": "web/api/handlers.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "main.go",
+			"line": 9,
+			"written": "example.com/shop/plugins/audit",
+			"to": "plugins/audit/audit.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "main.go",
+			"line": 10,
+			"written": "github.com/google/uuid",
+			"to": "ext:github.com/google/uuid"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/store.go",
+			"line": 4,
+			"written": "errors",
+			"to": "ext:errors"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/store.go",
+			"line": 6,
+			"written": "example.com/shop/model",
+			"to": "model/model.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/memory.go",
+			"line": 3,
+			"written": "example.com/shop/model",
+			"to": "model/model.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/memory.go",
+			"line": 6,
+			"written": "sync",
+			"to": "ext:sync"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/store_test.go",
+			"line": 4,
+			"written": "testing",
+			"to": "ext:testing"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/store_test.go",
+			"line": 6,
+			"written": "example.com/shop/model",
+			"to": "model/model.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/store_test.go",
+			"line": 7,
+			"written": "example.com/shop/store",
+			"to": "store/store.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "model/item.go",
+			"line": 3,
+			"written": "time",
+			"to": "ext:time"
+		},
+		{
+			"kind": "imports_from",
+			"from": "web/api/handlers.go",
+			"line": 4,
+			"written": "net/http",
+			"to": "ext:net/http"
+		},
+		{
+			"kind": "imports_from",
+			"from": "web/api/handlers.go",
+			"line": 6,
+			"written": "example.com/shop/model",
+			"to": "model/model.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "web/api/handlers.go",
+			"line": 7,
+			"written": "example.com/shop/internal/ids",
+			"to": "internal/ids/gen.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "web/api/handlers.go",
+			"line": 8,
+			"written": "example.com/shop/store",
+			"to": "store/store.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "web/api/handlers.go",
+			"line": 9,
+			"written": "example.com/shop/tools/rules",
+			"to": "tooling/rules/rules.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "plugins/audit/audit.go",
+			"line": 3,
+			"written": "example.com/shop/model",
+			"to": "model/model.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "internal/ids/gen.go",
+			"line": 3,
+			"written": "strconv",
+			"to": "ext:strconv"
+		},
+		{
+			"kind": "imports_from",
+			"from": "internal/ids/gen_test.go",
+			"line": 3,
+			"written": "testing",
+			"to": "ext:testing"
+		},
+		{
+			"kind": "imports_from",
+			"from": "tooling/rules/rules.go",
+			"line": 3,
+			"written": "example.com/shop/model",
+			"to": "model/model.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "tooling/lint/lint.go",
+			"line": 4,
+			"written": "example.com/shop/model",
+			"to": "model/model.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "tooling/lint/lint.go",
+			"line": 5,
+			"written": "example.com/shop/tools/rules",
+			"to": "tooling/rules/rules.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "codec/wire.go",
+			"line": 3,
+			"written": "encoding/json",
+			"to": "ext:encoding/json"
+		},
+		{
+			"kind": "imports_from",
+			"from": "cmd/check/check.go",
+			"line": 6,
+			"written": "example.com/shop/codec",
+			"to": "codec/wire.go"
+		}
+	]
+}
