@@ -13,6 +13,8 @@ import {
 	translationSource
 } from './exploreSnapshotBuilder';
 import { validateSnapshot, type SnapshotTranslation } from './exploreService';
+import type { FilePath } from '$lib/types/codeMap';
+import type { MapLevel } from '$lib/types/ropemanMap';
 import { MAX_BODY_SIZE } from '../../../edge-proxy/src/explore.limits';
 
 const FIXTURE = fileURLToPath(
@@ -26,6 +28,44 @@ const KO = {
 	'sem:storage': { label: '저장소', description: '상품과 주문을 데이터베이스에 저장한다.' },
 	'sem:ui': { label: '화면', description: '상점 화면을 그린다.' }
 };
+
+/** sem:storage's files and the import between them, as `ropeman map` writes a file level */
+function storageFileLevel(): MapLevel {
+	const file = (path: string) => ({
+		id: `file:${path}`,
+		label: path.slice(path.lastIndexOf('/') + 1),
+		description: '',
+		filePaths: [path],
+		keySymbols: []
+	});
+	return {
+		parentId: 'sem:storage',
+		naming: 'grouped',
+		fileLevel: true,
+		assignment: null,
+		nodes: [file('src/db/client.ts'), file('src/db/schema.ts')],
+		edges: [
+			{
+				source: 'file:src/db/client.ts',
+				target: 'file:src/db/schema.ts',
+				type: 'depends_on',
+				label: null,
+				evidence: {
+					confidence: 'EXTRACTED',
+					refs: [
+						{
+							path: 'src/db/client.ts' as FilePath,
+							line: 1,
+							relation: 'imports_from',
+							toPath: 'src/db/schema.ts' as FilePath,
+							confidence: 'EXTRACTED'
+						}
+					]
+				}
+			}
+		]
+	};
+}
 
 function build(ko: SnapshotTranslation = KO) {
 	return buildExploreSnapshot(map(), { owner: 'acme', repo: 'shop', commit: COMMIT, ko });
@@ -135,10 +175,33 @@ describe('file levels', () => {
 		expect(storage.breadcrumbLabel).toBe('Storage');
 	});
 
-	// The bridge drops imports between files of one node, so the map has no edges to put here.
-	// When it keeps them, this fails and the builder should carry them into the file level.
-	it('lists the files without relations between them, for now', () => {
+	it('gives the synthesized files no relations: an older map holds no imports between them', () => {
 		expect(build().semanticLevels['sem:storage'].edges).toEqual([]);
+	});
+
+	it('keeps the file level a newer map carries, with the imports between its files', () => {
+		// Arrange: the map as a schema 1.2 bridge writes it, with sem:storage expanded to its files
+		const withFiles = map();
+		withFiles.levels.push(storageFileLevel());
+
+		// Act
+		const levels = buildExploreSnapshot(withFiles, {
+			owner: 'acme',
+			repo: 'shop',
+			commit: COMMIT,
+			ko: KO
+		}).semanticLevels;
+
+		// Assert
+		expect(levels['sem:storage'].nodes.map((n) => n.label)).toEqual(['client.ts', 'schema.ts']);
+		expect(levels['sem:storage'].edges).toMatchObject([
+			{
+				source: 'file:src/db/client.ts',
+				target: 'file:src/db/schema.ts',
+				type: 'depends_on',
+				evidence: { confidence: 'EXTRACTED' }
+			}
+		]);
 	});
 
 	it('leaves a one-file node and a node that already has a level alone', () => {
@@ -195,6 +258,13 @@ describe('namingGaps', () => {
 	it('names the stages the agent left grouped', () => {
 		expect(namingGaps(map(), 1)).toEqual([]);
 		expect(namingGaps(map(), 2)).toEqual(['stage 2 level sem:api is not named']);
+	});
+
+	it('never counts a file level, which no one names', () => {
+		const withFiles = map();
+		withFiles.levels.push(storageFileLevel());
+
+		expect(namingGaps(withFiles, 2)).toEqual(['stage 2 level sem:api is not named']);
 	});
 });
 

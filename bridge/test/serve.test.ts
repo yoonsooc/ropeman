@@ -8,6 +8,7 @@ import { createBridgeServer, HOST, MAX_NAMINGS_IN_FLIGHT } from '../src/bridge';
 import { CliRunner, KILL_GRACE_MS } from '../src/cli';
 import { resolveRoot } from '../src/fileRead';
 import { MapSession, type NamingOptions } from '../src/mapSession';
+import { readQueue } from '../src/workFolder';
 import { parseServerMessage } from '../../src/lib/services/ropemanMapSchema';
 import { verifyMap } from '../../src/lib/services/mapVerifier';
 import { extractDirectory } from '../../packages/core/src/extract';
@@ -144,7 +145,7 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 	});
 
 	async function serve(
-		options: { plan?: string[]; naming?: Partial<NamingOptions> | null } = {}
+		options: { plan?: string[]; naming?: Partial<NamingOptions> | null; out?: string } = {}
 	): Promise<Serve> {
 		const base = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-serve-'));
 		bases.push(base);
@@ -159,6 +160,7 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		const runner = new CliRunner(2, namingDir);
 		const session = new MapSession({
 			root,
+			out: options.out,
 			wasmDir: WASM_DIR,
 			naming:
 				options.naming === null
@@ -472,9 +474,9 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		client.close();
 	});
 
-	it('opens the files of a folder with their imports past the limit, and never names them', async () => {
+	it('opens the files of a folder with their imports while every naming slot is taken', async () => {
 		// Arrange: every naming slot of the connection is taken by a run that hangs
-		const { port, calls } = await serve({ plan: Array(10).fill('hang') });
+		const { port } = await serve({ plan: Array(10).fill('hang') });
 		const client = await Client.open(port);
 		for (const nodeId of ['dir:src', 'dir:src/app', 'dir:src/lib', 'dir:tools']) {
 			await client.request({ type: 'node.expand', nodeId });
@@ -484,7 +486,6 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		const level = result<MapLevel>(
 			await client.request({ type: 'node.expand', nodeId: 'files:src/app' })
 		);
-		await new Promise((r) => setTimeout(r, 300));
 
 		// Assert
 		expect(level).toMatchObject({ parentId: 'files:src/app', naming: 'grouped', fileLevel: true });
@@ -512,9 +513,30 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 				}
 			}
 		]);
+		client.close();
+	});
+
+	it('neither names nor queues a file level for the agent', async () => {
+		// Arrange: agent mode, where a folder to name is queued and answered with `queued` at once
+		const base = fs.mkdtempSync(path.join(os.tmpdir(), 'ropeman-serve-out-'));
+		bases.push(base);
+		const { port } = await serve({ naming: null, out: base });
+		const client = await Client.open(port);
+		await client.request({ type: 'node.expand', nodeId: 'dir:src' });
+		const folder = await client.named('dir:src');
+
+		// Act
+		const level = result<MapLevel>(
+			await client.request({ type: 'node.expand', nodeId: 'files:src/app' })
+		);
+		await new Promise((r) => setTimeout(r, 300));
+
+		// Assert
+		expect(folder).toMatchObject({ code: 'queued' });
+		expect(level.fileLevel).toBe(true);
 		const pushed = client.messages.filter((m) => m.type === 'node.named');
-		expect(pushed.some((m) => m.nodeId === 'files:src/app')).toBe(false);
-		expect(calls()).toHaveLength(2);
+		expect(pushed.map((m) => m.nodeId)).toEqual(['dir:src']);
+		expect(readQueue(base)).toEqual(['dir:src']);
 		client.close();
 	});
 

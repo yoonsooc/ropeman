@@ -34,7 +34,7 @@ import { CliRunner } from '../src/cli';
 import { MapSession, type Subscriber } from '../src/mapSession';
 import { verifyMap } from '../../src/lib/services/mapVerifier';
 import { extractDirectory } from '../../packages/core/src/extract';
-import type { RopemanMap, RpcPush } from '../../src/lib/types/ropemanMap';
+import { MAX_MAP_BYTES, type RopemanMap, type RpcPush } from '../../src/lib/types/ropemanMap';
 
 const WASM_DIR = fileURLToPath(new URL('../../static', import.meta.url));
 const SECRET = 'hunter2-never-leaves';
@@ -212,6 +212,68 @@ describe('ropeman map', () => {
 			{ depth: 2, levels: 2, named: 0 }
 		]);
 		expect(JSON.stringify(read<Work>(WORK_FILE))).not.toContain('file:');
+	});
+
+	describe('the size cap', () => {
+		const written = () => fs.readFileSync(path.join(out, MAP_FILE));
+		const capped = async (maxMapBytes: number) => {
+			const e = { ...env(), maxMapBytes };
+			const code = await runCommand(runMap, ['--root', root, '--out', out], e);
+			const stdout = e.stdout.join('\n');
+			return { code, report: stdout ? JSON.parse(stdout) : null, stderr: e.stderr.join('\n') };
+		};
+
+		it('writes every file level when the map fits', async () => {
+			const run = await map();
+
+			expect(run.report).toMatchObject({
+				fileLevels: { written: 2, dropped: 0, droppedExamples: [] }
+			});
+		});
+
+		it('leaves out the largest file levels until the map fits, and says which', async () => {
+			// Arrange: one byte under the whole map
+			await map();
+			const whole = written().length;
+
+			// Act
+			const run = await capped(whole - 1);
+
+			// Assert: files:src/app carries an import, so it is the larger of the two
+			expect(run.code).toBe(0);
+			expect(run.report.fileLevels).toEqual({
+				written: 1,
+				dropped: 1,
+				droppedExamples: ['files:src/app']
+			});
+			expect(run.stderr).toContain('leaves out the 1 largest file levels');
+			expect(written().length).toBeLessThanOrEqual(whole - 1);
+			const fitted = JSON.parse(written().toString()) as RopemanMap;
+			const expanded = fitted.levels.map((l) => l.parentId);
+			expect(expanded).toContain('files:src/lib');
+			expect(expanded).not.toContain('files:src/app');
+			const result = await verified(fitted);
+			expect(result.parsed && result.violations).toEqual([]);
+		});
+
+		it('writes nothing and fails when the folder levels alone are over', async () => {
+			// Arrange: the size without any file level, minus one
+			await map();
+			const full = JSON.parse(written().toString()) as RopemanMap;
+			const folders = Buffer.byteLength(
+				JSON.stringify({ ...full, levels: full.levels.filter((l) => !l.fileLevel) })
+			);
+			fs.rmSync(out, { recursive: true });
+
+			// Act
+			const run = await capped(folders - 1);
+
+			// Assert
+			expect(run.code).toBe(2);
+			expect(run.stderr).toContain(`over ${folders - 1} bytes even without its file levels`);
+			expect(fs.existsSync(path.join(out, MAP_FILE))).toBe(false);
+			expect(fs.existsSync(path.join(out, WORK_FILE))).toBe(false);
+		});
 	});
 
 	it('keeps a level grouped and says why when its names fail, and the map still verifies', async () => {
@@ -834,6 +896,19 @@ describe('flags', () => {
 		expect(serveOutValue(['--out', out, '--local'])).toBe(out);
 		expect(missing).toThrow('--out needs a folder');
 		expect(flag).toThrow('--out needs a folder');
+	});
+
+	// Review of PR #96: a map over the cap read as "has no ropeman.json"
+	it('says a map over the size cap is too large, not missing', async () => {
+		fs.mkdirSync(out);
+		fs.writeFileSync(path.join(out, MAP_FILE), Buffer.alloc(MAX_MAP_BYTES + 1, ' '));
+		const e = env();
+
+		const code = await runCommand(runInbox, ['--out', out], e);
+
+		expect(code).toBe(2);
+		expect(e.stderr.join('\n')).toContain(`over ${MAX_MAP_BYTES} bytes`);
+		expect(e.stderr.join('\n')).not.toContain('has no');
 	});
 
 	it('refuses an inbox folder that ropeman map never wrote, and writes nothing there', async () => {

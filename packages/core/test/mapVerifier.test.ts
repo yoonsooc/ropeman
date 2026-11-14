@@ -41,6 +41,15 @@ const FAULTS: { rule: string; codes: string[]; make: (map: RopemanMap) => void }
 		}
 	},
 	{
+		rule: 'evidence on a file level',
+		codes: ['evidence-ends'],
+		make: (map) => {
+			const level = map.levels.find((l) => l.fileLevel && l.edges.length > 0)!;
+			const [edge] = level.edges;
+			edge.source = level.nodes.find((n) => n.id !== edge.source && n.id !== edge.target)!.id;
+		}
+	},
+	{
 		rule: 'evidence',
 		codes: ['evidence-unknown'],
 		make: (map) => {
