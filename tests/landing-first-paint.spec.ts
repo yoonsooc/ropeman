@@ -77,20 +77,28 @@ test('the first screen is fully visible before the app boots', async ({ page }) 
 	// Regression: the landing faded in from opacity 0, so LCP waited for a later repaint
 	const firstScreen = await page.evaluate(() =>
 		['h1', '[data-testid="install-command"]', '.hero-shot img'].map((selector) => {
-			const el = [...document.querySelectorAll(selector)].find((e) => e.checkVisibility())!;
+			const el = [...document.querySelectorAll(selector)].find((e) => e.checkVisibility());
+			if (!el) return { selector, found: false };
 			let opacity = 1;
 			for (let node: Element | null = el; node; node = node.parentElement) {
 				opacity *= Number(getComputedStyle(node).opacity);
 			}
+			const visibility = getComputedStyle(el).visibility;
 			const animated = document
 				.getAnimations()
 				.some((a) => (a.effect as KeyframeEffect | null)?.target?.contains(el));
-			return { selector, opacity, animated };
+			return { selector, found: true, opacity, visibility, animated };
 		})
 	);
 
 	expect(firstScreen).toEqual(
-		firstScreen.map(({ selector }) => ({ selector, opacity: 1, animated: false }))
+		firstScreen.map(({ selector }) => ({
+			selector,
+			found: true,
+			opacity: 1,
+			visibility: 'visible',
+			animated: false
+		}))
 	);
 });
 
