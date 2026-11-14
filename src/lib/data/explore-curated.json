@@ -1,5 +1,5 @@
 {
-	"updatedAt": "2026-04-16",
+	"updatedAt": "2026-11-14",
 	"entries": [
 		{
 			"slug": "transformers",
@@ -9,19 +9,80 @@
 			"language": "Python",
 			"description": "State-of-the-art machine learning for JAX, PyTorch and TensorFlow — pretrained models for NLP, CV and audio.",
 			"descriptionKo": "JAX, PyTorch, TensorFlow를 위한 최신 머신러닝 라이브러리. 자연어, 비전, 오디오용 사전학습 모델을 제공합니다.",
-			"stars": "140k+",
+			"stars": "169k+",
 			"ref": "9b1a47c6a589044de1e03f8a23b468f8d5668a24"
 		},
 		{
 			"slug": "fastapi",
-			"owner": "tiangolo",
+			"owner": "fastapi",
 			"repo": "fastapi",
 			"title": "FastAPI",
 			"language": "Python",
 			"description": "Modern, fast (high-performance) web framework for building APIs with Python type hints.",
 			"descriptionKo": "Python 타입 힌트로 API를 만드는 현대적이고 빠른 웹 프레임워크입니다.",
-			"stars": "82k+",
+			"stars": "104k+",
 			"ref": "2fa00db8581bb4e74b2d00d859c8469b6da296c4"
+		},
+		{
+			"slug": "react",
+			"owner": "react",
+			"repo": "react",
+			"title": "React",
+			"language": "JavaScript",
+			"description": "A declarative, efficient, and flexible JavaScript library for building user interfaces.",
+			"descriptionKo": "사용자 인터페이스를 만드는 선언적이고 효율적이며 유연한 JavaScript 라이브러리입니다.",
+			"stars": "252k+",
+			"ref": "00f063c31d60308f8e4e0fd349b89ed043b9ea54"
+		},
+		{
+			"slug": "graphify",
+			"owner": "Graphify-Labs",
+			"repo": "graphify",
+			"title": "Graphify",
+			"language": "Python",
+			"description": "Turns a codebase, with its docs, SQL schemas, configs and PDFs, into a queryable knowledge graph, as a skill for coding agents.",
+			"descriptionKo": "코드베이스와 문서, SQL 스키마, 설정, PDF를 질의할 수 있는 지식 그래프로 바꾸는 코딩 에이전트용 스킬입니다.",
+			"stars": "147k+"
+		},
+		{
+			"slug": "langgraph",
+			"owner": "langchain-ai",
+			"repo": "langgraph",
+			"title": "LangGraph",
+			"language": "Python",
+			"description": "A framework for building resilient, stateful agents as graphs, with checkpoints and human-in-the-loop control.",
+			"descriptionKo": "체크포인트와 사람 개입을 지원하며, 상태를 가진 에이전트를 그래프로 만드는 프레임워크입니다.",
+			"stars": "44k+"
+		},
+		{
+			"slug": "openai-agents-python",
+			"owner": "openai",
+			"repo": "openai-agents-python",
+			"title": "OpenAI Agents SDK",
+			"language": "Python",
+			"description": "A lightweight framework for multi-agent workflows: agents, handoffs, guardrails and tracing.",
+			"descriptionKo": "에이전트, 핸드오프, 가드레일, 트레이싱으로 멀티 에이전트 워크플로를 만드는 가벼운 프레임워크입니다.",
+			"stars": "30k+"
+		},
+		{
+			"slug": "mcp-python-sdk",
+			"owner": "modelcontextprotocol",
+			"repo": "python-sdk",
+			"title": "MCP Python SDK",
+			"language": "Python",
+			"description": "The official Python SDK for building Model Context Protocol servers and clients.",
+			"descriptionKo": "Model Context Protocol 서버와 클라이언트를 만드는 공식 Python SDK입니다.",
+			"stars": "24k+"
+		},
+		{
+			"slug": "airflow",
+			"owner": "apache",
+			"repo": "airflow",
+			"title": "Apache Airflow",
+			"language": "Python",
+			"description": "A platform to programmatically author, schedule and monitor data workflows.",
+			"descriptionKo": "데이터 워크플로를 코드로 작성하고 예약하고 모니터링하는 플랫폼입니다.",
+			"stars": "47k+"
 		},
 		{
 			"slug": "gin",
@@ -31,19 +92,8 @@
 			"language": "Go",
 			"description": "HTTP web framework written in Go (Golang) — fast and minimal.",
 			"descriptionKo": "Go로 작성한 빠르고 가벼운 HTTP 웹 프레임워크입니다.",
-			"stars": "80k+",
+			"stars": "89k+",
 			"ref": "d3ffc9985281dcf4d3bef604cce4e662b1a327a6"
-		},
-		{
-			"slug": "react",
-			"owner": "facebook",
-			"repo": "react",
-			"title": "React",
-			"language": "JavaScript",
-			"description": "A declarative, efficient, and flexible JavaScript library for building user interfaces.",
-			"descriptionKo": "사용자 인터페이스를 만드는 선언적이고 효율적이며 유연한 JavaScript 라이브러리입니다.",
-			"stars": "230k+",
-			"ref": "00f063c31d60308f8e4e0fd349b89ed043b9ea54"
 		},
 		{
 			"slug": "tokio",
@@ -53,7 +103,7 @@
 			"language": "Rust",
 			"description": "A runtime for writing reliable asynchronous applications with Rust — the de-facto async standard.",
 			"descriptionKo": "Rust로 신뢰할 수 있는 비동기 애플리케이션을 만드는 런타임. 사실상 표준 비동기 런타임입니다.",
-			"stars": "28k+",
+			"stars": "33k+",
 			"ref": "905c146aeda741ea2202f942a7c3a606dda13da5"
 		}
 	]

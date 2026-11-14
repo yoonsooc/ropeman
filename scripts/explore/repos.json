@@ -1,0 +1,79 @@
+{
+	"transformers": {
+		"owner": "huggingface",
+		"repo": "transformers",
+		"commit": "0d7a6219179b24586089ae81b45cf725078e681f",
+		"depth": 3,
+		"batch": 1
+	},
+	"fastapi": {
+		"owner": "fastapi",
+		"repo": "fastapi",
+		"commit": "5758a9c8347d911444dca97a55b708cc4a8de4f8",
+		"batch": 1
+	},
+	"gin": {
+		"owner": "gin-gonic",
+		"repo": "gin",
+		"commit": "0f09c3a9b4626d9fe9979cf4d0521d6ae32ab646",
+		"batch": 2
+	},
+	"react": {
+		"owner": "react",
+		"repo": "react",
+		"commit": "df6aa4ec76cff5b3adde531c6fe8c36099e0469b",
+		"batch": 1
+	},
+	"tokio": {
+		"owner": "tokio-rs",
+		"repo": "tokio",
+		"commit": "ab0814fc8c62b3d8be40aad068e2fed6562cfeb0",
+		"batch": 2
+	},
+	"graphify": {
+		"owner": "Graphify-Labs",
+		"repo": "graphify",
+		"commit": "52cb28218eea0c68d80a9f4b2ae102d2fa63e267",
+		"batch": 1
+	},
+	"langgraph": {
+		"owner": "langchain-ai",
+		"repo": "langgraph",
+		"commit": "08a2016953789a4f579b4d36bd1967941ec62012",
+		"batch": 1,
+		"depth": 3
+	},
+	"openai-agents-python": {
+		"owner": "openai",
+		"repo": "openai-agents-python",
+		"commit": "64fbde5d02b42ae5f9db668eb0184cdb3fc9d775",
+		"batch": 1,
+		"depth": 3
+	},
+	"mcp-python-sdk": {
+		"owner": "modelcontextprotocol",
+		"repo": "python-sdk",
+		"commit": "77001c96f9507be0f4d009b83210a384a5e08bda",
+		"batch": 1,
+		"depth": 3
+	},
+	"airflow": {
+		"owner": "apache",
+		"repo": "airflow",
+		"commit": "5171c9670adc41a03964c274d83d695518b147ff",
+		"batch": 1,
+		"depth": 3
+	},
+	"dbt": {
+		"owner": "dbt-labs",
+		"repo": "dbt",
+		"commit": "bf7d341f34c7f08dd1323f2abb9690be4146da5e",
+		"batch": 2
+	},
+	"polars": {
+		"owner": "pola-rs",
+		"repo": "polars",
+		"commit": "5c36cdd75a30a8ab12a9f70e251c0f267235b2a7",
+		"batch": 2
+	}
+}

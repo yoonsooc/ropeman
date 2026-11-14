@@ -38,56 +38,44 @@ job done a few times a year.
 
 ## Refreshing a snapshot
 
-Repeat for each entry in `src/lib/data/explore-curated.json`.
+Snapshots are built the way a user of the Ropeman skill maps a repo, by
+`scripts/explore/pipeline.mjs` (see `docs/ARCH.md`, "갤러리 스냅샷 파이프라인").
+`scripts/explore/repos.json` pins each slug to a repository, a commit and a
+batch. Needs Node 22+, git and a logged-in `claude` CLI.
 
-1. **Analyze locally**: open https://ropeman.dev (or the local dev server),
-   paste the GitHub URL of the curated repo (e.g. `facebook/react`), wait for
-   AI analysis to complete, drill into the most informative sub-domains so the
-   cache is populated.
+1. **Pin the commit**: set the slug's `commit` in `scripts/explore/repos.json`
+   (`git ls-remote https://github.com/<owner>/<repo> HEAD`).
 
-2. **Capture the snapshot**: open the browser devtools console and run
-
-   ```js
-   __snap();
-   ```
-
-   (or build the snapshot manually from `__semanticStore.cache`). The snapshot
-   shape:
-
-   ```json
-   {
-     "projectName": "react",
-     "owner": "facebook",
-     "repo": "react",
-     "analyzedAt": "2026-04-13",
-     "filePaths": ["..."],
-     "semanticLevels": {
-       "__root__": { "parentId": null, "nodes": [...], "edges": [...], "breadcrumbLabel": "react" },
-       "sem:reconciler": { ... }
-     }
-   }
-   ```
-
-3. **Upload to KV** via the explore worker:
+2. **Build** (minutes per repository; reruns skip finished steps):
 
    ```sh
-   curl -X POST https://explore.ropeman.dev/explore/react \
-     -H "Authorization: Bearer $EXPLORE_ADMIN_TOKEN" \
-     -H "Content-Type: application/json" \
-     -d @react-snapshot.json
+   node scripts/explore/pipeline.mjs react        # one slug
+   node scripts/explore/pipeline.mjs --batch 1    # every slug of a batch
    ```
 
-   The worker accepts payloads up to 2 MB and validates JSON structure on the
-   client side at fetch time (`exploreService.validateSnapshot`).
+   Each `~/.cache/ropeman-explore/<slug>/` then holds `snapshot.json` and
+   `report.json` (cost, time, size, the checks). The snapshot records the
+   analyzed `commit`, repository paths, and Korean names in `translations.ko`.
 
-4. **Pin the commit**: put the analyzed commit SHA in the snapshot's `commit` field,
-   with repository paths (no `<repo>/` prefix) in each node's `filePaths`. Snapshots uploaded
-   before `commit` existed fall back to the entry's `ref` in
-   `src/lib/data/explore-curated.json`; keep it equal to the commit you analyzed. The detail page reads each file the visitor opens
-   from that commit on raw.githubusercontent.com, so a stale `ref` shows files
-   that differ from the diagram, or 404 when they moved.
+3. **Check, then upload** from your own terminal:
 
-5. **Verify** at https://ropeman.dev/explore/react, then open a file from a node's panel.
+   ```sh
+   node scripts/explore/upload.mjs --batch 1 --dry-run     # sizes and hashes, no token
+   EXPLORE_ADMIN_TOKEN=... node scripts/explore/upload.mjs --batch 1   # or name slugs
+   ```
+
+   With neither slugs nor `--batch` it takes every built snapshot. It refuses a snapshot whose
+   checks failed, that changed after the build, or that is not from the pinned
+   commit, then reads each one back and compares its sha256. The token is read
+   from the environment only and never printed. The worker accepts up to 16 MiB
+   per snapshot.
+
+4. **Verify** at https://ropeman.dev/explore/react in English and Korean, then
+   open a file from a node's panel.
+
+Snapshots uploaded before `commit` existed fall back to the entry's `ref` in
+`src/lib/data/explore-curated.json`. Once a slug's new snapshot is uploaded,
+its `ref` can be deleted.
 
 ## Adding a new curated entry
 
@@ -100,11 +88,11 @@ Repeat for each entry in `src/lib/data/explore-curated.json`.
    	"title": "Django",
    	"language": "Python",
    	"description": "The web framework for perfectionists with deadlines.",
-   	"stars": "82k+",
-   	"ref": "<commit SHA the snapshot was analyzed at>"
+   	"stars": "82k+"
    }
    ```
-2. Update `updatedAt` to today.
+2. Add the slug to `scripts/explore/repos.json` with the same owner and repo
+   (a unit test checks they agree), and update `updatedAt` to today.
 3. Run `npm run build` — the new slug is auto-included in the prerendered
    `/explore/[slug]` route via `entries()` and added to `sitemap.xml`.
 4. Refresh the snapshot following the steps above.
@@ -122,7 +110,7 @@ Repeat for each entry in `src/lib/data/explore-curated.json`.
 ## Cost & limits
 
 - KV reads are free (cached at the edge); each fetch is `Cache-Control: public, max-age=300, s-maxage=3600`.
-- KV storage is ~$0.50/GB/month — six 200KB snapshots cost essentially $0.
+- KV storage is ~$0.50/GB/month — ten snapshots of up to a few MB cost essentially $0.
 - The admin token is the only thing standing between malicious uploads and KV;
   rotate it if it leaks: `wrangler secret put EXPLORE_ADMIN_TOKEN -c wrangler.explore.toml`.
 

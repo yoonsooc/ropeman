@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import fs from 'node:fs';
 import {
 	validateManifest,
 	validateSnapshot,
@@ -6,6 +7,7 @@ import {
 	filterEntries,
 	listLanguages,
 	fetchExploreSnapshot,
+	localizeSnapshot,
 	uploadExploreSnapshot,
 	exploreSource,
 	exploreRepoPaths,
@@ -222,6 +224,95 @@ describe('validateSnapshot', () => {
 	});
 });
 
+function node(id: string, label: string, description: string) {
+	return {
+		id,
+		label,
+		description,
+		color: '#000',
+		filePaths: [],
+		keySymbols: [],
+		parentId: null,
+		depth: 0,
+		fileCount: 0
+	};
+}
+
+/** Root names `dir:binding`, whose level is below it; `files:x` is a folder-named leaf. */
+function translatedSnapshot(): ExploreSnapshot {
+	return {
+		projectName: 'gin',
+		commit: 'a'.repeat(40),
+		semanticLevels: {
+			__root__: {
+				parentId: null,
+				breadcrumbLabel: 'Project',
+				edges: [],
+				nodes: [
+					node('dir:binding', 'Request data binding', 'Decodes requests.'),
+					node('dir:render', 'Response rendering', 'Writes responses.')
+				]
+			},
+			'dir:binding': {
+				parentId: 'dir:binding',
+				breadcrumbLabel: 'Request data binding',
+				edges: [],
+				nodes: [node('files:binding', 'binding/*', '')]
+			}
+		},
+		translations: {
+			ko: { 'dir:binding': { label: '요청 데이터 바인딩', description: '요청을 해석한다.' } }
+		}
+	};
+}
+
+describe('validateSnapshot translations', () => {
+	it('keeps the commit and well-formed Korean entries, dropping malformed ones', () => {
+		const snap = validateSnapshot({
+			projectName: 'gin',
+			commit: 'b'.repeat(40),
+			semanticLevels: {},
+			translations: {
+				ko: { a: { label: '가', description: '나' }, b: { label: 1 }, c: null }
+			}
+		});
+
+		expect(snap!.commit).toBe('b'.repeat(40));
+		expect(snap!.translations).toEqual({ ko: { a: { label: '가', description: '나' } } });
+	});
+
+	it('leaves translations out when the snapshot has none', () => {
+		expect(
+			validateSnapshot({ projectName: 'x', semanticLevels: {} })!.translations
+		).toBeUndefined();
+	});
+});
+
+describe('localizeSnapshot', () => {
+	it('shows Korean labels, descriptions and breadcrumbs where they exist and English elsewhere', () => {
+		const ko = localizeSnapshot(translatedSnapshot(), 'ko');
+
+		const root = ko.semanticLevels.__root__;
+		expect(root.nodes[0]).toMatchObject({
+			label: '요청 데이터 바인딩',
+			description: '요청을 해석한다.'
+		});
+		expect(root.nodes[1]).toMatchObject({ label: 'Response rendering' });
+		expect(root.breadcrumbLabel).toBe('Project');
+		expect(ko.semanticLevels['dir:binding'].breadcrumbLabel).toBe('요청 데이터 바인딩');
+		expect(ko.semanticLevels['dir:binding'].nodes[0].label).toBe('binding/*');
+	});
+
+	it('returns the English snapshot untouched for English or a snapshot without translations', () => {
+		const snapshot = translatedSnapshot();
+
+		expect(localizeSnapshot(snapshot, 'en')).toBe(snapshot);
+		expect(localizeSnapshot({ ...snapshot, translations: undefined }, 'ko').semanticLevels).toBe(
+			snapshot.semanticLevels
+		);
+	});
+});
+
 describe('fetchExploreSnapshot', () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
@@ -288,6 +379,19 @@ describe('fetchExploreSnapshot', () => {
 		if (result.ok) {
 			expect(result.snapshot.projectName).toBe('React');
 		}
+	});
+
+	it('returns the snapshot in the requested locale', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(new Response(JSON.stringify(translatedSnapshot()), { status: 200 }))
+		);
+
+		const result = await fetchExploreSnapshot('gin', 'ko');
+
+		expect(result.ok && result.snapshot.semanticLevels.__root__.nodes[0].label).toBe(
+			'요청 데이터 바인딩'
+		);
 	});
 
 	it('degrades network errors to not-analyzed (worker unreachable)', async () => {
@@ -400,6 +504,19 @@ describe('getCuratedManifest', () => {
 
 		expect(entries).toHaveLength(legacy.length);
 		for (const e of entries) expect(e.ref, e.slug).toMatch(/^[0-9a-f]{40}$/);
+	});
+
+	// scripts/explore/repos.json says which repository and commit the pipeline maps for a slug
+	it('names the same repository as the snapshot pipeline, and no repository it holds back', () => {
+		const repos: Record<string, { owner: string; repo: string; batch: number }> = JSON.parse(
+			fs.readFileSync(new URL('../../../scripts/explore/repos.json', import.meta.url), 'utf8')
+		);
+		const legacy = ['transformers', 'fastapi', 'gin', 'react', 'tokio'];
+
+		for (const e of getCuratedManifest().entries) {
+			expect(repos[e.slug], e.slug).toMatchObject({ owner: e.owner, repo: e.repo });
+			if (!legacy.includes(e.slug)) expect(repos[e.slug].batch, e.slug).toBe(1);
+		}
 	});
 
 	it('slugs are unique', () => {

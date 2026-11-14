@@ -87,11 +87,11 @@ test.describe('Explore', { tag: '@responsive' }, () => {
 		await expect(page.locator('.code-viewer')).toContainText('commitWork');
 		await expect(page.getByRole('tab', { selected: true })).toHaveText(/ReactFiberCommitWork\.js/);
 		expect(sourceRequests).toEqual([
-			`https://raw.githubusercontent.com/facebook/react/${reactRef}/packages/react-reconciler/src/ReactFiberCommitWork.js`
+			`https://raw.githubusercontent.com/react/react/${reactRef}/packages/react-reconciler/src/ReactFiberCommitWork.js`
 		]);
 		await expect(page.locator('.source-link')).toHaveAttribute(
 			'href',
-			`https://github.com/facebook/react/blob/${reactRef}/packages/react-reconciler/src/ReactFiberCommitWork.js`
+			`https://github.com/react/react/blob/${reactRef}/packages/react-reconciler/src/ReactFiberCommitWork.js`
 		);
 		if (viewport && viewport.width <= 768) {
 			await expect(page.locator('.semantic-detail-panel')).toBeHidden();

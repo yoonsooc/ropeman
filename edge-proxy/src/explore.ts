@@ -9,6 +9,7 @@
  *   - GET is fully public, no rate limit.
  */
 import { getAllowedOrigin, corsHeaders, jsonResponse } from './shared';
+import { MAX_BODY_SIZE } from './explore.limits';
 
 interface Env {
 	ALLOWED_ORIGINS: string;
@@ -17,7 +18,6 @@ interface Env {
 }
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
-const MAX_BODY_SIZE = 2_097_152; // 2 MB — explore snapshots can be larger than share (no per-user quota)
 
 /**
  * Defensive structural validation of admin-uploaded snapshot payloads.
@@ -155,18 +155,20 @@ async function handleUpsert(request: Request, env: Env, slug: string, cors: Reco
 		return jsonResponse({ error: 'Invalid slug' }, 400, cors);
 	}
 
+	const tooLarge = () => jsonResponse({ error: `Payload too large (max ${MAX_BODY_SIZE} bytes)` }, 413, cors);
 	const contentLength = request.headers.get('Content-Length');
 	if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
-		return jsonResponse({ error: 'Payload too large (max 2MB)' }, 413, cors);
+		return tooLarge();
 	}
 
 	let body: unknown;
 	try {
-		const text = await request.text();
-		if (text.length > MAX_BODY_SIZE) {
-			return jsonResponse({ error: 'Payload too large (max 2MB)' }, 413, cors);
+		// Bytes, not UTF-16 units: a Korean character is one unit but three bytes
+		const bytes = await request.arrayBuffer();
+		if (bytes.byteLength > MAX_BODY_SIZE) {
+			return tooLarge();
 		}
-		body = JSON.parse(text);
+		body = JSON.parse(new TextDecoder().decode(bytes));
 	} catch {
 		return jsonResponse({ error: 'Invalid JSON' }, 400, cors);
 	}
