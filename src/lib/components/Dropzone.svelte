@@ -517,7 +517,6 @@
 	/* Landing layout */
 	.landing {
 		position: relative;
-		animation: fadeInUp 0.5s ease both;
 	}
 
 	.landing > * {

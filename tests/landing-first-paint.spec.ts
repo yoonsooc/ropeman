@@ -26,9 +26,7 @@ async function withoutAppScripts(page: Page) {
 	);
 }
 
-async function headlineBox(page: Page) {
-	// The landing fades up as it appears, so measure where it comes to rest
-	await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+function headlineBox(page: Page) {
 	return page.getByRole('heading', { level: 1 }).boundingBox();
 }
 
@@ -69,6 +67,31 @@ test.describe('without JavaScript', () => {
 			await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
 		});
 	});
+});
+
+test('the first screen is fully visible before the app boots', async ({ page }) => {
+	await useSettings(page, { language: 'en' });
+	await withoutAppScripts(page);
+	await page.goto('/');
+
+	// Regression: the landing faded in from opacity 0, so LCP waited for a later repaint
+	const firstScreen = await page.evaluate(() =>
+		['h1', '[data-testid="install-command"]', '.hero-shot img'].map((selector) => {
+			const el = [...document.querySelectorAll(selector)].find((e) => e.checkVisibility())!;
+			let opacity = 1;
+			for (let node: Element | null = el; node; node = node.parentElement) {
+				opacity *= Number(getComputedStyle(node).opacity);
+			}
+			const animated = document
+				.getAnimations()
+				.some((a) => (a.effect as KeyframeEffect | null)?.target?.contains(el));
+			return { selector, opacity, animated };
+		})
+	);
+
+	expect(firstScreen).toEqual(
+		firstScreen.map(({ selector }) => ({ selector, opacity: 1, animated: false }))
+	);
 });
 
 test('the app takes over the prerendered landing in place', async ({ page }) => {
