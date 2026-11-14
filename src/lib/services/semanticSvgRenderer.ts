@@ -67,7 +67,12 @@ function wrapLabel(label: string, maxCharsPerLine: number): string[] {
 	return lines;
 }
 
-export function layoutLevel(level: SemanticLevel): {
+/**
+ * The export's own layout: one left-to-right dagre pass with the export's smaller cards. The
+ * canvas lays levels out with `levelLayout.layoutLevel`; an exported page scrolls, so it need
+ * not fit a screen.
+ */
+export function layoutExportLevel(level: SemanticLevel): {
 	positions: Map<string, NodePosition>;
 	width: number;
 	height: number;
@@ -109,7 +114,7 @@ export function renderSemanticLevelSvg(
 ): RenderedSvg {
 	const theme = opts.theme ?? 'dark';
 	const cache = opts.cache;
-	const { positions, width, height } = layoutLevel(level);
+	const { positions, width, height } = layoutExportLevel(level);
 
 	const palette =
 		theme === 'light'

@@ -1,6 +1,6 @@
 import type { SemanticLevel } from '$lib/types/semantic';
 import type { Node, Edge, MarkerType } from '@xyflow/svelte';
-import dagre from '@dagrejs/dagre';
+import { DEFAULT_ASPECT, layoutLevel, type LevelLayout } from './levelLayout';
 
 const SEMANTIC_NODE_WIDTH = 256;
 const SEMANTIC_NODE_HEIGHT = 176;
@@ -13,38 +13,46 @@ const EDGE_TYPE_COLORS: Record<string, string> = {
 	uses: 'var(--color-edge-uses)'
 };
 
-export type LayoutDirection = 'LR' | 'TB';
+// Layouts of the levels shown lately. A selection or a drag re-renders the level, and laying out
+// a few hundred nodes again on every click would take a visible part of a second
+const LAYOUT_CACHE_SIZE = 16;
+const layoutCache = new Map<string, LevelLayout>();
 
 /**
- * Lay out a level with dagre. `TB` stacks ranks vertically for narrow screens,
- * where a left-to-right graph would shrink to an unreadable strip.
+ * Everything a level's layout depends on: the screen aspect, its node ids and its edges. Two
+ * levels with the same key are laid out the same, so the key also names a layout.
  */
-export function toSemanticFlowNodes(
-	level: SemanticLevel,
-	direction: LayoutDirection = 'LR'
-): Node[] {
-	const g = new dagre.graphlib.Graph();
-	g.setGraph({
-		rankdir: direction,
-		nodesep: direction === 'LR' ? 80 : 40,
-		ranksep: direction === 'LR' ? 200 : 120,
-		marginx: 40,
-		marginy: 40
-	});
-	g.setDefaultEdgeLabel(() => ({}));
+export function levelLayoutKey(level: SemanticLevel, aspect: number): string {
+	const ids = level.nodes.map((n) => n.id).join('\u0000');
+	const edges = level.edges.map((e) => `${e.id}\u0001${e.source}\u0001${e.target}`).join('\u0000');
+	return `${aspect}\u0002${ids}\u0002${edges}`;
+}
 
-	for (const node of level.nodes) {
-		g.setNode(node.id, {
-			width: SEMANTIC_NODE_WIDTH,
-			height: SEMANTIC_NODE_HEIGHT
-		});
+function layoutFor(level: SemanticLevel, aspect: number): LevelLayout {
+	const key = levelLayoutKey(level, aspect);
+	const cached = layoutCache.get(key);
+	if (cached) {
+		layoutCache.delete(key);
+		layoutCache.set(key, cached);
+		return cached;
 	}
+	const layout = layoutLevel(
+		level.nodes.map((n) => n.id),
+		level.edges,
+		{ width: SEMANTIC_NODE_WIDTH, height: SEMANTIC_NODE_HEIGHT },
+		aspect
+	);
+	layoutCache.set(key, layout);
+	if (layoutCache.size > LAYOUT_CACHE_SIZE) layoutCache.delete(layoutCache.keys().next().value!);
+	return layout;
+}
 
-	for (const edge of level.edges) {
-		g.setEdge(edge.source, edge.target);
-	}
-
-	dagre.layout(g);
+/**
+ * Lay out a level for a screen of the given aspect (width over height). The node's `direction`
+ * tells the card which sides carry its handles.
+ */
+export function toSemanticFlowNodes(level: SemanticLevel, aspect: number = DEFAULT_ASPECT): Node[] {
+	const placements = layoutFor(level, aspect).nodes;
 
 	// Count source/target connections per node for handle distribution
 	const sourceCount = new Map<string, number>();
@@ -55,14 +63,11 @@ export function toSemanticFlowNodes(
 	}
 
 	return level.nodes.map((node) => {
-		const pos = g.node(node.id);
+		const { x, y, direction } = placements.get(node.id)!;
 		return {
 			id: node.id,
 			type: 'semanticNode',
-			position: {
-				x: pos.x - SEMANTIC_NODE_WIDTH / 2,
-				y: pos.y - SEMANTIC_NODE_HEIGHT / 2
-			},
+			position: { x, y },
 			data: {
 				label: node.label,
 				description: node.description,
@@ -83,7 +88,12 @@ export function toSemanticFlowNodes(
 	});
 }
 
-export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
+/**
+ * Edges for a level. Given the screen aspect the nodes were laid out for, each edge follows the
+ * route the layout found through the gaps between cards; otherwise it is a plain step edge.
+ */
+export function toSemanticFlowEdges(level: SemanticLevel, aspect?: number): Edge[] {
+	const routes = aspect === undefined ? null : layoutFor(level, aspect).routes;
 	// Track per-node source/target index to assign handles
 	const sourceIndex = new Map<string, number>();
 	const targetIndex = new Map<string, number>();
@@ -97,6 +107,7 @@ export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
 
 		const tIdx = targetIndex.get(edge.target) ?? 0;
 		targetIndex.set(edge.target, tIdx + 1);
+		const route = routes?.get(edge.id);
 
 		return {
 			id: edge.id,
@@ -104,7 +115,7 @@ export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
 			target: edge.target,
 			sourceHandle: `source-${sIdx}`,
 			targetHandle: `target-${tIdx}`,
-			type: 'smoothstep',
+			type: route ? 'routed' : 'smoothstep',
 			animated: false,
 			...(edge.label ? { label: edge.label } : {}),
 			// An INFERRED relation is the LLM's claim, not a fact the code map shows (A-6), so it is
@@ -116,7 +127,7 @@ export function toSemanticFlowEdges(level: SemanticLevel): Edge[] {
 				type: 'arrowclosed' as MarkerType,
 				color
 			},
-			data: { edgeType: edge.type, inferred }
+			data: { edgeType: edge.type, inferred, ...(route ? { route } : {}) }
 		};
 	});
 }
