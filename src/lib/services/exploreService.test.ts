@@ -506,17 +506,21 @@ describe('getCuratedManifest', () => {
 		for (const e of entries) expect(e.ref, e.slug).toMatch(/^[0-9a-f]{40}$/);
 	});
 
-	// scripts/explore/repos.json says which repository and commit the pipeline maps for a slug
-	it('names the same repository as the snapshot pipeline, and no repository it holds back', () => {
+	// scripts/explore/repos.json says which repository and commit the pipeline maps for a slug.
+	// A batch goes live whole; a later batch can be built and checked before the gallery lists it.
+	it('lists exactly the snapshot pipeline repositories of the live batches', () => {
 		const repos: Record<string, { owner: string; repo: string; batch: number }> = JSON.parse(
 			fs.readFileSync(new URL('../../../scripts/explore/repos.json', import.meta.url), 'utf8')
 		);
-		const legacy = ['transformers', 'fastapi', 'gin', 'react', 'tokio'];
+		const liveBatches = [1, 2];
+		const entries = getCuratedManifest().entries;
 
-		for (const e of getCuratedManifest().entries) {
+		for (const e of entries) {
 			expect(repos[e.slug], e.slug).toMatchObject({ owner: e.owner, repo: e.repo });
-			if (!legacy.includes(e.slug)) expect(repos[e.slug].batch, e.slug).toBe(1);
+			expect(liveBatches, e.slug).toContain(repos[e.slug].batch);
 		}
+		const live = Object.keys(repos).filter((slug) => liveBatches.includes(repos[slug].batch));
+		expect(entries.map((e) => e.slug).sort()).toEqual(live.sort());
 	});
 
 	it('slugs are unique', () => {
