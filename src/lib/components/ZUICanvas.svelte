@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { SvelteFlow, MiniMap, Controls, Background, type Node, type Edge } from '@xyflow/svelte';
+	import {
+		SvelteFlow,
+		MiniMap,
+		Controls,
+		Background,
+		type Node,
+		type Edge,
+		type Viewport
+	} from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
@@ -10,12 +18,15 @@
 	import {
 		toSemanticFlowNodes,
 		toSemanticFlowEdges,
-		neighborNodeIds
+		neighborNodeIds,
+		levelLayoutKey
 	} from '$lib/services/semanticGraphBuilder';
+	import { screenAspect } from '$lib/services/levelLayout';
 	import { analyzeDrilldown } from '$lib/services/semanticAnalysisService';
 	import { settingsStore } from '$lib/stores/settingsStore.svelte';
 	import ExportController from './ExportController.svelte';
 	import SemanticNodeComponent from './nodes/SemanticNode.svelte';
+	import RoutedEdge from './edges/RoutedEdge.svelte';
 	import DrilldownConfirmModal from './DrilldownConfirmModal.svelte';
 	import ExploreDrilldownPromptDialog from './ExploreDrilldownPromptDialog.svelte';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
@@ -33,6 +44,12 @@
 
 	const breakpoint = useBreakpoint();
 	const isCompact = $derived(breakpoint.isMobile || breakpoint.isTablet);
+
+	// Levels are laid out for the window's shape, not the canvas element's: a side panel that
+	// opens on a click narrows the canvas, and re-laying the level then would move every card
+	let windowWidth = $state(typeof window === 'undefined' ? 0 : window.innerWidth);
+	let windowHeight = $state(typeof window === 'undefined' ? 0 : window.innerHeight);
+	const aspect = $derived(screenAspect(windowWidth, windowHeight));
 
 	let drilldownConfirmOpen = $state(false);
 	let pendingDrilldownNode = $state<SemanticNode | null>(null);
@@ -106,6 +123,10 @@
 		semanticNode: SemanticNodeComponent
 	};
 
+	const edgeTypes = {
+		routed: RoutedEdge
+	};
+
 	const EDGE_TYPE_INFO: { type: string; i18nKey: string; color: string }[] = [
 		{ type: 'depends_on', i18nKey: 'legend.depends_on', color: 'var(--color-edge-depends-on)' },
 		{ type: 'calls', i18nKey: 'legend.calls', color: 'var(--color-edge-calls)' },
@@ -127,25 +148,34 @@
 	let userPositions = $state(new Map<string, { x: number; y: number }>());
 	let prevLevelParentId = $state<string | null | undefined>(undefined);
 
-	// Crossing the compact breakpoint switches LR <-> TB: positions dragged in the
-	// old layout no longer apply, and the new layout needs a fresh fit
-	let prevCompact: boolean | undefined;
+	// A window that changes shape re-packs the level: positions dragged in the old layout no
+	// longer apply, and the new layout needs a fresh fit
+	let prevAspect: number | undefined;
 	$effect(() => {
-		const compact = isCompact;
-		if (prevCompact !== undefined && compact !== prevCompact) {
+		const current = aspect;
+		if (prevAspect !== undefined && current !== prevAspect) {
 			userPositions = new Map();
 			requestAnimationFrame(() => exportFns?.fitView());
 		}
-		prevCompact = compact;
+		prevAspect = current;
 	});
 
-	// Clear userPositions when drill-down/drill-up changes the level
+	// The viewport each layout was left at. Going back to a level shows it as the user left it;
+	// a level seen for the first time is fit to the screen, since the old viewport would crop it
+	const leftViewports: Record<string, Viewport> = {};
+	let shownLayout: string | null = null;
 	$effect(() => {
-		const currentParentId = semanticStore.currentLevel?.parentId ?? null;
+		const level = semanticStore.currentLevel;
+		const currentParentId = level?.parentId ?? null;
+		const layout = level ? levelLayoutKey(level, aspect) : null;
 		if (prevLevelParentId !== undefined && currentParentId !== prevLevelParentId) {
 			userPositions = new Map();
+			if (shownLayout && exportFns) leftViewports[shownLayout] = exportFns.getViewport();
+			const left = layout ? leftViewports[layout] : undefined;
+			requestAnimationFrame(() => (left ? exportFns?.setViewport(left) : exportFns?.fitView()));
 		}
 		prevLevelParentId = currentParentId;
+		shownLayout = layout;
 	});
 
 	function handleNodeDragStop({
@@ -263,6 +293,8 @@
 		exportPdf: () => void;
 		fitView: () => void;
 		getZoom: () => number;
+		getViewport: () => Viewport;
+		setViewport: (viewport: Viewport) => void;
 	} | null>(null);
 
 	export function triggerExport() {
@@ -309,7 +341,7 @@
 		const neighbors = highlightedNodeId
 			? neighborNodeIds(level, highlightedNodeId)
 			: new Set<string>();
-		const nodes = toSemanticFlowNodes(level, isCompact ? 'TB' : 'LR');
+		const nodes = toSemanticFlowNodes(level, aspect);
 		for (const n of nodes) {
 			// U1-6: Apply user-dragged position if available
 			const userPos = userPositions.get(n.id);
@@ -367,7 +399,7 @@
 		}
 
 		flowNodes = nodes;
-		allEdges = toSemanticFlowEdges(level);
+		allEdges = toSemanticFlowEdges(level, aspect);
 	});
 
 	// Filter edges based on hidden edge types
@@ -398,6 +430,7 @@
 		const now = Date.now();
 
 		if (node.id === lastClickId && now - lastClickTime < DBLCLICK_MS) {
+			clearTimeout(pendingSelection);
 			lastClickId = '';
 			lastClickTime = 0;
 			handleNodeDblClick(node);
@@ -407,17 +440,27 @@
 		lastClickId = node.id;
 		lastClickTime = now;
 
-		// Semantic node click → select in semanticStore, clear direct file selection (S7)
+		// Selecting opens the detail panel, which narrows the canvas and can cover this card, so the
+		// second click of a double-click would land on the panel. Selection waits out that window
 		if (node.type === 'semanticNode') {
-			const semNode = semanticStore.currentLevel?.nodes.find((n) => n.id === node.id) ?? null;
-			semanticStore.selectedSemanticNode = semNode;
-			selectionStore.selectedNode = null;
-			// Switch to diagram tab so breadcrumb shows semantic mode
-			const path = semanticStore.drilldownPath;
-			const label = path.length > 0 ? path[path.length - 1].label : 'Project';
-			tabStore.openDiagramTab(path, label);
-			return;
+			clearTimeout(pendingSelection);
+			pendingSelection = setTimeout(() => selectSemanticNode(node.id), DBLCLICK_MS);
 		}
+	}
+
+	let pendingSelection: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => () => clearTimeout(pendingSelection));
+
+	// Semantic node click → select in semanticStore, clear direct file selection (S7)
+	function selectSemanticNode(id: string) {
+		const semNode = semanticStore.currentLevel?.nodes.find((n) => n.id === id);
+		if (!semNode) return;
+		semanticStore.selectedSemanticNode = semNode;
+		selectionStore.selectedNode = null;
+		// Switch to diagram tab so breadcrumb shows semantic mode
+		const path = semanticStore.drilldownPath;
+		const label = path.length > 0 ? path[path.length - 1].label : 'Project';
+		tabStore.openDiagramTab(path, label);
 	}
 
 	let analysisRequestsOpen = $state(false);
@@ -464,12 +507,24 @@
 		if (node) handleNodeDblClick(node);
 	}
 
-	// Below this zoom the cards are too small for symbol chips to read
-	const FAR_ZOOM = 0.7;
-	let zoomFar = $state(false);
+	// How much of a card is legible at the current zoom. Below 0.7 the symbol chips are too
+	// small to read and the title starts to grow; below 0.5 the description and file count are too
+	type ZoomBand = 'near' | 'far' | 'distant';
+	const zoomBandAt = (zoom: number): ZoomBand =>
+		zoom < 0.5 ? 'distant' : zoom < 0.7 ? 'far' : 'near';
+	// Zoomed out, card titles grow to stay about this size on screen, up to what two lines of
+	// a card can hold, so a level fit to the screen keeps its names legible
+	const TITLE_SCREEN_PX = 11;
+	const TITLE_MAX_PX = 36;
+	let zoomBand = $state<ZoomBand>('near');
+	let farTitlePx = $state(16);
 	function handleMove(_: MouseEvent | TouchEvent | null, viewport: { zoom: number }) {
-		const far = viewport.zoom < FAR_ZOOM;
-		if (far !== zoomFar) zoomFar = far;
+		const band = zoomBandAt(viewport.zoom);
+		if (band !== zoomBand) zoomBand = band;
+		// Even steps, so a pinch re-flows the titles a few times rather than on every frame
+		const title = 2 * Math.round(TITLE_SCREEN_PX / viewport.zoom / 2);
+		const clamped = Math.min(TITLE_MAX_PX, Math.max(16, title));
+		if (clamped !== farTitlePx) farTitlePx = clamped;
 	}
 
 	function handlePaneClick(_: { event: MouseEvent }) {
@@ -488,11 +543,19 @@
 	}
 </script>
 
-<div class="zui-canvas" data-tour-step="5" data-zoom={zoomFar ? 'far' : 'near'}>
+<svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
+
+<div
+	class="zui-canvas"
+	data-tour-step="5"
+	data-zoom={zoomBand}
+	style="--far-title-size: {farTitlePx}px"
+>
 	<SvelteFlow
 		nodes={flowNodes}
 		edges={flowEdges}
 		{nodeTypes}
+		{edgeTypes}
 		fitView
 		minZoom={0.05}
 		maxZoom={4}

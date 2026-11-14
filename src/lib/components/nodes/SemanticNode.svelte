@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Handle, Position } from '@xyflow/svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
+	import { middleEllipsis, titleBreaks, titleFitPx } from '$lib/utils/cardTitle';
 
 	let { data } = $props();
 
@@ -14,6 +15,10 @@
 	const targetHandleCount: number = $derived(data.targetHandleCount ?? 1);
 	const sourceHandleCount: number = $derived(data.sourceHandleCount ?? 1);
 	const vertical = $derived(data.direction === 'TB');
+	const label = $derived(String(data.label ?? ''));
+	// Zoomed out, a long title keeps its start and end, at the largest size that fits two lines
+	const farLabel = $derived(middleEllipsis(label));
+	const titleFit = $derived(titleFitPx(farLabel));
 
 	function handleOpen(e: MouseEvent) {
 		e.stopPropagation();
@@ -46,7 +51,17 @@
 >
 	<div class="node-header">
 		<span class="node-dot" aria-hidden="true"></span>
-		<span class="node-label">{data.label}</span>
+		<span
+			class="node-label"
+			class:shortened={farLabel !== label}
+			title={label}
+			style="--title-fit: {titleFit}px"
+			><span class="label-full"
+				>{#each titleBreaks(label) as part, i (i)}{#if i > 0}<wbr />{/if}{part}{/each}</span
+			>{#if farLabel !== label}<span class="label-short"
+					>{#each titleBreaks(farLabel) as part, i (i)}{#if i > 0}<wbr />{/if}{part}{/each}</span
+				>{/if}</span
+		>
 		<span class="node-badge"
 			>{i18nStore.t(data.fileCount === 1 ? 'node.fileOne' : 'node.fileMany', {
 				n: data.fileCount
@@ -325,8 +340,39 @@
 		}
 	}
 
-	/* Zoomed out: titles and descriptions carry the map, symbol chips step aside */
-	:global(.zui-canvas[data-zoom='far']) .node-symbols {
+	.label-short {
 		display: none;
+	}
+
+	/* Zoomed out: the title grows to stay legible on screen and may take two lines, and the
+	   symbol chips and file count step aside; further out the description does too. A long
+	   title shrinks to fit its two lines and keeps its start and end around an ellipsis */
+	:global(.zui-canvas:not([data-zoom='near'])) .node-symbols,
+	:global(.zui-canvas:not([data-zoom='near'])) .node-badge,
+	:global(.zui-canvas[data-zoom='distant']) .node-description {
+		display: none;
+	}
+
+	:global(.zui-canvas:not([data-zoom='near'])) .node-label.shortened .label-full {
+		display: none;
+	}
+
+	:global(.zui-canvas:not([data-zoom='near'])) .node-label.shortened .label-short {
+		display: inline;
+	}
+
+	:global(.zui-canvas:not([data-zoom='near'])) .node-header {
+		align-items: flex-start;
+	}
+
+	:global(.zui-canvas:not([data-zoom='near'])) .node-label {
+		font-size: min(var(--far-title-size, 15px), var(--title-fit, 36px));
+		line-height: 1.15;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
 	}
 </style>
