@@ -3,6 +3,9 @@ import { settingsStore } from './settingsStore.svelte';
 import type { CoverageReason, CoverageStatus } from '$lib/types/coverage';
 
 interface LandingTranslations {
+	metaTitle: string;
+	metaDescription: string;
+	shareImageAlt: string;
 	headlineLead: string;
 	headlineAccent: string;
 	subheadline: string;
@@ -659,6 +662,11 @@ const translations: Record<Locale, TranslationSet> = {
 			generatingDiagram: '다이어그램 생성 중...'
 		},
 		landing: {
+			metaTitle: '코딩 에이전트로 저장소 지도를 그리세요 | Ropeman',
+			metaDescription:
+				'Ropeman은 모델 없이 모든 파일과 심볼, import를 읽습니다. 에이전트가 부분마다 이름을 붙이면 Ropeman이 이름이 코드와 맞는지 검사합니다.',
+			shareImageAlt:
+				"'코딩 에이전트로 저장소 지도를 그리세요' 제목 아래에 Ropeman이 huggingface/transformers를 분석한 화면",
 			headlineLead: '코딩 에이전트로',
 			headlineAccent: '저장소 지도를 그리세요',
 			subheadline:
@@ -1449,6 +1457,11 @@ const translations: Record<Locale, TranslationSet> = {
 			generatingDiagram: 'Generating diagram...'
 		},
 		landing: {
+			metaTitle: 'Map a repo from your coding agent | Ropeman',
+			metaDescription:
+				'Ropeman reads every file, symbol and import without a model. Your agent names the parts, and Ropeman checks each name against the code.',
+			shareImageAlt:
+				"The headline 'Map a repo from your coding agent' above Ropeman's analysis of huggingface/transformers",
 			headlineLead: 'Map a repo',
 			headlineAccent: 'from your coding agent',
 			subheadline:

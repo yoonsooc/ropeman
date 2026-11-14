@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Copies the built app (`npm run build`) into the bridge package as the viewer `--local` serves
 // (ADR-23). Bridge mode parses nothing in the browser, so the tree-sitter .wasm files stay out,
-// and so do the Cloudflare-only files.
+// and so do the Cloudflare-only files and the share images (`og/`) crawlers fetch from ropeman.dev.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const repo = fileURLToPath(new URL('..', import.meta.url));
 const from = path.join(repo, '.svelte-kit/cloudflare');
 const to = path.join(repo, 'bridge/dist/viewer');
-const SKIP = new Set(['_worker.js', '_routes.json', '_headers']);
+const SKIP = new Set(['_worker.js', '_routes.json', '_headers', 'og']);
 
 if (!fs.existsSync(path.join(from, 'bridge.html'))) {
 	console.error(`No built viewer in ${from}. Run npm run build first.`);
@@ -23,6 +23,10 @@ fs.cpSync(from, to, {
 		return !SKIP.has(name) && !name.endsWith('.wasm');
 	}
 });
+// `/` has no file of its own: on Cloudflare, hooks.server.ts serves `en.html` or `ko.html` by the
+// visitor's language. Local mode has no edge, so `/` serves English and the app switches a Korean
+// visitor once it boots, as app.html arranges.
+fs.copyFileSync(path.join(to, 'en.html'), path.join(to, 'index.html'));
 // A page served from 127.0.0.1 makes no third-party request (ADR-23)
 const CLOUDFLARE_BEACON = /<script[^>]*static\.cloudflareinsights\.com[^>]*><\/script>/g;
 // Anything still loading from another host fails the bundle, so a new tag in app.html is not

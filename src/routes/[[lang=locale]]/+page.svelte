@@ -43,6 +43,43 @@
 	import { analysisUiStore } from '$lib/stores/analysisUiStore.svelte';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { page } from '$app/state';
+	import { afterNavigate, goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { LANDING_PAGES, SHARE_IMAGE, SITE_URL } from '$lib/utils/landingPages';
+	import { parseLocale } from '$lib/utils/locale';
+
+	// `/ko` and `/en` show their language whatever the saved or browser language. Set before the
+	// first render, so the prerender and the hydration both render in that language.
+	const urlLanguage = () => parseLocale(page.params.lang);
+	settingsStore.urlLanguage = urlLanguage();
+	$effect.pre(() => {
+		settingsStore.urlLanguage = urlLanguage();
+	});
+
+	// The address names the language on screen, so a copied link previews in that language.
+	// Picking a language on `/ko` or `/en` moves to `/`, which serves the saved choice. A Korean
+	// landing at `/` (the edge picked it) renames itself `/ko`. Both stay on this route, which loads
+	// no data, so they change the address without a request. Not a shallow replaceState: that
+	// leaves page.url at `/`, and picking English on the renamed page would then keep `/ko`.
+	// goto waits for the router, which starts right after the first afterNavigate callbacks.
+	let routerStarted = $state(false);
+	afterNavigate(() => queueMicrotask(() => (routerStarted = true)));
+	$effect(() => {
+		if (!routerStarted) return;
+		const named = urlLanguage();
+		const shown = i18nStore.locale;
+		const options = { replaceState: true, noScroll: true, keepFocus: true };
+		if (named && named !== shown) {
+			goto(resolve('/'), options);
+		} else if (!named && shown === 'ko') {
+			const ko = resolve('/[[lang=locale]]', { lang: 'ko' });
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- the path is resolved; the visitor's query and hash ride along
+			goto(`${ko}${page.url.search}${page.url.hash}`, options);
+		}
+	});
+
+	const landing = $derived(LANDING_PAGES[i18nStore.locale]);
 
 	let showSettings = $state(false);
 	let showHelp = $state(false);
@@ -331,6 +368,10 @@
 
 	onDestroy(() => {
 		analysisUiStore.clearActionHandlers();
+		// Svelte's server render is synchronous and runs onDestroy at its end, so the value set at
+		// the top of this component never reaches another page's render, whatever the prerender
+		// concurrency. Async server rendering (`experimental.async`) would break that.
+		settingsStore.urlLanguage = null;
 	});
 
 	function isInputFocused(): boolean {
@@ -472,6 +513,36 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
+<!-- Share previews: crawlers read these from the prerendered HTML and run no JavaScript -->
+<svelte:head>
+	<title>{i18nStore.t('landing.metaTitle')}</title>
+	<meta name="description" content={i18nStore.t('landing.metaDescription')} />
+	<link rel="canonical" href={SITE_URL + landing.url} />
+	{#each Object.entries(LANDING_PAGES) as [locale, { url }] (locale)}
+		<link rel="alternate" hreflang={locale} href={SITE_URL + url} />
+	{/each}
+	<link rel="alternate" hreflang="x-default" href={SITE_URL + LANDING_PAGES.en.url} />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="Ropeman" />
+	<meta property="og:url" content={SITE_URL + landing.url} />
+	<meta property="og:title" content={i18nStore.t('landing.metaTitle')} />
+	<meta property="og:description" content={i18nStore.t('landing.metaDescription')} />
+	<meta property="og:locale" content={landing.ogLocale} />
+	{#each Object.values(LANDING_PAGES).filter((other) => other !== landing) as other (other.url)}
+		<meta property="og:locale:alternate" content={other.ogLocale} />
+	{/each}
+	<meta property="og:image" content={SITE_URL + landing.image} />
+	<meta property="og:image:type" content="image/png" />
+	<meta property="og:image:width" content={String(SHARE_IMAGE.width)} />
+	<meta property="og:image:height" content={String(SHARE_IMAGE.height)} />
+	<meta property="og:image:alt" content={i18nStore.t('landing.shareImageAlt')} />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={i18nStore.t('landing.metaTitle')} />
+	<meta name="twitter:description" content={i18nStore.t('landing.metaDescription')} />
+	<meta name="twitter:image" content={SITE_URL + landing.image} />
+	<meta name="twitter:image:alt" content={i18nStore.t('landing.shareImageAlt')} />
+</svelte:head>
+
 <div id="app">
 	<Header
 		onsettings={() => (showSettings = !showSettings)}
@@ -609,8 +680,9 @@
 </div>
 
 <style>
-	/* app.html sets this for Korean visitors, so the English prerender never shows. Not laid
-	   out, it fetches no fonts or images while the app's scripts load. */
+	/* app.html sets this on `/` when the edge served the other language than the app will show
+	   (a saved choice with no cookie yet), so that language never paints. Not laid out, it
+	   fetches no fonts or images while the app's scripts load. */
 	:global(html[data-locale-pending]) #app {
 		display: none;
 	}

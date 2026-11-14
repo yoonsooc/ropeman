@@ -9,9 +9,10 @@
 				location.replace('https://ropeman.dev' + location.pathname + location.search + location.hash);
 			}
 			// Prerendered pages paint before the app boots. The stored theme applies now, as
-			// themeStore would, so there is no dark-to-light flash. The landing is prerendered in
-			// English, so a visitor whose locale (settingsStore, then the browser) is Korean has it
-			// hidden until the app renders it in Korean (+layout.svelte removes the mark).
+			// themeStore would, so there is no dark-to-light flash. On `/` the edge served the
+			// landing in the language of the cookie or Accept-Language. If the app will show the
+			// other one (settingsStore, then the browser), as with a choice saved before the cookie
+			// existed, the page stays hidden until the app renders it (+layout.svelte removes the mark).
 			try {
 				const root = document.documentElement;
 				if (localStorage.getItem('theme') === 'light') root.dataset.theme = 'light';
@@ -19,11 +20,12 @@
 				const preferred = (navigator.languages || [navigator.language])
 					.map((tag) => String(tag).toLowerCase().split('-')[0])
 					.find((tag) => tag === 'ko' || tag === 'en');
-				if ((stored === 'ko' || stored === 'en' ? stored : preferred) === 'ko') {
+				const locale = (stored === 'ko' || stored === 'en' ? stored : preferred) || 'en';
+				if (location.pathname === '/' && locale !== root.lang) {
 					root.dataset.localePending = '';
-					// If the app never renders (a script failed to load), the English landing beats a
+					// If the app never renders (a script failed to load), the served landing beats a
 					// blank page. On Lighthouse's throttled mobile profile the app renders about 4.5 s
-					// after this line, so 8 s leaves room for a slower phone before English shows.
+					// after this line, so 8 s leaves room for a slower phone.
 					setTimeout(() => delete root.dataset.localePending, 8000);
 				}
 			} catch {}

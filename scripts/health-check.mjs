@@ -42,10 +42,21 @@ const checks = [
 	{
 		name: 'site',
 		async run() {
-			const response = await request(`${ORIGIN}/`);
+			const response = await request(`${ORIGIN}/`, { headers: { 'accept-language': 'en-US' } });
 			expectStatus(response, 200);
-			if (!(await response.text()).includes('<title>Ropeman</title>')) {
-				throw new Error('app shell title missing');
+			if (!(await response.text()).includes('<html lang="en"')) {
+				throw new Error('the English landing is missing');
+			}
+		}
+	},
+	{
+		name: 'site in Korean',
+		async run() {
+			// `/` picks the prerendered landing by language at the edge (hooks.server.ts)
+			const response = await request(`${ORIGIN}/`, { headers: { 'accept-language': 'ko-KR' } });
+			expectStatus(response, 200);
+			if (!(await response.text()).includes('<html lang="ko"')) {
+				throw new Error('a Korean browser did not get the Korean landing');
 			}
 		}
 	},

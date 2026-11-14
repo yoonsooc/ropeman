@@ -9,14 +9,16 @@
 
 ```
 src/
-├── app.html                      # 앱이 부팅하기 전에 저장된 테마를 적용하고, 한국어 방문자에게 프리렌더 랜딩을 숨기는 표시를 단다
+├── app.html                      # 앱이 부팅하기 전에 저장된 테마를 적용하고, `/`가 받은 언어와 앱이 보일 언어가 다르면 랜딩을 숨기는 표시를 단다
+├── hooks.server.ts               # `/`는 쿠키(앱에서 고른 언어) 다음 Accept-Language로 미리 렌더링한 `en.html`·`ko.html` 중 하나를 준다. 한국어 페이지는 `<html lang="ko">`
+├── params/locale.ts              # 라우트 매처: `en`, `ko`
 ├── routes/
-│   ├── +page.svelte              # 메인 페이지 (레이아웃 + AnalyzeModal + testDir 감지)
-│   ├── +page.ts                  # 랜딩만 SSR로 프리렌더: 첫 HTML에 첫 화면이 있고 앱이 그 자리에서 hydrate한다 (영어로 굽고, 한국어 방문자는 hydrate까지 숨김)
+│   ├── [[lang=locale]]/+page.svelte # 메인 페이지 (레이아웃 + AnalyzeModal + testDir 감지). `/`, `/en`, `/ko`가 같은 컴포넌트이고, 공유 미리보기 태그(og·twitter·canonical·hreflang)를 단다
+│   ├── [[lang=locale]]/+page.ts  # 랜딩을 SSR로 `/en`·`/ko` 두 번 프리렌더: 첫 HTML에 첫 화면이 있고 앱이 그 자리에서 hydrate한다. `/`는 굽지 않는다
 │   ├── +layout.svelte            # 전역 레이아웃 (테마 CSS 주입). 마운트하면 <html data-hydrated>를 단다 (E2E가 클릭 전에 기다림)
 │   ├── open/+page.svelte         # JSON 열기: ropeman.json을 골라 읽기 전용 뷰어로 연다 (거부되면 이유와 다시 고르기)
 │   ├── bridge/+page.svelte       # Bridge 모드: ropeman serve에 붙어 지도·드릴다운·원문을 RPC로 (로컬 모드는 #token= 자동 연결)
-│   └── +layout.ts                # 기본은 SSR 끔 (브라우저 전용). 켜는 곳은 랜딩(+page.ts)과 /docs
+│   └── +layout.ts                # 기본은 SSR 끔 (브라우저 전용). 켜는 곳은 랜딩([[lang=locale]]/+page.ts)과 /docs
 │
 ├── lib/
 │   ├── stores/                   # Svelte 5 rune 싱글턴 (createXxxStore 패턴)
@@ -126,7 +128,8 @@ src/
 │   └── utils/
 │       ├── languageDetector.ts       # 확장자 → 언어 매핑, 그다음 파일 이름 → 설정 형식 (dev 전용 `?testDir=` 스캐너 `scripts/vite-dev-fs-plugin.js`도 이 표를 쓴다)
 │       ├── sfcScripts.ts             # `.svelte`·`.vue` → `<script>` 본문만 남긴 TS/JS 소스 (파서 워커가 쓴다)
-│       ├── locale.ts                 # UI 언어 결정 (저장된 선택 > 브라우저 언어 ko* > en)
+│       ├── locale.ts                 # UI 언어 결정 (URL이 정한 언어 > 저장된 선택 > 브라우저 언어 ko* > en), Accept-Language 파싱, 언어 쿠키 이름
+│       ├── landingPages.ts           # 언어별 랜딩 주소(`/`, `/ko`), og:locale, 공유 이미지(`static/og/`, `scripts/og-images.mjs`가 만든다)
 │       ├── fileIcons.ts              # 파일 유형별 Material Symbols + 색상 매핑
 │       ├── focusTrap.ts              # `role="dialog"` div 모달 카드가 모두 쓰는 액션: 열 때 포커스를 넣고 Tab을 안에 가두고 닫으면 연 버튼으로 돌려줌
 │       └── contextBuilder.ts         # 채팅용 코드 컨텍스트 구성
@@ -426,7 +429,7 @@ map.changed    → 바뀐 경로의 revision을 올리고(열린 원문을 제�
 - 앱 AI와 분리: `ZUICanvas`의 `onexpand`가 있으면 캐시에 없는 노드는 그 함수로 가고, 확인 창과 앱의 AI 분석, 다시 분석 버튼은 나오지 않는다.
 - 추론 관계: INFERRED 관계는 `semanticGraphBuilder`가 점선으로 그리고 범례에 뜻을 적는다(A-6). 검증기의 `unverified`(refs가 빈 INFERRED)는 지도만 보고도 알 수 있고, 이름으로만 맞춘 ref를 든 INFERRED도 점선이라, 뷰어는 코드 지도 없이 `evidence.confidence`로 정한다.
 - 로컬 모드: 페이지가 `http://127.0.0.1:<port>`나 `http://localhost:<port>`에서 열리고 주소에 `#token=`이 있으면 같은 호스트로 바로 붙는다. 토큰은 읽자마자 `history.replaceState`로 주소에서 지운다(SvelteKit의 `replaceState`는 라우터가 붙기 전인 첫 페이지 `onMount`에서 예외를 던진다). 다시 고침을 위해 토큰은 그 탭의 `sessionStorage`에 둔다. 페이지가 루프백에서 열렸고 소켓이 그 호스트로 갈 때만 그렇다(`bridgeSession.ts`). ropeman.dev는 Cloudflare 분석 비콘 같은 제3자 스크립트를 실어서 저장소에 둔 토큰을 읽힐 수 있다. 그래서 거기서 넣은 토큰은 메모리에만 두고, 다시 고치면 다시 넣는다(폼이 그렇게 안내한다).
-- 뷰어 번들: `npm run bundle:viewer`(`scripts/bundle-viewer.mjs`)가 `npm run build` 결과를 `bridge/dist/viewer/`로 복사한다. 브라우저에서 파싱하지 않으므로 tree-sitter `.wasm`과 Cloudflare 전용 파일은 빼고(약 7.5MB, 107개), 127.0.0.1에서 연 페이지는 다른 호스트로 요청을 하나도 보내지 않는다. 그래서 사이트의 Cloudflare 분석 비콘을 HTML에서 지운다. 글꼴과 아이콘은 `_app/` 아래 직접 호스팅한 파일이라 사이트와 같은 모양으로 실린다([글꼴과 아이콘](#글꼴과-아이콘)). 지운 뒤에도 `script`·`link`·`img` 같은 태그가 다른 호스트를 가리키거나 CSS가 원격 `url()`·`@import`를 쓰면 번들 단계가 실패한다(`rel=alternate`·`canonical`은 요청이 아니라 뺀다). `bridge`의 `prepack`이 앱 빌드, bridge 빌드, 번들 복사를 차례로 해서 패키지에 싣는다. `serve --local`이 이 번들을 서빙하고, 미리 렌더링한 경로는 `.html`을 붙여 찾는다(`/bridge` → `bridge.html`, Cloudflare Pages와 같다).
+- 뷰어 번들: `npm run bundle:viewer`(`scripts/bundle-viewer.mjs`)가 `npm run build` 결과를 `bridge/dist/viewer/`로 복사한다. 브라우저에서 파싱하지 않으므로 tree-sitter `.wasm`과 Cloudflare 전용 파일, 공유 이미지(`og/`)는 빼고(약 7.9MB, 124개), 127.0.0.1에서 연 페이지는 다른 호스트로 요청을 하나도 보내지 않는다. 그래서 사이트의 Cloudflare 분석 비콘을 HTML에서 지운다. 글꼴과 아이콘은 `_app/` 아래 직접 호스팅한 파일이라 사이트와 같은 모양으로 실린다([글꼴과 아이콘](#글꼴과-아이콘)). 지운 뒤에도 `script`·`link`·`img` 같은 태그가 다른 호스트를 가리키거나 CSS가 원격 `url()`·`@import`를 쓰면 번들 단계가 실패한다(`rel=alternate`·`canonical`은 요청이 아니라 뺀다). `bridge`의 `prepack`이 앱 빌드, bridge 빌드, 번들 복사를 차례로 해서 패키지에 싣는다. `serve --local`이 이 번들을 서빙하고, 미리 렌더링한 경로는 `.html`을 붙여 찾는다(`/bridge` → `bridge.html`, Cloudflare Pages와 같다). Cloudflare에서는 엣지가 `/`의 언어를 고르지만 로컬 모드에는 엣지가 없어서, 번들 단계가 `en.html`을 `index.html`로 복사한다. 한국어 방문자는 앱이 부팅한 뒤 한국어로 바뀐다(`app.html`이 그때까지 숨긴다).
 - 검증: `bridgeClient.test.ts`(가짜 소켓, 11개), `bridgeStore.test.ts`(가짜 서버, 15개), `bridgeSession.test.ts`(토큰을 남기는 경우와 안 남기는 경우, 7개). `tests/bridge-mode.spec.ts`는 빌드한 serve를 픽스처 저장소 사본과 가짜 CLI로 띄우고 `map.get → node.expand(이름 대기) → node.named → file.read → 파일 수정 → map.changed → binary 거부`를 로컬 모드(영어 데스크톱, 한국어 휴대폰)와 다른 출처의 페이지에서 토큰을 넣는 경우로 돈다. 가짜 CLI의 `gate` 단계가 `release` 파일이 생길 때까지 답을 미뤄서 대기 상태를 화면에서 본다. `bridgeAccess.test.ts`(가짜 권한 API와 가짜 fetch, 거부된 질의 포함)가 원인과 카드 상태를 본다. 같은 spec의 "Connection guide" 묶음은 뷰어 번들을 `https://ropeman.test`(공개 https 출처)로 서빙하고 CDP로 권한을 정해, 카드마다(묻기 전, 허락, 막힘, 권한 창 대기, 답 없음, serve 꺼짐, 틀린 토큰, 허용 안 된 Origin, Firefox, 원인 모름, Safari) 영어 데스크톱과 한국어 휴대폰에서 본다. 권한 창 대기는 업그레이드에 답하지 않는 포트로 만든다.
 
 ### Phase 3: 재귀적 드릴다운
@@ -511,7 +514,7 @@ edge-proxy/src/
 - demo는 `DEMO_MODEL`의 쉼표 목록을 차례로 시도한다. 404·429·5xx이거나 모델별 대기 시간(40초)을 넘기면 다음 모델로 넘어간다 (무료 등급 할당량이 모델별이고, 고부하 모델은 503 대신 응답을 붙잡기도 한다). 순서는 응답 속도 우선: Flash-Lite → Flash (Flash가 고부하일 때 40초를 기다린 뒤에야 넘어가던 문제)
 - demo 실패 응답은 오류 코드만 준다 (`demo_rate_limited`, `demo_daily_limit`, `demo_upstream_quota`, `demo_unavailable`). 업스트림 본문은 결제 프로젝트 정보를 담을 수 있어 워커 로그에만 남긴다. 클라이언트는 `demoFailureMessage` → `AIErrorType.DEMO_UNAVAILABLE`로 Explore와 다른 AI 연결을 안내한다
 - proxy의 `action: 'models'`는 사용자 키로 Anthropic·OpenAI 모델 목록을 받아 `{id, label, created}`로 돌려준다. Gemini 목록은 브라우저가 직접 조회한다
-- `scripts/health-check.mjs`를 `.github/workflows/health-check.yml`이 매일 00:00 UTC에 실행한다 (사이트, pages.dev 리다이렉트, explore, demo 실제 호출, proxy, share)
+- `scripts/health-check.mjs`를 `.github/workflows/health-check.yml`이 매일 00:00 UTC에 실행한다 (사이트, 한국어 브라우저에 한국어 랜딩, pages.dev 리다이렉트, explore, demo 실제 호출, proxy, share)
 
 - `[placement] mode = "smart"`, `hint = "wnam"` — Gemini API 지역 제한 우회
 - `ALLOWED_ORIGINS` — CORS 도메인 화이트리스트
@@ -597,10 +600,15 @@ export const xxxStore = createXxxStore();
 ## 7. 제약 사항
 
 - **브라우저 전용**: Chromium 기반 (비-localhost는 fallback input)
-- **랜딩 프리렌더**: `/`만 빌드 때 영어로 SSR해 굽는다(`+page.ts`). 나머지 라우트는 브라우저 전용 그대로다. 첫 HTML에 첫 화면이 있어서 영어 방문자의 모바일 FCP가 5.77초에서 1.95초로 줄었다(Lighthouse 12.8 모바일, 실제 스로틀링, 3회 중앙값, 2026-11-13)
+- **랜딩 프리렌더**: 랜딩은 빌드 때 `/en`(영어)과 `/ko`(한국어)로 두 번 SSR해 굽는다(`[[lang=locale]]/+page.ts`). 나머지 라우트는 브라우저 전용 그대로다. 첫 HTML에 첫 화면이 있어서 영어 방문자의 모바일 FCP가 5.77초에서 1.95초로 줄었다(Lighthouse 12.8 모바일, 실제 스로틀링, 3회 중앙값, 2026-11-13)
   - hydrate 전에는 화면의 버튼이 눌리지 않는다. 같은 모바일 조건(CDP로 건 Lighthouse 모바일 스로틀링)에서 FCP부터 `<html data-hydrated>`까지 4.2초다(5회 중앙값, 범위 4.04–4.22초). 그중 약 1.1초는 웹 폰트(주로 317KB Material Symbols)가, 약 0.2초는 히어로 이미지가 앱 스크립트와 회선을 나눠 쓰는 몫이다. 폰트 요청을 막으면 hydrate가 6.15초에서 5.05초로, 이미지를 막으면 5.94초로 당겨진다(각 3회). 그래서 영어 방문자가 처음 누를 수 있는 시점은 PR #89 전(CSR 첫 렌더 5.68초)보다 약 0.45초 늦다. Material Symbols 요청을 쓰는 아이콘만으로 줄이는 것(`&icon_names=`)이 후속이다
-  - 한국어 방문자는 영어 화면이 비치지 않게 hydrate까지 `#app`을 숨기므로(`app.html`의 `data-locale-pending`) 모바일 FCP가 5.77초에서 5.17초로만 줄었다. 한국어 랜딩도 빌드 때 굽거나, 엣지에서 locale에 맞는 HTML을 골라 주는 것이 후속이다
-  - `app.html`은 숨긴 지 8초가 지나면 표시를 지운다. 앱 스크립트가 실패해도 빈 화면 대신 영어 랜딩이 보인다. 같은 모바일 조건에서 한국어 랜딩은 숨긴 지 약 4.5초 뒤에 나오므로(5회, 4.50–4.56초), 8초는 그보다 느린 폰에서도 한국어 랜딩이 먼저 나오도록 여유를 둔 값이다. JavaScript가 꺼져 있으면 스크립트가 돌지 않아 처음부터 영어 랜딩이 보인다
+  - `/`는 굽지 않고 엣지가 언어를 고른다. 어댑터의 워커는 미리 렌더링한 경로를 hook보다 먼저 정적 파일로 내주고(`@sveltejs/adapter-cloudflare/files/worker.js`의 `prerendered.has`), `_routes.json`은 그런 경로를 워커로 보내지도 않는다. 그래서 `/`가 프리렌더 목록에 있으면 고를 자리가 없다. `hooks.server.ts`는 빌드 중 `/`에 204를 돌려줘(SvelteKit이 프리렌더하지 않는 페이지에 주는 응답과 같다) `/`를 빌드에서 빼고, 실행 중에는 쿠키 `ropeman-lang`(앱에서 고른 언어), 없으면 Accept-Language로 `en.html`이나 `ko.html`을 `ASSETS`에서 꺼내 준다. 응답은 방문자마다 다르므로 `Cache-Control: private, no-cache`와 `Vary: Accept-Language, Cookie`를 단다(어댑터 워커가 캐시 가능한 응답을 URL만으로 `caches.default`에 넣기 때문). `ASSETS`에는 `If-None-Match`와 `Accept-Encoding`만 넘긴다. `Range`나 `If-Modified-Since`를 넘기면 페이지 일부나, 다른 언어 파일을 기준으로 한 304가 돌아올 수 있다. `scripts/check-landing-build.mjs`가 CI의 빌드 직후 `index.html`이 없는지, `en.html`·`ko.html`이 있는지, `_routes.json`이 `/`를 워커로 보내는지 본다. hook의 단위 테스트는 빌드와 `ASSETS`를 흉내 내므로 이 회귀는 잡지 못한다. 프리렌더한 라우트는 서버 번들에서 빠져서 `/`를 실행 중에 SSR할 수는 없다. `vite dev`에는 빌드 파일이 없어 같은 hook이 `/en`·`/ko`를 그 자리에서 렌더링한다
+  - `settingsStore`가 저장된 언어를 쿠키에 같이 쓴다(언어를 고를 때, 그리고 쿠키가 생기기 전에 저장한 선택이면 시작할 때). `/ko`·`/en`은 저장된 선택보다 앞서지만 저장하지는 않는다(`settingsStore.urlLanguage`, 페이지가 경로에서 읽는다). 그 페이지에서 언어를 고르면 `/`로 옮긴다. 주소는 화면의 언어를 따른다. `/`에서 한국어가 보이면 hydrate 뒤 SvelteKit의 얕은 `replaceState`로 주소만 `/ko`로 바꾼다(쿼리와 해시는 그대로, 요청 없음). 복사한 링크가 한국어 미리보기를 띄우게 하려는 것이다. 크롤러는 쿠키를 보내지 않고 대개 한국어 Accept-Language도 보내지 않아서 `/`를 공유하면 영어 미리보기가 나온다
+  - `urlLanguage`는 모듈 상태이지만 프리렌더 사이에 새지 않는다. 랜딩이 컴포넌트 맨 위에서 값을 넣고 `onDestroy`에서 지우는데, Svelte 서버 렌더는 동기라 `onDestroy`가 그 렌더 끝에 돈다(`svelte/src/internal/server/renderer.js`의 `#close_render`). 프리렌더 동시성과는 상관없다. Svelte의 비동기 서버 렌더(`experimental.async`)를 켜면 이 가정이 깨진다
+  - Safari(ITP)는 JavaScript가 쓴 쿠키를 7일까지만 둔다. 7일 넘게 오지 않은 Safari 방문자는 엣지가 Accept-Language로 고르고, 저장된 선택과 다르면 `app.html`의 숨김(`data-locale-pending`)이 hydrate까지 가린다. 앱이 시작할 때 쿠키를 다시 쓰므로 다음 방문부터 맞는다
+  - 모바일 FCP(Lighthouse 모바일 devtools 스로틀링, `wrangler pages dev`와 로컬 HTTP/2 프록시, 5회 교차 중앙값, 2026-11-14): 한국어 브라우저의 `/`가 3.45초에서 2.22초로, 영어 브라우저의 `/`는 2.14초에서 2.15초로(차이 없음), 영어 브라우저의 `/ko`는 2.22초다. 문서 응답 시간은 두 쪽 모두 약 0.64초로 같았다. 실제 Cloudflare에서 함수가 처음 뜰 때(콜드 스타트)의 지연은 재지 않았다
+  - `app.html`은 `/`가 받은 언어와 앱이 보일 언어(저장된 선택, 없으면 브라우저 언어)가 다르면 hydrate까지 `#app`을 숨긴다(`data-locale-pending`). 이제는 쿠키가 생기기 전에 언어를 저장한 방문자의 첫 방문, 쿠키가 만료된 Safari 방문자, 쿠키를 막은 브라우저에서만 일어난다. 숨긴 지 8초가 지나면 표시를 지워, 앱 스크립트가 실패해도 빈 화면 대신 받은 랜딩이 보인다. JavaScript가 꺼져 있어도 엣지가 고른 언어로 보인다
+  - 공유 미리보기: 각 랜딩이 title, description, canonical, hreflang(`en` → `/`, `ko` → `/ko`, `x-default` → `/`), `og:*`(`og:locale` 포함), `twitter:card`를 HTML에 담는다. 크롤러는 JavaScript를 돌리지 않으므로 빌드한 HTML에 있어야 한다. 이미지는 `static/og/landing-{en,ko}.png`(1200x630)이고 `scripts/og-images.mjs`가 빌드한 앱을 열어 랜딩의 제목을 히어로 스크린숏 위에 얹어 찍는다. `/en`은 영어 파일의 경로일 뿐이라 canonical이 `/`이고 사이트맵에 넣지 않는다
 - **파일 제한**: MAX_FILES=2000, MAX_FILE_SIZE=500KB. 값은 `filePriority.ts` 한 곳에 있다.
   - 상한은 순회 순서가 아니라 순위로 건다. 로컬 폴더, fallback input, GitHub가 같은 `rankFiles()`를 쓴다.
   - 순위는 세 묶음이다. 코드와 지침 파일, 그다음 테스트와 일반 문서, 그다음 읽는 파서가 없는 파일 순이다. 설정 파일 네 형식은 코드와 같은 첫 묶음이다.
