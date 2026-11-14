@@ -19,6 +19,17 @@ test-results/
 !.claude/skills/
 !.claude/commands/
 
+# Maintainer's local workflow (rules in CLAUDE.local.md, kept out of git)
+CLAUDE.local.md
+.claude/skills/catchup/
+.claude/skills/changelog/
+.claude/skills/design-import/
+.claude/skills/sprint/
+.claude/skills/sync/
+.husky/pre-push
+scripts/check-sprint-completion.mjs
+scripts/notify.sh
+
 # IDE
 .vscode/
 .idea/

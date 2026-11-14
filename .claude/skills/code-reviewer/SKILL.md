@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Project-specific code review for Ropeman. Reviews changed files against domain knowledge (Svelte 5 runes, AI tracks, Edge Workers, file limits) and reports Critical/Warning/Suggestion issues. Use during sprint completion before commit/PR, after implementing a feature, or when reviewing a diff.
+description: Project-specific code review for Ropeman. Reviews changed files against domain knowledge (Svelte 5 runes, AI tracks, Edge Workers, file limits) and reports Critical/Warning/Suggestion issues. Use before opening a PR, after implementing a feature, or when reviewing a diff.
 ---
 
 # Code Reviewer (Ropeman)
@@ -11,9 +11,9 @@ Ropeman 프로젝트 맞춤 코드 리뷰 스킬. 변경된 파일을 프로젝�
 
 ### 1. 변경 파일 수집
 
-- `git diff --stat HEAD`로 변경된 파일 목록 확인
-- `git status -u`로 untracked 파일 확인
-- 스프린트 작업 파일만 리뷰 대상으로 삼음 (빌드 산출물, `.spec`은 제외)
+- 리뷰 대상은 리뷰하는 변경(diff나 PR)에 든 소스 파일이다 (빌드 산출물 제외)
+- 커밋 전 변경: `git diff --stat HEAD`와 `git status -u`(untracked 파일)
+- 브랜치나 PR: `git diff --stat main...HEAD` 또는 `gh pr diff <번호> --name-only`
 
 ### 2. Agent로 리뷰 위임
 
@@ -29,11 +29,11 @@ Ropeman 프로젝트 맞춤 코드 리뷰 스킬. 변경된 파일을 프로젝�
 
 ### 3. 이슈 분류 및 수정
 
-| 심각도         | 처리                                              |
-| -------------- | ------------------------------------------------- |
-| **Critical**   | 즉시 수정 (타입 안전성, 보안, 데이터 손실)        |
-| **Warning**    | 이번 스프린트 내 수정 또는 명시적으로 태스크 이월 |
-| **Suggestion** | 판단 후 수정 또는 스킵                            |
+| 심각도         | 처리                                       |
+| -------------- | ------------------------------------------ |
+| **Critical**   | 즉시 수정 (타입 안전성, 보안, 데이터 손실) |
+| **Warning**    | 이 변경에서 수정, 미루면 이유를 PR에 적음  |
+| **Suggestion** | 판단 후 수정 또는 스킵                     |
 
 수정 후 리뷰어 에이전트를 **다시 호출하지 않음**. 대신 아래 4단계로 검증.
 
@@ -55,10 +55,10 @@ Ropeman 프로젝트 맞춤 코드 리뷰 스킬. 변경된 파일을 프로젝�
 **증상**: 어떤 코드가 문제인가
 **원인**: 왜 발생하는가
 **해결**: 어떻게 고치는가
-**관련 스프린트**: YYYY-MM-DD-NN
+**관련 PR**: #N (또는 커밋)
 ```
 
-한 번이라도 동일 패턴이 반복되면 반드시 기록해서 다음 스프린트에서 예방합니다.
+한 번이라도 동일 패턴이 반복되면 반드시 기록해서 다음 변경에서 예방합니다. 기존 항목의 `관련 스프린트` 값은 기록 당시의 날짜 표시로 남겨 둡니다.
 
 ## 참조 문서
 
@@ -70,11 +70,11 @@ Ropeman 프로젝트 맞춤 코드 리뷰 스킬. 변경된 파일을 프로젝�
 
 Claude Code에는 내장 `simplify` 스킬이 있습니다 ("변경된 코드의 재사용성/품질/효율성 검토 후 수정"). 역할 분담:
 
-- **`code-reviewer`**: Ropeman 도메인 지식 기반 리뷰 (프로젝트 규칙, 안티패턴, Svelte 5 패턴) — PR/스프린트 작업 주기 단위
+- **`code-reviewer`**: Ropeman 도메인 지식 기반 리뷰 (프로젝트 규칙, 안티패턴, Svelte 5 패턴) — 변경(PR) 단위
 - **`simplify`**: 범용 코드 간소화 (중복 제거, 과도한 추상화 정리)
-- **`security-audit`**: 스프린트 **종료 시** 심층 보안 감사 (OWASP API Top 10, 공격면 맵, 위협 시나리오). `.claude/skills/security-audit/` 참조.
+- **`security-audit`**: 배포 전이나 큰 변경 뒤의 심층 보안 감사 (OWASP API Top 10, 공격면 맵, 위협 시나리오). `.claude/skills/security-audit/` 참조.
 
-스프린트 마무리 절차에서는 **`code-reviewer` 먼저 실행** → 이슈 수정 → 필요 시 `simplify`로 추가 정리 → 배포 직전 `security-audit`로 심층 점검.
+함께 쓸 때는 **`code-reviewer` 먼저 실행** → 이슈 수정 → 필요 시 `simplify`로 추가 정리 → 배포 전 `security-audit`로 심층 점검.
 
 ## 안티 사용 사례
 

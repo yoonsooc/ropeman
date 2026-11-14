@@ -5,7 +5,7 @@ description: Rewrite Korean UI copy and docs so they read like a person wrote th
 
 # Korean unslop
 
-Edit Korean text in place. Keep meaning, placeholders (`{n}`, `{track}`) and keys. Do not add facts. English text uses the installed `humanizer` skill; agent-facing English uses pstack `unslop`.
+Edit Korean text in place. Keep meaning, placeholders (`{n}`, `{track}`) and keys. Do not add facts. This skill covers Korean only, and everything it needs is in this file and `scan.mjs`.
 
 Run `node .claude/skills/ko-unslop/scan.mjs <file>...` before and after. It flags the regex-detectable patterns below by line. A hit is a prompt to look, not an automatic fix; a pattern inside a quoted product name or an option label stays.
 

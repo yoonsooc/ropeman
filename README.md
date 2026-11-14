@@ -85,6 +85,8 @@ Open [http://localhost:5173](http://localhost:5173) in Chrome or Edge. Folder pi
 | `npm run deploy:edge:demo`  | Deploy edge demo Worker        |
 | `npm run deploy:edge:proxy` | Deploy edge proxy Worker       |
 
+Before you contribute, read [AGENTS.md](AGENTS.md). It covers the repository layout, conventions, tests, and when a change needs an ADR, for people and coding agents alike.
+
 ## AI Modes
 
 Ropeman has three AI modes:

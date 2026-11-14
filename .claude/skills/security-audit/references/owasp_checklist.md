@@ -58,12 +58,12 @@ integrity="                            # SRI 적용 확인
 ### 의존성 스캔 명령
 
 ```sh
-bun pm audit                                    # 루트
+npm audit --production                          # 루트
 (cd workers && npm audit --production)
 (cd bridge && npm audit --production)
 
 # 선택 (더 포괄적이지만 설치 필요)
-osv-scanner --lockfile=bun.lock --lockfile=bridge/package-lock.json
+osv-scanner --lockfile=package-lock.json --lockfile=workers/package-lock.json --lockfile=bridge/package-lock.json
 ```
 
 `npm audit`의 `--audit-level=moderate` 이상만 report. dev deps는 runtime 영향 낮으므로 `--production` flag 우선.
@@ -138,7 +138,7 @@ Output format same as Agent A. Under 900 words.
 
 ```
 You are auditing Ropeman's infrastructure, CI/CD, and build supply chain.
-Scope: .github/workflows/, wrangler*.toml, workers/wrangler.*.toml, bridge/src/server.ts, bun.lock, package.json (all three)
+Scope: .github/workflows/, wrangler*.toml, workers/wrangler.*.toml, bridge/src/server.ts, package-lock.json and package.json (root, workers, bridge)
 Methodology:
   1. GitHub Actions supply chain
      - Are all third-party actions pinned to a commit SHA (strongest) or at least a major version?
@@ -151,9 +151,7 @@ Methodology:
      - observability flags, custom_domain correctness
      - Secret names referenced in code but not documented in config
   3. Lockfile policy
-     - bun.lock is in .gitignore but committed — decision required: keep or remove?
-     - package-lock.json vs bun.lock duplication — which is canonical?
-     - workers/ has no lockfile (devDeps only) — acceptable?
+     - npm package-lock.json is canonical (root, workers/, bridge/); confirm no bun.lock is tracked
   4. Bridge (bridge/src/server.ts)
      - WebSocket binding: localhost only? Any 0.0.0.0 risk?
      - Origin header verification on WebSocket upgrade?

@@ -1,6 +1,6 @@
 # Ropeman Code Review Checklist
 
-스프린트 완료 후 커밋/PR 전에 이 체크리스트로 리뷰를 수행한다.
+커밋이나 PR 전에 이 체크리스트로 리뷰를 수행한다.
 
 ## A. 구조 & 컨벤션
 
@@ -55,11 +55,10 @@
 - [ ] `npm run build` 성공
 - [ ] `npm run lint` 0 errors
 - [ ] `npm run test:unit` 전체 통과
-- [ ] 새 패키지 설치 후 `node_modules/.vite` 캐시 클리어 확인 (B006)
+- [ ] 새 패키지 설치 후 `node_modules/.vite` 캐시 클리어 확인
 
 ## H. 문서화
 
-- [ ] 버그 수정 시 `docs/bug-report/` 해당 문서 업데이트
-- [ ] 새 버그 유형 시 INDEX + 신규 문서 생성
-- [ ] `.spec/tasks/` 태스크 상태 업데이트 (To-Do → In-Progress → Done)
-- [ ] `.spec/history/` changelog 작성
+- [ ] 구조가 바뀌었으면 같은 커밋에서 `docs/ARCH.md` 갱신
+- [ ] 프레임워크·저장소·주요 의존성을 들이거나 바꿨으면 같은 PR에 ADR (`docs/adr/README.md`)
+- [ ] 실제 있었던 버그를 고쳤으면 회귀 테스트 추가
