@@ -1,14 +1,19 @@
 import dagre from '@dagrejs/dagre';
 
 export type FlowDirection = 'LR' | 'TB';
-export type ViewportShape = 'wide' | 'tall';
 
 export interface NodeSize {
 	width: number;
 	height: number;
 }
 
+export interface Point {
+	x: number;
+	y: number;
+}
+
 export interface LayoutEdge {
+	id: string;
 	source: string;
 	target: string;
 }
@@ -20,10 +25,28 @@ export interface NodePlacement {
 	direction: FlowDirection;
 }
 
-// Width over height of the canvas each shape stands for: a laptop canvas under the header,
-// and a phone held upright
-export const TARGET_ASPECT: Record<ViewportShape, number> = { wide: 1.75, tall: 0.55 };
-const NATURAL_DIRECTION: Record<ViewportShape, FlowDirection> = { wide: 'LR', tall: 'TB' };
+/**
+ * Where an edge turns between its source handle and its target handle: alternately a coordinate
+ * along the flow and one across it, starting and ending along. Every stretch runs in a gap
+ * between cards, so no edge passes under a card it does not join.
+ */
+export interface EdgeRoute {
+	direction: FlowDirection;
+	turns: number[];
+}
+
+export interface LevelLayout {
+	nodes: Map<string, NodePlacement>;
+	/** By edge id; self-loops and edges to nodes outside the level have none. */
+	routes: Map<string, EdgeRoute>;
+}
+
+/** Width over height of a laptop canvas under the app header. */
+export const DEFAULT_ASPECT = 1.75;
+// The app header above every canvas
+const HEADER_PX = 48;
+// Aspect steps of 10%, so resizing a window re-lays a level a few times, not on every pixel
+const ASPECT_STEP = 1.1;
 
 const SPACING: Record<FlowDirection, { node: number; rank: number }> = {
 	LR: { node: 40, rank: 140 },
@@ -33,39 +56,102 @@ const SPACING: Record<FlowDirection, { node: number; rank: number }> = {
 const WRAP_GAP = 32;
 const BLOCK_GAP = 96;
 const GRID_GAP = 40;
-// Gap between bands of a folded component; the edges that run back to the next band cross it
+// Gap between bands of a folded component; edges that continue in the next band run along it
 const BAND_GAP = 120;
-// A wrapped rank costs edge clarity, so it must shrink the fit by more than this to win
+// How far outside a component an edge may run: before its first line, after its last line
+const EDGE_MARGIN = 24;
+// A wrapped rank sends edges around its lines, so it must shrink the fit by more than this to win
 const WRAP_PENALTY = 1.1;
-// A fold sends edges backwards across a band, so it must win by a wider margin
+// A fold sends edges backwards along a band gap, so it must win by a wider margin
 const FOLD_PENALTY = 1.25;
+// Components flowing in different directions read as unrelated diagrams; mixing must win by this
+const MIX_PENALTY = 1.15;
 
-interface Block {
-	width: number;
-	height: number;
-	/** Placements relative to the block's top-left corner. */
-	nodes: Map<string, NodePlacement>;
+/** The target aspect for a window: its canvas below the header, in 10% steps. */
+export function screenAspect(width: number, height: number): number {
+	if (!(width > 0) || !(height > HEADER_PX)) return DEFAULT_ASPECT;
+	const step = Math.round(Math.log(width / (height - HEADER_PX)) / Math.log(ASPECT_STEP));
+	return Number((ASPECT_STEP ** step).toFixed(3));
 }
 
 /**
- * Place a level's nodes so the whole level fits a screen of the given shape at the largest zoom.
- * Each connected component is layered by dagre and laid out in whichever direction fits the
- * screen better, wrapping over-long ranks into several lines and folding a long run of ranks
- * into side-by-side bands when that pays off. Nodes without edges form a grid, and the blocks
- * are packed into rows whose overall width-to-height ratio stays close to the screen's.
- * The same input always gives the same positions.
+ * Place a level's nodes and route its edges so the whole level fits a screen of the given
+ * aspect (width over height) at the largest zoom.
+ *
+ * Each connected component is layered by dagre. It flows left to right or top to bottom,
+ * wraps an over-long rank into several lines and folds a long run of ranks into side-by-side
+ * bands when that pays off. Nodes without edges form a grid. The blocks are packed into rows
+ * whose overall shape stays close to the screen's. Every component flows the same way unless
+ * mixing directions fits clearly better. The result depends only on the set of nodes and
+ * edges, not on their order.
  */
 export function layoutLevel(
 	nodeIds: readonly string[],
 	edges: readonly LayoutEdge[],
 	size: NodeSize,
-	shape: ViewportShape
-): Map<string, NodePlacement> {
-	const aspect = TARGET_ASPECT[shape];
-	const natural = NATURAL_DIRECTION[shape];
-	const { components, isolated } = splitComponents(nodeIds, edges);
-	const blocks = components.map((c) => componentBlock(c, edges, size, aspect, natural));
-	return packBlocks(blocks, isolated, size, aspect, natural);
+	aspect: number
+): LevelLayout {
+	const natural: FlowDirection = aspect >= 1 ? 'LR' : 'TB';
+	const ids = [...nodeIds].sort(byText);
+	const ordered = [...edges].sort(
+		(a, b) => byText(a.source, b.source) || byText(a.target, b.target) || byText(a.id, b.id)
+	);
+	const { components, isolated } = splitComponents(ids, ordered);
+	const shapes = components.map((c) => componentShapes(c, ordered, size, aspect, natural));
+
+	const candidates: { blocks: Block[]; penalty: number }[] = [natural, flip(natural)].map(
+		(direction) => ({
+			blocks: shapes.map((s) => bandedBlock(s.ranks, s.edges, size, s.best[direction].shape)),
+			penalty: 1
+		})
+	);
+	const mixed = shapes.map((s) =>
+		s.best.LR.score <= s.best.TB.score ? s.best.LR.shape : s.best.TB.shape
+	);
+	if (new Set(mixed.map((m) => m.direction)).size > 1) {
+		candidates.push({
+			blocks: shapes.map((s, i) => bandedBlock(s.ranks, s.edges, size, mixed[i])),
+			penalty: MIX_PENALTY
+		});
+	}
+
+	let best: { layout: LevelLayout; score: number } | null = null;
+	for (const { blocks, penalty } of candidates) {
+		const packed = packBlocks(blocks, isolated, size, aspect, natural);
+		const score = packed.score * penalty;
+		if (!best || score < best.score) best = { layout: packed.layout, score };
+	}
+	return best!.layout;
+}
+
+/** Corners of the path an edge takes, from its source handle to its target handle. */
+export function edgePoints(route: EdgeRoute, source: Point, target: Point): Point[] {
+	const lr = route.direction === 'LR';
+	const at = (along: number, across: number): Point =>
+		lr ? { x: along, y: across } : { x: across, y: along };
+	let across = lr ? source.y : source.x;
+	let along = lr ? source.x : source.y;
+	const points = [source];
+	route.turns.forEach((value, i) => {
+		if (i % 2 === 0) along = value;
+		else across = value;
+		points.push(at(along, across));
+	});
+	points.push(at(along, lr ? target.y : target.x), target);
+	return points;
+}
+
+function byText(a: string, b: string): number {
+	return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function flip(direction: FlowDirection): FlowDirection {
+	return direction === 'LR' ? 'TB' : 'LR';
+}
+
+/** The side of the aspect-shaped box that holds a width x height block; smaller fits larger on screen. */
+function fitSize(width: number, height: number, aspect: number): number {
+	return Math.max(width, height * aspect);
 }
 
 /** Connected components with two or more nodes, largest first, and the nodes with no edges. */
@@ -105,18 +191,36 @@ function splitComponents(
 		if (group) group.push(id);
 		else groups.set(root, [id]);
 	});
-	// Groups keep the order of their first member and the sort is stable, so ties keep input order
+	// Groups keep the order of their first member and the sort is stable, so ties keep id order
 	const components = [...groups.values()].sort((a, b) => b.length - a.length);
 	return { components, isolated };
 }
 
-function componentBlock(
+/**
+ * How a component's ranks are arranged: each rank breaks into lines of at most `cap` nodes, and
+ * every `fold` consecutive ranks form a band; bands stack across the flow. With `cap` at the
+ * longest rank and `fold` at the rank count, this is a plain layered layout.
+ */
+interface BandShape {
+	direction: FlowDirection;
+	cap: number;
+	fold: number;
+}
+
+interface ComponentShapes {
+	ranks: string[][];
+	edges: LayoutEdge[];
+	/** The best arrangement in each direction, with its score. */
+	best: Record<FlowDirection, { shape: BandShape; score: number }>;
+}
+
+function componentShapes(
 	ids: string[],
 	edges: readonly LayoutEdge[],
 	size: NodeSize,
 	aspect: number,
 	natural: FlowDirection
-): Block {
+): ComponentShapes {
 	const members = new Set(ids);
 	const own = edges.filter(
 		(e) => e.source !== e.target && members.has(e.source) && members.has(e.target)
@@ -124,7 +228,7 @@ function componentBlock(
 	const ranks = dagreRanks(ids, own);
 	const longest = Math.max(...ranks.map((r) => r.length));
 
-	let best: { shape: BandShape; score: number } | null = null;
+	const best = {} as ComponentShapes['best'];
 	for (const direction of [natural, flip(natural)]) {
 		for (let cap = longest; cap >= 1; cap--) {
 			for (let fold = ranks.length; fold >= 1; fold--) {
@@ -134,20 +238,11 @@ function componentBlock(
 					fitSize(width, height, aspect) *
 					(cap < longest ? WRAP_PENALTY : 1) *
 					(fold < ranks.length ? FOLD_PENALTY : 1);
-				if (!best || score < best.score) best = { shape, score };
+				if (!best[direction] || score < best[direction].score) best[direction] = { shape, score };
 			}
 		}
 	}
-	return bandedBlock(ranks, size, best!.shape);
-}
-
-function flip(direction: FlowDirection): FlowDirection {
-	return direction === 'LR' ? 'TB' : 'LR';
-}
-
-/** The side of the aspect-shaped box that holds a width x height block; smaller fits larger on screen. */
-function fitSize(width: number, height: number, aspect: number): number {
-	return Math.max(width, height * aspect);
+	return { ranks, edges: own, best };
 }
 
 /**
@@ -182,20 +277,9 @@ function axes(size: NodeSize, direction: FlowDirection) {
 		: { along: size.height, across: size.width };
 }
 
-/**
- * How a component's ranks are arranged: each rank breaks into lines of at most `cap` nodes, and
- * every `fold` consecutive ranks form a band; bands stack across the flow. With `cap` at the
- * longest rank and `fold` at the rank count, this is a plain layered layout.
- */
-interface BandShape {
-	direction: FlowDirection;
-	cap: number;
-	fold: number;
-}
-
 interface BandMetrics {
-	/** Each band's ranks and its extent across the flow. */
-	bands: { ranks: string[][]; across: number }[];
+	/** Each band's ranks, its node slots across the flow, and its extent across. */
+	bands: { ranks: string[][]; slots: number; across: number }[];
 	along: number;
 	across: number;
 }
@@ -208,15 +292,14 @@ function bandMetrics(ranks: string[][], size: NodeSize, shape: BandShape): BandM
 	let across = 0;
 	for (let first = 0; first < ranks.length; first += shape.fold) {
 		const bandRanks = ranks.slice(first, first + shape.fold);
-		const rankAlong = bandRanks.map((r) => {
-			const lines = Math.ceil(r.length / shape.cap);
-			return lines * unit.along + (lines - 1) * WRAP_GAP;
-		});
-		const widest = Math.min(shape.cap, Math.max(...bandRanks.map((r) => r.length)));
-		const bandAcross = widest * unit.across + (widest - 1) * spacing.node;
+		const lines = bandRanks.reduce((n, r) => n + Math.ceil(r.length / shape.cap), 0);
 		const bandAlong =
-			rankAlong.reduce((sum, a) => sum + a, 0) + (bandRanks.length - 1) * spacing.rank;
-		bands.push({ ranks: bandRanks, across: bandAcross });
+			lines * unit.along +
+			(bandRanks.length - 1) * spacing.rank +
+			(lines - bandRanks.length) * WRAP_GAP;
+		const slots = Math.min(shape.cap, Math.max(...bandRanks.map((r) => r.length)));
+		const bandAcross = slots * unit.across + (slots - 1) * spacing.node;
+		bands.push({ ranks: bandRanks, slots, across: bandAcross });
 		along = Math.max(along, bandAlong);
 		across += bandAcross + (first > 0 ? BAND_GAP : 0);
 	}
@@ -230,32 +313,133 @@ function bandedExtent(ranks: string[][], size: NodeSize, shape: BandShape): Node
 		: { width: across, height: along };
 }
 
-/** Lines keep dagre's order and are centered across their band. */
-function bandedBlock(ranks: string[][], size: NodeSize, shape: BandShape): Block {
+interface Block {
+	width: number;
+	height: number;
+	/** Placements relative to the block's top-left corner. */
+	nodes: Map<string, NodePlacement>;
+	/** Routes relative to the block's top-left corner. */
+	routes: Map<string, EdgeRoute>;
+}
+
+interface Line {
+	band: number;
+	/** Position among the lines of its band, in flow order. */
+	index: number;
+	start: number;
+	end: number;
+}
+
+interface Band {
+	start: number;
+	end: number;
+	/** Across-flow centers of the gaps an edge can run along: between slots and at both edges. */
+	channels: number[];
+	lines: Line[];
+}
+
+/**
+ * Lines keep dagre's order and sit on the band's slots, so the gaps between slots run clear
+ * through every line of the band. Edges between neighboring lines cross the one gap between
+ * them; every other edge runs out to the gap after its source line, along a slot gap or a band
+ * gap, and in from the gap before its target line.
+ */
+function bandedBlock(
+	ranks: string[][],
+	edges: readonly LayoutEdge[],
+	size: NodeSize,
+	shape: BandShape
+): Block {
 	const { direction, cap } = shape;
 	const unit = axes(size, direction);
 	const spacing = SPACING[direction];
+	const step = unit.across + spacing.node;
 	const metrics = bandMetrics(ranks, size, shape);
+	const place = (along: number, across: number): NodePlacement =>
+		direction === 'LR' ? { x: along, y: across, direction } : { x: across, y: along, direction };
+
 	const nodes = new Map<string, NodePlacement>();
+	const where = new Map<string, { line: Line; center: number }>();
+	const bands: Band[] = [];
 	let bandStart = 0;
-	for (const band of metrics.bands) {
+	for (const metric of metrics.bands) {
+		const band: Band = {
+			start: bandStart,
+			end: bandStart + metric.across,
+			channels: [
+				bandStart - spacing.node / 2,
+				...Array.from(
+					{ length: metric.slots - 1 },
+					(_, j) => bandStart + (j + 1) * step - spacing.node / 2
+				),
+				bandStart + metric.across + spacing.node / 2
+			],
+			lines: []
+		};
 		let a = 0;
-		for (const rank of band.ranks) {
-			for (let start = 0; start < rank.length; start += cap) {
-				const line = rank.slice(start, start + cap);
-				const lineAcross = line.length * unit.across + (line.length - 1) * spacing.node;
-				let c = bandStart + (band.across - lineAcross) / 2;
-				for (const id of line) {
-					nodes.set(id, direction === 'LR' ? { x: a, y: c, direction } : { x: c, y: a, direction });
-					c += unit.across + spacing.node;
-				}
-				a += unit.along + (start + cap < rank.length ? WRAP_GAP : spacing.rank);
+		for (const rank of metric.ranks) {
+			for (let first = 0; first < rank.length; first += cap) {
+				const members = rank.slice(first, first + cap);
+				const line: Line = {
+					band: bands.length,
+					index: band.lines.length,
+					start: a,
+					end: a + unit.along
+				};
+				const offset = Math.floor((metric.slots - members.length) / 2);
+				members.forEach((id, k) => {
+					const across = bandStart + (offset + k) * step;
+					nodes.set(id, place(a, across));
+					where.set(id, { line, center: across + unit.across / 2 });
+				});
+				band.lines.push(line);
+				a += unit.along + (first + cap < rank.length ? WRAP_GAP : spacing.rank);
 			}
 		}
-		bandStart += band.across + BAND_GAP;
+		bands.push(band);
+		bandStart += metric.across + BAND_GAP;
 	}
+
+	const after = (line: Line) => {
+		const next = bands[line.band].lines[line.index + 1];
+		return next ? (line.end + next.start) / 2 : line.end + EDGE_MARGIN;
+	};
+	const before = (line: Line) => {
+		const prev = bands[line.band].lines[line.index - 1];
+		return prev ? (prev.end + line.start) / 2 : line.start - EDGE_MARGIN;
+	};
+	const bandGap = (from: number, toward: number) =>
+		toward > from ? bands[from].end + BAND_GAP / 2 : bands[from].start - BAND_GAP / 2;
+
+	const routes = new Map<string, EdgeRoute>();
+	for (const e of edges) {
+		const s = where.get(e.source)!;
+		const t = where.get(e.target)!;
+		let turns: number[];
+		if (s.line.band === t.line.band && t.line.index === s.line.index + 1) {
+			turns = [(s.line.end + t.line.start) / 2];
+		} else if (s.line.band === t.line.band) {
+			const channels = bands[s.line.band].channels;
+			const cost = (c: number) => Math.abs(c - s.center) + Math.abs(c - t.center);
+			const channel = channels.reduce((best, c) => (cost(c) < cost(best) ? c : best));
+			turns = [after(s.line), channel, before(t.line)];
+		} else if (Math.abs(s.line.band - t.line.band) === 1) {
+			turns = [after(s.line), bandGap(s.line.band, t.line.band), before(t.line)];
+		} else {
+			// Bands in between are crossed ahead of every line, where no card stands
+			turns = [
+				after(s.line),
+				bandGap(s.line.band, t.line.band),
+				-EDGE_MARGIN,
+				bandGap(t.line.band, s.line.band),
+				before(t.line)
+			];
+		}
+		routes.set(e.id, { direction, turns });
+	}
+
 	const { width, height } = bandedExtent(ranks, size, shape);
-	return { width, height, nodes };
+	return { width, height, nodes, routes };
 }
 
 function gridExtent(count: number, size: NodeSize, columns: number): NodeSize {
@@ -280,19 +464,19 @@ function gridBlock(
 			direction
 		});
 	});
-	return { ...gridExtent(ids.length, size, columns), nodes };
+	return { ...gridExtent(ids.length, size, columns), nodes, routes: new Map() };
 }
 
 interface Packing {
 	width: number;
 	height: number;
 	/** Top-left corner of each block, in the order the blocks were given. */
-	corners: { x: number; y: number }[];
+	corners: Point[];
 }
 
 /** Next-fit rows: blocks left to right, a new row when the next one would pass `maxWidth`. */
 function shelve(blocks: readonly NodeSize[], maxWidth: number): Packing {
-	const corners: { x: number; y: number }[] = [];
+	const corners: Point[] = [];
 	let x = 0;
 	let y = 0;
 	let rowHeight = 0;
@@ -322,7 +506,7 @@ function packBlocks(
 	size: NodeSize,
 	aspect: number,
 	natural: FlowDirection
-): Map<string, NodePlacement> {
+): { layout: LevelLayout; score: number } {
 	const sorted = [...components].sort((a, b) => b.height - a.height);
 	const columnChoices = isolated.length ? Array.from(isolated, (_, i) => i + 1) : [0];
 
@@ -349,15 +533,20 @@ function packBlocks(
 		}
 	}
 
-	const out = new Map<string, NodePlacement>();
-	const blocks = best!.columns
-		? [...sorted, gridBlock(isolated, size, best!.columns, natural)]
+	const chosen = best!;
+	const blocks = chosen.columns
+		? [...sorted, gridBlock(isolated, size, chosen.columns, natural)]
 		: sorted;
-	const { corners } = shelve(blocks, best!.maxWidth);
+	const { corners } = shelve(blocks, chosen.maxWidth);
+	const layout: LevelLayout = { nodes: new Map(), routes: new Map() };
 	blocks.forEach((block, i) => {
-		for (const [id, p] of block.nodes) {
-			out.set(id, { ...p, x: p.x + corners[i].x, y: p.y + corners[i].y });
+		const { x, y } = corners[i];
+		for (const [id, p] of block.nodes) layout.nodes.set(id, { ...p, x: p.x + x, y: p.y + y });
+		for (const [id, route] of block.routes) {
+			const [along, across] = route.direction === 'LR' ? [x, y] : [y, x];
+			const turns = route.turns.map((v, k) => v + (k % 2 === 0 ? along : across));
+			layout.routes.set(id, { direction: route.direction, turns });
 		}
 	});
-	return out;
+	return { layout, score: chosen.score };
 }

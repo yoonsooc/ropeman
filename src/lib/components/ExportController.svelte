@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useSvelteFlow } from '@xyflow/svelte';
+	import { useSvelteFlow, type Viewport } from '@xyflow/svelte';
 	import { getViewportForBounds } from '@xyflow/system';
 	import { exportAsPNG, exportAsSVG } from '$lib/services/exportService';
 	import { exportAsMarkdown } from '$lib/services/markdownExporter';
@@ -20,10 +20,12 @@
 			exportPdf: () => void;
 			fitView: () => void;
 			getZoom: () => number;
+			getViewport: () => Viewport;
+			setViewport: (viewport: Viewport) => void;
 		}) => void;
 	} = $props();
 
-	const { getNodes, getNodesBounds, fitView, getViewport } = useSvelteFlow();
+	const { getNodes, getNodesBounds, fitView, getViewport, setViewport } = useSvelteFlow();
 
 	function getExportElement(): HTMLElement | null {
 		return document.querySelector('.svelte-flow__viewport') as HTMLElement | null;
@@ -124,7 +126,9 @@
 			exportHtml: handleExportHtml,
 			exportPdf: handleExportPdf,
 			fitView: () => void fitView(),
-			getZoom: () => getViewport().zoom
+			getZoom: () => getViewport().zoom,
+			getViewport,
+			setViewport: (viewport: Viewport) => void setViewport(viewport)
 		});
 	});
 </script>

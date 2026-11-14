@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	renderSemanticLevelSvg,
-	layoutLevel,
+	layoutExportLevel,
 	NODE_WIDTH,
 	NODE_HEIGHT,
 	EDGE_COLORS
@@ -43,15 +43,15 @@ function makeLevel(): SemanticLevel {
 	};
 }
 
-describe('layoutLevel', () => {
+describe('layoutExportLevel', () => {
 	it('returns positions for every node', () => {
-		const { positions } = layoutLevel(makeLevel());
+		const { positions } = layoutExportLevel(makeLevel());
 		expect(positions.has('sem:auth')).toBe(true);
 		expect(positions.has('sem:api')).toBe(true);
 	});
 
 	it('returns a positive bounding box', () => {
-		const { width, height } = layoutLevel(makeLevel());
+		const { width, height } = layoutExportLevel(makeLevel());
 		expect(width).toBeGreaterThan(0);
 		expect(height).toBeGreaterThan(0);
 	});
@@ -75,7 +75,7 @@ describe('layoutLevel', () => {
 			],
 			edges: []
 		};
-		const { width, height } = layoutLevel(tiny);
+		const { width, height } = layoutExportLevel(tiny);
 		expect(width).toBeGreaterThanOrEqual(400);
 		expect(height).toBeGreaterThanOrEqual(300);
 	});
@@ -87,7 +87,7 @@ describe('layoutLevel', () => {
 			nodes: [],
 			edges: []
 		};
-		const { positions, width, height } = layoutLevel(empty);
+		const { positions, width, height } = layoutExportLevel(empty);
 		expect(positions.size).toBe(0);
 		expect(width).toBeGreaterThanOrEqual(400);
 		expect(height).toBeGreaterThanOrEqual(300);

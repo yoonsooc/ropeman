@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { toSemanticFlowNodes, toSemanticFlowEdges, neighborNodeIds } from './semanticGraphBuilder';
+import { layoutLevel } from './levelLayout';
+
+vi.mock('./levelLayout', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('./levelLayout')>();
+	return { ...actual, layoutLevel: vi.fn(actual.layoutLevel) };
+});
 import type { SemanticLevel, SemanticNode, SemanticEdge } from '$lib/types/semantic';
 
 function makeLevel(): SemanticLevel {
@@ -158,7 +164,7 @@ describe('toSemanticFlowEdges', () => {
 		]);
 	});
 
-	it('all edges are animated smoothstep', () => {
+	it('draws plain step edges when no layout is given', () => {
 		const level = makeLevel();
 		const flowEdges = toSemanticFlowEdges(level);
 
@@ -230,7 +236,7 @@ describe('toSemanticFlowNodes direction', () => {
 		const level = makeLevel();
 		// Act
 		const lr = toSemanticFlowNodes(level);
-		const tb = toSemanticFlowNodes(level, 'tall');
+		const tb = toSemanticFlowNodes(level, 0.55);
 		const at = (nodes: ReturnType<typeof toSemanticFlowNodes>, id: string) =>
 			nodes.find((n) => n.id === id)!.position;
 		// Assert
@@ -238,5 +244,64 @@ describe('toSemanticFlowNodes direction', () => {
 		expect(at(tb, 'sem:auth').y).toBeGreaterThan(at(tb, 'sem:api').y);
 		expect(lr[0].data.direction).toBe('LR');
 		expect(tb[0].data.direction).toBe('TB');
+	});
+});
+
+describe('level layout reuse', () => {
+	// The cache outlives a test, so each test lays out nodes no other test has seen
+	function freshLevel(tag: string): SemanticLevel {
+		const level = makeLevel();
+		const rename = (id: string) => `${id}:${tag}`;
+		return {
+			...level,
+			nodes: level.nodes.map((n) => ({ ...n, id: rename(n.id) })),
+			edges: level.edges.map((e) => ({ ...e, source: rename(e.source), target: rename(e.target) }))
+		};
+	}
+
+	it('lays a level out once for repeated renders of the same level and aspect', () => {
+		// Arrange: a selection or a drag renders the same level again
+		const level = freshLevel('reuse');
+		vi.mocked(layoutLevel).mockClear();
+		// Act
+		const first = toSemanticFlowNodes(level, 1.75);
+		const again = toSemanticFlowNodes(level, 1.75);
+		toSemanticFlowEdges(level, 1.75);
+		// Assert
+		expect(vi.mocked(layoutLevel)).toHaveBeenCalledTimes(1);
+		expect(again.map((n) => n.position)).toEqual(first.map((n) => n.position));
+	});
+
+	it('lays the level out again when its edges or the aspect change', () => {
+		// Arrange
+		const level = freshLevel('change');
+		vi.mocked(layoutLevel).mockClear();
+		toSemanticFlowNodes(level, 1.75);
+		// Act
+		toSemanticFlowNodes(level, 0.55);
+		toSemanticFlowNodes({ ...level, edges: [] }, 1.75);
+		// Assert
+		expect(vi.mocked(layoutLevel)).toHaveBeenCalledTimes(3);
+	});
+});
+
+describe('routed edges', () => {
+	it('gives each edge the route the layout found for the same aspect', () => {
+		// Act
+		const [edge] = toSemanticFlowEdges(makeLevel(), 1.75);
+		// Assert
+		expect(edge.type).toBe('routed');
+		expect(edge.data?.route).toEqual({ direction: 'LR', turns: [expect.any(Number)] });
+	});
+
+	it('leaves a self-loop a plain step edge, since no route joins a card to itself', () => {
+		// Arrange
+		const level = makeLevel();
+		level.edges.push({ id: 'self', source: 'sem:auth', target: 'sem:auth', type: 'calls' });
+		// Act
+		const self = toSemanticFlowEdges(level, 1.75).find((e) => e.id === 'self')!;
+		// Assert
+		expect(self.type).toBe('smoothstep');
+		expect(self.data?.route).toBeUndefined();
 	});
 });
