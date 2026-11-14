@@ -1,12 +1,12 @@
 # Security Audit (Ropeman)
 
-스프린트 종료 시 Ropeman 프로젝트의 보안 태세를 점검하기 위한 **재사용 가능한 감사 프로세스**다. 유료 도구 없이 Claude Code 내장 기능(Agent/Grep/Bash) + OSS(`bun pm audit`, `osv-scanner`)만으로 40~70분 내 실행된다.
+Ropeman 프로젝트의 보안 태세를 점검하기 위한 **재사용 가능한 감사 프로세스**다. 유료 도구 없이 Claude Code 내장 기능(Agent/Grep/Bash) + OSS(`npm audit`, `osv-scanner`)만으로 40~70분 내 실행된다.
 
-`code-reviewer`가 PR 단위의 도메인 리뷰라면, 이 스킬은 **스프린트 단위의 심층 보안 감사**로 역할이 분리된다.
+`code-reviewer`가 PR 단위의 도메인 리뷰라면, 이 스킬은 **배포 전이나 큰 변경 뒤의 심층 보안 감사**로 역할이 분리된다.
 
 ## 언제 실행하나
 
-- 스프린트 종료 직전 (마무리 커밋 직후, 배포 전)
+- 배포 전, 변경이 여러 개 쌓였을 때
 - 신규 Worker / KV namespace / 외부 API 연동이 추가된 직후
 - Cloudflare Pages / Worker 배포 스크립트가 변경된 직후
 - 의존성 대규모 업데이트 후
@@ -23,7 +23,7 @@
 
    ```sh
    # 루트 (SvelteKit 앱)
-   bun pm audit 2>&1 | tee /tmp/security-audit-deps-root.txt
+   npm audit --production 2>&1 | tee /tmp/security-audit-deps-root.txt
 
    # workers/ (Cloudflare Workers)
    (cd workers && npm audit --production) 2>&1 | tee /tmp/security-audit-deps-edge.txt
@@ -32,7 +32,7 @@
    (cd bridge && npm audit --production) 2>&1 | tee /tmp/security-audit-deps-bridge.txt
 
    # 선택: osv-scanner (설치돼 있으면 더 포괄적)
-   osv-scanner --lockfile=bun.lock --lockfile=bridge/package-lock.json 2>&1 \
+   osv-scanner --lockfile=package-lock.json --lockfile=workers/package-lock.json --lockfile=bridge/package-lock.json 2>&1 \
      | tee /tmp/security-audit-osv.txt || true
    ```
 
@@ -57,7 +57,7 @@ Task 도구로 **Explore subagent 3개를 병렬 dispatch**. 각 agent 프롬프
 
 - **Agent A "Edge Worker Auditor"**: `workers/src/*.ts`
 - **Agent B "SPA Auditor"**: `src/**/*.{ts,svelte}`
-- **Agent C "Infra/CI Auditor"**: `.github/workflows/`, `wrangler*.toml`, `bridge/src/`, `bun.lock`, `package.json`
+- **Agent C "Infra/CI Auditor"**: `.github/workflows/`, `wrangler*.toml`, `bridge/src/`, `package-lock.json`(루트, workers, bridge), `package.json`
 
 각 Agent 출력을 보고서의 Phase 2 섹션에 그대로 붙여넣는다.
 
@@ -76,20 +76,20 @@ Task 도구로 **Explore subagent 3개를 병렬 dispatch**. 각 agent 프롬프
 
 ## 산출물
 
-`templates/report_template.md`를 복사해 `.spec/reviews/security-YYYY-MM-DD.md`로 저장 후 각 섹션을 채운다.
+`templates/report_template.md`의 섹션을 채운다. 호출한 사람이 저장 경로를 주면 그 경로에 `security-YYYY-MM-DD.md`로 저장하고, 주지 않으면 보고서를 대화에 출력한다. 고치지 않은 취약점이 담길 수 있으므로 보고서는 저장소에 커밋하지 않는다.
 
 - **Findings Register** 표가 핵심 산출물. Severity(Critical/High/Medium/Low) + Owner + Due 컬럼 필수.
-- Critical/High는 즉시 티켓(TASK-\*.md)으로 승격.
-- Medium은 다음 스프린트 P1에 편입 고려.
+- Critical/High는 바로 고친다. 고치기 전에는 공개 이슈에 재현 방법을 쓰지 않고 메인테이너에게 비공개로 알린다.
+- Medium은 다음 작업 후보로 남긴다.
 - Low + False Positive는 `known_false_positives.md`로 이관.
 
 ## Findings 처리 규칙
 
 | Severity | 처리                                                    |
 | -------- | ------------------------------------------------------- |
-| Critical | 스프린트 종료 블로커. 즉시 수정 후 재검증.              |
-| High     | 스프린트 종료 후 1주 내 수정. Task 생성.                |
-| Medium   | 다음 스프린트 P1 후보.                                  |
+| Critical | 배포 블로커. 즉시 수정 후 재검증.                       |
+| High     | 1주 내 수정.                                            |
+| Medium   | 다음 작업 후보.                                         |
 | Low      | 누적 관리. 3회 연속 safe 판정 시 permanent safe로 승격. |
 
 **실증 의무**: Findings Register에 등재하기 전 반드시 해당 라인을 Read 도구로 확인해 LLM hallucination을 차단한다.

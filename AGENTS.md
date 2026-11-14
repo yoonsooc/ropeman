@@ -31,16 +31,16 @@ Guidance for contributors and coding agents working in this repository. Ropeman 
 
 Node 22. Run `npm ci` once; it also installs the git hooks.
 
-| Task                     | Command                                                                             |
-| ------------------------ | ----------------------------------------------------------------------------------- |
-| Dev server               | `npm run dev`                                                                       |
-| Unit tests               | `npm run test:unit` (covers `src/`, `bridge/test/`, `packages/*/test/`, `scripts/`) |
-| Build                    | `npm run build`                                                                     |
-| Lint                     | `npm run lint`                                                                      |
-| Type check (app)         | `npx svelte-check --tsconfig ./tsconfig.json`                                       |
-| Type check core / bridge | `npm run check:core`, `npm ci --prefix bridge && npm run check:bridge`              |
-| Worker tests             | `npm ci --prefix workers && npm test --prefix workers`                              |
-| E2E                      | `npm run bundle:viewer && npm run test:e2e`                                         |
+| Task                     | Command                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| Dev server               | `npm run dev`                                                                                    |
+| Unit tests               | `npm run test:unit` (covers `src/`, `bridge/test/`, `packages/*/test/`, `scripts/`)              |
+| Build                    | `npm run build`                                                                                  |
+| Lint                     | `npm run lint`                                                                                   |
+| Type check (app)         | `npx svelte-check --tsconfig ./tsconfig.json`                                                    |
+| Type check core / bridge | `npm run check:core`, `npm ci --prefix bridge && npm run check:bridge`                           |
+| Worker tests             | `npm ci --prefix workers && npm test --prefix workers`                                           |
+| E2E                      | `npx playwright install --only-shell chromium`, then `npm run bundle:viewer && npm run test:e2e` |
 
 `workers/test/` is not part of `npm run test:unit`; it runs in workerd through `npm test --prefix workers`. CI (`.github/workflows/ci.yml`) runs every check above on each pull request. Before you push, run at least `npm run test:unit && npm run build && npm run lint`.
 
@@ -67,7 +67,7 @@ Node 22. Run `npm ci` once; it also installs the git hooks.
 ## Docs and decisions
 
 - When structure or a decision changes, update `docs/ARCH.md` and `docs/adr/` in the same commit as the code.
-- Introducing or replacing a framework, storage, or major dependency needs an ADR in the same pull request. The format and numbering are in `docs/adr/README.md`. ARCH and ADRs are written in Korean.
+- Introducing or replacing a framework, storage, or major dependency needs an ADR in the same pull request. Write one also for an implementation pattern or a hard-to-reverse design decision whose reasoning is worth keeping. The format and numbering are in `docs/adr/README.md`. ARCH and ADRs are written in Korean.
 - For Korean UI strings and docs, the `ko-unslop` skill in `.claude/skills/` lists the wording rules and the en/ko term table.
 
 ## Commits and pull requests

@@ -15,7 +15,7 @@ Phase 1 Grep 히트나 Phase 2 Agent 보고 중 **실제로는 위험이 없다�
 - 판정 이유: 왜 safe인가 (구체적 근거)
 - 재평가 조건: 언제 다시 봐야 하는가
 - Strike 카운트: 0 ~ 3 (3이면 permanent safe)
-- 최종 확인: YYYY-MM-DD sprint-NN
+- 최종 확인: YYYY-MM-DD (감사 보고서나 커밋)
 ```
 
 ---
@@ -30,7 +30,7 @@ Phase 1 Grep 히트나 Phase 2 Agent 보고 중 **실제로는 위험이 없다�
 - 소스: Phase 1 risky API Grep (`\{@html\s`)
 - 판정 이유: `ldJson` 변수는 `data.entry` (정적 curated manifest) 또는 frontmatter(mdsvex 빌드 타임 문자열)만 참조. `</script>` split 패턴(`'<scr' + 'ipt>' + ldJson + '</scr' + 'ipt>'`)으로 script tag 파싱 우회. 사용자 입력이 파이프라인에 존재하지 않음.
 - 재평가 조건: `data.entry` 또는 frontmatter 타입이 바뀌거나, ldJson 생성 로직에 동적 사용자 입력이 추가되면 재검토.
-- Strike: 0 (초기 등록, 본 스프린트가 첫 판정)
+- Strike: 0 (초기 등록, 이번 감사가 첫 판정)
 
 ### FP-2: `{@html}` in CodeViewer / CodePanel (Prism 출력)
 
@@ -90,7 +90,7 @@ Phase 1 Grep 히트나 Phase 2 Agent 보고 중 **실제로는 위험이 없다�
 - 소스: Phase 1 secret leak Grep (origin URL 패턴)
 - 판정 이유: `[vars]`는 Cloudflare에서 **public**으로 설계된 환경변수. ALLOWED_ORIGINS는 CORS 허용 목록이므로 노출 의도. secret이 아님.
 - 재평가 조건: `[vars]` 섹션에 Bearer 토큰, API 키 등 실제 비밀값이 추가되면 Critical.
-- Strike: 1 (이전 스프린트에서도 확인됨)
+- Strike: 1 (이전 감사에서도 확인됨)
 
 ### FP-8: KV namespace ID 커밋
 

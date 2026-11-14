@@ -94,13 +94,13 @@ Phase 3에서 재활용 가능한 **위협 모델 시나리오 카탈로그**. P
 - **전제**: Ropeman은 `@xyflow/svelte`, `@mlc-ai/web-llm`, `marked`, `prismjs` 등 상위 15개 + 전이 의존성 수백 개 사용
 - **스텝**:
   1. 공격자가 저명한 deps의 유지보수 계정 탈취 (과거 `node-ipc` 사례처럼)
-  2. 악성 버전 publish → 다음 `bun install` 시 포함
+  2. 악성 버전 publish → 다음 `npm install` 시 포함
   3. 빌드 산출물에 XSS/exfiltration payload 삽입
 - **영향**: Critical — 전 사용자 브라우저에서 임의 코드 실행
 - **완화**:
   - CI에 `npm audit --audit-level=high` 스텝 추가
   - Dependabot 활성화 (의존성 자동 업데이트 PR)
-  - 주요 deps는 lockfile에 integrity hash 확인 (`bun.lock` / `package-lock.json`의 `integrity`)
+  - 주요 deps는 lockfile에 integrity hash 확인 (`package-lock.json`의 `integrity`)
   - 선택: `npm ci` 대신 `npm ci --ignore-scripts`로 설치 스크립트 차단
 - **우선순위**: High
 - **상태**: Active (완화 조치 미구현)

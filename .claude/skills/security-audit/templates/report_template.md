@@ -1,14 +1,14 @@
-# Security Audit — YYYY-MM-DD (sprint-NN)
+# Security Audit — YYYY-MM-DD
 
 **감사 일시**: YYYY-MM-DD
 **감사자**: Claude Code (security-audit 스킬)
-**대상 브랜치/커밋**: `sprint/YYYY-MM-DD-NN` / commit `<hash>`
+**대상 브랜치/커밋**: `<branch>` / commit `<hash>`
 **모드**: Full run / 경량 모드 (Phase 3 생략)
 **참조**:
 
 - 공격면 맵: `.claude/skills/security-audit/references/attack_surface_map.md`
 - False positive: `.claude/skills/security-audit/references/known_false_positives.md`
-- 이전 감사: `.spec/reviews/security-<prev-date>.md`
+- 이전 감사: `<이전 보고서 경로>` (없으면 생략)
 
 ---
 
@@ -28,7 +28,7 @@
 ### Dependency CVEs
 
 ```
-# bun pm audit 출력
+# 루트 npm audit 출력
 ...
 ```
 
@@ -117,14 +117,14 @@ Phase 1 secret patterns로 검색한 결과:
 
 ## Findings Register
 
-**본 보고서의 핵심**. Critical/High는 즉시 TASK-\*.md로 승격.
+**본 보고서의 핵심**. Critical/High는 즉시 수정 대상.
 
-| ID   | Severity | Area        | File:Line                              | Title                       | Owner | Due         | Status |
-| ---- | -------- | ----------- | -------------------------------------- | --------------------------- | ----- | ----------- | ------ |
-| F-01 | Critical | Edge / demo | workers/src/demo.ts:73                 | Upstream error leak         | —     | sprint-NN+1 | Open   |
-| F-02 | High     | SPA         | src/lib/services/apiKeyValidator.ts:30 | Google API key in URL query | —     | sprint-NN+1 | Open   |
-| F-03 | Medium   | Infra       | workers/wrangler.share.toml:18         | KV id placeholder           | —     | sprint-NN   | Open   |
-| ...  |          |             |                                        |                             |       |             |        |
+| ID   | Severity | Area        | File:Line                              | Title                       | Owner | Due        | Status |
+| ---- | -------- | ----------- | -------------------------------------- | --------------------------- | ----- | ---------- | ------ |
+| F-01 | Critical | Edge / demo | workers/src/demo.ts:73                 | Upstream error leak         | —     | YYYY-MM-DD | Open   |
+| F-02 | High     | SPA         | src/lib/services/apiKeyValidator.ts:30 | Google API key in URL query | —     | YYYY-MM-DD | Open   |
+| F-03 | Medium   | Infra       | workers/wrangler.share.toml:18         | KV id placeholder           | —     | YYYY-MM-DD | Open   |
+| ...  |          |             |                                        |                             |       |            |        |
 
 **Status 종류**: Open / In-Progress / Mitigated / WontFix / Moved-to-FP
 
@@ -143,7 +143,7 @@ Phase 1 secret patterns로 검색한 결과:
 
 ## Diff vs Previous Audit
 
-이전 감사(`.spec/reviews/security-<prev-date>.md`) 대비 변경점.
+이전 감사 보고서 대비 변경점.
 
 ### 새로 열린 Findings
 
@@ -164,11 +164,11 @@ Phase 1 secret patterns로 검색한 결과:
 
 ---
 
-## Action Items (다음 스프린트 권장)
+## Action Items (다음 작업 권장)
 
 1. Critical/High 수정 (Owner 배정 + Due date)
-2. Medium 중 Quick Win으로 분류된 항목 P1 편입 제안
-3. 중장기 (CSP, Dependabot, Bridge sanitization 등) 별도 스프린트 제안
+2. Medium 중 Quick Win으로 분류된 항목을 다음 작업으로 제안
+3. 중장기 (CSP, Dependabot, Bridge sanitization 등) 별도 작업으로 제안
 4. 체크리스트 문서 업데이트 사항 (attack_surface_map.md, known_false_positives.md)
 
 ---

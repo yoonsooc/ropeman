@@ -1,6 +1,6 @@
 # Ropeman Attack Surface Map
 
-Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코드베이스가 바뀌면 **스프린트 종료 시 sync 스킬과 함께 갱신**한다.
+Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코드베이스가 바뀌면 **감사할 때마다 갱신**한다 (새 워커, 엔드포인트, 시크릿, 외부 연동).
 
 최종 갱신: 2026-04-16
 
@@ -75,7 +75,7 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 
 - Root `wrangler.toml`: Pages 설정, 변수 없음
 - `workers/wrangler.*.toml` 4종: `[vars] ALLOWED_ORIGINS` 평문 (공개 의도)
-- `bun.lock`: `.gitignore`에 제외 선언됐지만 **실제로는 커밋됨** (정책 불일치)
+- 잠금 파일: npm `package-lock.json`(루트, `workers/`, `bridge/`)을 추적한다. `bun.lock`은 `.gitignore`에 있고 추적하지 않는다
 - `.github/workflows/ci.yml`: `actions/checkout@v4`, `setup-node@v4`, npm ci + lint + build + test:unit + test:e2e
 - Dependabot: **없음**
 - Permissions block: 명시되지 않음 (GitHub 기본값)
