@@ -9,8 +9,8 @@
 ## 코딩 에이전트에서 쓰기
 
 ```bash
-npm install -g @ropeman/bridge@0.3.1     # ropeman 명령, Node 22 이상
-curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.1/skill/ropeman/SKILL.md
+npm install -g @ropeman/bridge@0.4.0     # ropeman 명령, Node 22 이상
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.4.0/skill/ropeman/SKILL.md
 ```
 
 그다음 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 검사한 뒤, `ropeman serve`를 띄우고 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다. 브라우저에서 그 주소를 열고, 폴더를 눌러 드릴다운하고 파일을 눌러 소스를 봅니다.
@@ -93,7 +93,7 @@ Ropeman에는 AI 모드가 세 가지 있습니다.
 2. **API 키 (BYOK)** 는 내 Google Gemini, Anthropic, OpenAI 키를 씁니다. 키는 브라우저(localStorage)에만 저장합니다. Gemini 요청은 Google로 바로 가고, Anthropic과 OpenAI 요청은 브라우저 제약 때문에 Ropeman 엣지 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.
 3. **브라우저 AI**는 web-llm으로 브라우저 안에서 WebGPU 모델을 돌립니다. 처음 한 번 모델을 내려받은 뒤에는 오프라인으로 분석합니다. 실험 기능입니다.
 
-**브리지 모드**는 이 세 모드와 따로, 별도 페이지에서 씁니다. `ropeman serve`가 내 컴퓨터의 폴더 지도를 만들고, https://ropeman.dev/bridge 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 `claude` 일꾼이 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. serve는 `--cli gemini`를 줄 때만 `gemini`를 씁니다. 파일을 누르면 소스가 열립니다. 코드는 Ropeman 서버로 가지 않습니다. serve를 직접 켜려면 `npm install -g @ropeman/bridge@0.3.1`로 설치하고, 프로젝트 폴더에서 `ropeman serve --root .`를 실행하고, https://ropeman.dev/bridge를 열어 `~/.ropeman/bridge-token`의 토큰을 붙여 넣으세요. Safari를 쓰거나 브라우저가 연결을 막았다면 `--local`을 붙여 serve를 켜고, serve가 출력한 주소를 여세요. 옵션, 토큰, 보안 검사는 [bridge/README.md](bridge/README.md)에 있습니다.
+**브리지 모드**는 이 세 모드와 따로, 별도 페이지에서 씁니다. `ropeman serve`가 내 컴퓨터의 폴더 지도를 만들고, https://ropeman.dev/bridge 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 `claude` 일꾼이 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. serve는 `--cli gemini`를 줄 때만 `gemini`를 씁니다. 파일을 누르면 소스가 열립니다. 코드는 Ropeman 서버로 가지 않습니다. serve를 직접 켜려면 `npm install -g @ropeman/bridge@0.4.0`로 설치하고, 프로젝트 폴더에서 `ropeman serve --root .`를 실행하고, https://ropeman.dev/bridge를 열어 `~/.ropeman/bridge-token`의 토큰을 붙여 넣으세요. Safari를 쓰거나 브라우저가 연결을 막았다면 `--local`을 붙여 serve를 켜고, serve가 출력한 주소를 여세요. 옵션, 토큰, 보안 검사는 [bridge/README.md](bridge/README.md)에 있습니다.
 
 ## 아키텍처
 
