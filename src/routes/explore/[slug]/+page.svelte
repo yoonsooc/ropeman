@@ -13,9 +13,11 @@
 	import CodeViewer from '$lib/components/CodeViewer.svelte';
 	import {
 		exploreFileUrl,
+		exploreRepoPaths,
 		exploreSource,
 		fetchExploreFile,
 		fetchExploreSnapshot,
+		type ExploreFileFailure,
 		type ExploreSource
 	} from '$lib/services/exploreService';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
@@ -39,16 +41,39 @@
 			!(openFile && !breakpoint.isDesktop)
 	);
 
-	async function readSnapshotFile(from: ExploreSource, path: string) {
-		const got = await fetchExploreFile(from, path);
-		if (got.ok) return got;
-		return {
-			ok: false as const,
-			message:
-				got.status === null
-					? i18nStore.t('codeViewer.notAccessible')
-					: i18nStore.t('codeViewer.loadFailed', { error: `HTTP ${got.status}` })
-		};
+	// A legacy path can resolve to either of two repository paths; the link follows the one that loaded
+	let resolvedPaths = $state<Record<string, string>>({});
+	const fileOnGitHub = $derived.by(() => {
+		if (!source || !openFile) return null;
+		const repoPath = resolvedPaths[openFile] ?? exploreRepoPaths(source, openFile)[0];
+		return repoPath ? exploreFileUrl(source, repoPath, 'blob') : null;
+	});
+
+	function failureMessage(failure: ExploreFileFailure): string {
+		switch (failure.reason) {
+			case 'invalid-path':
+				return i18nStore.t('explore.fileInvalidPath');
+			case 'not-found':
+				return i18nStore.t('explore.fileNotFound');
+			case 'too-large':
+				return i18nStore.t('explore.fileTooLarge');
+			case 'binary':
+				return i18nStore.t('explore.fileBinary');
+			case 'rate-limited':
+				return i18nStore.t('explore.fileRateLimited');
+			case 'unavailable':
+				return failure.status
+					? i18nStore.t('codeViewer.loadFailed', { error: `HTTP ${failure.status}` })
+					: i18nStore.t('codeViewer.notAccessible');
+		}
+	}
+
+	async function readSnapshotFile(path: string) {
+		if (!source) return { ok: false as const, message: i18nStore.t('explore.fileNoCommit') };
+		const got = await fetchExploreFile(source, path);
+		if (!got.ok) return { ok: false as const, message: failureMessage(got) };
+		resolvedPaths[path] = got.repoPath;
+		return { ok: true as const, content: got.content };
 	}
 
 	const ldJson = $derived(
@@ -202,28 +227,31 @@
 					onclose={(id) => tabStore.closeTab(id)}
 				/>
 				<div class="canvas-content">
-					{#if openFile && source}
-						{@const from = source}
-						<div class="file-view">
-							<div class="source-bar">
-								<a
-									href={exploreFileUrl(from, openFile, 'blob')}
-									target="_blank"
-									rel="external noopener noreferrer"
-									class="source-link"
-								>
-									{i18nStore.t('explore.viewOnGithub')} ↗
-								</a>
-							</div>
-							<div class="file-body">
-								<CodeViewer filePath={openFile} read={(path) => readSnapshotFile(from, path)} />
-							</div>
-						</div>
-					{:else}
+					<!-- Stays mounted under an open file so zoom, pan and drill-down survive -->
+					<div class="diagram-view" class:covered={openFile !== null}>
 						<div class="canvas-breadcrumb">
 							<Breadcrumb />
 						</div>
 						<ZUICanvas />
+					</div>
+					{#if openFile}
+						<div class="file-view">
+							{#if fileOnGitHub}
+								<div class="source-bar">
+									<a
+										href={fileOnGitHub}
+										target="_blank"
+										rel="external noopener noreferrer"
+										class="source-link"
+									>
+										{i18nStore.t('explore.viewOnGithub')} ↗
+									</a>
+								</div>
+							{/if}
+							<div class="file-body">
+								<CodeViewer filePath={openFile} read={readSnapshotFile} />
+							</div>
+						</div>
 					{/if}
 				</div>
 			</div>
@@ -377,11 +405,22 @@
 		position: relative;
 	}
 
+	.diagram-view {
+		position: absolute;
+		inset: 0;
+	}
+
+	/* Hidden rather than display: none, so the canvas keeps its size and viewport */
+	.diagram-view.covered {
+		visibility: hidden;
+	}
+
 	.file-view {
 		position: absolute;
 		inset: 0;
 		display: flex;
 		flex-direction: column;
+		background: var(--color-background-body);
 	}
 
 	.source-bar {

@@ -80,8 +80,10 @@ Repeat for each entry in `src/lib/data/explore-curated.json`.
    The worker accepts payloads up to 2 MB and validates JSON structure on the
    client side at fetch time (`exploreService.validateSnapshot`).
 
-4. **Pin the commit**: set the entry's `ref` in `src/lib/data/explore-curated.json`
-   to the commit you analyzed. The detail page reads each file the visitor opens
+4. **Pin the commit**: put the analyzed commit SHA in the snapshot's `commit` field,
+   with repository paths (no `<repo>/` prefix) in each node's `filePaths`. Snapshots uploaded
+   before `commit` existed fall back to the entry's `ref` in
+   `src/lib/data/explore-curated.json`; keep it equal to the commit you analyzed. The detail page reads each file the visitor opens
    from that commit on raw.githubusercontent.com, so a stale `ref` shows files
    that differ from the diagram, or 404 when they moved.
 
