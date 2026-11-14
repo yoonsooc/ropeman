@@ -85,6 +85,8 @@ npm run dev
 | `npm run deploy:edge:demo`  | 엣지 데모 Worker 배포        |
 | `npm run deploy:edge:proxy` | 엣지 프록시 Worker 배포      |
 
+기여하기 전에 [AGENTS.md](AGENTS.md)(영어)를 읽으세요. 저장소 구조, 컨벤션, 테스트, ADR이 필요한 경우를 사람과 코딩 에이전트 모두를 위해 정리했습니다.
+
 ## AI 모드
 
 Ropeman에는 AI 모드가 세 가지 있습니다.
