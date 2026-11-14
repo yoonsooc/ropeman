@@ -1,6 +1,7 @@
 {
 	"kinds": [
-		"imports_from"
+		"imports_from",
+		"calls"
 	],
 	"edges": [
 		{
@@ -184,6 +185,181 @@
 			"line": 6,
 			"written": "example.com/shop/codec",
 			"to": "codec/wire.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/lookup.go",
+			"line": 3,
+			"written": "example.com/shop/model",
+			"to": "model/model.go"
+		},
+		{
+			"kind": "imports_from",
+			"from": "store/store_internal_test.go",
+			"line": 3,
+			"written": "testing",
+			"to": "ext:testing"
+		},
+		{
+			"kind": "calls",
+			"from": "cmd/check/check.go",
+			"line": 11,
+			"written": "codec.Encode",
+			"to": "codec/wire.go#Encode"
+		},
+		{
+			"kind": "calls",
+			"from": "codec/wire.go",
+			"line": 6,
+			"written": "json.Marshal",
+			"to": "ext:encoding/json#Marshal"
+		},
+		{
+			"kind": "calls",
+			"from": "internal/ids/gen.go",
+			"line": 9,
+			"written": "strconv.Itoa",
+			"to": "ext:strconv#Itoa"
+		},
+		{
+			"kind": "calls",
+			"from": "internal/ids/gen_test.go",
+			"line": 6,
+			"written": "Next",
+			"to": "internal/ids/gen.go#Next"
+		},
+		{
+			"kind": "calls",
+			"from": "main.go",
+			"line": 14,
+			"written": "store.NewMemory",
+			"to": "store/memory.go#NewMemory"
+		},
+		{
+			"kind": "calls",
+			"from": "main.go",
+			"line": 15,
+			"written": "fmt.Println",
+			"to": "ext:fmt#Println"
+		},
+		{
+			"kind": "calls",
+			"from": "main.go",
+			"line": 15,
+			"written": "api.Routes",
+			"to": "web/api/handlers.go#Routes"
+		},
+		{
+			"kind": "calls",
+			"from": "main.go",
+			"line": 15,
+			"written": "uuid.NewString",
+			"to": "ext:github.com/google/uuid#NewString"
+		},
+		{
+			"kind": "calls",
+			"from": "store/store.go",
+			"line": 9,
+			"written": "errors.New",
+			"to": "ext:errors#New"
+		},
+		{
+			"kind": "calls",
+			"from": "store/store_test.go",
+			"line": 11,
+			"written": "store.NewMemory",
+			"to": "store/memory.go#NewMemory"
+		},
+		{
+			"kind": "calls",
+			"from": "store/store_test.go",
+			"line": 11,
+			"written": "store.NewMemory().Put",
+			"to": "store/memory.go#Memory.Put"
+		},
+		{
+			"kind": "calls",
+			"from": "tooling/lint/lint.go",
+			"line": 9,
+			"written": "rules.Check",
+			"to": "tooling/rules/rules.go#Check"
+		},
+		{
+			"kind": "calls",
+			"from": "web/api/handlers.go",
+			"line": 13,
+			"written": "rules.Check",
+			"to": "tooling/rules/rules.go#Check"
+		},
+		{
+			"kind": "calls",
+			"from": "web/api/handlers.go",
+			"line": 13,
+			"written": "ids.Next",
+			"to": "internal/ids/gen.go#Next"
+		},
+		{
+			"kind": "calls",
+			"from": "web/api/handlers.go",
+			"line": 14,
+			"written": "http.NewServeMux",
+			"to": "ext:net/http#NewServeMux"
+		},
+		{
+			"kind": "calls",
+			"from": "web/api/handlers.go",
+			"line": 18,
+			"written": "PriceOf",
+			"to": "model/price.go#PriceOf"
+		},
+		{
+			"kind": "calls",
+			"from": "store/lookup.go",
+			"line": 12,
+			"written": "m.all",
+			"to": "store/lookup.go#Memory.all"
+		},
+		{
+			"kind": "calls",
+			"from": "store/lookup.go",
+			"line": 13,
+			"written": "model.PriceOf",
+			"to": "model/price.go#PriceOf"
+		},
+		{
+			"kind": "calls",
+			"from": "store/lookup.go",
+			"line": 29,
+			"written": "m.all",
+			"to": "store/lookup.go#Memory.all"
+		},
+		{
+			"kind": "calls",
+			"from": "model/price.go",
+			"line": 4,
+			"written": "round",
+			"to": "model/price.go#round"
+		},
+		{
+			"kind": "calls",
+			"from": "store/store_internal_test.go",
+			"line": 6,
+			"written": "NewMemory",
+			"to": "store/memory.go#NewMemory"
+		},
+		{
+			"kind": "calls",
+			"from": "store/store_internal_test.go",
+			"line": 7,
+			"written": "Count",
+			"to": "store/lookup.go#Count"
+		},
+		{
+			"kind": "calls",
+			"from": "store/store_internal_test.go",
+			"line": 7,
+			"written": "m.Total",
+			"to": "store/lookup.go#Memory.Total"
 		}
 	]
 }

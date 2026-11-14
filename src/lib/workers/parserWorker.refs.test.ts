@@ -285,6 +285,7 @@ func main() {
 `,
 			[
 				// The Java outline records no constructors, so their calls come from the class
+				['inherits', 1, 'App', 'Base'],
 				['calls', 3, 'App', 'super'],
 				['calls', 6, 'App', 'this'],
 				['calls', 9, 'App.run', 'log'],
@@ -300,9 +301,9 @@ func main() {
 }
 `,
 			[
-				// The C outline names no function yet, so its calls come from `<anonymous>`
-				['calls', 2, '<anonymous>', 'init'],
-				['calls', 3, '<anonymous>', 'dev->ops->start']
+				// C names a function inside its declarator, `main(void)` here
+				['calls', 2, 'main', 'init'],
+				['calls', 3, 'main', 'dev->ops->start']
 			]
 		],
 		[
@@ -363,8 +364,8 @@ class App {
 }
 `,
 			[
-				['calls', 3, 'App', 'log'],
-				['calls', 4, 'App', 'repo.save']
+				['calls', 3, 'App.run', 'log'],
+				['calls', 4, 'App.run', 'repo.save']
 			]
 		],
 		[
@@ -375,10 +376,10 @@ class App {
 }
 `,
 			[
-				// As in C, the Kotlin outline does not read function names yet
-				['calls', 2, '<anonymous>', 'log'],
-				['calls', 3, '<anonymous>', 'items.forEach'],
-				['calls', 3, '<anonymous>', 'save']
+				// The Kotlin grammar has no field names; the outline reads the name node itself
+				['calls', 2, 'run', 'log'],
+				['calls', 3, 'run', 'items.forEach'],
+				['calls', 3, 'run', 'save']
 			]
 		],
 		[
@@ -411,6 +412,117 @@ class App {
 			]
 		]
 	])('reads the calls in %s', async (filePath, source, expected) => {
+		// Act
+		const found = await sites(filePath, source);
+
+		// Assert
+		expect(found).toEqual(expected);
+	});
+	it.each<[string, string, Site[]]>([
+		[
+			'repo/src/Store.java',
+			`class Store extends Base<Item> implements Saver, Loader<Item> {}
+interface Saver extends Marker {}
+`,
+			[
+				['inherits', 1, 'Store', 'Base<Item>'],
+				['implements', 1, 'Store', 'Saver'],
+				['implements', 1, 'Store', 'Loader<Item>'],
+				['inherits', 2, 'Saver', 'Marker']
+			]
+		],
+		[
+			'repo/src/Store.cs',
+			`class Store : Base, ISaver {}
+struct P : IEq {}
+interface ISaver : IMarker {}
+`,
+			[
+				['inherits', 1, 'Store', 'Base'],
+				['inherits', 1, 'Store', 'ISaver'],
+				['implements', 2, 'P', 'IEq'],
+				['inherits', 3, 'ISaver', 'IMarker']
+			]
+		],
+		[
+			'repo/src/Store.kt',
+			`class Store : Base(), Saver {}
+object Cache : Saver
+`,
+			[
+				['inherits', 1, 'Store', 'Base'],
+				['implements', 1, 'Store', 'Saver'],
+				['implements', 2, 'Cache', 'Saver']
+			]
+		],
+		[
+			'repo/src/lib.rs',
+			`impl fmt::Display for Foo {}
+trait Saver: Marker + 'static {}
+`,
+			[
+				['implements', 1, 'fmt::Display for Foo', 'fmt::Display'],
+				['inherits', 2, 'Saver', 'Marker']
+			]
+		],
+		[
+			'repo/lib/store.rb',
+			`class Store < Base
+end
+class Cache < M::Base
+end
+`,
+			[
+				['inherits', 1, 'Store', 'Base'],
+				['inherits', 3, 'Cache', 'M::Base']
+			]
+		],
+		[
+			'repo/src/Store.php',
+			`<?php
+class Store extends Base implements Saver {}
+interface Saver extends Marker {}
+`,
+			[
+				['inherits', 2, 'Store', 'Base'],
+				['implements', 2, 'Store', 'Saver'],
+				['inherits', 3, 'Saver', 'Marker']
+			]
+		],
+		[
+			'repo/Sources/Store.swift',
+			`class Store: Base, Saver {}
+struct P: Equatable {}
+protocol Saver: Marker {}
+`,
+			[
+				['inherits', 1, 'Store', 'Base'],
+				['inherits', 1, 'Store', 'Saver'],
+				['implements', 2, 'P', 'Equatable'],
+				['inherits', 3, 'Saver', 'Marker']
+			]
+		],
+		[
+			'repo/src/Store.scala',
+			`class Store extends Base with Saver
+trait Saver extends Marker
+`,
+			[
+				['inherits', 1, 'Store', 'Base'],
+				['implements', 1, 'Store', 'Saver'],
+				['inherits', 2, 'Saver', 'Marker']
+			]
+		],
+		[
+			'repo/src/store.cpp',
+			`class Store : public Base, private Saver {};
+`,
+			[
+				['inherits', 1, 'Store', 'Base'],
+				['inherits', 1, 'Store', 'Saver']
+			]
+		]
+	])('reads the class bases in %s', async (filePath, source, expected) => {
 		// Act
 		const found = await sites(filePath, source);
 

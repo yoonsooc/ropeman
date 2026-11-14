@@ -7,3 +7,11 @@ use kit::banner;
 fn main() {
     let _ = model::Item { id: String::new() };
 }
+
+fn cart() -> shop_core::pricing::Cart {
+    shop_core::pricing::Cart::new()
+}
+
+fn pay(cart: &shop_core::pricing::Cart, store: &mut impl Store) -> u32 {
+    cart.checkout(store)
+}

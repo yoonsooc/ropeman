@@ -10,12 +10,13 @@ import type {
 } from '$lib/types/codeMap';
 import { detectConfigLanguage } from '$lib/utils/languageDetector';
 import { readResolverConfig, resolveImports } from './importResolver';
+import { resolveRefs } from './refResolver';
 
 /**
  * Skeleton v2 for every parsed file. `refs` has the parser's reference sites per astMap key,
  * and `configs` the text of each file `isResolverConfig` and then `namedConfigs` name, keyed like astMap. Imports in
- * TS/JS, Svelte, Vue, Python, Go and Rust are bound to files, symbols and packages; reference sites and
- * other languages' imports stay pending.
+ * TS/JS, Svelte, Vue, Python, Go and Rust are bound to files, symbols and packages; other
+ * languages' imports stay pending. Reference sites are bound after the imports, through them.
  */
 export function buildCodeMap(
 	astMap: ReadonlyMap<string, readonly ASTSymbol[]>,
@@ -33,7 +34,8 @@ export function buildCodeMap(
 		const record = fileFromAst(key, symbols, refs.get(key));
 		files.set(record.path, record);
 	}
-	return resolveImports({ version: 2, root, files }, readResolverConfig(configs)).map;
+	const config = readResolverConfig(configs);
+	return resolveRefs(resolveImports({ version: 2, root, files }, config).map, config).map;
 }
 
 /**
@@ -76,8 +78,9 @@ export function fileFromAst(
 }
 
 /**
- * A class base belongs to its class, so the base of a class the outline did not record (one
- * nested in a function) is dropped rather than pinned on the function around it.
+ * A base belongs to the class or interface whose heading names it, so the base of one the
+ * outline did not record (a class nested in a function) is dropped rather than pinned on the
+ * function around it.
  */
 function toRefSite(ref: ASTRef, symbols: readonly SymbolRecord[]): RefSite[] {
 	const target = { state: 'pending' } as const;
@@ -101,7 +104,7 @@ function innermostAt(symbols: readonly SymbolRecord[], line: number): SymbolReco
 
 function findOwner(symbols: readonly SymbolRecord[], line: number): SymbolRecord | null {
 	for (const sym of symbols) {
-		if (sym.kind === 'class' && sym.lines.start === line) return sym;
+		if ((sym.kind === 'class' || sym.kind === 'interface') && sym.lines.start === line) return sym;
 		const inner = findOwner(sym.children, line);
 		if (inner) return inner;
 	}

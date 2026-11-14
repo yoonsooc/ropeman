@@ -7,11 +7,12 @@ import type { Extraction } from './extract';
 
 /**
  * The deterministic map of one extraction: the folder tree of the hierarchy summary, one level
- * per folder, each edge backed by the imports between its two parts. A node id names the folder
+ * per folder, each edge backed by the relations between its two parts (`fileRelations`: imports,
+ * and the calls and class bases the code decides). A node id names the folder
  * part it holds (`dir:<path>` for a subfolder, `files:<path>` for the files directly in a
  * folder), so any level is rebuilt from the id alone and stays the same across extractions of
  * the same tree. A `files:` node with two or more files expands to a file level: one
- * `file:<path>` node per file and the imports between them, which no folder level can show.
+ * `file:<path>` node per file and the relations between them, which no folder level can show.
  */
 export interface GroupedMap {
 	/** Every file the extraction saw, with where it ended up */
@@ -75,7 +76,7 @@ export function groupExtraction({ map, hierarchy, skipped }: Extraction, name: s
 		return group && group.path !== '' ? under(group) : [];
 	};
 
-	const { byLink: refsByLink, byFolder: refsByFolder } = importRefs(map);
+	const { byLink: refsByLink, byFolder: refsByFolder } = relationRefs(map);
 	const partId = (group: HierarchyGroup, part: string) =>
 		part === group.path ? filesNodeId(group.path) : dirNodeId(part);
 
@@ -176,7 +177,7 @@ function dependsOn(source: string, target: string, refs: RelationRef[]): MapEdge
  * folder and the parts, the way `summarizeHierarchy` counts its links. `byFolder` keeps one
  * between two files of the same folder, which no part link holds, by folder then file pair.
  */
-function importRefs(map: CodeMap): {
+function relationRefs(map: CodeMap): {
 	byLink: Map<string, RelationRef[]>;
 	byFolder: Map<string, Map<string, RelationRef[]>>;
 } {

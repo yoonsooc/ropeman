@@ -18,7 +18,13 @@ import {
 	type RopemanMap
 } from '../../src/lib/types/ropemanMap';
 import { resolveRoot } from './fileRead.js';
-import { applyNames, parseNamingAnswer, summarizePart, type PartSummary } from './naming.js';
+import {
+	applyNames,
+	importCount,
+	parseNamingAnswer,
+	summarizePart,
+	type PartSummary
+} from './naming.js';
 import {
 	MAP_FILE,
 	MAX_NAMES_BYTES,
@@ -400,7 +406,7 @@ export function buildNamedMap(input: {
 				imports: slot.grouped.edges.map((edge) => ({
 					from: edge.source,
 					to: edge.target,
-					imports: edge.evidence?.refs.length ?? 0
+					imports: importCount(edge)
 				})),
 				problems: state.kind === 'rejected' ? state.problems : []
 			}

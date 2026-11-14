@@ -9,7 +9,12 @@ const fn = (name: string, line = 3): ASTSymbol => ({
 	lineStart: line,
 	lineEnd: line
 });
-const imp = (text: string): ASTSymbol => ({ name: text, kind: 'import', lineStart: 1, lineEnd: 1 });
+const imp = (text: string, line = 1): ASTSymbol => ({
+	name: text,
+	kind: 'import',
+	lineStart: line,
+	lineEnd: line
+});
 
 function summary(files: Record<string, ASTSymbol[]>) {
 	return summarizeHierarchy(buildCodeMap(new Map(Object.entries(files)), null));
@@ -55,11 +60,37 @@ describe('summarizeHierarchy', () => {
 		});
 
 		// Assert
-		expect(root.links).toEqual([{ from: '', to: 'src', imports: 1 }]);
+		expect(root.links).toEqual([{ from: '', to: 'src', relations: 1 }]);
 		const [src] = root.children;
-		expect(src.links).toEqual([{ from: 'src/app', to: 'src/util', imports: 1 }]);
+		expect(src.links).toEqual([{ from: 'src/app', to: 'src/util', relations: 1 }]);
 		// Imports between files of one folder stay inside it, and packages are not files
 		expect(src.children.flatMap((g) => g.links)).toEqual([]);
+	});
+
+	it('counts a call the code decides between two folders, and not one matched by name', () => {
+		// Arrange: Go sees its package without an import, so `Price` joins `model` to `store`
+		const astMap = new Map<string, ASTSymbol[]>([
+			['go.mod', []],
+			['model/price.go', [imp('package model'), fn('Price')]],
+			['model/item.go', [imp('package model'), fn('Item', 3)]],
+			[
+				'store/memory.go',
+				[imp('package store'), imp('import "example.com/shop/model"', 2), fn('Put', 5)]
+			],
+			['store/lookup.go', [imp('package store'), fn('Get', 5)]]
+		]);
+		const refs = new Map([
+			['model/item.go', [{ kind: 'calls' as const, line: 3, written: 'Price' }]],
+			['store/memory.go', [{ kind: 'calls' as const, line: 5, written: 'model.Price' }]],
+			['store/lookup.go', [{ kind: 'calls' as const, line: 5, written: 'm.Item' }]]
+		]);
+		const configs = new Map([['go.mod', 'module example.com/shop\n']]);
+
+		// Act
+		const root = summarizeHierarchy(buildCodeMap(astMap, null, { refs, configs }));
+
+		// Assert: the import and the call through it; `m.Item` names no method of any type
+		expect(root.links).toEqual([{ from: 'store', to: 'model', relations: 2 }]);
 	});
 
 	it('lists folders and links in path order whatever order the files came in', () => {

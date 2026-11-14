@@ -233,7 +233,7 @@ describe('skeleton v2 code map', () => {
 		]);
 	});
 
-	it('fills sites per file from the parser refs given to the map', () => {
+	it('fills sites per file from the parser refs and binds them through the imports', () => {
 		const astMap = makeAstMap();
 		const refMap = new Map<string, ASTRef[]>([
 			['main.py', [{ kind: 'calls', line: 4, written: 'Flask' }]]
@@ -247,7 +247,15 @@ describe('skeleton v2 code map', () => {
 				line: 4,
 				from: 'main.py#create_app',
 				written: 'Flask',
-				target: { state: 'pending' }
+				target: {
+					state: 'bound',
+					candidates: [
+						{
+							to: { kind: 'external', module: 'flask', name: 'Flask' },
+							provenance: { source: 'resolver', confidence: 'EXTRACTED' }
+						}
+					]
+				}
 			}
 		]);
 		expect(map.files.get('utils.ts' as FilePath)?.refs).toEqual([]);

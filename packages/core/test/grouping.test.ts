@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { extractDirectory } from '../src/extract';
-import { groupExtraction } from '../src/groupedMap';
+import type { CodeMap, RelationRef } from '$lib/types/codeMap';
+import type { MapEdge, MapLevel } from '$lib/types/ropemanMap';
+import { summarizeHierarchy } from '$lib/services/hierarchySummary';
+import { extractDirectory, type Extraction } from '../src/extract';
+import { groupExtraction, type GroupedMap } from '../src/groupedMap';
 
 const wasmDir = fileURLToPath(new URL('../../../static', import.meta.url));
 const fixture = fileURLToPath(
@@ -81,10 +84,12 @@ describe('groupExtraction', () => {
 			}))
 		);
 		const imports = level.edges.flatMap((edge) =>
-			edge.evidence!.refs.map((ref) => {
-				expect([edge.source, edge.target]).toEqual([`file:${ref.path}`, `file:${ref.toPath}`]);
-				return `${ref.path}:${ref.line} -> ${ref.toPath} ${ref.confidence}`;
-			})
+			edge
+				.evidence!.refs.filter((ref) => ref.relation === 'imports_from')
+				.map((ref) => {
+					expect([edge.source, edge.target]).toEqual([`file:${ref.path}`, `file:${ref.toPath}`]);
+					return `${ref.path}:${ref.line} -> ${ref.toPath} ${ref.confidence}`;
+				})
 		);
 		const expected = truth.edges
 			.filter((e) => e.kind === 'imports_from' && inShop(e.from) && inShop(e.to))
@@ -101,4 +106,55 @@ describe('groupExtraction', () => {
 		]);
 		expect(grouped.expand('files:.')).toBeNull();
 	});
+
+	it('adds to the imports only the references the code decides, so an imports-only map is unchanged', async () => {
+		// Arrange: go-shop calls across packages and files; stripping its references leaves the imports
+		const extraction = await extractDirectory(goShop, { wasmDir });
+		const map: CodeMap = {
+			...extraction.map,
+			files: new Map([...extraction.map.files].map(([p, r]) => [p, { ...r, refs: [] }]))
+		};
+		const importsOnly: Extraction = { ...extraction, map, hierarchy: summarizeHierarchy(map) };
+
+		// Act
+		const full = levels(groupExtraction(extraction, 'go-shop'));
+		const bare = levels(groupExtraction(importsOnly, 'go-shop'));
+
+		// Assert: every imports-only edge is there with the same imports, and what is new is EXTRACTED
+		const ends = (e: MapEdge) => `${e.source} -> ${e.target}`;
+		const refsOf = (e: MapEdge): RelationRef[] => [...e.evidence!.refs];
+		expect(full.map((l) => l.parentId)).toEqual(bare.map((l) => l.parentId));
+		full.forEach((level, i) => {
+			const before = new Map(bare[i].edges.map((e) => [ends(e), e]));
+			for (const edge of level.edges) {
+				const old = before.get(ends(edge));
+				const imports = refsOf(edge).filter((r) => r.relation === 'imports_from');
+				expect(imports).toEqual(old ? refsOf(old) : []);
+			}
+			expect([...before.keys()].every((key) => level.edges.some((e) => ends(e) === key))).toBe(
+				true
+			);
+		});
+		const added = full
+			.flatMap((l) => l.edges.flatMap(refsOf))
+			.filter((r) => r.relation !== 'imports_from');
+		expect(added.length).toBeGreaterThan(0);
+		expect(added.every((r) => r.confidence === 'EXTRACTED')).toBe(true);
+	});
 });
+
+const goShop = fileURLToPath(new URL('../../../tests/fixtures/graphs/go-shop', import.meta.url));
+
+/** Every level of a grouped map, top first, each expanded node after its parent's level */
+function levels(grouped: GroupedMap): MapLevel[] {
+	const out: MapLevel[] = [];
+	const visit = (level: MapLevel) => {
+		out.push(level);
+		for (const node of level.nodes) {
+			const child = grouped.expand(node.id);
+			if (child) visit(child);
+		}
+	};
+	visit(grouped.top);
+	return out;
+}

@@ -1,4 +1,5 @@
-import type { CodeMap, FilePath, ModuleSite, SymbolRecord } from '$lib/types/codeMap';
+import type { CodeMap, SymbolRecord } from '$lib/types/codeMap';
+import { fileRelations } from './codeRelations';
 
 /**
  * One folder of the code map, counted: the deterministic level a reader or an agent drills
@@ -15,19 +16,19 @@ export interface HierarchyGroup {
 	ownFiles: number;
 	/** Subfolders that hold a file, by path */
 	children: HierarchyGroup[];
-	/** Imports resolved to one file, between two parts of this folder, by `from` then `to` */
+	/** Relations between two parts of this folder (`fileRelations`), by `from` then `to` */
 	links: HierarchyLink[];
 }
 
 /**
- * Import statements from files in `from` to files in `to`. A part is a direct subfolder's path,
- * or the folder's own path for the files directly in it. Imports inside one part are counted
- * in that part's own links.
+ * Relations from files in `from` to files in `to`: imports, and calls and class bases the code
+ * decides (`fileRelations`). A part is a direct subfolder's path, or the folder's own path for
+ * the files directly in it. Relations inside one part are counted in that part's own links.
  */
 export interface HierarchyLink {
 	from: string;
 	to: string;
-	imports: number;
+	relations: number;
 }
 
 interface Draft {
@@ -41,7 +42,7 @@ const dirOf = (path: string) => path.slice(0, Math.max(path.lastIndexOf('/'), 0)
 const countSymbols = (symbols: readonly SymbolRecord[]): number =>
 	symbols.reduce((sum, sym) => sum + 1 + countSymbols(sym.children), 0);
 
-/** The folder tree of `map` with file, symbol and cross-folder import counts. */
+/** The folder tree of `map` with file, symbol and cross-folder relation counts. */
 export function summarizeHierarchy(map: CodeMap): HierarchyGroup {
 	const root = draft('');
 	const drafts = new Map<string, Draft>([['', root]]);
@@ -66,12 +67,7 @@ export function summarizeHierarchy(map: CodeMap): HierarchyGroup {
 		}
 	}
 
-	for (const [path, record] of map.files) {
-		for (const site of record.imports) {
-			const target = resolvedFile(site.module);
-			if (target) addLink(drafts, dirOf(path), dirOf(target));
-		}
-	}
+	for (const { path, toPath } of fileRelations(map)) addLink(drafts, dirOf(path), dirOf(toPath));
 
 	return finish(root);
 }
@@ -84,13 +80,7 @@ function draft(path: string): Draft {
 	};
 }
 
-function resolvedFile(module: ModuleSite['module']): FilePath | null {
-	if (module.state !== 'bound' || module.candidates.length !== 1) return null;
-	const [{ to }] = module.candidates;
-	return to.kind === 'file' ? to.path : null;
-}
-
-/** Count one import at the deepest folder holding both ends, between the parts they sit in. */
+/** Count one relation at the deepest folder holding both ends, between the parts they sit in. */
 function addLink(drafts: Map<string, Draft>, fromDir: string, toDir: string) {
 	const from = fromDir === '' ? [] : fromDir.split('/');
 	const to = toDir === '' ? [] : toDir.split('/');
@@ -104,8 +94,8 @@ function addLink(drafts: Map<string, Draft>, fromDir: string, toDir: string) {
 	if (fromPart === toPart) return;
 	const links = drafts.get(at)!.links;
 	const key = `${fromPart}\n${toPart}`;
-	const link = links.get(key) ?? { from: fromPart, to: toPart, imports: 0 };
-	link.imports++;
+	const link = links.get(key) ?? { from: fromPart, to: toPart, relations: 0 };
+	link.relations++;
 	links.set(key, link);
 }
 

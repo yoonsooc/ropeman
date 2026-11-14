@@ -1,12 +1,14 @@
 import type { Binding, CodeMap, Endpoint, GuessBinding, RelationKind } from '$lib/types/codeMap';
 
-/** The import and call relations a ground truth lists, by their codeMap.ts names. */
+/** The import, call and class base relations a ground truth lists, by their codeMap.ts names. */
 export const SCORED_KINDS = [
 	'imports_from',
 	'imports',
 	're_exports',
 	'dynamic_import',
-	'calls'
+	'calls',
+	'inherits',
+	'implements'
 ] as const;
 export type ScoredKind = (typeof SCORED_KINDS)[number];
 

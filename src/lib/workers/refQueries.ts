@@ -27,6 +27,13 @@ const JSX = `
 (jsx_opening_element name: (_) @jsx)
 (jsx_self_closing_element name: (_) @jsx)`;
 
+/** `class A extends B with C`: the class's base, then the traits it mixes in */
+function scalaBases(type: string): string {
+	return `([(class_definition extend: (extends_clause type: ${type}))
+  (object_definition extend: (extends_clause type: ${type}))
+  (trait_definition extend: (extends_clause type: ${type}))] @owner)`;
+}
+
 // A command or script path: letters, digits and `_./+-`, not starting with `-` (an option)
 const BARE_WORD = '^[A-Za-z0-9_./+][A-Za-z0-9_./+-]*$';
 
@@ -38,24 +45,52 @@ const QUERIES: Record<string, string> = {
 	'tree-sitter-python.wasm': `(call function: (_) @callee)
 ((class_definition superclasses: (argument_list (_) @inherits)) @owner)`,
 	'tree-sitter-go.wasm': CALL,
-	'tree-sitter-rust.wasm': CALL,
+	// `impl Trait for Type` implements the trait; `trait A: B` inherits B
+	'tree-sitter-rust.wasm': `${CALL}
+((impl_item trait: (_) @implements) @owner)
+((trait_item bounds: (trait_bounds (_) @inherits)) @owner)`,
 	'tree-sitter-c.wasm': CALL,
 	'tree-sitter-cpp.wasm': `${CALL}
-(new_expression type: (_) @callee)`,
+(new_expression type: (_) @callee)
+([(class_specifier (base_class_clause (_) @inherits)) (struct_specifier (base_class_clause (_) @inherits))] @owner)`,
 	'tree-sitter-java.wasm': `((method_invocation name: (_) @name) @call)
 (object_creation_expression type: (_) @callee)
-(explicit_constructor_invocation constructor: (_) @callee)`,
-	'tree-sitter-ruby.wasm': '((call method: (_) @name) @call)',
+(explicit_constructor_invocation constructor: (_) @callee)
+((class_declaration superclass: (superclass (_) @inherits)) @owner)
+([(class_declaration interfaces: (super_interfaces (type_list (_) @implements)))
+  (enum_declaration interfaces: (super_interfaces (type_list (_) @implements)))] @owner)
+((interface_declaration (extends_interfaces (type_list (_) @inherits))) @owner)`,
+	'tree-sitter-ruby.wasm': `((call method: (_) @name) @call)
+((class superclass: (superclass (_) @inherits)) @owner)`,
 	'tree-sitter-php.wasm': `(function_call_expression function: (_) @callee)
 ((member_call_expression name: (_) @name) @call)
 ((nullsafe_member_call_expression name: (_) @name) @call)
 ((scoped_call_expression name: (_) @name) @call)
-(object_creation_expression [(name) (qualified_name)] @callee)`,
-	'tree-sitter-swift.wasm': '(call_expression . (_) @callee (call_suffix))',
-	'tree-sitter-kotlin.wasm': '(call_expression . (_) @callee (call_suffix))',
+(object_creation_expression [(name) (qualified_name)] @callee)
+([(class_declaration (base_clause (_) @inherits)) (interface_declaration (base_clause (_) @inherits))] @owner)
+((class_declaration (class_interface_clause (_) @implements)) @owner)`,
+	// A class names its superclass and its protocols in one list, so all of them are bases; a
+	// struct, enum or extension can only conform
+	'tree-sitter-swift.wasm': `(call_expression . (_) @callee (call_suffix))
+([(class_declaration declaration_kind: "class" (inheritance_specifier inherits_from: (_) @inherits))
+  (protocol_declaration (inheritance_specifier inherits_from: (_) @inherits))] @owner)
+((class_declaration declaration_kind: ["struct" "enum" "extension" "actor"]
+  (inheritance_specifier inherits_from: (_) @implements)) @owner)`,
+	// A superclass is called (`Base()`), an interface is not
+	'tree-sitter-kotlin.wasm': `(call_expression . (_) @callee (call_suffix))
+([(class_declaration (delegation_specifier (constructor_invocation (user_type) @inherits)))
+  (object_declaration (delegation_specifier (constructor_invocation (user_type) @inherits)))] @owner)
+([(class_declaration (delegation_specifier (user_type) @implements))
+  (object_declaration (delegation_specifier (user_type) @implements))] @owner)`,
+	// As in Swift, a class's base list holds its base class and its interfaces alike
 	'tree-sitter-c_sharp.wasm': `(invocation_expression function: (_) @callee)
-(object_creation_expression type: (_) @callee)`,
-	'tree-sitter-scala.wasm': CALL,
+(object_creation_expression type: (_) @callee)
+([(class_declaration (base_list (_) @inherits)) (interface_declaration (base_list (_) @inherits))] @owner)
+([(struct_declaration (base_list (_) @implements)) (record_declaration (base_list (_) @inherits))] @owner)`,
+	'tree-sitter-scala.wasm': `${CALL}
+${scalaBases('[(type_identifier) (stable_type_identifier) (generic_type)] @inherits')}
+${scalaBases('(compound_type base: (_) @inherits)')}
+${scalaBases('(compound_type extra: (_) @implements)')}`,
 	// Every command, and the script a shell runs (`bash deploy.sh`); `source` is an import. Only
 	// bare words: a quoted, `$`-expanded or `KEY=value` word is an argument's text, not a name
 	'tree-sitter-bash.wasm': `(command name: (command_name) @callee
@@ -65,8 +100,18 @@ const QUERIES: Record<string, string> = {
   (#match? @runner "^((ba|da|z)?sh|exec)$") (#match? @callee "${BARE_WORD}"))`
 };
 
-// Python `class A(B, metaclass=M)`: only positional bases are inherited
-const NOT_A_BASE = new Set(['keyword_argument', 'list_splat', 'dictionary_splat', 'comment']);
+// Python `class A(B, metaclass=M)`: only positional bases are inherited. A C++ `public`, a C#
+// record's constructor arguments and a Rust lifetime or `?Sized` bound name no base
+const NOT_A_BASE = new Set([
+	'keyword_argument',
+	'list_splat',
+	'dictionary_splat',
+	'comment',
+	'access_specifier',
+	'argument_list',
+	'lifetime',
+	'removed_trait_bound'
+]);
 
 const MAX_WRITTEN = 200;
 

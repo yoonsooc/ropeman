@@ -16,13 +16,13 @@
 			"siteRecall": 0
 		},
 		"dynamic_import": {
-			"precision": null,
-			"recall": 0,
+			"precision": 1,
+			"recall": 1,
 			"siteRecall": 1
 		},
 		"calls": {
-			"precision": null,
-			"recall": 0,
+			"precision": 1,
+			"recall": 0.7308,
 			"siteRecall": 1
 		}
 	},
@@ -43,8 +43,8 @@
 			"siteRecall": 0
 		},
 		"calls": {
-			"precision": null,
-			"recall": 0,
+			"precision": 1,
+			"recall": 0.75,
 			"siteRecall": 1
 		}
 	},
@@ -60,13 +60,18 @@
 			"siteRecall": 1
 		},
 		"calls": {
-			"precision": null,
-			"recall": 0,
+			"precision": 1,
+			"recall": 1,
 			"siteRecall": 1
 		}
 	},
 	"go-shop": {
 		"imports_from": {
+			"precision": 1,
+			"recall": 1,
+			"siteRecall": 1
+		},
+		"calls": {
 			"precision": 1,
 			"recall": 1,
 			"siteRecall": 1
@@ -81,6 +86,38 @@
 		"imports": {
 			"precision": 1,
 			"recall": 1,
+			"siteRecall": 1
+		},
+		"calls": {
+			"precision": 1,
+			"recall": 1,
+			"siteRecall": 1
+		},
+		"inherits": {
+			"precision": null,
+			"recall": null,
+			"siteRecall": null
+		},
+		"implements": {
+			"precision": 1,
+			"recall": 1,
+			"siteRecall": 1
+		}
+	},
+	"poly-shop": {
+		"calls": {
+			"precision": 1,
+			"recall": 0.9394,
+			"siteRecall": 1
+		},
+		"inherits": {
+			"precision": 1,
+			"recall": 1,
+			"siteRecall": 1
+		},
+		"implements": {
+			"precision": 1,
+			"recall": 0.8571,
 			"siteRecall": 1
 		}
 	}

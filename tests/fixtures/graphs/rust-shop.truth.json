@@ -1,7 +1,10 @@
 {
 	"kinds": [
 		"imports_from",
-		"imports"
+		"imports",
+		"calls",
+		"inherits",
+		"implements"
 	],
 	"edges": [
 		{
@@ -325,6 +328,139 @@
 			"line": 5,
 			"written": "banner",
 			"to": "crates/shop-cli/src/kit.rs#banner"
+		},
+		{
+			"kind": "imports_from",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 1,
+			"written": "crate::model",
+			"to": "crates/shop-core/src/model.rs"
+		},
+		{
+			"kind": "imports",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 1,
+			"written": "Item",
+			"to": "crates/shop-core/src/model.rs#Item"
+		},
+		{
+			"kind": "imports_from",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 2,
+			"written": "crate::store",
+			"to": "crates/shop-core/src/store/mod.rs"
+		},
+		{
+			"kind": "imports",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 2,
+			"written": "Store",
+			"to": "crates/shop-core/src/store/mod.rs#Store"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-cli/src/main.rs",
+			"line": 13,
+			"written": "banner",
+			"to": "crates/shop-cli/src/kit.rs#banner"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-cli/src/main.rs",
+			"line": 13,
+			"written": "Args::parse",
+			"to": "crates/shop-cli/src/args.rs#Args.parse"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-cli/src/main.rs",
+			"line": 13,
+			"written": "io::stdout",
+			"to": "ext:std#io::stdout"
+		},
+		{
+			"kind": "calls",
+			"from": "app/src/main.rs",
+			"line": 12,
+			"written": "shop_core::pricing::Cart::new",
+			"to": "crates/shop-core/src/pricing.rs#Cart.new"
+		},
+		{
+			"kind": "calls",
+			"from": "app/src/main.rs",
+			"line": 16,
+			"written": "cart.checkout",
+			"to": "crates/shop-core/src/pricing.rs#Cart.checkout"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-core/src/store/memory.rs",
+			"line": 12,
+			"written": "slug",
+			"to": "crates/shop-core/src/util.rs#slug"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 14,
+			"written": "Self::with_items",
+			"to": "crates/shop-core/src/pricing.rs#Cart.with_items"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 23,
+			"written": "store.put",
+			"to": "crates/shop-core/src/store/mod.rs#Store.put"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 25,
+			"written": "total",
+			"to": "crates/shop-core/src/pricing.rs#total"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 25,
+			"written": "self.count",
+			"to": "crates/shop-core/src/pricing.rs#Cart.count"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 34,
+			"written": "crate::util::slug",
+			"to": "crates/shop-core/src/util.rs#slug"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 40,
+			"written": "self.count",
+			"to": "crates/shop-core/src/pricing.rs#Cart.count"
+		},
+		{
+			"kind": "implements",
+			"from": "crates/shop-core/src/model.rs",
+			"line": 9,
+			"written": "fmt::Display",
+			"to": "ext:std#fmt::Display"
+		},
+		{
+			"kind": "implements",
+			"from": "crates/shop-core/src/store/memory.rs",
+			"line": 10,
+			"written": "Store",
+			"to": "crates/shop-core/src/store/mod.rs#Store"
+		},
+		{
+			"kind": "implements",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 38,
+			"written": "Priced",
+			"to": "crates/shop-core/src/pricing.rs#Priced"
 		}
 	]
 }
