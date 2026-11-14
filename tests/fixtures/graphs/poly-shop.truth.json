@@ -389,6 +389,34 @@
 			"line": 5,
 			"written": "error.report",
 			"to": "typescript/src/errors.ts#LoggedError.report"
+		},
+		{
+			"kind": "calls",
+			"from": "typescript/src/run.ts",
+			"line": 8,
+			"written": "next",
+			"to": "typescript/src/steps.ts#next"
+		},
+		{
+			"kind": "calls",
+			"from": "python/billing/use.py",
+			"line": 9,
+			"written": "models.Order",
+			"to": "python/billing/models.py#Order"
+		},
+		{
+			"kind": "calls",
+			"from": "java/integration/com/shop/CheckoutTest.java",
+			"line": 5,
+			"written": "Checkout",
+			"to": "java/src/com/shop/Checkout.java#Checkout"
+		},
+		{
+			"kind": "calls",
+			"from": "java/integration/com/shop/CheckoutTest.java",
+			"line": 6,
+			"written": "Pricing.fee",
+			"to": "java/src/com/shop/Pricing.java#Pricing.fee"
 		}
 	]
 }

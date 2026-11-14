@@ -99,7 +99,7 @@ function render(target: NamingTarget, parts: PartSummary[], feedback: readonly s
 		imports: importCount(edge)
 	}));
 	const lines = [
-		'You name the parts of one folder of a code map. You see structure only: file paths, declared symbol names and import counts between parts. You see no file contents.',
+		'You name the parts of one folder of a code map. You see structure only: file paths, declared symbol names and the links between parts, each with its number of import statements. You see no file contents.',
 		'',
 		`Project: ${target.project}`,
 		`Folder: ${target.folder}`,
@@ -115,7 +115,7 @@ function render(target: NamingTarget, parts: PartSummary[], feedback: readonly s
 			: []),
 		'Parts:',
 		JSON.stringify(parts),
-		'Imports between parts:',
+		'Links between parts ("imports" counts import statements; a link with 0 imports rests on calls or class bases):',
 		JSON.stringify(links),
 		'',
 		'Answer with one JSON object and nothing else, in this shape:',

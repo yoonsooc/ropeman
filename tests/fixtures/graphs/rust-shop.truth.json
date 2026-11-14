@@ -461,6 +461,13 @@
 			"line": 38,
 			"written": "Priced",
 			"to": "crates/shop-core/src/pricing.rs#Priced"
+		},
+		{
+			"kind": "calls",
+			"from": "crates/shop-core/src/pricing.rs",
+			"line": 45,
+			"written": "self::total",
+			"to": "crates/shop-core/src/pricing.rs#total"
 		}
 	]
 }

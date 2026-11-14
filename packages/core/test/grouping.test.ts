@@ -5,7 +5,12 @@ import type { CodeMap, RelationRef } from '$lib/types/codeMap';
 import type { MapEdge, MapLevel } from '$lib/types/ropemanMap';
 import { summarizeHierarchy } from '$lib/services/hierarchySummary';
 import { extractDirectory, type Extraction } from '../src/extract';
-import { groupExtraction, type GroupedMap } from '../src/groupedMap';
+import {
+	MAX_CITED_REFERENCES,
+	citedRefs,
+	groupExtraction,
+	type GroupedMap
+} from '../src/groupedMap';
 
 const wasmDir = fileURLToPath(new URL('../../../static', import.meta.url));
 const fixture = fileURLToPath(
@@ -140,6 +145,58 @@ describe('groupExtraction', () => {
 			.filter((r) => r.relation !== 'imports_from');
 		expect(added.length).toBeGreaterThan(0);
 		expect(added.every((r) => r.confidence === 'EXTRACTED')).toBe(true);
+	});
+});
+
+describe('citedRefs', () => {
+	const ref = (path: string, line: number, relation: RelationRef['relation'], toPath = 'b.ts') =>
+		({
+			path,
+			line,
+			relation,
+			toPath,
+			confidence: 'EXTRACTED'
+		}) as RelationRef;
+
+	it('keeps every import, then one call per file pair and kind at its lowest line', () => {
+		// Arrange
+		const refs = [
+			ref('a.ts', 9, 'calls'),
+			ref('a.ts', 1, 'imports_from'),
+			ref('a.ts', 2, 'imports_from'),
+			ref('a.ts', 4, 'calls'),
+			ref('a.ts', 5, 'inherits'),
+			ref('c.ts', 7, 'calls')
+		];
+
+		// Act
+		const cited = citedRefs(refs);
+
+		// Assert
+		expect(cited.map((r) => `${r.path}:${r.line} ${r.relation}`)).toEqual([
+			'a.ts:1 imports_from',
+			'a.ts:2 imports_from',
+			'a.ts:4 calls',
+			'a.ts:5 inherits',
+			'c.ts:7 calls'
+		]);
+	});
+
+	it('cites at most MAX_CITED_REFERENCES references beside the imports', () => {
+		// Arrange: as many caller files as twice the cap, and three imports
+		const calls = Array.from({ length: 2 * MAX_CITED_REFERENCES }, (_, i) =>
+			ref(`f${i}.ts`, 3, 'calls')
+		);
+		const imports = [1, 2, 3].map((line) => ref('a.ts', line, 'imports_from'));
+
+		// Act
+		const cited = citedRefs([...calls, ...imports]);
+
+		// Assert
+		expect(cited.filter((r) => r.relation === 'imports_from')).toEqual(imports);
+		expect(cited.filter((r) => r.relation === 'calls')).toEqual(
+			calls.slice(0, MAX_CITED_REFERENCES)
+		);
 	});
 });
 

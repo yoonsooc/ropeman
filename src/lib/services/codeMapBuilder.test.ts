@@ -261,6 +261,24 @@ describe('skeleton v2 code map', () => {
 		expect(map.files.get('utils.ts' as FilePath)?.refs).toEqual([]);
 	});
 
+	it('keeps the mark of a call whose first name a parameter or local binds', () => {
+		// Arrange
+		const symbols: ASTSymbol[] = [{ name: 'run', kind: 'function', lineStart: 1, lineEnd: 3 }];
+		const refs: ASTRef[] = [
+			{ kind: 'calls', line: 2, written: 'next', local: true },
+			{ kind: 'calls', line: 3, written: 'other' }
+		];
+
+		// Act
+		const record = fileFromAst('a.ts', symbols, refs);
+
+		// Assert
+		expect(record.refs.map((r) => [r.written, r.local ?? false])).toEqual([
+			['next', true],
+			['other', false]
+		]);
+	});
+
 	it('names the file on the wire by the path the request uses', () => {
 		const record = fileFromAst('project/src/a.ts', [
 			{ name: 'run', kind: 'function', lineStart: 1, lineEnd: 2 }

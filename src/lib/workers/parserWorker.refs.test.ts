@@ -529,4 +529,122 @@ trait Saver extends Marker
 		// Assert
 		expect(found).toEqual(expected);
 	});
+
+	it.each<[string, string, string[]]>([
+		[
+			'repo/src/a.ts',
+			`import { next } from './steps';
+export function run(next: () => void, { save }: Opts, ...rest: Fn[]) {
+	const [first] = rest;
+	next();
+	save();
+	first();
+	other();
+}
+`,
+			['next', 'save', 'first']
+		],
+		[
+			'repo/src/a.js',
+			`function run(next, cb = done) {
+	try { next(); } catch (err) { err(); }
+	cb();
+	done();
+}
+`,
+			['next', 'err', 'cb']
+		],
+		[
+			'repo/app/a.py',
+			`from . import utils
+def run(utils, *args, key=None, deprecated: Annotated[str, deprecated("x")] = None, **kw):
+    utils.get()
+    for item in args:
+        item.save()
+    with open(key) as fh:
+        fh.read()
+    helper()
+`,
+			['utils.get', 'item.save', 'fh.read']
+		],
+		[
+			'repo/main.go',
+			`package main
+func run(model Pricer) int {
+	store := store.Open()
+	price := model.PriceOf()
+	for _, v := range items {
+		v.Use()
+	}
+	return price.Round() + other.Call()
+}
+`,
+			['model.PriceOf', 'v.Use', 'price.Round']
+		],
+		[
+			'repo/src/lib.rs',
+			`fn run(helper: fn()) {
+    let slug = slug_of();
+    let make = make();
+    helper();
+    slug.trim();
+    items.iter().for_each(|it| it.go());
+    crate::util::slug();
+}
+`,
+			['helper', 'slug.trim', 'it.go']
+		],
+		[
+			'repo/src/App.java',
+			`class App {
+    void run(Pricing pricing) {
+        Item item = new Item();
+        pricing.fee();
+        item.cents();
+        Pricing.base();
+    }
+}
+`,
+			['pricing.fee', 'item.cents']
+		],
+		[
+			'repo/src/App.cs',
+			`class App {
+    void Run(Pricing pricing) {
+        var item = new Item();
+        pricing.Fee();
+        item.Cents();
+        Pricing.Base();
+    }
+}
+`,
+			['pricing.Fee', 'item.Cents']
+		],
+		[
+			'repo/src/App.kt',
+			`fun pack(make: () -> Basket): Basket {
+    val box = make()
+    return box.seal() + Scale.unit()
+}
+`,
+			['make', 'box.seal']
+		]
+	])(
+		'marks the calls in %s whose first name a parameter or local binds',
+		async (filePath, content, expected) => {
+			// Arrange
+			await onmessage({
+				data: { type: 'parse', filePath, content, language: detectLanguage(filePath) }
+			});
+			const result = posted.pop() as { refs: ASTRef[] };
+
+			// Act
+			const local = result.refs
+				.filter((ref) => ref.kind === 'calls' && ref.local)
+				.map((ref) => ref.written);
+
+			// Assert
+			expect(local).toEqual(expected);
+		}
+	);
 });

@@ -360,6 +360,13 @@
 			"line": 7,
 			"written": "m.Total",
 			"to": "store/lookup.go#Memory.Total"
+		},
+		{
+			"kind": "calls",
+			"from": "main.go",
+			"line": 19,
+			"written": "store.NewMemory",
+			"to": "store/memory.go#NewMemory"
 		}
 	]
 }

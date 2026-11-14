@@ -91,6 +91,9 @@ function toRefSite(ref: ASTRef, symbols: readonly SymbolRecord[]): RefSite[] {
 			: [];
 	}
 	const from = innermostAt(symbols, ref.line)?.id ?? null;
+	if (ref.kind === 'calls' && ref.local) {
+		return [{ kind: ref.kind, line: ref.line, from, written: ref.written, local: true, target }];
+	}
 	return [{ kind: ref.kind, line: ref.line, from, written: ref.written, target }];
 }
 

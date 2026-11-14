@@ -43,10 +43,16 @@ export type RefRule =
 /**
  * Why a site stays unresolved. `not-in-scope`: a language where every name is declared or
  * imported, and this one is neither, so it is a local, a parameter or a builtin. `ambiguous`:
- * several definitions fit. `no-definition`: none does. `unread`: the callee is an expression,
+ * several definitions fit. `no-definition`: none does. `shadowed`: the name is a parameter or a
+ * local of the enclosing function, so no declaration elsewhere is it. `unread`: the callee is an expression,
  * not a name (`(a || b)()`, `<T as Trait>::f`, a template import).
  */
-export type RefUnresolvedReason = 'not-in-scope' | 'ambiguous' | 'no-definition' | 'unread';
+export type RefUnresolvedReason =
+	| 'not-in-scope'
+	| 'shadowed'
+	| 'ambiguous'
+	| 'no-definition'
+	| 'unread';
 
 export interface RefOutcome {
 	path: FilePath;
@@ -192,14 +198,23 @@ interface Def {
 	name: string;
 	kind: SymbolKind;
 	family: Family;
-	/** The type it is declared on (class, interface, Rust impl type, Go receiver); null at the top */
+	/**
+	 * The `typeKey` of the type it is declared on (class, interface, Rust impl type, Go
+	 * receiver); null at the top of a file and inside a function
+	 */
 	owner: string | null;
+	/**
+	 * For a type, what its members' `owner` says: the dotted path in the file (`Outer.Inner`), so
+	 * two `Inner` classes of one file stay apart. A Rust or Go type is its bare name, since its
+	 * impls and methods sit apart from it
+	 */
+	typeKey: string | null;
 	parent: Def | null;
 }
 
-/** A type as a member lookup needs it: its name and the file that declares or extends it. */
+/** A type as a member lookup needs it: its `typeKey` and the file that declares or extends it. */
 interface TypeRef {
-	name: string;
+	key: string;
 	path: FilePath;
 	confidence: Confidence;
 }
@@ -281,11 +296,16 @@ interface Context {
 	/** Bases of a type, by `typeKey` */
 	bases: Map<string, TypeRef[]>;
 	scopes: Map<FilePath, FileScope>;
-	rust: RustCrates;
+	/** Built on first use, so a repo without that language pays nothing */
+	rust: () => RustCrates;
 	files: ReadonlySet<string>;
-	dynamicImport: ReturnType<typeof scriptModuleBinder>;
+	dynamicImport: () => ReturnType<typeof scriptModuleBinder>;
 	/** Go folders' package files, test files left out */
-	goPackages: ReadonlyMap<string, readonly string[]>;
+	goPackages: () => ReadonlyMap<string, readonly string[]>;
+	/** `${package clause}\0${name}`: top-level declarations of each Java package */
+	javaPackages: () => ReadonlyMap<string, Def[]>;
+	/** `${path}\0${typeKey}`: the type declarations of each file */
+	types: ReadonlyMap<string, Def>;
 	/** Files of the folders a star import names, by the folder suffix */
 	packageFiles: Map<string, FilePath[]>;
 }
@@ -297,6 +317,7 @@ function createContext(map: CodeMap, config: ResolverConfig): Context {
 	const byOwner = new Map<string, Def[]>();
 	const fileTop = new Map<string, Def[]>();
 	const dirTop = new Map<string, Def[]>();
+	const types = new Map<string, Def>();
 	const add = (index: Map<string, Def[]>, key: string, def: Def) => {
 		const list = index.get(key);
 		if (list) list.push(def);
@@ -309,10 +330,21 @@ function createContext(map: CodeMap, config: ResolverConfig): Context {
 		const walk = (sym: SymbolRecord, parent: Def | null) => {
 			const qualified = qualifiedName(sym, path);
 			const { owner, name } = splitOwner(qualified, sym, parent, family);
-			const def: Def = { id: sym.id, path, name, kind: sym.kind, family, owner, parent };
+			const impl = isImplBlock(sym, family);
+			const typeKey =
+				TYPE_KINDS.has(sym.kind) || impl
+					? family === 'rust' || family === 'go'
+						? typeName(sym.name)
+						: qualified
+					: null;
+			const def: Def = { id: sym.id, path, name, kind: sym.kind, family, owner, typeKey, parent };
 			defs.set(sym.id, def);
+			if (typeKey !== null && !types.has(`${path}\0${typeKey}`))
+				types.set(`${path}\0${typeKey}`, def);
 			const callable = CALLABLE_KINDS.has(sym.kind) && name !== '<anonymous>';
-			if (callable && !isImplBlock(sym, family)) {
+			// A function inside a function is a local, which no other file can name
+			const local = parent !== null && parent.typeKey === null;
+			if (callable && !impl && !local) {
 				if (owner === null) {
 					add(top, `${family}\0${name}`, def);
 					add(fileTop, `${path}\0${name}`, def);
@@ -338,14 +370,31 @@ function createContext(map: CodeMap, config: ResolverConfig): Context {
 		byOwner,
 		fileTop,
 		dirTop,
+		types,
 		bases: new Map(),
 		scopes: new Map(),
-		rust: rustCrates(config.cargoPackages, files, declares),
+		rust: once(() => rustCrates(config.cargoPackages, files, declares)),
 		files,
-		dynamicImport: scriptModuleBinder(map, config),
-		goPackages: goPackages(files),
+		dynamicImport: once(() => scriptModuleBinder(map, config)),
+		goPackages: once(() => goPackages(files)),
+		javaPackages: once(() => {
+			const byClause = new Map<string, Def[]>();
+			for (const list of fileTop.values()) {
+				for (const def of list) {
+					const record = map.files.get(def.path);
+					const clause = record?.language === 'java' ? packageClause(record) : null;
+					if (clause !== null) add(byClause, `${clause}\0${def.name}`, def);
+				}
+			}
+			return byClause;
+		}),
 		packageFiles: new Map()
 	};
+}
+
+function once<T>(make: () => T): () => T {
+	let made: { value: T } | null = null;
+	return () => (made ??= { value: make() }).value;
 }
 
 function familyOf(record: FileRecord): Family | null {
@@ -358,7 +407,8 @@ function qualifiedName(sym: SymbolRecord, path: FilePath): string {
 }
 
 /**
- * A member's name and the type it belongs to. A child's type is its parent; a Go method sits at
+ * A member's name and the type it belongs to. A child's type is its parent when the parent is a
+ * type, and a function's children belong to no type; a Go method sits at
  * the top as `Engine.Run`; a C++ definition outside its class is `Store::flush`. A Rust impl's
  * methods belong to the implementing type (`impl fmt::Display for Foo<T>` is `Foo`).
  */
@@ -369,7 +419,7 @@ function splitOwner(
 	family: Family
 ): { owner: string | null; name: string } {
 	const name = cleanName(sym.name);
-	if (parent) return { owner: typeName(parent.name), name };
+	if (parent) return { owner: parent.typeKey, name };
 	if (family === 'go' && qualified.includes('.')) {
 		return { owner: qualified.slice(0, qualified.lastIndexOf('.')), name };
 	}
@@ -434,9 +484,9 @@ function stripGenerics(text: string): string {
 const dirOf = (path: string) => path.slice(0, Math.max(path.lastIndexOf('/'), 0));
 
 /** The bases of a type are keyed by where its declarations meet: its file, or a Rust crate. */
-function typeKey(ctx: Context, family: Family, name: string, path: FilePath): string {
-	const scope = family === 'rust' ? (ctx.rust.rootOf(path) ?? path) : path;
-	return `${family}\0${name}\0${scope}`;
+function basesKey(ctx: Context, family: Family, key: string, path: FilePath): string {
+	const scope = family === 'rust' ? (ctx.rust().rootOf(path) ?? path) : path;
+	return `${family}\0${key}\0${scope}`;
 }
 
 function addBase(ctx: Context, ref: RefSite, record: FileRecord, family: Family, site: RefSite) {
@@ -445,11 +495,10 @@ function addBase(ctx: Context, ref: RefSite, record: FileRecord, family: Family,
 	if (to.kind !== 'symbol') return;
 	const base = ctx.defs.get(to.id);
 	const owner = ctx.defs.get(ref.from);
-	if (!base || !owner) return;
-	const name = family === 'rust' ? typeName(owner.name) : owner.name;
-	const key = typeKey(ctx, family, name, record.path);
+	if (!base?.typeKey || !owner?.typeKey) return;
+	const key = basesKey(ctx, family, owner.typeKey, record.path);
 	const list = ctx.bases.get(key) ?? [];
-	list.push({ name: base.name, path: base.path, confidence: provenance.confidence });
+	list.push({ key: base.typeKey, path: base.path, confidence: provenance.confidence });
 	ctx.bases.set(key, list);
 }
 
@@ -468,7 +517,10 @@ function bindRef(
 	});
 	if (ref.kind === 'dynamic_import') {
 		if (ref.written === null || family !== 'script') return { site: ref, outcome: null };
-		return { site: { ...ref, target: ctx.dynamicImport(ref.written, record.path) }, outcome: null };
+		return {
+			site: { ...ref, target: ctx.dynamicImport()(ref.written, record.path) },
+			outcome: null
+		};
 	}
 	if (ref.kind === 'indirect_call' || ref.kind === 'references')
 		return { site: ref, outcome: null };
@@ -557,24 +609,30 @@ function resolveWritten(ref: RefSite, record: FileRecord, family: Family, ctx: C
 	const at: At = { family, from };
 
 	if (written.open) {
-		if (/^super\(\)/.test(ref.written!))
-			return baseMember(enclosingType(from, family), last, family, ctx);
+		if (/^super\(\)/.test(ref.written!)) return baseMember(enclosingType(from), last, family, ctx);
 		return uniqueMember(last, at, ctx);
 	}
 	if (segments.length === 1) {
-		if (rules.base.includes(last)) return baseType(enclosingType(from, family), family, ctx);
+		if (rules.base.includes(last)) return baseType(enclosingType(from), family, ctx);
 		if (rules.self.includes(last)) return ownType(from, family, ctx);
+		// A parameter or local of the enclosing function holds whatever it was given
+		if (ref.kind === 'calls' && ref.local) return miss('shadowed');
 		return bareName(last, { record, family, scope, from, types }, ctx);
 	}
 
 	const [head, ...rest] = segments;
-	if (rules.self.includes(head) && rest.length === 1) {
-		return ownMember(enclosingType(from, family), last, family, ctx);
+	// Rust `self::f()` walks the module tree; only `self.f()` calls a method
+	const isSelf =
+		rules.self.includes(head) && !(family === 'rust' && head === 'self' && written.sep === '::');
+	if (isSelf && rest.length === 1) {
+		return ownMember(enclosingType(from), last, family, ctx);
 	}
 	if (rules.base.includes(head) && rest.length === 1) {
-		return baseMember(enclosingType(from, family), last, family, ctx);
+		return baseMember(enclosingType(from), last, family, ctx);
 	}
-	if (rules.self.includes(head)) return uniqueMember(last, at, ctx);
+	if (isSelf) return uniqueMember(last, at, ctx);
+	// `utils.get()` with `utils` a parameter: a value of unknown type, whatever the file imports
+	if (ref.kind === 'calls' && ref.local) return uniqueMember(last, at, ctx);
 	if (family === 'script' && SCRIPT_GLOBALS.has(head) && !scope.names.has(head)) {
 		return miss('not-in-scope');
 	}
@@ -624,7 +682,7 @@ function bareName(name: string, site: Site, ctx: Context): Found {
 	if (imported) return meaningTarget(imported, null, { family, from }, ctx);
 
 	if (rules.implicitSelf && !types) {
-		const own = enclosingType(from, family);
+		const own = enclosingType(from);
 		if (own) {
 			const found = ownMember(own, name, family, ctx);
 			if (found.ok || found.reason === 'ambiguous') return found;
@@ -697,7 +755,11 @@ function packageDefs(
 		return { defs: seen, confidence: EXTRACTED };
 	}
 	if (kind === 'java' && record.language === 'java' && clause !== null) {
-		return { defs: defs.filter(sameClause), confidence: EXTRACTED };
+		// A package spans source roots (`src/main/java` and `src/test/java`), so the clause decides
+		const inPackage = (ctx.javaPackages().get(`${clause}\0${name}`) ?? []).filter(
+			(def) => def.path !== record.path
+		);
+		return { defs: inPackage, confidence: EXTRACTED };
 	}
 	return { defs, confidence: INFERRED };
 }
@@ -731,7 +793,7 @@ function qualifierMeaning(
 	}
 	if (family === 'rust' && sep === '::') {
 		const walk = (path: readonly string[], file: string) =>
-			resolveUsePath(path, file, ctx.rust, ctx.files, () => false);
+			resolveUsePath(path, file, ctx.rust(), ctx.files, () => false);
 		const end = walk(segments.slice(0, -1), record.path);
 		if (end.kind === 'local' && end.modules === end.rest.length) {
 			return {
@@ -755,9 +817,9 @@ function qualifierMeaning(
 		}
 		// A type a macro declares (`pin_project! { struct Foo }`) has no outline entry, its impls do
 		if (rest.length === 1) {
-			const root = ctx.rust.rootOf(record.path);
+			const root = ctx.rust().rootOf(record.path);
 			const impls = (ctx.byOwner.get(`rust\0${head}\0${rest[0]}`) ?? []).filter(
-				(def) => ctx.rust.rootOf(def.path) === root
+				(def) => ctx.rust().rootOf(def.path) === root
 			);
 			const here = impls.filter((def) => def.path === record.path);
 			if (here.length > 0 || impls.length === 1) {
@@ -798,7 +860,7 @@ function meaningTarget(
 			const end = resolveUsePath(
 				['self', ...rest.slice(0, -1)],
 				meaning.files[0],
-				ctx.rust,
+				ctx.rust(),
 				ctx.files,
 				() => false
 			);
@@ -849,15 +911,16 @@ function throughDef(
 	ctx: Context
 ): Found {
 	const { family } = at;
-	if (!TYPE_KINDS.has(def.kind)) return uniqueMember(rest.at(-1)!, at, ctx);
-	// A Rust impl block stands for its type (`impl<T> Foo<T>` is `Foo`)
-	const name = family === 'rust' ? typeName(def.name) : def.name;
-	const type: TypeRef = { name, path: def.path, confidence };
+	if (def.typeKey === null) return uniqueMember(rest.at(-1)!, at, ctx);
+	const type: TypeRef = { key: def.typeKey, path: def.path, confidence };
 	const [member, ...more] = rest;
 	const found = ownMember(type, member, family, ctx);
 	if (found.ok) {
 		const rule: RefRule = found.rule === 'base-member' ? found.rule : 'type-member';
 		if (more.length === 0) return { ...found, rule };
+		// `Outer.Inner.make()`: a nested type, then its member
+		const inner = found.to.kind === 'symbol' ? ctx.defs.get(found.to.id) : undefined;
+		if (inner?.typeKey) return throughDef(inner, found.confidence, more, at, ctx);
 		return uniqueMember(rest.at(-1)!, at, ctx);
 	}
 	// `Foo.new` in Ruby builds a Foo; a Rust `Enum::Variant(x)` or derived `Foo::default()` names the type
@@ -867,23 +930,21 @@ function throughDef(
 	return found;
 }
 
-/** The type a member's code runs in: its class, a Rust impl's type, a Go method's receiver. */
-function enclosingType(from: Def | null, family: Family): TypeRef | null {
+/**
+ * The type a member's code runs in: its class, a Rust impl's type, a Go method's receiver. A
+ * function nested in a method runs in the method's type.
+ */
+function enclosingType(from: Def | null): TypeRef | null {
 	for (let def = from; def; def = def.parent) {
-		if (def.owner !== null && def.kind !== 'class' && def.kind !== 'interface') {
-			return { name: def.owner, path: def.path, confidence: EXTRACTED };
-		}
-		if (TYPE_KINDS.has(def.kind)) {
-			const name = family === 'rust' ? typeName(def.name) : def.name;
-			return { name, path: def.path, confidence: EXTRACTED };
-		}
+		if (def.typeKey !== null) return { key: def.typeKey, path: def.path, confidence: EXTRACTED };
+		if (def.owner !== null) return { key: def.owner, path: def.path, confidence: EXTRACTED };
 	}
 	return null;
 }
 
 /** `this(…)` or Rust `Self(…)`: the enclosing type itself. */
 function ownType(from: Def | null, family: Family, ctx: Context): Found {
-	const own = enclosingType(from, family);
+	const own = enclosingType(from);
 	if (!own) return miss('no-definition');
 	const def = typeDef(own, family, ctx);
 	return def ? hit(def, 'own-member', own.confidence) : miss('no-definition');
@@ -892,7 +953,7 @@ function ownType(from: Def | null, family: Family, ctx: Context): Found {
 /** `super(…)`: the base class the enclosing class names. */
 function baseType(own: TypeRef | null, family: Family, ctx: Context): Found {
 	if (!own) return miss('no-definition');
-	const bases = ctx.bases.get(typeKey(ctx, family, own.name, own.path)) ?? [];
+	const bases = ctx.bases.get(basesKey(ctx, family, own.key, own.path)) ?? [];
 	if (bases.length === 0) return miss('no-definition');
 	const def = typeDef(bases[0], family, ctx);
 	return def ? hit(def, 'base-member', bases[0].confidence) : miss('no-definition');
@@ -900,11 +961,9 @@ function baseType(own: TypeRef | null, family: Family, ctx: Context): Found {
 
 /** The type declaration a TypeRef names, in its file first. */
 function typeDef(type: TypeRef, family: Family, ctx: Context): Def | null {
-	const here = (ctx.fileTop.get(`${type.path}\0${type.name}`) ?? []).filter((d) =>
-		TYPE_KINDS.has(d.kind)
-	);
-	if (here.length > 0) return here[0];
-	const anywhere = (ctx.top.get(`${family}\0${type.name}`) ?? []).filter((d) =>
+	const here = ctx.types.get(`${type.path}\0${type.key}`);
+	if (here && TYPE_KINDS.has(here.kind)) return here;
+	const anywhere = (ctx.top.get(`${family}\0${type.key}`) ?? []).filter((d) =>
 		TYPE_KINDS.has(d.kind)
 	);
 	return anywhere.length === 1 ? anywhere[0] : null;
@@ -924,10 +983,10 @@ function ownMember(
 	seen = new Set<string>()
 ): Found {
 	if (!type) return miss('no-definition');
-	const key = typeKey(ctx, family, type.name, type.path);
+	const key = basesKey(ctx, family, type.key, type.path);
 	if (seen.has(key) || depth > MAX_BASE_DEPTH) return miss('no-definition');
 	seen.add(key);
-	const all = ctx.byOwner.get(`${family}\0${type.name}\0${name}`) ?? [];
+	const all = ctx.byOwner.get(`${family}\0${type.key}\0${name}`) ?? [];
 	const sameFile = all.filter((def) => def.path === type.path);
 	const rule: RefRule = depth === 0 ? 'own-member' : 'base-member';
 	if (sameFile.length > 0) return pick(sameFile, rule, type.confidence);
@@ -937,8 +996,8 @@ function ownMember(
 		if (inPackage.length > 0) return pick(inPackage, rule, type.confidence);
 	}
 	if (family === 'rust' || family === 'c') {
-		const root = family === 'rust' ? ctx.rust.rootOf(type.path) : null;
-		const near = all.filter((def) => family === 'c' || ctx.rust.rootOf(def.path) === root);
+		const root = family === 'rust' ? ctx.rust().rootOf(type.path) : null;
+		const near = all.filter((def) => family === 'c' || ctx.rust().rootOf(def.path) === root);
 		if (near.length === 1) return hit(near[0], rule, INFERRED);
 		if (near.length > 1) return miss('ambiguous');
 	}
@@ -958,7 +1017,7 @@ function ownMember(
 
 function baseMember(own: TypeRef | null, name: string, family: Family, ctx: Context): Found {
 	if (!own) return miss('no-definition');
-	const key = typeKey(ctx, family, own.name, own.path);
+	const key = basesKey(ctx, family, own.key, own.path);
 	for (const base of ctx.bases.get(key) ?? []) {
 		const found = ownMember(
 			{ ...base, confidence: least(own.confidence, base.confidence) },
@@ -985,13 +1044,13 @@ function uniqueMember(name: string, { family, from }: At, ctx: Context): Found {
 	if (LIBRARY_MEMBERS[family]?.has(name) || (family === 'python' && /^__\w+__$/.test(name))) {
 		return miss('ambiguous');
 	}
-	const own = family === 'go' ? null : enclosingType(from, family);
+	const own = family === 'go' ? null : enclosingType(from);
 	// Only Go names its receiver like any variable. Elsewhere a call on the own type says
 	// `this`, so `self.router.add_route()` inside `add_route` delegates to another type
 	const defs = (ctx.members.get(`${family}\0${name}`) ?? []).filter(
 		(def) =>
 			!(def.family === 'rust' && def.parent?.name.includes(' for ')) &&
-			!(own && def.owner === own.name && def.path === own.path)
+			!(own && def.owner === own.key && def.path === own.path)
 	);
 	if (defs.length === 1) return hit(defs[0], 'unique-name', INFERRED);
 	if (defs.length === 0) return miss('no-definition');
@@ -1052,7 +1111,7 @@ function readImport(
 			const tree = readUse(site.text);
 			for (const leaf of tree?.leaves ?? []) {
 				if (!leaf.glob) continue;
-				const end = resolveUsePath(leaf.path, record.path, ctx.rust, ctx.files, () => false);
+				const end = resolveUsePath(leaf.path, record.path, ctx.rust(), ctx.files, () => false);
 				if (end.kind === 'local' && end.modules === end.rest.length)
 					scope.stars.push([end.file as FilePath]);
 			}
@@ -1138,7 +1197,7 @@ function moduleMeaning(
 	const [{ to }] = binding.candidates;
 	if (to.kind === 'external') return { kind: 'external', module: to.module, name: to.name };
 	if (family === 'go') {
-		const files = ctx.goPackages.get(dirOf(to.path));
+		const files = ctx.goPackages().get(dirOf(to.path));
 		return { kind: 'module', files: (files as FilePath[] | undefined) ?? [to.path] };
 	}
 	return { kind: 'module', files: [to.path] };

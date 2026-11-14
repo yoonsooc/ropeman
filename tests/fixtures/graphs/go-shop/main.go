@@ -14,3 +14,8 @@ func main() {
 	s := store.NewMemory()
 	fmt.Println(api.Routes(s), uuid.NewString(), legacy.Version)
 }
+
+func reopen() {
+	store := store.NewMemory()
+	_ = store
+}

@@ -58,6 +58,13 @@ const method = (name: string, start: number, end = start, parentName?: string) =
 const cls = (name: string, start: number, end: number, children: ASTSymbol[] = []) =>
 	({ name, kind: 'class', lineStart: start, lineEnd: end, children }) as ASTSymbol;
 const call = (line: number, written: string): ASTRef => ({ kind: 'calls', line, written });
+/** A call whose first name a parameter or local of the enclosing function binds */
+const localCall = (line: number, written: string): ASTRef => ({
+	kind: 'calls',
+	line,
+	written,
+	local: true
+});
 const base = (line: number, written: string, kind: 'inherits' | 'implements' = 'inherits') =>
 	({ kind, line, written, ownerLine: line }) as ASTRef;
 
@@ -458,6 +465,178 @@ describe('resolveRefs: languages without imports the resolver reads', () => {
 		expect(target(result, 'lib/cart.rb', 13, 'Fee.new')).toBe('unresolved');
 		expect(target(result, 'lib/cart.rb', 14, 'helper')).toBe('unresolved');
 		expect(reason(result, 'lib/cart.rb', 14)).toBe('no-definition');
+	});
+});
+
+describe('resolveRefs: names a function binds for itself', () => {
+	it('never takes a parameter or local for the import or declaration it shadows', () => {
+		// Arrange: `function run(next) { next() }` with `import { next }`, Python `def f(utils)`
+		const files = {
+			'src/steps.ts': { symbols: [fn('next', 10, 11)] },
+			'src/run.ts': {
+				imports: ["import { next } from './steps';"],
+				symbols: [fn('run', 10, 13)],
+				refs: [localCall(11, 'next'), call(12, 'next')]
+			},
+			'app/utils.py': { symbols: [fn('fetch', 10, 11)] },
+			'app/main.py': {
+				imports: ['from . import utils'],
+				symbols: [fn('run', 10, 13)],
+				refs: [localCall(11, 'utils.fetch'), call(12, 'utils.fetch')]
+			}
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(target(result, 'src/run.ts', 11, 'next')).toBe('unresolved');
+		expect(reason(result, 'src/run.ts', 11)).toBe('shadowed');
+		expect(target(result, 'src/run.ts', 12, 'next')).toBe('EXTRACTED src/steps.ts#next');
+		expect(target(result, 'app/main.py', 11, 'utils.fetch')).toBe('unresolved');
+		expect(target(result, 'app/main.py', 12, 'utils.fetch')).toBe('EXTRACTED app/utils.py#fetch');
+	});
+
+	it('reads a shadowed qualifier as a value of unknown type: its member by unique name at most', () => {
+		// Arrange: Go `model := …; model.Total()` beside `import "example.com/shop/model"`
+		const files = {
+			'go.mod': {},
+			'model/price.go': {
+				imports: ['package model'],
+				symbols: [fn('PriceOf', 10, 11), method('Total', 12, 13, 'Cart')]
+			},
+			'main.go': {
+				imports: ['package main', 'import "example.com/shop/model"'],
+				symbols: [fn('main', 10, 13)],
+				refs: [
+					localCall(11, 'model.PriceOf'),
+					localCall(12, 'model.Total'),
+					call(13, 'model.PriceOf')
+				]
+			}
+		};
+
+		// Act
+		const result = resolve(files, { 'go.mod': 'module example.com/shop\n' });
+
+		// Assert
+		expect(target(result, 'main.go', 11, 'model.PriceOf')).toBe('unresolved');
+		expect(target(result, 'main.go', 12, 'model.Total')).toBe('INFERRED model/price.go#Cart.Total');
+		expect(target(result, 'main.go', 13, 'model.PriceOf')).toBe('EXTRACTED model/price.go#PriceOf');
+	});
+});
+
+describe('resolveRefs: member scopes', () => {
+	it('keeps the members of two same-named nested classes of one file apart', () => {
+		// Arrange
+		const files = {
+			'shapes.py': {
+				symbols: [
+					cls('Circle', 10, 20, [
+						cls('Style', 11, 13, [method('apply', 12)]),
+						method('draw', 14, 15)
+					]),
+					cls('Square', 21, 30, [
+						cls('Style', 22, 24, [method('reset', 23)]),
+						method('draw', 25, 26)
+					])
+				],
+				refs: [call(15, 'Circle.Style.apply'), call(26, 'Square.Style.apply')]
+			}
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(target(result, 'shapes.py', 15, 'Circle.Style.apply')).toBe(
+			'EXTRACTED shapes.py#Circle.Style.apply'
+		);
+		expect(target(result, 'shapes.py', 26, 'Square.Style.apply')).toBe('unresolved');
+	});
+
+	it('runs a function nested in a method in the class of the method', () => {
+		// Arrange: TS `run() { const go = () => this.stop(); }` where the outline nests `go`
+		const files = {
+			'app.ts': {
+				symbols: [
+					cls('App', 10, 20, [
+						{ ...method('run', 11, 14), children: [fn('go', 12, 13)] } as ASTSymbol,
+						method('stop', 15)
+					])
+				],
+				refs: [call(13, 'this.stop')]
+			}
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(target(result, 'app.ts', 13, 'this.stop')).toBe('EXTRACTED app.ts#App.stop');
+	});
+
+	it('leaves a callable held in an attribute unbound, though one class has a method by that name', () => {
+		// Arrange: `self.on_done()` calls whatever was stored in `on_done`
+		const files = {
+			'jobs.py': {
+				symbols: [cls('Job', 10, 20, [method('run', 11, 13)])],
+				refs: [call(12, 'self.on_done')]
+			},
+			'hooks.py': { symbols: [cls('Hooks', 10, 12, [method('on_done', 11)])] }
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(target(result, 'jobs.py', 12, 'self.on_done')).toBe('unresolved');
+	});
+
+	it('reads Rust `self::f()` as a path in the module, not a method of `self`', () => {
+		// Arrange
+		const files = {
+			'src/lib.rs': {
+				symbols: [
+					fn('helper', 10, 11),
+					cls('Cart', 12, 12),
+					cls('Cart', 13, 16, [method('helper', 14, 14, 'Cart'), method('total', 15, 16, 'Cart')])
+				],
+				refs: [call(16, 'self::helper'), call(16, 'self.helper')]
+			}
+		};
+
+		// Act
+		const result = resolve(files, { 'Cargo.toml': '[package]\nname = "shop"\nedition = "2021"\n' });
+
+		// Assert
+		expect(target(result, 'src/lib.rs', 16, 'self::helper')).toBe('EXTRACTED src/lib.rs#helper');
+		expect(target(result, 'src/lib.rs', 16, 'self.helper')).toBe(
+			'EXTRACTED src/lib.rs#Cart.helper'
+		);
+	});
+
+	it('sees a Java package across source roots, as the `package` clause says', () => {
+		// Arrange
+		const files = {
+			'src/main/java/com/shop/Pricing.java': {
+				imports: ['package com.shop;'],
+				symbols: [cls('Pricing', 10, 12, [method('fee', 11)])]
+			},
+			'src/test/java/com/shop/PricingTest.java': {
+				imports: ['package com.shop;'],
+				symbols: [cls('PricingTest', 10, 14, [method('fees', 11, 13)])],
+				refs: [call(12, 'Pricing.fee')]
+			}
+		};
+
+		// Act
+		const result = resolve(files);
+
+		// Assert
+		expect(target(result, 'src/test/java/com/shop/PricingTest.java', 12, 'Pricing.fee')).toBe(
+			'EXTRACTED src/main/java/com/shop/Pricing.java#Pricing.fee'
+		);
 	});
 });
 

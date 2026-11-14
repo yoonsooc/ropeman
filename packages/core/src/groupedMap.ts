@@ -157,7 +157,31 @@ export function groupExtraction({ map, hierarchy, skipped }: Extraction, name: s
 }
 
 /** The evidence of one edge: EXTRACTED when any of its imports is, INFERRED otherwise. */
-function dependsOn(source: string, target: string, refs: RelationRef[]): MapEdge {
+/**
+ * How many call and class-base refs an edge cites. Every import stays (the naming prompt counts
+ * them); the references that back an edge after them are a sample, since a verifier checks each
+ * cited ref and a reader needs a few lines, not every call site.
+ */
+export const MAX_CITED_REFERENCES = 20;
+
+/**
+ * The refs an edge cites: its imports, then its other relations once per file pair and kind (the
+ * lowest line), at most MAX_CITED_REFERENCES of them.
+ */
+export function citedRefs(refs: readonly RelationRef[]): RelationRef[] {
+	const imports = refs.filter((r) => r.relation === 'imports_from');
+	const first = new Map<string, RelationRef>();
+	for (const ref of refs) {
+		if (ref.relation === 'imports_from') continue;
+		const key = `${ref.path}\n${ref.relation}\n${ref.toPath}`;
+		const seen = first.get(key);
+		if (!seen || ref.line < seen.line) first.set(key, ref);
+	}
+	return [...imports, ...[...first.values()].slice(0, MAX_CITED_REFERENCES)];
+}
+
+function dependsOn(source: string, target: string, all: RelationRef[]): MapEdge {
+	const refs = citedRefs(all);
 	const extracted = refs.filter((r): r is RelationRef<'EXTRACTED'> => r.confidence === 'EXTRACTED');
 	const inferred = refs.filter((r): r is RelationRef<'INFERRED'> => r.confidence === 'INFERRED');
 	const [first, ...rest] = extracted;

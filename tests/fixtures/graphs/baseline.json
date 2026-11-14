@@ -107,7 +107,7 @@
 	"poly-shop": {
 		"calls": {
 			"precision": 1,
-			"recall": 0.9394,
+			"recall": 0.9459,
 			"siteRecall": 1
 		},
 		"inherits": {

@@ -17,3 +17,7 @@ func Routes(s store.Store) http.Handler {
 func price(item Item) int {
 	return PriceOf(item)
 }
+
+func label(PriceOf func(Item) int, item Item) int {
+	return PriceOf(item)
+}

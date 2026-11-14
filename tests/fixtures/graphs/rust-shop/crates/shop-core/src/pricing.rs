@@ -40,3 +40,11 @@ impl Priced for Cart {
         self.count()
     }
 }
+
+fn total_twice(count: u32) -> u32 {
+    self::total(count) + self::total(count)
+}
+
+fn apply(total: fn(u32) -> u32) -> u32 {
+    total(1)
+}
