@@ -15,23 +15,31 @@ const geminiStyle = args.includes('--approval-mode');
 const stdin = fs.readFileSync(0, 'utf8');
 const prompt = geminiStyle ? args[args.indexOf('-p') + 1] : stdin;
 
-const callsDir = path.join(dir, 'calls');
-fs.mkdirSync(callsDir, { recursive: true });
-// Two runs that start together count the same files, so the first to create a number takes it
-let n = fs.readdirSync(callsDir).length;
-for (;;) {
+/**
+ * Writes `value` beside the folder and links it in as `<sub>/<n>.json`: a file created in place
+ * is empty until its write lands, and a polling test would parse it then. False when `n` is taken.
+ */
+function record(sub, n, value) {
+	const folder = path.join(dir, sub);
+	fs.mkdirSync(folder, { recursive: true });
+	const tmp = path.join(dir, `${sub}.${process.pid}.tmp`);
+	fs.writeFileSync(tmp, JSON.stringify(value));
 	try {
-		fs.writeFileSync(
-			path.join(callsDir, `${String(n).padStart(3, '0')}.json`),
-			JSON.stringify({ args, stdin, cwd: process.cwd(), pid: process.pid }),
-			{ flag: 'wx' }
-		);
-		break;
+		fs.linkSync(tmp, path.join(folder, `${String(n).padStart(3, '0')}.json`));
+		return true;
 	} catch (err) {
 		if (err.code !== 'EEXIST') throw err;
-		n++;
+		return false;
+	} finally {
+		fs.rmSync(tmp);
 	}
 }
+
+// Two runs that start together count the same files, so the first to link a number takes it
+const callsDir = path.join(dir, 'calls');
+fs.mkdirSync(callsDir, { recursive: true });
+let n = fs.readdirSync(callsDir).length;
+while (!record('calls', n, { args, stdin, cwd: process.cwd(), pid: process.pid })) n++;
 let plan = [];
 try {
 	plan = JSON.parse(fs.readFileSync(path.join(dir, 'plan.json'), 'utf8'));
@@ -53,12 +61,7 @@ function fork(stubborn) {
 	const code = `${stubborn ? "process.on('SIGTERM', () => {});" : ''}setInterval(() => {}, 1000);`;
 	// stdio ignored, like a daemon: closing the pipes says nothing about the grandchild
 	const grandchild = spawn(process.execPath, ['-e', code], { stdio: 'ignore' });
-	const forks = path.join(dir, 'grandchildren');
-	fs.mkdirSync(forks, { recursive: true });
-	fs.writeFileSync(
-		path.join(forks, `${String(n).padStart(3, '0')}.json`),
-		JSON.stringify({ pid: process.pid, grandchild: grandchild.pid })
-	);
+	record('grandchildren', n, { pid: process.pid, grandchild: grandchild.pid });
 	if (stubborn) process.on('SIGTERM', () => {});
 	setInterval(() => {}, 1000);
 }
