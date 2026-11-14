@@ -49,6 +49,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      # `/` must stay unbuilt so hooks.server.ts picks its language at the edge
+      - name: Check the landing build
+        run: node scripts/check-landing-build.mjs
+
       # The bundled Node extractor must run on its own, with the .wasm files it copies beside it
       - name: Build core and extract a fixture
         run: |

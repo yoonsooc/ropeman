@@ -89,6 +89,24 @@ describe('handle', () => {
 			expect(assets.fetch.mock.calls[0][0].headers.get('if-none-match')).toBe('"abc"');
 		});
 
+		it('asks for the whole page, never a slice or a date-based 304', async () => {
+			// Arrange
+			const { event, assets } = makeEvent('/', {
+				range: 'bytes=0-99',
+				'if-modified-since': 'Fri, 13 Nov 2026 00:00:00 GMT',
+				'accept-encoding': 'gzip, br'
+			});
+
+			// Act
+			await handle({ event, resolve: vi.fn() });
+
+			// Assert
+			const sent = assets.fetch.mock.calls[0][0].headers;
+			expect(sent.get('range')).toBeNull();
+			expect(sent.get('if-modified-since')).toBeNull();
+			expect(sent.get('accept-encoding')).toBe('gzip, br');
+		});
+
 		it('stays out of the prerendered files, so the edge keeps choosing', async () => {
 			// Arrange
 			environment.building = true;

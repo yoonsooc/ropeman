@@ -147,6 +147,46 @@ test.describe('in a Korean browser', () => {
 		await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
 	});
 
+	test('a Korean landing at `/` renames itself `/ko` in place, so a copied link stays Korean', async ({
+		page,
+		baseURL
+	}) => {
+		// Pages and data the app asks the server for, as opposed to its scripts and assets
+		const asked: string[] = [];
+		page.on('request', (r) => {
+			const local = r.url().startsWith(baseURL!);
+			if (local && ['document', 'fetch', 'xhr'].includes(r.resourceType())) asked.push(r.url());
+		});
+
+		await page.goto('/?ref=share#setup');
+		await waitForApp(page);
+
+		await expect(page).toHaveURL(/\/ko\?ref=share#setup$/);
+		expect(asked.map((url) => new URL(url).pathname + new URL(url).search)).toEqual([
+			'/?ref=share'
+		]);
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
+	});
+
+	test('picking English after the rename lands on `/` and stays there', async ({ page }) => {
+		await useSettings(page, {});
+		await page.goto('/');
+		await waitForApp(page);
+		await expect(page).toHaveURL(/\/ko$/);
+
+		await page.locator('header .lang-toggle').click();
+
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+		await page.waitForTimeout(500);
+		await expect(page).toHaveURL(/\/$/);
+
+		await page.reload();
+		await waitForApp(page);
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+	});
+
 	test('`/` serves the language picked in the app', async ({ page }) => {
 		await useSettings(page, {});
 		await page.goto('/');
@@ -181,7 +221,7 @@ test('a language saved before the cookie existed never shows the other language'
 
 	// The app wrote the cookie, so the next visit gets Korean from the first byte
 	await withoutAppScripts(page);
-	await page.reload();
+	await page.goto('/');
 	await expect(page.locator('#app')).toBeVisible();
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
 });
@@ -199,6 +239,14 @@ test('a saved language whose app never loads gets the served landing, not a blan
 
 	await expect(page.locator('#app')).toBeVisible();
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+});
+
+test('an English landing at `/` keeps its address', async ({ page }) => {
+	await page.goto('/');
+	await waitForApp(page);
+
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
+	await expect(page).toHaveURL(/\/$/);
 });
 
 test('`/ko` stays Korean over a saved English choice and leaves the choice alone', async ({

@@ -58,14 +58,21 @@ async function serveLanding(event: RequestEvent): Promise<Response> {
 	// `vite dev` has no built files and no ASSETS binding, and renders `/en` or `/ko` on request
 	const platform = event.platform as { env?: { ASSETS?: { fetch: typeof fetch } } } | undefined;
 	const assets = platform?.env?.ASSETS;
+	// Only the headers that shape a whole-page answer: a 304 for an unchanged file, compression.
+	// A Range or If-Modified-Since could get a slice, or a 304 that keeps the other language.
+	const headers = new Headers();
+	for (const name of ['if-none-match', 'accept-encoding']) {
+		const value = event.request.headers.get(name);
+		if (value) headers.set(name, value);
+	}
 	const landing = assets
-		? await assets.fetch(new Request(target, { headers: event.request.headers }))
+		? await assets.fetch(new Request(target, { headers }))
 		: await event.fetch(target);
 
-	const headers = new Headers(landing.headers);
+	const response = new Headers(landing.headers);
 	// The body depends on the visitor, so no shared cache may keep it under `/`. The adapter's
 	// worker would otherwise put a cacheable response in caches.default, keyed by URL alone.
-	headers.set('Cache-Control', 'private, no-cache');
-	headers.set('Vary', 'Accept-Language, Cookie');
-	return new Response(landing.body, { status: landing.status, headers });
+	response.set('Cache-Control', 'private, no-cache');
+	response.set('Vary', 'Accept-Language, Cookie');
+	return new Response(landing.body, { status: landing.status, headers: response });
 }

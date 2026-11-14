@@ -44,7 +44,7 @@
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { LANDING_PAGES, SHARE_IMAGE, SITE_URL } from '$lib/utils/landingPages';
 	import { parseLocale } from '$lib/utils/locale';
@@ -57,15 +57,26 @@
 		settingsStore.urlLanguage = urlLanguage();
 	});
 
-	// Picking a language on `/ko` or `/en` moves to `/`, which serves the saved choice
+	// The address names the language on screen, so a copied link previews in that language.
+	// Picking a language on `/ko` or `/en` moves to `/`, which serves the saved choice. A Korean
+	// landing at `/` (the edge picked it) renames itself `/ko`. Both stay on this route, which loads
+	// no data, so they change the address without a request. Not a shallow replaceState: that
+	// leaves page.url at `/`, and picking English on the renamed page would then keep `/ko`.
+	// goto waits for the router, which starts right after the first afterNavigate callbacks.
+	let routerStarted = $state(false);
+	afterNavigate(() => queueMicrotask(() => (routerStarted = true)));
 	$effect(() => {
+		if (!routerStarted) return;
 		const named = urlLanguage();
-		if (!named || named === i18nStore.locale) return;
-		goto(resolve('/'), {
-			replaceState: true,
-			noScroll: true,
-			keepFocus: true
-		});
+		const shown = i18nStore.locale;
+		const options = { replaceState: true, noScroll: true, keepFocus: true };
+		if (named && named !== shown) {
+			goto(resolve('/'), options);
+		} else if (!named && shown === 'ko') {
+			const ko = resolve('/[[lang=locale]]', { lang: 'ko' });
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- the path is resolved; the visitor's query and hash ride along
+			goto(`${ko}${page.url.search}${page.url.hash}`, options);
+		}
 	});
 
 	const landing = $derived(LANDING_PAGES[i18nStore.locale]);
@@ -357,7 +368,9 @@
 
 	onDestroy(() => {
 		analysisUiStore.clearActionHandlers();
-		// Also runs after each server render, so the next prerendered page starts without it
+		// Svelte's server render is synchronous and runs onDestroy at its end, so the value set at
+		// the top of this component never reaches another page's render, whatever the prerender
+		// concurrency. Async server rendering (`experimental.async`) would break that.
 		settingsStore.urlLanguage = null;
 	});
 
