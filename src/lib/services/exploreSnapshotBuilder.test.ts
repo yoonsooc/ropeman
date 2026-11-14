@@ -11,7 +11,7 @@ import {
 	translationFromList,
 	translationSource
 } from './exploreSnapshotBuilder';
-import { validateSnapshot } from './exploreService';
+import { validateSnapshot, type SnapshotTranslation } from './exploreService';
 import { MAX_BODY_SIZE } from '../../../edge-proxy/src/explore.limits';
 
 const FIXTURE = fileURLToPath(
@@ -26,7 +26,7 @@ const KO = {
 	'sem:ui': { label: '화면', description: '상점 화면을 그린다.' }
 };
 
-function build(ko = KO) {
+function build(ko: SnapshotTranslation = KO) {
 	return buildExploreSnapshot(map(), { owner: 'acme', repo: 'shop', commit: COMMIT, ko });
 }
 
