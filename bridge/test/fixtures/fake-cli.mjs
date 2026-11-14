@@ -23,15 +23,15 @@ function record(sub, n, value) {
 	const folder = path.join(dir, sub);
 	fs.mkdirSync(folder, { recursive: true });
 	const tmp = path.join(dir, `${sub}.${process.pid}.tmp`);
-	fs.writeFileSync(tmp, JSON.stringify(value));
 	try {
+		fs.writeFileSync(tmp, JSON.stringify(value));
 		fs.linkSync(tmp, path.join(folder, `${String(n).padStart(3, '0')}.json`));
 		return true;
 	} catch (err) {
 		if (err.code !== 'EEXIST') throw err;
 		return false;
 	} finally {
-		fs.rmSync(tmp);
+		fs.rmSync(tmp, { force: true });
 	}
 }
 

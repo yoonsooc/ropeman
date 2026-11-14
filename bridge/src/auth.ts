@@ -67,6 +67,18 @@ export function defaultTokenFile(): string {
 	return path.join(os.homedir(), '.ropeman', 'bridge-token');
 }
 
+/** The token a file holds, trimmed; empty when there is no file or it holds none. */
+function storedToken(tokenFile: string): string {
+	try {
+		return fs.readFileSync(tokenFile, 'utf8').trim();
+	} catch {
+		return '';
+	}
+}
+
+/** link() fails with these where the file system has no hard links (FAT, some network shares). */
+const NO_HARD_LINKS = new Set(['EPERM', 'ENOTSUP', 'ENOSYS', 'EOPNOTSUPP']);
+
 /**
  * Precedence: `--token`, then the environment, then a token file kept across restarts so the
  * browser does not need a new token every run. The file is kept owner-only. Throws when a given
@@ -86,12 +98,7 @@ export function resolveToken(
 		return given;
 	}
 
-	let stored = '';
-	try {
-		stored = fs.readFileSync(tokenFile, 'utf8').trim();
-	} catch {
-		/* no token yet */
-	}
+	const stored = storedToken(tokenFile);
 	if (stored) {
 		// The mode option only applies when a file is created, so tighten a file made another way.
 		try {
@@ -101,8 +108,30 @@ export function resolveToken(
 		}
 		return stored;
 	}
+	// Bridges that start together all find no token. The token is written whole beside the file
+	// and linked in, which fails when another start linked first, so each one keeps the token
+	// the file holds and no start reads a half-written file.
 	const token = randomBytes(24).toString('base64url');
 	fs.mkdirSync(path.dirname(tokenFile), { recursive: true, mode: 0o700 });
-	fs.writeFileSync(tokenFile, token + '\n', { mode: 0o600 });
-	return token;
+	const tmp = `${tokenFile}.${process.pid}.tmp`;
+	fs.rmSync(tmp, { force: true });
+	try {
+		fs.writeFileSync(tmp, `${token}\n`, { flag: 'wx', mode: 0o600 });
+		try {
+			fs.linkSync(tmp, tokenFile);
+			return token;
+		} catch (err) {
+			const code = (err as NodeJS.ErrnoException).code ?? '';
+			if (code === 'EEXIST') {
+				const winner = storedToken(tokenFile);
+				if (winner) return winner;
+			} else if (!NO_HARD_LINKS.has(code)) throw err;
+		}
+		// An empty file, or no hard links: replaced whole, so a start racing this one can keep
+		// a token the file no longer holds
+		fs.renameSync(tmp, tokenFile);
+		return token;
+	} finally {
+		fs.rmSync(tmp, { force: true });
+	}
 }

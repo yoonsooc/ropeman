@@ -594,7 +594,7 @@ Bridge(`ropeman serve`)는 로컬 CLI를 실행하고 `--root` 아래 파일을 
 - `127.0.0.1`에만 바인딩한다.
 - `Host` 헤더가 `127.0.0.1:{port}`나 `localhost:{port}`여야 한다. 소켓 연결과 모든 HTTP 요청에 똑같이 적용한다. 공격자가 자기 도메인을 127.0.0.1로 돌려도(DNS 리바인딩) Host에는 그 도메인이 실리므로 거부된다.
 - Origin 허용 목록을 확인한다. 기본은 `https://ropeman.dev`과 로컬 개발 서버이고, `--allow-origin`으로 더할 수 있다.
-- 소켓 URL의 `?token=`을 확인한다. 토큰은 `--token`, `ROPEMAN_BRIDGE_TOKEN`, `~/.ropeman/bridge-token` 순서로 정한다. 직접 준 토큰이 16자보다 짧으면 시작하지 않는다. 토큰 파일은 시작할 때마다 0600으로 맞춘다.
+- 소켓 URL의 `?token=`을 확인한다. 토큰은 `--token`, `ROPEMAN_BRIDGE_TOKEN`, `~/.ropeman/bridge-token` 순서로 정한다. 직접 준 토큰이 16자보다 짧으면 시작하지 않는다. 토큰 파일은 시작할 때마다 0600으로 맞춘다. 파일이 없으면 새 토큰을 임시 파일에 다 쓴 뒤 하드 링크로 제 이름에 넣는다. 동시에 시작한 bridge 중 먼저 넣은 쪽이 이기고 나머지는 EEXIST를 받아 파일의 토큰을 쓰므로, 모두 같은 토큰으로 돌고 반쯤 쓴 파일을 읽지 않는다. 하드 링크가 없는 파일 시스템과 비어 있는 파일은 rename으로 바꾼다.
 
 클라이언트(`bridgeClient.ts`)는 `ws://127.0.0.1:{port}/?token=`으로 연결한다. CLI는 serve를 띄울 때 정하고(`--cli`, 없으면 자동 감지), 클라이언트는 고를 수 없다. 토큰은 ropeman.dev에서는 메모리에만, 로컬 모드에서는 그 탭의 `sessionStorage`에만 둔다(`bridgeSession.ts`). 지운 트랙이 `localStorage`(`ropeman-settings`)에 남긴 `bridgeToken`·`bridgeCli`는 `settingsStore`가 처음 읽을 때 지운다.
 
