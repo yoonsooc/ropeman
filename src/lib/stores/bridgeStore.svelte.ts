@@ -15,6 +15,7 @@ import {
 import { toViewerLevel, toViewerLevels } from '$lib/services/mapViewer';
 import {
 	RESERVED_NODE_ID,
+	awaitsNames,
 	type MapLevel,
 	type NAMING_CODES,
 	type RopemanMap,
@@ -87,7 +88,7 @@ function createBridgeStore() {
 	/** Caches the level serve sent for `node` and notes whether its names are still coming. */
 	function cacheExpansion(node: SemanticNode, level: MapLevel) {
 		semanticStore.setCachedLevel(node.id, toViewerLevel(level, node.depth + 1, node.label));
-		setNaming(node.id, level.naming === 'grouped' ? { state: 'pending' } : null);
+		setNaming(node.id, awaitsNames(level) ? { state: 'pending' } : null);
 	}
 
 	/** Puts a fresh map in the store and walks the user's drilldown path back into it. */

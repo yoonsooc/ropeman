@@ -35,7 +35,7 @@ ropeman map --root REPO --out OUT
 
 It prints a JSON report on stdout and progress on stderr. About 10 seconds for 6,000 files. Exit code 0 means no problems, 1 means `problems` lists some, 2 means bad arguments (read stderr).
 
-Report fields: `stages` (levels and named levels per depth), `problems`, `next` (what is left to name, or null), `done`, `coverage`, `verification`. Stages go two deep; add `--depth 3` when the user wants one more stage named up front.
+Report fields: `stages` (levels and named levels per depth), `problems`, `next` (what is left to name, or null), `done`, `coverage`, `verification`, `fileLevels` (the levels that show the files of one folder and the imports among them; you never name these). Stages go two deep; add `--depth 3` when the user wants one more stage named up front.
 
 ## 4. Name one stage
 
@@ -105,6 +105,7 @@ From the last `ropeman map` report, tell the user:
 
 - Coverage: `listed` files, `inMap`, the counts in `byReason` (`sent` is in the map, the rest were skipped, with the reason) and a few `skippedExamples`. `noGrammar` counts files in no language Ropeman parses (docs, images, data). Folders such as `node_modules`, build output and hidden folders are not walked.
 - The top-level parts with their labels.
+- If `fileLevels.dropped` is above 0: that many folders' file levels were left out to keep the map under 16 MiB; the viewer still opens them while serve runs.
 - The path of `OUT/ropeman.json`.
 
 ## 9. Open the map

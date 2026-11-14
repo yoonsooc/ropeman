@@ -225,6 +225,55 @@ describe('parseRopemanMap', () => {
 		});
 	});
 
+	describe('file level', () => {
+		it('reads the flag on a level of one-file nodes and leaves it off every other level', () => {
+			const map = fixture();
+			map.levels[1].fileLevel = true;
+
+			const result = parseRopemanMap(JSON.stringify(map));
+
+			expect(result.ok).toBe(true);
+			if (!result.ok) return;
+			expect(result.value.levels[1].fileLevel).toBe(true);
+			expect(result.value.levels[0]).not.toHaveProperty('fileLevel');
+		});
+
+		it('reads false like a level without the flag', () => {
+			const map = fixture();
+			map.levels[1].fileLevel = false;
+
+			const result = parseRopemanMap(JSON.stringify(map));
+
+			expect(result.ok && result.value.levels[1]).not.toHaveProperty('fileLevel');
+		});
+
+		it.each([
+			[
+				'a flag that is not a boolean',
+				(m: Draft) => (m.levels[1].fileLevel = 'yes'),
+				'levels[1].fileLevel'
+			],
+			[
+				'a named file level',
+				(m: Draft) => Object.assign(m.levels[0], { fileLevel: true }),
+				'levels[0].naming'
+			],
+			[
+				'a node of two files',
+				(m: Draft) => {
+					m.levels[1].fileLevel = true;
+					m.levels[1].nodes[1].filePaths.push('src/api/routes.ts');
+				},
+				'levels[1].nodes[1].filePaths'
+			]
+		])('refuses %s', (_, breakIt, at) => {
+			const map = fixture();
+			breakIt(map);
+
+			expect(rejection(parseRopemanMap(JSON.stringify(map)))).toEqual({ code: 'invalid', at });
+		});
+	});
+
 	it('keeps keys like __proto__ as data and builds plain objects', () => {
 		const text = fixtureText.replace(
 			'"label": "HTTP API",',

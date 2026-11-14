@@ -1,4 +1,5 @@
-import type { CodeMap, FilePath, RelationRef } from '$lib/types/codeMap';
+import type { CodeMap, RelationRef } from '$lib/types/codeMap';
+import { fileRelations } from '$lib/services/codeRelations';
 import type { FileCoverage } from '$lib/types/coverage';
 import type { HierarchyGroup } from '$lib/services/hierarchySummary';
 import type { MapEdge, MapLevel, MapNode } from '$lib/types/ropemanMap';
@@ -9,13 +10,17 @@ import type { Extraction } from './extract';
  * per folder, each edge backed by the imports between its two parts. A node id names the folder
  * part it holds (`dir:<path>` for a subfolder, `files:<path>` for the files directly in a
  * folder), so any level is rebuilt from the id alone and stays the same across extractions of
- * the same tree.
+ * the same tree. A `files:` node with two or more files expands to a file level: one
+ * `file:<path>` node per file and the imports between them, which no folder level can show.
  */
 export interface GroupedMap {
 	/** Every file the extraction saw, with where it ended up */
 	files: FileCoverage[];
 	top: MapLevel;
-	/** The level that expands `nodeId`, or null when the id names no subfolder of the map */
+	/**
+	 * The level that expands `nodeId`: a folder level for a `dir:` node, a file level for a
+	 * `files:` node with two or more files, null for any other id
+	 */
 	expand(nodeId: string): MapLevel | null;
 	/** The node whose level holds `nodeId`: null for a top-level node, undefined for no node */
 	parentOf(nodeId: string): string | null | undefined;
@@ -27,9 +32,11 @@ export interface GroupedMap {
 
 const DIR = 'dir:';
 const FILES = 'files:';
+const FILE = 'file:';
 
 export const dirNodeId = (folder: string) => `${DIR}${folder}`;
 const filesNodeId = (folder: string) => `${FILES}${folder || '.'}`;
+const fileNodeId = (path: string) => `${FILE}${path}`;
 const filesFolder = (nodeId: string) => {
 	const folder = nodeId.slice(FILES.length);
 	return folder === '.' ? '' : folder;
@@ -68,7 +75,7 @@ export function groupExtraction({ map, hierarchy, skipped }: Extraction, name: s
 		return group && group.path !== '' ? under(group) : [];
 	};
 
-	const refsByLink = importRefs(map);
+	const { byLink: refsByLink, byFolder: refsByFolder } = importRefs(map);
 	const partId = (group: HierarchyGroup, part: string) =>
 		part === group.path ? filesNodeId(group.path) : dirNodeId(part);
 
@@ -89,26 +96,37 @@ export function groupExtraction({ map, hierarchy, skipped }: Extraction, name: s
 				keySymbols: []
 			});
 		}
-		const edges: MapEdge[] = group.links.map((link) => {
-			const refs = refsByLink.get(`${group.path}\n${link.from}\n${link.to}`) ?? [];
-			const extracted = refs.filter(
-				(r): r is RelationRef<'EXTRACTED'> => r.confidence === 'EXTRACTED'
-			);
-			const inferred = refs.filter(
-				(r): r is RelationRef<'INFERRED'> => r.confidence === 'INFERRED'
-			);
-			const [first, ...rest] = extracted;
-			return {
-				source: partId(group, link.from),
-				target: partId(group, link.to),
-				type: 'depends_on',
-				label: null,
-				evidence: first
-					? { confidence: 'EXTRACTED', refs: [first, ...rest] }
-					: { confidence: 'INFERRED', refs: inferred }
-			};
-		});
+		const edges = group.links.map((link) =>
+			dependsOn(
+				partId(group, link.from),
+				partId(group, link.to),
+				refsByLink.get(`${group.path}\n${link.from}\n${link.to}`) ?? []
+			)
+		);
 		return { parentId, naming: 'grouped', nodes, edges, assignment: null };
+	};
+
+	const fileLevel = (nodeId: string): MapLevel | null => {
+		const folder = filesFolder(nodeId);
+		const paths = own.get(folder) ?? [];
+		if (paths.length < 2) return null;
+		const pairs = refsByFolder.get(folder) ?? new Map<string, RelationRef[]>();
+		return {
+			parentId: nodeId,
+			naming: 'grouped',
+			nodes: paths.map((path) => ({
+				id: fileNodeId(path),
+				label: baseName(path),
+				description: '',
+				filePaths: [path],
+				keySymbols: []
+			})),
+			edges: [...pairs.values()].map((refs) =>
+				dependsOn(fileNodeId(refs[0].path), fileNodeId(refs[0].toPath), refs)
+			),
+			assignment: null,
+			fileLevel: true
+		};
 	};
 
 	const subfolder = (nodeId: string): HierarchyGroup | undefined => {
@@ -121,6 +139,7 @@ export function groupExtraction({ map, hierarchy, skipped }: Extraction, name: s
 		files,
 		top: levelOf(hierarchy, null),
 		expand: (nodeId) => {
+			if (nodeId.startsWith(FILES)) return fileLevel(nodeId);
 			const group = subfolder(nodeId);
 			return group ? levelOf(group, nodeId) : null;
 		},
@@ -136,38 +155,55 @@ export function groupExtraction({ map, hierarchy, skipped }: Extraction, name: s
 	};
 }
 
+/** The evidence of one edge: EXTRACTED when any of its imports is, INFERRED otherwise. */
+function dependsOn(source: string, target: string, refs: RelationRef[]): MapEdge {
+	const extracted = refs.filter((r): r is RelationRef<'EXTRACTED'> => r.confidence === 'EXTRACTED');
+	const inferred = refs.filter((r): r is RelationRef<'INFERRED'> => r.confidence === 'INFERRED');
+	const [first, ...rest] = extracted;
+	return {
+		source,
+		target,
+		type: 'depends_on',
+		label: null,
+		evidence: first
+			? { confidence: 'EXTRACTED', refs: [first, ...rest] }
+			: { confidence: 'INFERRED', refs: inferred }
+	};
+}
+
 /**
- * Every import resolved to one file, keyed by the folder whose two parts it joins, the way
- * `summarizeHierarchy` counts its links.
+ * Every relation resolved to one file. `byLink` keys one between two parts of a folder by that
+ * folder and the parts, the way `summarizeHierarchy` counts its links. `byFolder` keeps one
+ * between two files of the same folder, which no part link holds, by folder then file pair.
  */
-function importRefs(map: CodeMap): Map<string, RelationRef[]> {
+function importRefs(map: CodeMap): {
+	byLink: Map<string, RelationRef[]>;
+	byFolder: Map<string, Map<string, RelationRef[]>>;
+} {
 	const byLink = new Map<string, RelationRef[]>();
-	for (const [path, record] of map.files) {
-		for (const site of record.imports) {
-			const { module } = site;
-			if (module.state !== 'bound' || module.candidates.length !== 1) continue;
-			const [{ to, provenance }] = module.candidates;
-			if (to.kind !== 'file') continue;
-			const from = dirOf(path).split('/').filter(Boolean);
-			const toDir = dirOf(to.path).split('/').filter(Boolean);
-			let shared = 0;
-			while (shared < from.length && shared < toDir.length && from[shared] === toDir[shared])
-				shared++;
-			const at = from.slice(0, shared).join('/');
-			const part = (segments: string[]) =>
-				segments.length > shared ? segments.slice(0, shared + 1).join('/') : at;
-			if (part(from) === part(toDir)) continue;
-			const key = `${at}\n${part(from)}\n${part(toDir)}`;
-			const refs = byLink.get(key) ?? [];
-			refs.push({
-				path: path as FilePath,
-				line: site.line,
-				relation: 'imports_from',
-				toPath: to.path,
-				confidence: provenance.confidence
-			});
-			byLink.set(key, refs);
+	const byFolder = new Map<string, Map<string, RelationRef[]>>();
+	for (const ref of fileRelations(map)) {
+		const from = dirOf(ref.path).split('/').filter(Boolean);
+		const toDir = dirOf(ref.toPath).split('/').filter(Boolean);
+		let shared = 0;
+		while (shared < from.length && shared < toDir.length && from[shared] === toDir[shared])
+			shared++;
+		const at = from.slice(0, shared).join('/');
+		const part = (segments: string[]) =>
+			segments.length > shared ? segments.slice(0, shared + 1).join('/') : at;
+		if (part(from) !== part(toDir)) {
+			append(byLink, `${at}\n${part(from)}\n${part(toDir)}`, ref);
+		} else if (ref.toPath !== ref.path) {
+			// Parts match only when both files sit directly in `at`
+			if (!byFolder.has(at)) byFolder.set(at, new Map());
+			append(byFolder.get(at)!, `${ref.path}\n${ref.toPath}`, ref);
 		}
 	}
-	return byLink;
+	return { byLink, byFolder };
+}
+
+function append<K, V>(lists: Map<K, V[]>, key: K, value: V) {
+	const list = lists.get(key);
+	if (list) list.push(value);
+	else lists.set(key, [value]);
 }

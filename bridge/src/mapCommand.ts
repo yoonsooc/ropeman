@@ -120,17 +120,51 @@ export interface MapReport {
 
 const SKIPPED_EXAMPLES = 20;
 
-function slotsOf(grouped: GroupedMap): Slot[] {
+/** The folder levels the agent names, and the file levels below them, which stay grouped. */
+function slotsOf(grouped: GroupedMap): { slots: Slot[]; fileLevels: MapLevel[] } {
 	const slots: Slot[] = [];
+	const fileLevels: MapLevel[] = [];
 	const visit = (level: MapLevel, depth: number, folder: string) => {
 		slots.push({ parentId: level.parentId, depth, folder, grouped: level });
 		for (const node of level.nodes) {
 			const child = grouped.expand(node.id);
-			if (child) visit(child, depth + 1, grouped.group(node.id)!.path);
+			if (child?.fileLevel) fileLevels.push(child);
+			else if (child) visit(child, depth + 1, grouped.group(node.id)!.path);
 		}
 	};
 	visit(grouped.top, 1, '');
-	return slots;
+	return { slots, fileLevels };
+}
+
+/**
+ * The text of `map` that fits `maxBytes`: the whole map, or the map without its largest file
+ * levels, dropped one at a time (ties by node id) until it fits. A dropped file level is still
+ * one `node.expand` away in serve. null when the folder levels alone are over.
+ */
+export function fitMap(
+	map: RopemanMap,
+	maxBytes: number
+): { text: string; dropped: MapLevel[] } | null {
+	const whole = JSON.stringify(map);
+	let size = Buffer.byteLength(whole);
+	if (size <= maxBytes) return { text: whole, dropped: [] };
+	// One level and the comma beside it: the top level is always there, so every file level has one
+	const sized = map.levels
+		.filter((l) => l.fileLevel)
+		.map((level) => ({ level, bytes: Buffer.byteLength(JSON.stringify(level)) + 1 }))
+		.sort((a, b) => b.bytes - a.bytes || (a.level.parentId! < b.level.parentId! ? -1 : 1));
+	const dropped: MapLevel[] = [];
+	for (const { level, bytes } of sized) {
+		if (size <= maxBytes) break;
+		dropped.push(level);
+		size -= bytes;
+	}
+	if (size > maxBytes) return null;
+	const left = new Set(dropped);
+	return {
+		text: JSON.stringify({ ...map, levels: map.levels.filter((l) => !left.has(l)) }),
+		dropped
+	};
 }
 
 /** `names.json` as read from the output folder; null when the agent has not written one yet. */
@@ -253,7 +287,7 @@ export function buildNamedMap(input: {
 	const { extraction, project, names, depth } = input;
 	const codeMap: CodeMap = extraction.map;
 	const grouped = groupExtraction(extraction, project);
-	const slots = slotsOf(grouped);
+	const { slots, fileLevels } = slotsOf(grouped);
 	const problems: Problem[] = [...input.nameProblems];
 
 	const known = new Set(slots.flatMap((s) => s.grouped.nodes.map((n) => n.id)));
@@ -269,11 +303,14 @@ export function buildNamedMap(input: {
 	}
 
 	const states = slots.map((slot) => stateOf(slot, names));
-	const levels = () =>
-		slots.map((slot, i) => {
+	// File levels follow the folder levels, so a verifier violation's index still finds its slot
+	const levels = () => [
+		...slots.map((slot, i) => {
 			const state = states[i];
 			return state.kind === 'named' ? state.level : slot.grouped;
-		});
+		}),
+		...fileLevels
+	];
 	const reject = (i: number, found: Problem[]) => {
 		states[i] = { kind: 'rejected', problems: found };
 	};
@@ -402,6 +439,8 @@ export interface CommandEnv {
 	out: (text: string) => void;
 	err: (text: string) => void;
 	now?: () => Date;
+	/** The size `ropeman.json` must fit; MAX_MAP_BYTES unless a test sets a smaller one */
+	maxMapBytes?: number;
 }
 
 class UsageError extends Error {}
@@ -500,8 +539,12 @@ function existingOutFolder(value: string | undefined, usage: string): string {
 		throw new UsageError(`--out ${value} does not exist; run ropeman map first.`);
 	}
 	const map = fs.statSync(real).isDirectory() ? readOutFile(real, MAP_FILE, MAX_MAP_BYTES) : null;
-	if (!map || !('text' in map)) {
-		throw new UsageError(`--out ${value} has no ${MAP_FILE}; run ropeman map first.`);
+	if (!map) throw new UsageError(`--out ${value} has no ${MAP_FILE}; run ropeman map first.`);
+	if ('refused' in map) throw new UsageError(`--out ${value}: ${map.refused}`);
+	if (map.cut) {
+		throw new UsageError(
+			`--out ${value}: ${MAP_FILE} is over ${MAX_MAP_BYTES} bytes, more than Ropeman reads; run ropeman map again.`
+		);
 	}
 	return real;
 }
@@ -555,13 +598,31 @@ export async function runMap(args: string[], env: CommandEnv): Promise<number> {
 		generator: env.generator,
 		generatedAt: (env.now?.() ?? new Date()).toISOString()
 	});
+	const maxBytes = env.maxMapBytes ?? MAX_MAP_BYTES;
+	const fitted = fitMap(built.map, maxBytes);
+	if (!fitted) {
+		throw new Error(
+			`The map is over ${maxBytes} bytes even without its file levels, more than a viewer opens; ${MAP_FILE} was not written.`
+		);
+	}
+	const written = built.map.levels.filter((l) => l.fileLevel).length - fitted.dropped.length;
+	const fileLevels = {
+		written,
+		dropped: fitted.dropped.length,
+		droppedExamples: fitted.dropped.slice(0, SKIPPED_EXAMPLES).map((l) => l.parentId)
+	};
+	if (fitted.dropped.length > 0) {
+		env.err(
+			`${MAP_FILE} would be over ${maxBytes} bytes, so it leaves out the ${fitted.dropped.length} largest file levels; serve still opens them.`
+		);
+	}
 	const mapPath = path.join(out, MAP_FILE);
 	const workPath = path.join(out, WORK_FILE);
-	writeAtomic(mapPath, JSON.stringify(built.map));
+	writeAtomic(mapPath, fitted.text);
 	writeAtomic(workPath, workText(built.work));
 	env.out(
 		JSON.stringify(
-			{ ...built.report, files: { map: mapPath, work: workPath, names: namesPath } },
+			{ ...built.report, fileLevels, files: { map: mapPath, work: workPath, names: namesPath } },
 			null,
 			1
 		)

@@ -2,7 +2,7 @@
  * Turns a verified `ropeman.json` into the Explore gallery snapshot, with the Korean side map
  * next to the English levels. Run by `scripts/explore/pipeline.mjs`, never by the app.
  */
-import type { MapLevel, RopemanMap } from '$lib/types/ropemanMap';
+import { awaitsNames, type MapLevel, type RopemanMap } from '$lib/types/ropemanMap';
 import { parseRopemanMap } from './ropemanMapSchema';
 import { toViewerLevels } from './mapViewer';
 import {
@@ -42,17 +42,22 @@ const levelDepths = (map: RopemanMap): Map<MapLevel, number> => {
 	return depths;
 };
 
-/** Levels the agent should have named but left grouped by folder; empty when it named them all. */
+/**
+ * Levels the agent should have named but left grouped by folder; empty when it named them all.
+ * A file level is never named, so it is never a gap.
+ */
 export function namingGaps(map: RopemanMap, stages = DEFAULT_STAGES): string[] {
 	return [...levelDepths(map)]
-		.filter(([level, depth]) => depth < stages && level.naming !== 'named')
+		.filter(([level, depth]) => depth < stages && awaitsNames(level))
 		.map(([level, depth]) => `stage ${depth + 1} level ${level.parentId ?? 'top'} is not named`);
 }
 
 /**
- * The map has no level below a `files:` node (the files directly in one folder), so the viewer
- * would call it "not in snapshot". The snapshot gives each such node with several files a level
- * of one node per file, which opens the file the way a one-file node does.
+ * A map from bridge 0.3.1 or older has no level below a `files:` node (the files directly in one
+ * folder), so the viewer would call it "not in snapshot". A newer map carries that level, with
+ * the imports between the files, and the snapshot keeps it as it is. For the older map the
+ * snapshot gives each several-file node without a level one node per file and no relations,
+ * which opens each file the way a one-file node does.
  */
 function withFileLevels(map: RopemanMap): RopemanMap {
 	const expanded = new Set(map.levels.map((l) => l.parentId));
@@ -65,6 +70,7 @@ function withFileLevels(map: RopemanMap): RopemanMap {
 				naming: 'grouped',
 				edges: [],
 				assignment: null,
+				fileLevel: true,
 				nodes: n.filePaths.map((path) => ({
 					id: `file:${path}`,
 					label: path.slice(path.lastIndexOf('/') + 1),
