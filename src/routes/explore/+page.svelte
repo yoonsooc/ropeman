@@ -128,8 +128,12 @@
 </div>
 
 <style>
+	/* Global CSS pins html and body with overflow hidden for the app canvas, so the
+	   gallery scrolls inside its own box (the sticky header sticks to it) */
 	.explore-page {
-		min-height: 100vh;
+		height: 100vh;
+		height: 100dvh;
+		overflow-y: auto;
 		background: var(--color-background-body);
 		color: var(--color-text-primary);
 		display: flex;

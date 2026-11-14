@@ -24,6 +24,8 @@ export interface CuratedEntry {
 	/** Korean description, shown when the UI locale is ko */
 	descriptionKo?: string;
 	stars?: string;
+	/** Commit the snapshot was analyzed at, so its files open as they were then */
+	ref?: string;
 }
 
 export interface CuratedManifest {
@@ -75,7 +77,8 @@ export function validateManifest(data: unknown): CuratedManifest | null {
 				language: e.language,
 				description: e.description,
 				descriptionKo: typeof e.descriptionKo === 'string' ? e.descriptionKo : undefined,
-				stars: typeof e.stars === 'string' ? e.stars : undefined
+				stars: typeof e.stars === 'string' ? e.stars : undefined,
+				ref: typeof e.ref === 'string' ? e.ref : undefined
 			});
 		}
 	}
@@ -232,5 +235,60 @@ export async function fetchExploreSnapshot(slug: string): Promise<FetchSnapshotR
 			status: 'not-analyzed',
 			message: 'This project has not been analyzed yet.'
 		};
+	}
+}
+
+/** Where a snapshot's files live on GitHub */
+export interface ExploreSource {
+	owner: string;
+	repo: string;
+	ref: string;
+	/** What snapshot paths carry in front of the repository path: `react/` or nothing */
+	pathPrefix: string;
+}
+
+/**
+ * The GitHub loader names every file `<repo>/<path>`, but a snapshot may also hold
+ * repository paths as they are (tokio's `tokio-util/src/...`), so the prefix is dropped
+ * only when every path has it.
+ */
+export function exploreSource(entry: CuratedEntry, snapshot: ExploreSnapshot): ExploreSource {
+	const prefix = `${entry.repo}/`;
+	const paths = Object.values(snapshot.semanticLevels).flatMap((level) =>
+		level.nodes.flatMap((node) => node.filePaths ?? [])
+	);
+	const prefixed = paths.length > 0 && paths.every((p) => p.startsWith(prefix));
+	return {
+		owner: entry.owner,
+		repo: entry.repo,
+		ref: entry.ref ?? 'HEAD',
+		pathPrefix: prefixed ? prefix : ''
+	};
+}
+
+export function exploreFileUrl(source: ExploreSource, path: string, view: 'raw' | 'blob'): string {
+	const repoPath = path.startsWith(source.pathPrefix) ? path.slice(source.pathPrefix.length) : path;
+	const encoded = repoPath.split('/').map(encodeURIComponent).join('/');
+	const { owner, repo, ref } = source;
+	return view === 'raw'
+		? `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${encoded}`
+		: `https://github.com/${owner}/${repo}/blob/${ref}/${encoded}`;
+}
+
+export type ExploreFileResult =
+	| { ok: true; content: string }
+	| { ok: false; status: number | null };
+
+/** Reads one snapshot file from GitHub. `status` is null when the request never got an answer. */
+export async function fetchExploreFile(
+	source: ExploreSource,
+	path: string
+): Promise<ExploreFileResult> {
+	try {
+		const res = await fetch(exploreFileUrl(source, path, 'raw'));
+		if (!res.ok) return { ok: false, status: res.status };
+		return { ok: true, content: await res.text() };
+	} catch {
+		return { ok: false, status: null };
 	}
 }

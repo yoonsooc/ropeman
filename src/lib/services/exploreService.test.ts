@@ -7,6 +7,9 @@ import {
 	listLanguages,
 	fetchExploreSnapshot,
 	uploadExploreSnapshot,
+	exploreSource,
+	exploreFileUrl,
+	fetchExploreFile,
 	getCuratedManifest,
 	type CuratedEntry,
 	type ExploreSnapshot
@@ -387,9 +390,120 @@ describe('getCuratedManifest', () => {
 		}
 	});
 
+	// Files open from the commit the snapshot was analyzed at; HEAD has moved or deleted
+	// most of FastAPI's docs_src files since (174 of 206 were 404 on 2026-11-14)
+	it('every entry pins the commit its snapshot was analyzed at', () => {
+		for (const e of getCuratedManifest().entries) {
+			expect(e.ref, e.slug).toMatch(/^[0-9a-f]{40}$/);
+		}
+	});
+
 	it('slugs are unique', () => {
 		const m = getCuratedManifest();
 		const slugs = m.entries.map((e) => e.slug);
 		expect(new Set(slugs).size).toBe(slugs.length);
+	});
+});
+
+function snapshotWithPaths(paths: string[][]): ExploreSnapshot {
+	const semanticLevels: ExploreSnapshot['semanticLevels'] = {};
+	paths.forEach((filePaths, i) => {
+		semanticLevels[`level-${i}`] = {
+			parentId: null,
+			breadcrumbLabel: 'x',
+			edges: [],
+			nodes: [{ filePaths }]
+		} as unknown as ExploreSnapshot['semanticLevels'][string];
+	});
+	return { projectName: 'x', semanticLevels };
+}
+
+const REACT_ENTRY: CuratedEntry = { ...SAMPLE_ENTRIES[0], ref: 'abc123' };
+
+describe('exploreSource', () => {
+	it('drops the repo prefix when every snapshot path carries it', () => {
+		const snapshot = snapshotWithPaths([
+			['react/packages/react/index.js'],
+			['react/packages/react-dom/client.js']
+		]);
+
+		const source = exploreSource(REACT_ENTRY, snapshot);
+
+		expect(source).toEqual({
+			owner: 'facebook',
+			repo: 'react',
+			ref: 'abc123',
+			pathPrefix: 'react/'
+		});
+	});
+
+	// Regression: tokio's snapshot holds repository paths, where `tokio/` is a crate folder
+	it('keeps paths as they are when some do not start with the repo name', () => {
+		const entry: CuratedEntry = { ...SAMPLE_ENTRIES[2], repo: 'tokio', owner: 'tokio-rs' };
+		const snapshot = snapshotWithPaths([['tokio/src/runtime/mod.rs', 'tokio-util/src/lib.rs']]);
+
+		const source = exploreSource(entry, snapshot);
+
+		expect(source.pathPrefix).toBe('');
+		expect(exploreFileUrl(source, 'tokio/src/runtime/mod.rs', 'raw')).toBe(
+			'https://raw.githubusercontent.com/tokio-rs/tokio/HEAD/tokio/src/runtime/mod.rs'
+		);
+	});
+
+	it('falls back to HEAD when the entry pins no commit', () => {
+		const source = exploreSource(SAMPLE_ENTRIES[0], snapshotWithPaths([['react/a.js']]));
+
+		expect(source.ref).toBe('HEAD');
+	});
+});
+
+describe('exploreFileUrl', () => {
+	const source = { owner: 'facebook', repo: 'react', ref: 'abc123', pathPrefix: 'react/' };
+
+	it('points raw and blob views at the pinned commit without the snapshot prefix', () => {
+		expect(exploreFileUrl(source, 'react/packages/react/index.js', 'raw')).toBe(
+			'https://raw.githubusercontent.com/facebook/react/abc123/packages/react/index.js'
+		);
+		expect(exploreFileUrl(source, 'react/packages/react/index.js', 'blob')).toBe(
+			'https://github.com/facebook/react/blob/abc123/packages/react/index.js'
+		);
+	});
+
+	it('encodes characters that would end the path', () => {
+		expect(exploreFileUrl(source, 'react/docs/a #1?.md', 'raw')).toBe(
+			'https://raw.githubusercontent.com/facebook/react/abc123/docs/a%20%231%3F.md'
+		);
+	});
+});
+
+describe('fetchExploreFile', () => {
+	const source = { owner: 'facebook', repo: 'react', ref: 'abc123', pathPrefix: 'react/' };
+
+	beforeEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('returns the file text from raw GitHub', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(new Response('export {};', { status: 200 }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await fetchExploreFile(source, 'react/index.js');
+
+		expect(result).toEqual({ ok: true, content: 'export {};' });
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://raw.githubusercontent.com/facebook/react/abc123/index.js'
+		);
+	});
+
+	it('reports the HTTP status of a missing file', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('404', { status: 404 })));
+
+		expect(await fetchExploreFile(source, 'react/gone.js')).toEqual({ ok: false, status: 404 });
+	});
+
+	it('reports no status when the request fails', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+		expect(await fetchExploreFile(source, 'react/index.js')).toEqual({ ok: false, status: null });
 	});
 });
