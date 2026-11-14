@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { gotoApp } from './support/app';
 
 const SKILL_URL =
-	'https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.1/skill/ropeman/SKILL.md';
+	'https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.4.0/skill/ropeman/SKILL.md';
 
 async function useLanguage(page: Page, language: 'en' | 'ko') {
 	await page.addInitScript((lang) => {
@@ -22,7 +22,7 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 		const setup = page.locator('#agent-setup');
 		await expect(setup.getByRole('heading', { name: 'Set it up in three steps' })).toBeVisible();
 		await expect(setup.getByTestId('install-command')).toHaveText(
-			'npm install -g @ropeman/bridge@0.3.1'
+			'npm install -g @ropeman/bridge@0.4.0'
 		);
 		await expect(setup.getByTestId('skill-command')).toHaveText(
 			`curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md ${SKILL_URL}`
@@ -120,7 +120,7 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 		await expect(agent.getByTestId('connect-hint')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Connect' })).toBeVisible();
 		await expect(page.getByTestId('bridge-start-command')).toHaveText(
-			'npm install -g @ropeman/bridge@0.3.1\nropeman serve --root .'
+			'npm install -g @ropeman/bridge@0.4.0\nropeman serve --root .'
 		);
 	});
 });
@@ -170,7 +170,7 @@ test('a blocked clipboard selects the command and says to copy it by hand', asyn
 	);
 	await expect(page.getByTestId('copy-status')).toHaveText(/Couldn't copy/);
 	expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(
-		'npm install -g @ropeman/bridge@0.3.1'
+		'npm install -g @ropeman/bridge@0.4.0'
 	);
 });
 

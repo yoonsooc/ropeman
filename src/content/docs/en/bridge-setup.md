@@ -28,12 +28,12 @@ A file you open goes from serve to the page over `127.0.0.1`. serve refuses `.en
 Install the command once, then run serve in the folder you want to map:
 
 ```bash
-npm install -g @ropeman/bridge@0.3.1
+npm install -g @ropeman/bridge@0.4.0
 cd ~/code/your-project
 ropeman serve --root .
 ```
 
-Without a global install, `npx @ropeman/bridge@0.3.1 serve --root .` runs the same command. Older npm versions can fail to find the executable this way. Without `--cli`, serve uses `claude` when it is on your `PATH`. It never picks `gemini` on its own. The output looks like this:
+Without a global install, `npx @ropeman/bridge@0.4.0 serve --root .` runs the same command. Older npm versions can fail to find the executable this way. Without `--cli`, serve uses `claude` when it is on your `PATH`. It never picks `gemini` on its own. The output looks like this:
 
 ```text
 [09:41:02] Workers naming opened folders: claude

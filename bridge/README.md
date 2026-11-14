@@ -5,14 +5,14 @@ Local server for Ropeman. `ropeman serve` maps a folder on your machine and send
 ## Usage
 
 ```bash
-npm install -g @ropeman/bridge@0.3.1
+npm install -g @ropeman/bridge@0.4.0
 ropeman serve --root . --out .ropeman --local
 ropeman serve --root ~/code/project --port 9900 --cli claude
 ropeman serve --root . --out .ropeman --local --detach
 ropeman stop --out .ropeman
 ```
 
-`npx @ropeman/bridge@0.3.1 serve --root .` runs the same command without a global install. Older npm versions can fail to find the executable that way, so the install above is the main form.
+`npx @ropeman/bridge@0.4.0 serve --root .` runs the same command without a global install. Older npm versions can fail to find the executable that way, so the install above is the main form.
 
 `ropeman serve` and `ropeman-bridge` are the same program. Without `--root` it has no map: `map.get` and `node.expand` answer `not-ready` and `file.read` is off.
 
@@ -125,4 +125,4 @@ node bridge/scripts/smoke.mjs bridge/dist/server.mjs tests/fixtures/graphs/ts-mo
 
 ## Compatibility
 
-Schema 1.2 adds `fileLevel` to a level. A viewer that reads 1.1 drops the field and shows a file level as a level whose names are still coming, with the files and their imports drawn as usual. Merging to the Ropeman repository deploys ropeman.dev before a bridge release goes out, and `serve --local` hosts the viewer of its own build, so this shows only in a ropeman.dev tab opened before the deploy. Reloading the tab fixes it.
+Bridge 0.4.0 writes and serves schema 1.2, which adds `fileLevel` to a level. A viewer that reads 1.1 drops the field and shows a file level as a level whose names are still coming, with the files and their imports drawn as usual. Merging to the Ropeman repository deploys ropeman.dev before a bridge release goes out, and `serve --local` hosts the viewer of its own build, so this shows only in a ropeman.dev tab opened before the deploy. Reloading the tab fixes it.
