@@ -63,9 +63,9 @@ Ropeman은 브라우저에서 코드베이스를 파싱하고, AI에게 파일�
 ## 시작하기
 
 ```bash
-git clone https://github.com/nkinba/ropeman.git
+git clone https://github.com/yoonsooc/ropeman.git
 cd ropeman
-npm install
+npm ci
 npm run dev
 ```
 
@@ -85,7 +85,7 @@ npm run dev
 | `npm run deploy:edge:demo`  | 엣지 데모 Worker 배포        |
 | `npm run deploy:edge:proxy` | 엣지 프록시 Worker 배포      |
 
-기여하기 전에 [AGENTS.md](AGENTS.md)(영어)를 읽으세요. 저장소 구조, 컨벤션, 테스트, ADR이 필요한 경우를 사람과 코딩 에이전트 모두를 위해 정리했습니다.
+기여하기 전에 [CONTRIBUTING.md](CONTRIBUTING.md)(영어)에서 개발 환경과 PR에 필요한 것을, [AGENTS.md](AGENTS.md)(영어)에서 저장소 구조, 컨벤션, 테스트, ADR이 필요한 경우를 읽으세요. 코딩 에이전트도 AGENTS.md를 따릅니다.
 
 ## AI 모드
 
@@ -148,6 +148,10 @@ experiments/
 - Chromium 계열 브라우저(Chrome, Edge)를 권장합니다. File System Access API를 온전히 지원합니다.
 - Firefox와 Safari에서는 폴더를 끌어다 놓는 방법으로만 읽을 수 있습니다.
 - 브라우저 AI 모드는 WebGPU를 지원하는 브라우저가 필요합니다.
+
+## 기여와 보안
+
+기여 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)(영어)에 있습니다. 보안 취약점은 공개 이슈에 올리지 말고 [SECURITY.md](SECURITY.md)(영어)에 적힌 대로 비공개로 알려 주세요. 브리지 릴리스 내역은 [bridge/CHANGELOG.md](bridge/CHANGELOG.md)(영어)에 있습니다.
 
 ## 라이선스
 

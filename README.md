@@ -63,9 +63,9 @@ Open a folder and you get a diagram. Double-click a group to drill down, and the
 ## Getting Started
 
 ```bash
-git clone https://github.com/nkinba/ropeman.git
+git clone https://github.com/yoonsooc/ropeman.git
 cd ropeman
-npm install
+npm ci
 npm run dev
 ```
 
@@ -85,7 +85,7 @@ Open [http://localhost:5173](http://localhost:5173) in Chrome or Edge. Folder pi
 | `npm run deploy:edge:demo`  | Deploy edge demo Worker        |
 | `npm run deploy:edge:proxy` | Deploy edge proxy Worker       |
 
-Before you contribute, read [AGENTS.md](AGENTS.md). It covers the repository layout, conventions, tests, and when a change needs an ADR, for people and coding agents alike.
+Before you contribute, read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and what a pull request needs, and [AGENTS.md](AGENTS.md) for the repository layout, conventions, tests, and when a change needs an ADR. Coding agents read AGENTS.md too.
 
 ## AI Modes
 
@@ -148,6 +148,10 @@ experiments/
 - A Chromium browser (Chrome, Edge) supports the full File System Access API and is recommended.
 - Firefox and Safari can only read a folder through drag and drop.
 - Browser AI mode needs a browser with WebGPU.
+
+## Contributing and security
+
+Contributions are welcome, and [CONTRIBUTING.md](CONTRIBUTING.md) explains how. Report a vulnerability privately as [SECURITY.md](SECURITY.md) describes, not in a public issue. Bridge releases are listed in [bridge/CHANGELOG.md](bridge/CHANGELOG.md).
 
 ## License
 
