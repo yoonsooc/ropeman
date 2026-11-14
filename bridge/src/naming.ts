@@ -1,5 +1,5 @@
 import type { CodeMap, FilePath } from '../../src/lib/types/codeMap.js';
-import type { MapLevel, MapNode } from '../../src/lib/types/ropemanMap.js';
+import type { MapEdge, MapLevel, MapNode } from '../../src/lib/types/ropemanMap.js';
 import { CliError } from './cli.js';
 import { isEnvValueFile } from './fileRead.js';
 
@@ -81,6 +81,13 @@ function summarize(
 	};
 }
 
+/**
+ * The import statements behind an edge. Its evidence also cites the calls and class bases the
+ * code decides (`fileRelations`); the prompt counts imports, as it says.
+ */
+export const importCount = (edge: MapEdge): number =>
+	edge.evidence?.refs.filter((ref) => ref.relation === 'imports_from').length ?? 0;
+
 /** One part at the starting sample sizes, for `ropeman map`'s work list. */
 export const summarizePart = (node: MapNode, codeMap: CodeMap) =>
 	summarize(node, codeMap, SAMPLE_FILES, SAMPLE_SYMBOLS);
@@ -89,10 +96,10 @@ function render(target: NamingTarget, parts: PartSummary[], feedback: readonly s
 	const links = target.level.edges.map((edge) => ({
 		from: edge.source,
 		to: edge.target,
-		imports: edge.evidence?.refs.length ?? 0
+		imports: importCount(edge)
 	}));
 	const lines = [
-		'You name the parts of one folder of a code map. You see structure only: file paths, declared symbol names and import counts between parts. You see no file contents.',
+		'You name the parts of one folder of a code map. You see structure only: file paths, declared symbol names and the links between parts, each with its number of import statements. You see no file contents.',
 		'',
 		`Project: ${target.project}`,
 		`Folder: ${target.folder}`,
@@ -108,7 +115,7 @@ function render(target: NamingTarget, parts: PartSummary[], feedback: readonly s
 			: []),
 		'Parts:',
 		JSON.stringify(parts),
-		'Imports between parts:',
+		'Links between parts ("imports" counts import statements; a link with 0 imports rests on calls or class bases):',
 		JSON.stringify(links),
 		'',
 		'Answer with one JSON object and nothing else, in this shape:',

@@ -10,6 +10,7 @@ import { buildCodeMap } from './codeMapBuilder';
 import { readGraphifyGraph } from './graphifyAdapter';
 import { isResolverConfig, namedConfigs } from './importResolver';
 import {
+	codeMapEdges,
 	findRegressions,
 	scoreCodeMap,
 	toBaseline,
@@ -36,7 +37,7 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 
 const GRAPHS = fileURLToPath(new URL('../../../tests/fixtures/graphs', import.meta.url));
 const BASELINE_FILE = path.join(GRAPHS, 'baseline.json');
-const REPOS = ['ts-monorepo', 'svelte-app', 'py-shop', 'go-shop', 'rust-shop'];
+const REPOS = ['ts-monorepo', 'svelte-app', 'py-shop', 'go-shop', 'rust-shop', 'poly-shop'];
 /** The repos `tests/fixtures/graphify` holds a Graphify graph.json for */
 const GRAPHIFY_REPOS = ['ts-monorepo', 'svelte-app', 'py-shop'];
 const GRAPHIFY = fileURLToPath(new URL('../../../tests/fixtures/graphify', import.meta.url));
@@ -127,6 +128,10 @@ async function extract(
 	return { map: buildCodeMap(astMap, tree.name, { refs: refMap, configs }), sources };
 }
 
+/** `name` as a declaration writes it, where a `.` may come first (`def self.rate`, `(m *Memory) Total`) */
+const declared = (name: string) =>
+	new RegExp(`(?<![\\w$])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w$])`);
+
 /** `text` standing alone, so `main` does not match inside `__main__` or `fetchUser` inside `refetchUser` */
 const token = (text: string) =>
 	new RegExp(`(?<![\\w$.])${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w$])`);
@@ -151,7 +156,7 @@ describe.each(REPOS)('ground truth of %s', (repo) => {
 				if (!parsed.has(target)) return true;
 				if (!qualified) return false;
 				const name = qualified.split('.').pop()!;
-				return !sources.get(target)!.some((line) => token(name).test(line));
+				return !sources.get(target)!.some((line) => declared(name).test(line));
 			});
 		expect(dangling).toEqual([]);
 	});
@@ -170,6 +175,57 @@ describe("today's extractor against the ground truth", () => {
 			REPOS.map((repo) => [repo, scoreCodeMap(extracted.get(repo)!.map, truths.get(repo)!)])
 		);
 
+		if (process.env.SHOW_LANGUAGE_SCORES) {
+			const rows = new Map<string, { truth: number; predicted: number; matched: number }>();
+			for (const repo of REPOS) {
+				const truth = truths.get(repo)!;
+				const map = extracted.get(repo)!.map;
+				const key = (e: { kind: string; from: string; line: number; to: string }) =>
+					`${e.kind} ${e.from}:${e.line} -> ${e.to}`;
+				const predicted = [...new Map(codeMapEdges(map).map((e) => [key(e), e])).values()];
+				const truthKeys = new Set(truth.edges.map(key));
+				const lang = (from: string) => from.split('.').pop()!;
+				const group = (kind: string) => (kind === 'calls' ? 'calls' : 'bases');
+				for (const e of truth.edges) {
+					if (!['calls', 'inherits', 'implements'].includes(e.kind)) continue;
+					const row = `${group(e.kind)} ${lang(e.from)}`;
+					const r = rows.get(row) ?? { truth: 0, predicted: 0, matched: 0 };
+					r.truth++;
+					rows.set(row, r);
+				}
+				for (const e of predicted) {
+					if (
+						!truth.kinds.includes(e.kind as never) ||
+						!['calls', 'inherits', 'implements'].includes(e.kind)
+					)
+						continue;
+					const row = `${group(e.kind)} ${lang(e.from)}`;
+					const r = rows.get(row) ?? { truth: 0, predicted: 0, matched: 0 };
+					r.predicted++;
+					if (truthKeys.has(key(e))) r.matched++;
+					rows.set(row, r);
+				}
+			}
+			for (const [row, r] of [...rows].sort()) {
+				process.stdout.write(
+					`${row} truth=${r.truth} predicted=${r.predicted} matched=${r.matched}\n`
+				);
+			}
+		}
+		if (process.env.SHOW_GRAPH_SCORES) {
+			for (const repo of REPOS) {
+				for (const [kind, k] of Object.entries(scores.get(repo)!)) {
+					if (!['calls', 'inherits', 'implements', 'dynamic_import'].includes(kind)) continue;
+					process.stdout.write(
+						`${repo} ${kind} p=${k!.precision} r=${k!.recall} (${k!.matched}/${k!.truth}, pred ${k!.predicted})\n`
+					);
+					for (const m of k!.misses)
+						process.stdout.write(`  MISS ${m.from}:${m.line} ${m.written} -> ${m.to}\n`);
+					for (const f of k!.falsePositives)
+						process.stdout.write(`  FP   ${f.from}:${f.line} -> ${f.to}\n`);
+				}
+			}
+		}
 		if (process.env.UPDATE_GRAPH_BASELINE) {
 			if (process.env.CI)
 				throw new Error('UPDATE_GRAPH_BASELINE rewrites the gate; never set it in CI');

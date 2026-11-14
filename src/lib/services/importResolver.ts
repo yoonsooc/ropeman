@@ -317,6 +317,21 @@ export function resolveImports(
 	return { map: { ...map, files }, outcomes };
 }
 
+/**
+ * Where a module named outside an import statement (`import('./x')`) loads from, by the rules
+ * import sites follow. A specifier built at run time (a template with `${…}`) is unresolved.
+ */
+export function scriptModuleBinder(
+	map: CodeMap,
+	config: ResolverConfig
+): (specifier: string, from: FilePath) => Binding<FileEnd | ExternalEnd> {
+	const ctx = createContext(map, config);
+	return (specifier, from) =>
+		specifier.includes('${')
+			? { state: 'unresolved' }
+			: moduleBinding(resolveScriptModule(specifier, from, ctx));
+}
+
 /** A site the parser lists with the imports that names no module: Go's `package x` clause. */
 const NOT_IMPORT = Symbol('not an import');
 

@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { CodeMap, FilePath, FileRecord } from '../../src/lib/types/codeMap';
-import type { MapLevel } from '../../src/lib/types/ropemanMap';
+import type { MapEdge, MapLevel } from '../../src/lib/types/ropemanMap';
 import os from 'os';
 import { CliError, CliRunner, headlessCommand } from '../src/cli';
 import {
 	MAX_PARTS,
 	MAX_PROMPT_BYTES,
 	buildNamingPrompt,
+	importCount,
 	nameLevel,
 	parseNamingAnswer,
 	readCliOutput,
@@ -91,6 +92,35 @@ describe('buildNamingPrompt', () => {
 		expect(Buffer.byteLength(prompt)).toBeLessThanOrEqual(MAX_PROMPT_BYTES);
 		const tooMany = fixture(MAX_PARTS + 1);
 		expect(buildNamingPrompt(tooMany.target, tooMany.codeMap)).toBeNull();
+	});
+});
+
+describe('importCount', () => {
+	it('counts the import statements of an edge, not the calls its evidence also cites', () => {
+		// Arrange
+		const ref = (line: number, relation: 'imports_from' | 'calls') => ({
+			path: 'src/a.ts' as FilePath,
+			line,
+			relation,
+			toPath: 'lib/b.ts' as FilePath,
+			confidence: 'EXTRACTED' as const
+		});
+		const edge: MapEdge = {
+			source: 'dir:src',
+			target: 'dir:lib',
+			type: 'depends_on',
+			label: null,
+			evidence: {
+				confidence: 'EXTRACTED' as const,
+				refs: [ref(1, 'imports_from'), ref(4, 'calls'), ref(5, 'calls')] as const
+			}
+		};
+
+		// Act
+		const count = importCount(edge);
+
+		// Assert
+		expect(count).toBe(1);
 	});
 });
 

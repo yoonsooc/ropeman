@@ -677,14 +677,8 @@ function extractGenericSymbols(rootNode: any, language: string): ASTSymbol[] {
 
 			// Kotlin object_declaration
 			case 'object_declaration': {
-				const nameNode = node.childForFieldName('name');
-				if (nameNode) {
-					symbols.push({
-						name: nameNode.text,
-						kind: 'class',
-						lineStart: node.startPosition.row + 1,
-						lineEnd: node.endPosition.row + 1
-					});
+				if (nameNodeOf(node)) {
+					symbols.push(buildClassSymbol(node, language));
 					return;
 				}
 				break;
@@ -880,8 +874,26 @@ function detectBadges(node: any, language: string): BadgeKind[] {
 	return badges;
 }
 
+/**
+ * The name of a declaration. C and C++ name a function inside its declarator
+ * (`int *run(void)`), and the Kotlin grammar has no field names, so both fall back to the node
+ * that holds the identifier.
+ */
+function nameNodeOf(node: any): any {
+	const named = node.childForFieldName('name');
+	if (named) return named;
+	let declarator = node.childForFieldName('declarator');
+	while (declarator?.childForFieldName('declarator')) {
+		declarator = declarator.childForFieldName('declarator');
+	}
+	if (declarator) return declarator;
+	return node.namedChildren?.find(
+		(c: any) => c.type === 'simple_identifier' || c.type === 'type_identifier'
+	);
+}
+
 function buildFunctionSymbol(node: any, kind: SymbolKind, language: string = 'python'): ASTSymbol {
-	const nameNode = node.childForFieldName('name');
+	const nameNode = nameNodeOf(node);
 	const badges = detectBadges(node, language);
 	return {
 		name: nameNode?.text ?? '<anonymous>',
@@ -893,19 +905,22 @@ function buildFunctionSymbol(node: any, kind: SymbolKind, language: string = 'py
 }
 
 function buildClassSymbol(node: any, language: string = 'python'): ASTSymbol {
-	const nameNode = node.childForFieldName('name');
+	const nameNode = nameNodeOf(node);
 	const methods: ASTSymbol[] = [];
 	const badges = detectBadges(node, language);
 
-	const body = node.childForFieldName('body');
+	const body =
+		node.childForFieldName('body') ?? node.namedChildren?.find((c: any) => c.type === 'class_body');
 	if (body) {
 		for (const member of body.children) {
 			if (
 				member.type === 'function_definition' ||
 				member.type === 'method_definition' ||
-				member.type === 'method_declaration'
+				member.type === 'method_declaration' ||
+				// Kotlin
+				member.type === 'function_declaration'
 			) {
-				const methodName = member.childForFieldName('name');
+				const methodName = nameNodeOf(member);
 				methods.push({
 					name: methodName?.text ?? '<anonymous>',
 					kind: 'method',

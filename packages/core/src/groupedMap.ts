@@ -7,11 +7,12 @@ import type { Extraction } from './extract';
 
 /**
  * The deterministic map of one extraction: the folder tree of the hierarchy summary, one level
- * per folder, each edge backed by the imports between its two parts. A node id names the folder
+ * per folder, each edge backed by the relations between its two parts (`fileRelations`: imports,
+ * and the calls and class bases the code decides). A node id names the folder
  * part it holds (`dir:<path>` for a subfolder, `files:<path>` for the files directly in a
  * folder), so any level is rebuilt from the id alone and stays the same across extractions of
  * the same tree. A `files:` node with two or more files expands to a file level: one
- * `file:<path>` node per file and the imports between them, which no folder level can show.
+ * `file:<path>` node per file and the relations between them, which no folder level can show.
  */
 export interface GroupedMap {
 	/** Every file the extraction saw, with where it ended up */
@@ -75,7 +76,7 @@ export function groupExtraction({ map, hierarchy, skipped }: Extraction, name: s
 		return group && group.path !== '' ? under(group) : [];
 	};
 
-	const { byLink: refsByLink, byFolder: refsByFolder } = importRefs(map);
+	const { byLink: refsByLink, byFolder: refsByFolder } = relationRefs(map);
 	const partId = (group: HierarchyGroup, part: string) =>
 		part === group.path ? filesNodeId(group.path) : dirNodeId(part);
 
@@ -156,7 +157,31 @@ export function groupExtraction({ map, hierarchy, skipped }: Extraction, name: s
 }
 
 /** The evidence of one edge: EXTRACTED when any of its imports is, INFERRED otherwise. */
-function dependsOn(source: string, target: string, refs: RelationRef[]): MapEdge {
+/**
+ * How many call and class-base refs an edge cites. Every import stays (the naming prompt counts
+ * them); the references that back an edge after them are a sample, since a verifier checks each
+ * cited ref and a reader needs a few lines, not every call site.
+ */
+export const MAX_CITED_REFERENCES = 20;
+
+/**
+ * The refs an edge cites: its imports, then its other relations once per file pair and kind (the
+ * lowest line), at most MAX_CITED_REFERENCES of them.
+ */
+export function citedRefs(refs: readonly RelationRef[]): RelationRef[] {
+	const imports = refs.filter((r) => r.relation === 'imports_from');
+	const first = new Map<string, RelationRef>();
+	for (const ref of refs) {
+		if (ref.relation === 'imports_from') continue;
+		const key = `${ref.path}\n${ref.relation}\n${ref.toPath}`;
+		const seen = first.get(key);
+		if (!seen || ref.line < seen.line) first.set(key, ref);
+	}
+	return [...imports, ...[...first.values()].slice(0, MAX_CITED_REFERENCES)];
+}
+
+function dependsOn(source: string, target: string, all: RelationRef[]): MapEdge {
+	const refs = citedRefs(all);
 	const extracted = refs.filter((r): r is RelationRef<'EXTRACTED'> => r.confidence === 'EXTRACTED');
 	const inferred = refs.filter((r): r is RelationRef<'INFERRED'> => r.confidence === 'INFERRED');
 	const [first, ...rest] = extracted;
@@ -176,7 +201,7 @@ function dependsOn(source: string, target: string, refs: RelationRef[]): MapEdge
  * folder and the parts, the way `summarizeHierarchy` counts its links. `byFolder` keeps one
  * between two files of the same folder, which no part link holds, by folder then file pair.
  */
-function importRefs(map: CodeMap): {
+function relationRefs(map: CodeMap): {
 	byLink: Map<string, RelationRef[]>;
 	byFolder: Map<string, Map<string, RelationRef[]>>;
 } {
