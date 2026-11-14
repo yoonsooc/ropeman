@@ -3,14 +3,11 @@ import { readFileSync } from 'node:fs';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const snapshot = read('./fixtures/explore/react-snapshot.json');
-const curated: { entries: { slug: string; ref?: string }[] } = JSON.parse(
-	read('../src/lib/data/explore-curated.json')
-);
-const reactRef = curated.entries.find((e) => e.slug === 'react')?.ref;
+const { commit } = JSON.parse(snapshot);
 
-async function mockReactSnapshot(page: Page) {
+async function mockReactSnapshot(page: Page, body = snapshot) {
 	await page.route('https://explore.ropeman.dev/explore/*', (route) =>
-		route.fulfill({ status: 200, contentType: 'application/json', body: snapshot })
+		route.fulfill({ status: 200, contentType: 'application/json', body })
 	);
 }
 
@@ -70,7 +67,6 @@ test.describe('Explore', { tag: '@responsive' }, () => {
 			return route.fulfill({ status: 200, body: 'export function commitWork() {}\n' });
 		});
 
-		expect(reactRef).toMatch(/^[0-9a-f]{40}$/);
 		await page.goto('/explore/react');
 		const node = page.locator('.svelte-flow__node').first();
 		await node.click();
@@ -87,11 +83,11 @@ test.describe('Explore', { tag: '@responsive' }, () => {
 		await expect(page.locator('.code-viewer')).toContainText('commitWork');
 		await expect(page.getByRole('tab', { selected: true })).toHaveText(/ReactFiberCommitWork\.js/);
 		expect(sourceRequests).toEqual([
-			`https://raw.githubusercontent.com/react/react/${reactRef}/packages/react-reconciler/src/ReactFiberCommitWork.js`
+			`https://raw.githubusercontent.com/react/react/${commit}/packages/react-reconciler/src/ReactFiberCommitWork.js`
 		]);
 		await expect(page.locator('.source-link')).toHaveAttribute(
 			'href',
-			`https://github.com/react/react/blob/${reactRef}/packages/react-reconciler/src/ReactFiberCommitWork.js`
+			`https://github.com/react/react/blob/${commit}/packages/react-reconciler/src/ReactFiberCommitWork.js`
 		);
 		if (viewport && viewport.width <= 768) {
 			await expect(page.locator('.semantic-detail-panel')).toBeHidden();
@@ -120,5 +116,26 @@ test.describe('Explore', { tag: '@responsive' }, () => {
 			'not in the repository at the analyzed commit'
 		);
 		await expect(page.locator('.source-link')).toBeVisible();
+	});
+
+	test('a snapshot that records no commit says its files cannot be opened', async ({ page }) => {
+		const withoutCommit = JSON.parse(snapshot);
+		delete withoutCommit.commit;
+		await mockReactSnapshot(page, JSON.stringify(withoutCommit));
+		const sourceRequests: string[] = [];
+		await page.route('https://raw.githubusercontent.com/**', (route) => {
+			sourceRequests.push(route.request().url());
+			return route.abort();
+		});
+
+		await page.goto('/explore/react');
+		await page.locator('.svelte-flow__node').first().click();
+		await page.locator('.semantic-detail-panel .file-item').first().click();
+
+		await expect(page.locator('.code-error')).toContainText(
+			'does not record the commit it was analyzed at'
+		);
+		await expect(page.locator('.source-link')).toHaveCount(0);
+		expect(sourceRequests).toEqual([]);
 	});
 });

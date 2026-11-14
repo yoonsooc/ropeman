@@ -13,7 +13,6 @@
 	import CodeViewer from '$lib/components/CodeViewer.svelte';
 	import {
 		exploreFileUrl,
-		exploreRepoPaths,
 		exploreSource,
 		fetchExploreFile,
 		fetchExploreSnapshot,
@@ -41,13 +40,9 @@
 			!(openFile && !breakpoint.isDesktop)
 	);
 
-	// A legacy path can resolve to either of two repository paths; the link follows the one that loaded
-	let resolvedPaths = $state<Record<string, string>>({});
-	const fileOnGitHub = $derived.by(() => {
-		if (!source || !openFile) return null;
-		const repoPath = resolvedPaths[openFile] ?? exploreRepoPaths(source, openFile)[0];
-		return repoPath ? exploreFileUrl(source, repoPath, 'blob') : null;
-	});
+	const fileOnGitHub = $derived(
+		source && openFile ? exploreFileUrl(source, openFile, 'blob') : null
+	);
 
 	function failureMessage(failure: ExploreFileFailure): string {
 		switch (failure.reason) {
@@ -72,7 +67,6 @@
 		if (!source) return { ok: false as const, message: i18nStore.t('explore.fileNoCommit') };
 		const got = await fetchExploreFile(source, path);
 		if (!got.ok) return { ok: false as const, message: failureMessage(got) };
-		resolvedPaths[path] = got.repoPath;
 		return { ok: true as const, content: got.content };
 	}
 

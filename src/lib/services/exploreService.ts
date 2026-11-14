@@ -31,11 +31,6 @@ export interface CuratedEntry {
 	/** Korean description, shown when the UI locale is ko */
 	descriptionKo?: string;
 	stars?: string;
-	/**
-	 * Commit a legacy snapshot was analyzed at. Snapshots from before the snapshot
-	 * recorded its own `commit` need it to open their files.
-	 */
-	ref?: string;
 }
 
 export interface CuratedManifest {
@@ -99,8 +94,7 @@ export function validateManifest(data: unknown): CuratedManifest | null {
 				language: e.language,
 				description: e.description,
 				descriptionKo: typeof e.descriptionKo === 'string' ? e.descriptionKo : undefined,
-				stars: typeof e.stars === 'string' ? e.stars : undefined,
-				ref: commitOrUndefined(e.ref)
+				stars: typeof e.stars === 'string' ? e.stars : undefined
 			});
 		}
 	}
@@ -300,54 +294,33 @@ export async function fetchExploreSnapshot(
 	}
 }
 
-/** Where a snapshot's files live on GitHub, and how its paths map to repository paths */
+/** Where a snapshot's files live on GitHub. Snapshot paths are repository paths. */
 export interface ExploreSource {
 	owner: string;
 	repo: string;
 	commit: string;
-	/**
-	 * `repo`: the snapshot records its commit and stores repository paths.
-	 * `legacy`: an older snapshot. The GitHub loader named files `<repo>/<path>`, but tokio's
-	 * snapshot holds repository paths, so `prefixed` records whether every path had the prefix.
-	 */
-	paths: { kind: 'repo' } | { kind: 'legacy'; prefixed: boolean };
 }
 
-/** Null when neither the snapshot nor its curated entry says which commit was analyzed. */
+/** Null when the snapshot does not record the commit it was analyzed at. */
 export function exploreSource(
 	entry: CuratedEntry,
 	snapshot: ExploreSnapshot
 ): ExploreSource | null {
-	const { owner, repo } = entry;
-	if (snapshot.commit) return { owner, repo, commit: snapshot.commit, paths: { kind: 'repo' } };
-	if (!entry.ref) return null;
-	const paths = Object.values(snapshot.semanticLevels).flatMap((level) =>
-		level.nodes.flatMap((node) => node.filePaths ?? [])
-	);
-	const prefixed = paths.length > 0 && paths.every((p) => p.startsWith(`${repo}/`));
-	return { owner, repo, commit: entry.ref, paths: { kind: 'legacy', prefixed } };
+	return snapshot.commit ? { owner: entry.owner, repo: entry.repo, commit: snapshot.commit } : null;
 }
 
 /**
- * Repository paths to try for a snapshot path, most likely first. A legacy path that starts
- * with `<repo>/` may be a loader prefix or a real folder of that name (tokio has one), so
- * both readings are tried. Empty when a segment is empty, `.` or `..`, which the browser
- * would resolve outside the repository.
+ * Null when a path segment is empty, `.` or `..`, which the browser would resolve outside the
+ * repository.
  */
-export function exploreRepoPaths(source: ExploreSource, path: string): string[] {
-	if (path.split('/').some((seg) => seg === '' || seg === '.' || seg === '..')) return [];
-	const prefix = `${source.repo}/`;
-	if (source.paths.kind === 'repo' || !path.startsWith(prefix)) return [path];
-	const stripped = path.slice(prefix.length);
-	return source.paths.prefixed ? [stripped, path] : [path, stripped];
-}
-
 export function exploreFileUrl(
 	source: ExploreSource,
 	repoPath: string,
 	view: 'raw' | 'blob'
-): string {
-	const encoded = repoPath.split('/').map(encodeURIComponent).join('/');
+): string | null {
+	const segments = repoPath.split('/');
+	if (segments.some((seg) => seg === '' || seg === '.' || seg === '..')) return null;
+	const encoded = segments.map(encodeURIComponent).join('/');
 	const { owner, repo, commit } = source;
 	return view === 'raw'
 		? `https://raw.githubusercontent.com/${owner}/${repo}/${commit}/${encoded}`
@@ -360,12 +333,16 @@ export type ExploreFileFailure =
 	| { reason: 'unavailable'; status?: number };
 
 export type ExploreFileResult =
-	| { ok: true; content: string; repoPath: string }
+	| { ok: true; content: string }
 	| ({ ok: false } & ExploreFileFailure);
 
-async function fetchRawFile(
-	url: string
-): Promise<{ ok: true; content: string } | ({ ok: false } & ExploreFileFailure)> {
+/** Reads one snapshot file from GitHub at the analyzed commit. */
+export async function fetchExploreFile(
+	source: ExploreSource,
+	path: string
+): Promise<ExploreFileResult> {
+	const url = exploreFileUrl(source, path, 'raw');
+	if (!url) return { ok: false, reason: 'invalid-path' };
 	let res: Response;
 	try {
 		res = await fetch(url);
@@ -388,21 +365,4 @@ async function fetchRawFile(
 	if (bytes.length > MAX_FILE_SIZE) return { ok: false, reason: 'too-large' };
 	if (bytes.subarray(0, 8000).includes(0)) return { ok: false, reason: 'binary' };
 	return { ok: true, content: new TextDecoder().decode(bytes) };
-}
-
-/** Reads one snapshot file from GitHub, trying the next repository path only on a 404. */
-export async function fetchExploreFile(
-	source: ExploreSource,
-	path: string
-): Promise<ExploreFileResult> {
-	const candidates = exploreRepoPaths(source, path);
-	if (candidates.length === 0) return { ok: false, reason: 'invalid-path' };
-	let result: ExploreFileResult = { ok: false, reason: 'not-found' };
-	for (const repoPath of candidates) {
-		const got = await fetchRawFile(exploreFileUrl(source, repoPath, 'raw'));
-		if (got.ok) return { ...got, repoPath };
-		result = got;
-		if (got.reason !== 'not-found') break;
-	}
-	return result;
 }
