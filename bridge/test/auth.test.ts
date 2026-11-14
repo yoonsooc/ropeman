@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { execFile } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { transformWithEsbuild } from 'vite';
 import {
 	DEFAULT_ALLOWED_ORIGINS,
 	MIN_TOKEN_LENGTH,
@@ -130,6 +132,76 @@ describe('bridge auth', () => {
 				// Assert
 				expect(token).toBe('stored-token-0123456789');
 				expect(fs.statSync(tokenFile).mode & 0o777).toBe(0o600);
+			}
+		);
+
+		it('replaces an empty token file', () => {
+			// Arrange
+			fs.mkdirSync(path.dirname(tokenFile), { recursive: true });
+			fs.writeFileSync(tokenFile, '\n');
+
+			// Act
+			const token = resolveToken([], {}, tokenFile);
+
+			// Assert
+			expect(token).toMatch(/^[A-Za-z0-9_-]{32}$/);
+			expect(fs.readFileSync(tokenFile, 'utf8')).toBe(`${token}\n`);
+		});
+
+		it('still writes the token file where the file system has no hard links', () => {
+			// Arrange
+			const noLinks = vi.spyOn(fs, 'linkSync').mockImplementation(() => {
+				throw Object.assign(new Error('operation not permitted'), { code: 'EPERM' });
+			});
+
+			try {
+				// Act
+				const first = resolveToken([], {}, tokenFile);
+				const second = resolveToken([], {}, tokenFile);
+
+				// Assert
+				expect(second).toBe(first);
+				expect(fs.readdirSync(path.dirname(tokenFile))).toEqual(['bridge-token']);
+			} finally {
+				noLinks.mockRestore();
+			}
+		});
+
+		it.skipIf(process.platform === 'win32')(
+			'gives bridges that start together the one token the file holds',
+			async () => {
+				// Arrange: the module as plain JS, so separate node processes can run it
+				const { code } = await transformWithEsbuild(
+					fs.readFileSync(path.join(__dirname, '../src/auth.ts'), 'utf8'),
+					'auth.ts',
+					{ format: 'esm' }
+				);
+				const auth = path.join(dir, 'auth.mjs');
+				fs.writeFileSync(auth, code);
+				const startAt = Date.now() + 1_000;
+				const bridge = `const { resolveToken } = await import(${JSON.stringify(auth)});
+					while (Date.now() < ${startAt});
+					process.stdout.write(resolveToken([], {}, ${JSON.stringify(tokenFile)}));`;
+
+				// Act
+				const tokens = await Promise.all(
+					Array.from(
+						{ length: 8 },
+						() =>
+							new Promise<string>((resolve, reject) =>
+								execFile(process.execPath, ['--input-type=module', '-e', bridge], (err, stdout) =>
+									err ? reject(err) : resolve(stdout)
+								)
+							)
+					)
+				);
+
+				// Assert
+				const stored = fs.readFileSync(tokenFile, 'utf8').trim();
+				expect(stored).toMatch(/^[A-Za-z0-9_-]{32}$/);
+				expect(tokens).toEqual(Array(8).fill(stored));
+				expect(fs.statSync(tokenFile).mode & 0o777).toBe(0o600);
+				expect(fs.readdirSync(path.dirname(tokenFile))).toEqual(['bridge-token']);
 			}
 		);
 	});

@@ -21,8 +21,8 @@ Ropeman은 임의의 코드베이스를 브라우저에서 분석하여 **AI 기
 Ropeman의 기본 사용법은 코딩 에이전트에서 Ropeman 스킬로 쓰는 것입니다. Node 22 이상이 필요합니다.
 
 ```bash
-npm install -g @ropeman/bridge@0.3.1
-curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.1/skill/ropeman/SKILL.md
+npm install -g @ropeman/bridge@0.4.0
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.4.0/skill/ropeman/SKILL.md
 ```
 
 그다음 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 코드와 맞는지 검사한 뒤, `ropeman serve`를 띄우고 열어 볼 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다. 두 번째 명령은 Claude Code용이고, 스킬은 Claude Code에서 테스트했습니다. Codex, Gemini CLI, Cursor는 각자의 문서에 따르면 다른 폴더에서 스킬을 읽습니다. 에이전트별 명령은 [홈 화면](/)에 있고, Ropeman은 이들에서 아직 테스트하지 않았습니다.

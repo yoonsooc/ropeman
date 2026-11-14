@@ -8,19 +8,19 @@
 
 ## 1. `ropeman` 명령 설치
 
-스킬은 `ropeman`(`@ropeman/bridge` 패키지 0.3.1 이상, Node 22 이상)을 실행한다.
+스킬은 `ropeman`(`@ropeman/bridge` 패키지 0.4.0 이상, Node 22 이상)을 실행한다.
 
 ```bash
-npm install -g @ropeman/bridge@0.3.1
-ropeman --version                # 0.3.1 이상
+npm install -g @ropeman/bridge@0.4.0
+ropeman --version                # 0.4.0 이상
 ```
 
 npm에 아직 없는 변경을 써 보려면 이 저장소를 받아서 패키지를 직접 만든다.
 
 ```bash
 npm ci && npm ci --prefix bridge
-cd bridge && npm pack            # 앱, bridge, 뷰어를 빌드하고 ropeman-bridge-0.3.1.tgz를 만든다
-npm install -g ./ropeman-bridge-0.3.1.tgz
+cd bridge && npm pack            # 앱, bridge, 뷰어를 빌드하고 ropeman-bridge-0.4.0.tgz를 만든다
+npm install -g ./ropeman-bridge-0.4.0.tgz
 ```
 
 ## 2. 스킬 설치
@@ -37,10 +37,10 @@ npm install -g ./ropeman-bridge-0.3.1.tgz
 Claude Code는 다음과 같다. 다른 에이전트는 `~/.claude/skills` 자리에 표의 폴더를 넣는다.
 
 ```bash
-curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.3.1/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.4.0/skill/ropeman/SKILL.md
 ```
 
-저장소를 받았다면 `cp -R skill/ropeman ~/.claude/skills/ropeman`도 같다. 이 명령은 설치한 패키지와 같은 릴리스인 `bridge-v0.3.1` 태그의 스킬을 받고, 스킬의 첫 단계가 `ropeman --version`이 충분히 새것인지 확인한다. 스킬을 지원하지 않는 에이전트에는 `ropeman/SKILL.md` 내용을 대화에 붙여 넣으면 같은 절차를 따른다.
+저장소를 받았다면 `cp -R skill/ropeman ~/.claude/skills/ropeman`도 같다. 이 명령은 설치한 패키지와 같은 릴리스인 `bridge-v0.4.0` 태그의 스킬을 받고, 스킬의 첫 단계가 `ropeman --version`이 충분히 새것인지 확인한다. 스킬을 지원하지 않는 에이전트에는 `ropeman/SKILL.md` 내용을 대화에 붙여 넣으면 같은 절차를 따른다.
 
 ## 3. 쓰기
 
