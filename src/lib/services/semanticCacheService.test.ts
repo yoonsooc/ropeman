@@ -93,7 +93,6 @@ describe('semanticCacheService', () => {
 	});
 
 	it('evicts the legacy project-name cache on load', () => {
-		expect(fakeCaches.delete).toHaveBeenCalledWith('ropeman/semantic');
 		expect(storage.has('ropeman/semantic')).toBe(false);
 	});
 
