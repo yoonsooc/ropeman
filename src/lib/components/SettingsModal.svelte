@@ -263,8 +263,7 @@
 							onblur={handleCustomSkipPatternsBlur}
 							placeholder={i18nStore.t('settingsCustomSkipPatternsPlaceholder')}
 							rows="4"
-							spellcheck="false"
-						></textarea>
+							spellcheck="false"></textarea>
 						<p class="hint">{i18nStore.t('settingsCustomSkipPatternsHint')}</p>
 					</div>
 				</section>
@@ -282,8 +281,7 @@
 							placeholder={i18nStore.t('settingsCustomIncludePatternsPlaceholder')}
 							aria-describedby="settings-include-patterns-hint"
 							rows="4"
-							spellcheck="false"
-						></textarea>
+							spellcheck="false"></textarea>
 						<p class="hint" id="settings-include-patterns-hint">
 							{i18nStore.t('settingsCustomIncludePatternsHint')}
 						</p>
