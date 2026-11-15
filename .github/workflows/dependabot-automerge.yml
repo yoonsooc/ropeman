@@ -82,10 +82,16 @@ jobs:
               --jq '"\(.author.login) \(.state) \(.autoMergeRequest != null)"')
             case "$pr" in
               "app/dependabot MERGED "*)
-                gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/dispatches" -f ref=main
+                if ! out=$(gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/dispatches" -f ref=main 2>&1); then
+                  echo "::error::Dispatching ci.yml on main for #$PR_NUMBER failed: $out"
+                  exit 1
+                fi
+                echo "::notice::#$PR_NUMBER merged, dispatched ci.yml on main"
                 exit 0 ;;
               "app/dependabot OPEN true") sleep 15 ;;
-              *) exit 0 ;;
+              *)
+                echo "::notice::#$PR_NUMBER is '$pr', no dispatch"
+                exit 0 ;;
             esac
           done
           echo "::warning::#$PR_NUMBER did not merge within 5 minutes, so main CI waits for the next push"
