@@ -5,16 +5,18 @@ Local server for Ropeman. `ropeman serve` maps a folder on your machine and send
 ## Usage
 
 ```bash
-npm install -g @ropeman/bridge@0.4.0
+npm install -g @ropeman/bridge@0.5.0
 ropeman serve --root . --out .ropeman --local
 ropeman serve --root ~/code/project --port 9900 --cli claude
 ropeman serve --root . --out .ropeman --local --detach
 ropeman stop --out .ropeman
 ```
 
-`npx @ropeman/bridge@0.4.0 serve --root .` runs the same command without a global install. Older npm versions can fail to find the executable that way, so the install above is the main form.
+`npx @ropeman/bridge@0.5.0 serve --root .` runs the same command without a global install. Older npm versions can fail to find the executable that way, so the install above is the main form.
 
 `ropeman serve` and `ropeman-bridge` are the same program. Without `--root` it has no map: `map.get` and `node.expand` answer `not-ready` and `file.read` is off.
+
+`ropeman serve --help` (or `-h`) prints the usage and exits, and so does `--help` after `map`, `verify`, `inbox` or `stop`. serve does not start when an argument is wrong. It refuses an argument it does not read, such as a misspelled flag, `--port=9900` (write `--port 9900`) or a folder given without `--root`. It also refuses an option with no value, such as `--port --local`. Then it prints the usage and exits 1.
 
 The bridge listens on `ws://127.0.0.1:9800` unless you pass `--port`. A folder you open that has no names yet goes to a worker: `claude`, found on PATH, or the CLI you pass with `--cli`. The bridge never picks `gemini` on its own: whether a wrapper may run it headless is unclear, so it runs only with `--cli gemini`. With `--out` (the skill's folder) the worker prompt carries your agent's brief, results are logged there, and with no worker the folder goes on the queue there for your agent (see Map files).
 
@@ -125,7 +127,7 @@ node bridge/scripts/smoke.mjs bridge/dist/server.mjs tests/fixtures/graphs/ts-mo
 
 ## Compatibility
 
-Bridge 0.4.0 writes and serves schema 1.2, which adds `fileLevel` to a level. A viewer that reads 1.1 drops the field and shows a file level as a level whose names are still coming, with the files and their imports drawn as usual. Merging to the Ropeman repository deploys ropeman.dev before a bridge release goes out, and `serve --local` hosts the viewer of its own build, so this shows only in a ropeman.dev tab opened before the deploy. Reloading the tab fixes it.
+Bridge 0.4.0 and later write and serve schema 1.2, which adds `fileLevel` to a level. A viewer that reads 1.1 drops the field and shows a file level as a level whose names are still coming, with the files and their imports drawn as usual. Merging to the Ropeman repository deploys ropeman.dev before a bridge release goes out, and `serve --local` hosts the viewer of its own build, so this shows only in a ropeman.dev tab opened before the deploy. Reloading the tab fixes it.
 
 ## Changelog
 
