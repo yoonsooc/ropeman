@@ -11,6 +11,9 @@ updates:
       minor-and-patch:
         applies-to: version-updates
         update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ['*']
 
   - package-ecosystem: npm
     directory: /
@@ -23,6 +26,9 @@ updates:
       minor-and-patch:
         applies-to: version-updates
         update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ['*']
 
   - package-ecosystem: npm
     directory: /bridge
@@ -35,6 +41,9 @@ updates:
       minor-and-patch:
         applies-to: version-updates
         update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ['*']
 
   - package-ecosystem: npm
     directory: /workers
@@ -47,3 +56,6 @@ updates:
       minor-and-patch:
         applies-to: version-updates
         update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ['*']

@@ -98,6 +98,7 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+          package-manager-cache: false
 
       # A version npm already has cannot be published again, so a rerun after success is a
       # no-op. Only E404 means missing; any other failure stops the run instead of guessing
@@ -180,6 +181,7 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+          package-manager-cache: false
           registry-url: 'https://registry.npmjs.org'
 
       # Trusted publishing needs npm 11.5.1 or later; Node 22 ships npm 10
