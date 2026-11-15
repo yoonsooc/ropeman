@@ -6,11 +6,11 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 ### Changed
 
-- `ropeman serve` refuses an argument it does not read, such as a misspelled flag, `--port=9900` or a folder given without `--root`, and exits 1 with the usage. It used to ignore the argument and start with the defaults ([#109](https://github.com/yoonsooc/ropeman/pull/109)).
+- `ropeman serve` refuses an argument it does not read, such as a misspelled flag, `--port=9900` or a folder given without `--root`, and exits 1 with the usage. It used to ignore the argument and start with the defaults. It also refuses an option with no value, as in `--port --local` or a `--root` at the end, which used to take the next option as its value or fall back to the default ([#109](https://github.com/yoonsooc/ropeman/pull/109)).
 
 ### Fixed
 
-- `ropeman serve --help` and `-h` print the usage and exit without starting a server or storing a token. `--help` after `map`, `verify`, `inbox` or `stop` prints the usage too, where it used to fail with exit code 2 ([#109](https://github.com/yoonsooc/ropeman/pull/109)).
+- `ropeman serve --help` and `-h` print the usage and exit without starting a server or storing a token. A `--help` after `--`, or in place of an option's value, does not count as asking for help. `--help` after `map`, `verify`, `inbox` or `stop` prints the usage too, where it used to fail with exit code 2 ([#109](https://github.com/yoonsooc/ropeman/pull/109)).
 
 ## [0.4.0] - 2026-11-14
 

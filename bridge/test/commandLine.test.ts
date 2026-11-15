@@ -147,77 +147,101 @@ describe('the ropeman command line', () => {
 	});
 
 	it.each([
-		{ ...row(['serve', '--bogus']), refused: '--bogus' },
-		{ ...row(['serve', '.']), refused: '.' },
-		{ ...row(['serve', '--port=9900']), refused: '--port=9900' },
-		{ ...row(['mpa']), refused: 'mpa' }
+		{ ...row(['serve', '--bogus']), names: "'--bogus'" },
+		{ ...row(['serve', '.']), names: "'.'" },
+		{ ...row(['serve', '--port=9900']), names: "'--port=9900'" },
+		{ ...row(['mpa']), names: "'mpa'" },
+		{ ...row(['serve', '--', '--help']), names: "'--'" },
+		{ ...row(['serve', '--port', '--local']), names: '--port' },
+		{ ...row(['serve', '--port', '--help']), names: '--port' },
+		{ ...row(['serve', '--out', '-h']), names: '--out' },
+		{ ...row(['serve', '--root']), names: '--root' }
 	])(
-		'ropeman $command names the argument serve does not read and exits 1 with the usage',
+		'ropeman $command names the argument serve cannot read and exits 1 with the usage',
 		TEST_TIMEOUT,
-		async ({ args, refused }) => {
+		async ({ args, names }) => {
 			// Act
 			const run = await ropeman(args);
 
 			// Assert
 			expect(run).toMatchObject({ code: 1, timedOut: false, stdout: '' });
-			expect(run.stderr).toContain(`'${refused}'`);
-			expect(run.stderr).toContain(USAGE_LINES[0]);
+			const [problem, ...usage] = run.stderr.split('\n');
+			expect(problem).toContain(names);
+			expect(usage.join('\n')).toContain(USAGE_LINES[0]);
 			expect(fs.existsSync(tokenFile())).toBe(false);
 		}
 	);
 
-	it('starts with every option the docs list for serve', { timeout: 20_000 }, async () => {
-		// Arrange
-		const port = await freePort();
-		const viewer = path.join(base, 'viewer');
-		fs.mkdirSync(viewer);
-		fs.writeFileSync(path.join(viewer, 'index.html'), '<!doctype html><title>v</title>');
-		const child = spawn(
-			process.execPath,
-			[
-				bundle,
-				'serve',
-				'--root',
-				root(),
-				'--out',
-				out(),
-				'--port',
-				String(port),
-				'--cli',
-				'claude',
-				'--token',
-				'command-line-test-token',
-				'--allow-origin',
-				'https://preview.example.com',
-				'--local',
-				'--viewer',
-				viewer,
-				'--idle-minutes',
-				'0'
-			],
-			{ env: env(), stdio: ['ignore', 'pipe', 'pipe'] }
-		);
-		const exited = new Promise((resolve) => child.on('exit', resolve));
+	it(
+		'ropeman map reads --help after -- as an argument, not as a request for help',
+		TEST_TIMEOUT,
+		async () => {
+			// Act
+			const run = await ropeman(['map', '--root', root(), '--out', out(), '--', '--help']);
 
-		// Act
-		let output = '';
-		const ready = `Bridge server ready on ws://${HOST}:${port}`;
-		const started = await Promise.race([
-			new Promise<boolean>((resolve) => {
-				const take = (d: Buffer) => {
-					output += d;
-					if (output.includes(ready)) resolve(true);
-				};
-				child.stdout!.on('data', take);
-				child.stderr!.on('data', take);
-			}),
-			exited.then(() => false)
-		]);
+			// Assert
+			expect(run).toMatchObject({ code: 2, timedOut: false, stdout: '' });
+			expect(run.stderr).toContain("'--help'");
+			expect(fs.existsSync(out())).toBe(false);
+		}
+	);
 
-		// Assert
-		expect(started, output).toBe(true);
-		expect(await listening(port)).toBe(true);
-		child.kill('SIGTERM');
-		await exited;
-	});
+	it(
+		'starts with every option the docs list for serve, and a token that starts with --',
+		{ timeout: 20_000 },
+		async () => {
+			// Arrange
+			const port = await freePort();
+			const viewer = path.join(base, 'viewer');
+			fs.mkdirSync(viewer);
+			fs.writeFileSync(path.join(viewer, 'index.html'), '<!doctype html><title>v</title>');
+			const child = spawn(
+				process.execPath,
+				[
+					bundle,
+					'serve',
+					'--root',
+					root(),
+					'--out',
+					out(),
+					'--port',
+					String(port),
+					'--cli',
+					'claude',
+					'--token',
+					'--command-line-test-token',
+					'--allow-origin',
+					'https://preview.example.com',
+					'--local',
+					'--viewer',
+					viewer,
+					'--idle-minutes',
+					'0'
+				],
+				{ env: env(), stdio: ['ignore', 'pipe', 'pipe'] }
+			);
+			const exited = new Promise((resolve) => child.on('exit', resolve));
+
+			// Act
+			let output = '';
+			const ready = `Bridge server ready on ws://${HOST}:${port}`;
+			const started = await Promise.race([
+				new Promise<boolean>((resolve) => {
+					const take = (d: Buffer) => {
+						output += d;
+						if (output.includes(ready)) resolve(true);
+					};
+					child.stdout!.on('data', take);
+					child.stderr!.on('data', take);
+				}),
+				exited.then(() => false)
+			]);
+
+			// Assert
+			expect(started, output).toBe(true);
+			expect(await listening(port)).toBe(true);
+			child.kill('SIGTERM');
+			await exited;
+		}
+	);
 });

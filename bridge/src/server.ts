@@ -108,11 +108,30 @@ const SERVE_ARGS = new Map<string, 'value' | 'flag'>([
 	['--detach', 'flag']
 ]);
 
-function unknownServeArg(args: readonly string[]): string | null {
+const HELP = new Set(['--help', '-h']);
+
+/** `--help` or `-h` before any `--` and not as the value of the option before it. */
+function helpAsked(args: readonly string[]): boolean {
+	for (let i = 0; i < args.length && args[i] !== '--'; i++) {
+		if (HELP.has(args[i])) return true;
+		// Every option but serve's flags takes a value, since map, verify, inbox and stop have
+		// only string options
+		if (args[i].startsWith('--') && SERVE_ARGS.get(args[i]) !== 'flag') i++;
+	}
+	return false;
+}
+
+function serveArgsProblem(args: readonly string[]): string | null {
 	for (let i = 0; i < args.length; i++) {
 		const kind = SERVE_ARGS.get(args[i]);
-		if (!kind) return args[i];
-		if (kind === 'value') i++;
+		if (!kind) return `unknown argument '${args[i]}'`;
+		if (kind === 'flag') continue;
+		const value = args[i + 1];
+		// Any other value is kept, a token that starts with `--` included
+		if (value === undefined || SERVE_ARGS.has(value) || HELP.has(value)) {
+			return `${args[i]} needs a value`;
+		}
+		i++;
 	}
 	return null;
 }
@@ -176,7 +195,7 @@ async function main() {
 		out: (text) => process.stdout.write(`${text}\n`),
 		err: (text) => process.stderr.write(`${text}\n`)
 	};
-	if (argv.includes('--help') || argv.includes('-h')) return void console.log(USAGE);
+	if (helpAsked(argv)) return void console.log(USAGE);
 	const commands = { map: runMap, verify: runVerify, inbox: runInbox, stop: runStop };
 	if (Object.hasOwn(commands, argv[0] ?? '')) {
 		const command = commands[argv[0] as keyof typeof commands];
@@ -187,9 +206,9 @@ async function main() {
 	if (argv[0] === '--version') return void console.log(pkg.version);
 	// `ropeman serve …` and `ropeman-bridge …` run the same server
 	if (argv[0] === 'serve') argv.shift();
-	const unknown = unknownServeArg(argv);
-	if (unknown !== null) {
-		console.error(`Cannot start: unknown argument '${unknown}'.\n${USAGE}`);
+	const problem = serveArgsProblem(argv);
+	if (problem !== null) {
+		console.error(`Cannot start: ${problem}.\n${USAGE}`);
 		process.exit(1);
 	}
 	const port = parsePort(argv);
