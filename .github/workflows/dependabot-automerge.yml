@@ -29,9 +29,9 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
 
-      # web-tree-sitter and tree-sitter-* wait for a person because each grammar .wasm must match the
-      # runtime. Any ecosystem but npm waits because GITHUB_TOKEN cannot merge a change to
-      # .github/workflows.
+      # web-tree-sitter waits for a person, who reruns scripts/grammars/fetch.mjs to copy its .wasm
+      # into static/ (ADR-27). So would a tree-sitter-* package if one came back. Any ecosystem
+      # but npm waits because GITHUB_TOKEN cannot merge a change to .github/workflows.
       - name: Turn auto-merge on or off
         env:
           GH_TOKEN: ${{ github.token }}

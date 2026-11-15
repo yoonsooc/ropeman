@@ -3,7 +3,7 @@ import type { ConfigLanguage } from '$lib/utils/languageDetector';
 
 /**
  * Line parsers for the configuration files that say how a system runs: Dockerfile, Terraform,
- * env templates (`.env.example`) and Makefile. None has a grammar in `tree-sitter-wasms`, so each
+ * env templates (`.env.example`) and Makefile. None has a grammar in `static/`, so each
  * is a short scan in the style of Understand-Anything's non-code parsers. They return structure
  * only: block names with line ranges, and what a file points at (images, copied paths, module
  * sources, includes, prerequisites) as `import` symbols. A value is never copied into a symbol,

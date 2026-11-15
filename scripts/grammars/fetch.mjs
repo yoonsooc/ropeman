@@ -52,11 +52,8 @@ async function main() {
 	const update = process.argv.includes('--update');
 	const manifest = await readManifest();
 	const wanted = new Set(manifest.grammars.map((g) => g.file));
-	for (const file of await readdir(staticDir)) {
-		if (/^tree-sitter.*\.wasm$/.test(file) && !wanted.has(file)) await rm(`${staticDir}${file}`);
-	}
-	await copyFile(`${engineDir}${ENGINE_FILE}`, `${staticDir}${ENGINE_FILE}`);
-
+	// Every download is checked before static/ changes, so a failed run leaves it as it was
+	const downloads = [];
 	for (const grammar of manifest.grammars) {
 		const bytes = await download(grammar);
 		const hash = sha256(bytes);
@@ -66,6 +63,14 @@ async function main() {
 			);
 		}
 		grammar.sha256 = hash;
+		downloads.push([grammar, bytes]);
+	}
+
+	for (const file of await readdir(staticDir)) {
+		if (/^tree-sitter.*\.wasm$/.test(file) && !wanted.has(file)) await rm(`${staticDir}${file}`);
+	}
+	await copyFile(`${engineDir}${ENGINE_FILE}`, `${staticDir}${ENGINE_FILE}`);
+	for (const [grammar, bytes] of downloads) {
 		await writeFile(`${staticDir}${grammar.file}`, bytes);
 		process.stdout.write(`${grammar.file} ${grammar.repo}@${grammar.version}\n`);
 	}

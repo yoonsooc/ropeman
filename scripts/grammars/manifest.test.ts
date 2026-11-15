@@ -28,9 +28,9 @@ beforeAll(async () => {
 // hand, or a web-tree-sitter bump without `node scripts/grammars/fetch.mjs`, fails here.
 describe('static/ against scripts/grammars/manifest.json', () => {
 	it('holds exactly the grammars the manifest lists, and those cover every language', () => {
-		const files = readdirSync(staticDir).filter((f) => /^tree-sitter-.+\.wasm$/.test(f));
+		const files = readdirSync(staticDir).filter((f) => /tree-sitter.*\.wasm$/.test(f));
 
-		expect(files.sort()).toEqual(grammars.map((g) => g.file).sort());
+		expect(files.sort()).toEqual([ENGINE_FILE, ...grammars.map((g) => g.file)].sort());
 		expect(ALL_GRAMMAR_FILES.filter((f) => !files.includes(f))).toEqual([]);
 	});
 
@@ -50,6 +50,7 @@ describe('static/ against scripts/grammars/manifest.json', () => {
 	});
 
 	it('records an ABI version the engine accepts', async () => {
+		// The version range is read from the engine, so it is defined only after init
 		await Parser.init({ locateFile: () => `${staticDir}${ENGINE_FILE}` });
 		const abi: Record<string, number> = {};
 		for (const { file } of grammars)

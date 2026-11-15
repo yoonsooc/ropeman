@@ -91,7 +91,8 @@ export const QUERIES: Readonly<Record<string, string>> = {
 ([(class_declaration (base_list (_) @inherits)) (interface_declaration (base_list (_) @inherits))] @owner)
 ([(struct_declaration (base_list (_) @implements)) (record_declaration (base_list (_) @inherits))] @owner)`,
 	'tree-sitter-scala.wasm': `${CALL}
-(instance_expression [(type_identifier) (stable_type_identifier) (generic_type)] @callee)
+(instance_expression [(type_identifier) (stable_type_identifier)] @callee)
+(instance_expression (generic_type type: (_) @callee))
 ${scalaBases('. type: (_) @inherits')}
 ${scalaBases('"with" . type: (_) @implements')}
 ${scalaBases('"," . type: (_) @implements')}`,

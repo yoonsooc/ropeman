@@ -403,13 +403,15 @@ class App {
   def run(): Unit = {
     log("start")
     repo.save(new User(name))
+    new Box[Int](1)
   }
 }
 `,
 			[
 				['calls', 3, 'App.run', 'log'],
 				['calls', 4, 'App.run', 'repo.save'],
-				['calls', 4, 'App.run', 'User']
+				['calls', 4, 'App.run', 'User'],
+				['calls', 5, 'App.run', 'Box']
 			]
 		]
 	])('reads the calls in %s', async (filePath, source, expected) => {
