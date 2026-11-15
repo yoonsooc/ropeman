@@ -37,7 +37,7 @@ function scalaBases(type: string): string {
 // A command or script path: letters, digits and `_./+-`, not starting with `-` (an option)
 const BARE_WORD = '^[A-Za-z0-9_./+][A-Za-z0-9_./+-]*$';
 
-const QUERIES: Record<string, string> = {
+export const QUERIES: Readonly<Record<string, string>> = {
 	'tree-sitter-typescript.wasm': ECMA_CALLS + TS_HERITAGE,
 	'tree-sitter-tsx.wasm': ECMA_CALLS + JSX + TS_HERITAGE,
 	'tree-sitter-javascript.wasm': `${ECMA_CALLS}${JSX}
@@ -148,7 +148,7 @@ interface LocalRules {
  * around it (`next()` in `function f(next)`) gets `local`, so the resolver does not take an
  * import or a declaration of that name for it. Grammars left out bind nothing here.
  */
-const LOCALS: Record<string, LocalRules> = {
+export const LOCALS: Readonly<Record<string, LocalRules>> = {
 	'tree-sitter-javascript.wasm': { query: JS_LOCALS + ECMA_LOCALS, scopes: ECMA_SCOPES },
 	'tree-sitter-typescript.wasm': { query: TS_LOCALS + ECMA_LOCALS, scopes: ECMA_SCOPES },
 	'tree-sitter-tsx.wasm': { query: TS_LOCALS + ECMA_LOCALS, scopes: ECMA_SCOPES },
