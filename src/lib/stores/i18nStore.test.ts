@@ -132,9 +132,9 @@ describe('i18nStore', () => {
 			expect(text).toBe('파일 3 / {total}개');
 		});
 
-		it('names the 500 KB limit the explore file view enforces in both languages', () => {
+		it('names the 500 KB limit the source file view enforces in both languages', () => {
 			// Arrange
-			const keys = ['explore.fileTooLarge'] as const;
+			const keys = ['sourceFile.tooLargeGitHub', 'sourceFile.tooLarge'] as const;
 
 			// Act
 			settingsStore.language = 'en';
@@ -143,8 +143,8 @@ describe('i18nStore', () => {
 			const ko = keys.map((k) => i18nStore.t(k));
 
 			// Assert
-			expect(en[0]).toContain('500 KB');
-			expect(ko[0]).toContain('500KB');
+			for (const text of en) expect(text).toContain('500 KB');
+			for (const text of ko) expect(text).toContain('500KB');
 		});
 
 		it('picks the English singular for a count of one and the plural otherwise', () => {

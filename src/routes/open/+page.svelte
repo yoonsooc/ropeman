@@ -5,13 +5,27 @@
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
-	import ZUICanvas from '$lib/components/ZUICanvas.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
+	import SnapshotViewer from '$lib/components/SnapshotViewer.svelte';
 	import { readMapFile, toViewerLevels } from '$lib/services/mapViewer';
+	import { openDirectory } from '$lib/services/fileSystemService';
+	import {
+		checkFolder,
+		folderMatches,
+		readFolderFile,
+		type FolderMatch
+	} from '$lib/services/folderSource';
+	import { toSourceRead, type SourceRead } from '$lib/services/sourceFile';
 	import { MAX_MAP_BYTES, type ParseResult, type RopemanMap } from '$lib/types/ropemanMap';
 
 	type Failure = Extract<ParseResult<RopemanMap>, { ok: false }>;
+
+	type Folder =
+		| { state: 'unsupported' }
+		| { state: 'none' }
+		| { state: 'checking'; dir: FileSystemDirectoryHandle }
+		| { state: 'failed'; error: string }
+		| { state: 'mismatch'; name: string; match: FolderMatch }
+		| { state: 'connected'; name: string; dir: FileSystemDirectoryHandle };
 
 	let fileInput: HTMLInputElement | undefined = $state(undefined);
 	let reading = $state(false);
@@ -19,8 +33,81 @@
 	let failure = $state<{ name: string; text: string } | null>(null);
 	let opened = $state<{ projectName: string; fileName: string } | null>(null);
 
-	const hasSemanticSelection = $derived(
-		semanticStore.selectedSemanticNode !== null && !semanticStore.panelDismissed
+	const canPickFolder = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+	const noFolder = (): Folder => (canPickFolder ? { state: 'none' } : { state: 'unsupported' });
+	let folder = $state.raw<Folder>(noFolder());
+	let folderRevision = $state(0);
+	let mapFiles: string[] = [];
+
+	function settleFolder(next: Folder) {
+		folder = next;
+		folderRevision++;
+	}
+
+	async function connectFolder() {
+		let dir: FileSystemDirectoryHandle;
+		try {
+			dir = await openDirectory();
+		} catch (err) {
+			if ((err as { name?: unknown } | null)?.name === 'AbortError') return;
+			settleFolder({ state: 'failed', error: err instanceof Error ? err.message : String(err) });
+			return;
+		}
+		folder = { state: 'checking', dir };
+		const match = await checkFolder(dir, mapFiles);
+		if (folder.state !== 'checking' || folder.dir !== dir) return;
+		settleFolder(
+			folderMatches(match)
+				? { state: 'connected', name: dir.name, dir }
+				: { state: 'mismatch', name: dir.name, match }
+		);
+	}
+
+	async function readSource(path: string): Promise<SourceRead> {
+		const t = i18nStore.t;
+		switch (folder.state) {
+			case 'unsupported':
+				return { ok: false, message: t('openMap.folderUnsupported') };
+			case 'none':
+			case 'checking':
+				return { ok: false, message: t('openMap.folderNeeded') };
+			case 'failed':
+				return { ok: false, message: t('openMap.folderFailed', { error: folder.error }) };
+			case 'mismatch':
+				return {
+					ok: false,
+					message: t('openMap.folderMismatch', {
+						folder: folder.name,
+						found: folder.match.found,
+						checked: folder.match.checked,
+						example: folder.match.expectedPath ?? ''
+					})
+				};
+			case 'connected':
+				return toSourceRead(await readFolderFile(folder.dir, path), 'folder');
+		}
+	}
+
+	const fileAction = $derived.by(() => {
+		switch (folder.state) {
+			case 'none':
+			case 'failed':
+				return { label: i18nStore.t('openMap.connectFolder'), onclick: connectFolder };
+			case 'mismatch':
+				return { label: i18nStore.t('openMap.changeFolder'), onclick: connectFolder };
+			case 'connected':
+				return { label: i18nStore.t('openMap.changeFolder'), onclick: connectFolder, quiet: true };
+			default:
+				return null;
+		}
+	});
+
+	const fileNote = $derived(
+		folder.state === 'checking'
+			? i18nStore.t('openMap.folderChecking')
+			: folder.state === 'connected'
+				? i18nStore.t('openMap.folderReading', { folder: folder.name })
+				: null
 	);
 
 	function failureText(f: Failure): string {
@@ -48,6 +135,8 @@
 		for (const [key, level] of levels) semanticStore.setCachedLevel(key, level);
 		semanticStore.currentLevel = levels.get('__root__') ?? null;
 		projectStore.projectName = map.project.name;
+		mapFiles = map.levels.flatMap((level) => level.nodes.flatMap((node) => node.filePaths));
+		settleFolder(noFolder());
 		opened = { projectName: map.project.name, fileName };
 	}
 
@@ -121,17 +210,7 @@
 
 	<div class="open-content">
 		{#if opened && !reading && !failure}
-			<div class="open-breadcrumb">
-				<Breadcrumb />
-			</div>
-			<div class="open-canvas-area">
-				<ZUICanvas />
-			</div>
-			{#if hasSemanticSelection}
-				<div class="open-detail-panel">
-					<SemanticDetailPanel ondismiss={() => (semanticStore.panelDismissed = true)} />
-				</div>
-			{/if}
+			<SnapshotViewer read={readSource} revision={folderRevision} {fileAction} {fileNote} />
 		{:else}
 			<section
 				class="open-picker"
@@ -270,31 +349,6 @@
 		overflow: hidden;
 	}
 
-	.open-breadcrumb {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		z-index: 10;
-		padding: var(--spacing-2) var(--spacing-4);
-	}
-
-	.open-canvas-area {
-		--canvas-toolbar-top: 56px;
-		flex: 1;
-		min-height: 0;
-		position: relative;
-	}
-
-	.open-detail-panel {
-		position: relative;
-		z-index: 11;
-		width: 320px;
-		border-left: 1px solid var(--color-border);
-		overflow-y: auto;
-		overscroll-behavior: contain;
-	}
-
 	.open-picker {
 		flex: 1;
 		display: flex;
@@ -368,21 +422,6 @@
 	@media (max-width: 768px) {
 		.open-picker {
 			margin: var(--spacing-4);
-		}
-
-		.open-detail-panel {
-			position: fixed;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			width: auto;
-			max-height: 55dvh;
-			z-index: 30;
-			border-left: none;
-			border-top: 1px solid var(--color-border);
-			border-radius: var(--radius-container) var(--radius-container) 0 0;
-			box-shadow: 0 -8px 24px var(--color-shadow);
-			padding-bottom: env(safe-area-inset-bottom);
 		}
 	}
 </style>

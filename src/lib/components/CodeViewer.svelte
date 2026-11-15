@@ -381,8 +381,16 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		padding: var(--spacing-6) var(--spacing-4);
 		color: var(--color-text-error);
 		font-size: var(--font-size-base);
+		line-height: 1.6;
+		text-align: center;
+	}
+
+	.code-error p {
+		max-width: 560px;
+		overflow-wrap: anywhere;
 	}
 
 	.code-header {
