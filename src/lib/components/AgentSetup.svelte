@@ -208,7 +208,7 @@
 					<li>{t('connectFirefox')}</li>
 					<li>{t('connectSafari')}</li>
 				</ul>
-				<a class="connect-link" href={resolve('/bridge')}>
+				<a class="connect-link" href={resolve('bridge')}>
 					{t('connectLink')}
 					<span aria-hidden="true">&#x2192;</span>
 				</a>

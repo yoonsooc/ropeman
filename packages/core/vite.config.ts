@@ -13,7 +13,7 @@ export default defineConfig({
 		outDir: repo('packages/core/dist'),
 		emptyOutDir: true,
 		target: 'node22',
-		rollupOptions: { output: { entryFileNames: 'cli.mjs' } }
+		rolldownOptions: { output: { entryFileNames: 'cli.mjs' } }
 	},
 	ssr: { noExternal: true },
 	plugins: [

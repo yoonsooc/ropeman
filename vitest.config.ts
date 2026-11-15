@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelteOptions } from './vite.config.js';
 
 export default defineConfig({
-	plugins: [svelte({ hot: false })],
+	plugins: [svelte({ hot: false, ...svelteOptions })],
 	resolve: {
 		alias: {
 			$lib: resolve(__dirname, 'src/lib')

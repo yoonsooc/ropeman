@@ -49,7 +49,7 @@
 			</p>
 
 			<div class="prompt-actions">
-				<a href={resolve('/')} class="btn btn-primary">
+				<a href={resolve('')} class="btn btn-primary">
 					<span class="material-symbols-outlined">folder_open</span>
 					{i18nStore.t('landing.explorePromptAnalyze')}
 				</a>

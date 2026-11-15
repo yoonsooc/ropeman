@@ -103,8 +103,8 @@
 
 <div class="explore-page" data-theme={themeStore.current}>
 	<header class="explore-header">
-		<a href={resolve('/')} class="explore-logo">Ropeman</a>
-		<a href={resolve('/explore')} class="back-link">
+		<a href={resolve('')} class="explore-logo">Ropeman</a>
+		<a href={resolve('explore')} class="back-link">
 			← {i18nStore.t('explore.navLabel')}
 		</a>
 		<span class="project-name">{data.entry.owner}/{data.entry.repo}</span>
@@ -118,7 +118,7 @@
 			>
 				GitHub →
 			</a>
-			<button class="cta" onclick={() => (window.location.href = resolve('/'))}>
+			<button class="cta" onclick={() => (window.location.href = resolve(''))}>
 				{i18nStore.t('explore.analyzeOwn')}
 			</button>
 		</div>
@@ -142,7 +142,7 @@
 					{i18nStore.t('explore.notAnalyzedDesc', { title: data.entry.title })}
 				</p>
 				<div class="state-actions">
-					<a href={resolve('/')} class="cta">
+					<a href={resolve('')} class="cta">
 						{i18nStore.t('explore.analyzeFromHome')}
 					</a>
 					<a
@@ -160,7 +160,7 @@
 				<span class="material-symbols-outlined state-icon">error</span>
 				<h2>{i18nStore.t('common.error')}</h2>
 				<p>{errorMessage}</p>
-				<a href={resolve('/explore')} class="cta">
+				<a href={resolve('explore')} class="cta">
 					{i18nStore.t('explore.backToGallery')}
 				</a>
 			</div>

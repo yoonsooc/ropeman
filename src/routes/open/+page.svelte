@@ -195,7 +195,7 @@
 
 <div class="open-page" data-theme={themeStore.current}>
 	<header class="open-header">
-		<a href={resolve('/')} class="open-logo">Ropeman</a>
+		<a href={resolve('')} class="open-logo">Ropeman</a>
 		{#if opened}
 			<span class="open-project-name">{opened.projectName}</span>
 			<span class="open-badge">{i18nStore.t('openMap.badge')}</span>

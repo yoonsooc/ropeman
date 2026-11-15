@@ -1,6 +1,7 @@
-import type { Handle, RequestEvent } from '@sveltejs/kit';
-import { redirect } from '@sveltejs/kit';
-import { building } from '$app/environment';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { type RequestEvent, redirect } from '@sveltejs/kit';
+import { building } from '$app/env';
+import { env } from 'cloudflare:workers';
 import { LANGUAGE_COOKIE, requestLocale } from '$lib/utils/locale';
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -11,7 +12,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const target = new URL(event.url);
 		target.hostname = 'ropeman.dev';
 		target.port = '';
-		redirect(301, target.toString());
+		redirect(301, target.toString(), { external: true });
 	}
 
 	if (event.url.pathname === '/' && ['GET', 'HEAD'].includes(event.request.method)) {
@@ -56,8 +57,7 @@ async function serveLanding(event: RequestEvent): Promise<Response> {
 	);
 	const target = new URL(`/${locale}`, event.url);
 	// `vite dev` has no built files and no ASSETS binding, and renders `/en` or `/ko` on request
-	const platform = event.platform as { env?: { ASSETS?: { fetch: typeof fetch } } } | undefined;
-	const assets = platform?.env?.ASSETS;
+	const assets = env.ASSETS;
 	// Only the headers that shape a whole-page answer: a 304 for an unchanged file, compression.
 	// A Range or If-Modified-Since could get a slice, or a 304 that keeps the other language.
 	const headers = new Headers();

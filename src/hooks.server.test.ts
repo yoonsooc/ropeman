@@ -1,14 +1,22 @@
+import type { RequestEvent } from '@sveltejs/kit';
+import type { ResolveOptions } from '@sveltejs/kit/hooks';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { RequestEvent, ResolveOptions } from '@sveltejs/kit';
 
 const environment = vi.hoisted(() => ({ building: false }));
-vi.mock('$app/environment', () => environment);
+vi.mock('$app/env', () => environment);
+const worker = vi.hoisted(() => ({ env: {} as { ASSETS?: { fetch: typeof fetch } } }));
+vi.mock('cloudflare:workers', () => worker);
 
 const { handle } = await import('./hooks.server');
 
 const HTML = { en: '<html lang="en"><h1>Map a repo</h1>', ko: '<html lang="ko"><h1>지도</h1>' };
 
-function makeEvent(path: string, headers: Record<string, string> = {}, params = {}) {
+function makeEvent(
+	path: string,
+	headers: Record<string, string> = {},
+	params = {},
+	origin = 'https://ropeman.dev'
+) {
 	const assets = {
 		fetch: vi.fn(async (request: Request) => {
 			const locale = new URL(request.url).pathname.slice(1) as 'en' | 'ko';
@@ -17,7 +25,7 @@ function makeEvent(path: string, headers: Record<string, string> = {}, params = 
 			});
 		})
 	};
-	const request = new Request(`https://ropeman.dev${path}`, { headers });
+	const request = new Request(`${origin}${path}`, { headers });
 	const cookies = new Map(
 		(headers.cookie ?? '').split('; ').map((pair) => pair.split('=') as [string, string])
 	);
@@ -26,9 +34,9 @@ function makeEvent(path: string, headers: Record<string, string> = {}, params = 
 		request,
 		params,
 		cookies: { get: (name: string) => cookies.get(name) },
-		platform: { env: { ASSETS: assets } },
 		fetch: vi.fn()
 	} as unknown as RequestEvent;
+	worker.env.ASSETS = assets as unknown as { fetch: typeof fetch };
 	return { event, assets };
 }
 
@@ -156,6 +164,22 @@ describe('handle', () => {
 
 			// Assert
 			expect(html).toBe('<html lang="en" data-theme="dark"><title>Page</title>');
+		});
+	});
+
+	describe('the pages.dev alias', () => {
+		it('redirects to the same page on ropeman.dev', async () => {
+			// Arrange
+			const { event } = makeEvent('/share/abc?view=tree', {}, {}, 'https://ropeman.pages.dev');
+
+			// Act
+			const handled = handle({ event, resolve: vi.fn() });
+
+			// Assert
+			await expect(handled).rejects.toMatchObject({
+				status: 301,
+				location: 'https://ropeman.dev/share/abc?view=tree'
+			});
 		});
 	});
 });

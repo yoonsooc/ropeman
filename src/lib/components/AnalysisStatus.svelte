@@ -103,7 +103,7 @@
 	function handleErrorAction(target: AIErrorAction['target']) {
 		dismissError();
 		if (target === 'explore') {
-			goto(resolve('/explore'));
+			goto(resolve('explore'));
 		} else if (target === 'analyze') {
 			analysisUiStore.openAnalyze?.();
 		} else {

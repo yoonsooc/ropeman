@@ -8,7 +8,7 @@
 	// Client-side redirect to the user's preferred locale. We can't do this
 	// server-side because prerender doesn't know the visitor's language.
 	onMount(() => {
-		goto(resolve(`/docs/${settingsStore.language}/getting-started`), { replaceState: true });
+		goto(resolve(`docs/${settingsStore.language}/getting-started`), { replace: true });
 	});
 </script>
 
@@ -20,8 +20,8 @@
 <div class="redirect-notice">
 	<p>{i18nStore.t('docsUi.loadingDocs')}</p>
 	<p class="hint">
-		<a href={resolve('/docs/en/getting-started')}>English</a> ·
-		<a href={resolve('/docs/ko/getting-started')}>한국어</a>
+		<a href={resolve('docs/en/getting-started')}>English</a> ·
+		<a href={resolve('docs/ko/getting-started')}>한국어</a>
 	</p>
 </div>
 

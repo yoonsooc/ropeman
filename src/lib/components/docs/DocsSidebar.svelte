@@ -28,7 +28,7 @@
 					{#each category.items as item (item.slug)}
 						<li>
 							<a
-								href={resolve(`/docs/${lang}/${item.slug}`)}
+								href={resolve(`docs/${lang}/${item.slug}`)}
 								class:active={item.slug === currentSlug}
 								onclick={onNavigate}
 							>

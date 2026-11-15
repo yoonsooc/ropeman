@@ -238,7 +238,7 @@
 
 <div class="bridge-page" data-theme={themeStore.current}>
 	<header class="bridge-header">
-		<a href={resolve('/')} class="bridge-logo">Ropeman</a>
+		<a href={resolve('')} class="bridge-logo">Ropeman</a>
 		{#if showingMap && bridgeStore.map}
 			<span class="bridge-project">{bridgeStore.map.project.name}</span>
 			<span class="bridge-badge" class:lost={status.state === 'lost'} data-testid="bridge-status">

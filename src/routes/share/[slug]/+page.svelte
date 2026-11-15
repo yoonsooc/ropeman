@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onMount, onDestroy } from 'svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
@@ -16,7 +16,7 @@
 	let snapshotMeta = $state<{ projectName: string; fileCount: number } | null>(null);
 	let source = $state<GitHubSource | null>(null);
 
-	const slug = $derived($page.params.slug);
+	const slug = $derived(page.params.slug);
 
 	onMount(async () => {
 		// Mark the store as a read-only snapshot viewer so drilldowns into
@@ -85,13 +85,13 @@
 <div class="share-page" data-theme={themeStore.current}>
 	<!-- Header -->
 	<header class="share-header">
-		<a href={resolve('/')} class="share-logo">Ropeman</a>
+		<a href={resolve('')} class="share-logo">Ropeman</a>
 		<span class="share-project-name">{snapshotMeta?.projectName ?? ''}</span>
 		<span class="share-badge">
 			{i18nStore.t('shareView.badge')}
 		</span>
 		<div class="share-header-actions">
-			<button class="share-cta" onclick={() => (window.location.href = resolve('/'))}>
+			<button class="share-cta" onclick={() => (window.location.href = resolve(''))}>
 				<span class="material-symbols-outlined" style="font-size: 16px;">add</span>
 				{i18nStore.t('shareView.analyzeOwn')}
 			</button>
@@ -110,7 +110,7 @@
 				<span class="material-symbols-outlined share-error-icon">link_off</span>
 				<h2>{i18nStore.t('shareView.notFoundTitle')}</h2>
 				<p>{error}</p>
-				<a href={resolve('/')} class="share-cta">
+				<a href={resolve('')} class="share-cta">
 					{i18nStore.t('shareView.goHome')}
 				</a>
 			</div>

@@ -1,3 +1,7 @@
+import adapter from '@sveltejs/adapter-cloudflare';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { mdsvex } from 'mdsvex';
+import rehypeSlug from 'rehype-slug';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { devFsPlugin } from './scripts/vite-dev-fs-plugin.js';
@@ -31,8 +35,17 @@ function webllmSkipLiteralScan() {
 	};
 }
 
+/** Also read by vitest.config.ts, which compiles components and docs without SvelteKit */
+export const svelteOptions = {
+	extensions: ['.svelte', '.md'],
+	preprocess: [vitePreprocess(), mdsvex({ extensions: ['.md'], rehypePlugins: [rehypeSlug] })]
+};
+
 export default defineConfig({
-	plugins: [devFsPlugin(), sveltekit()],
+	plugins: [
+		devFsPlugin(),
+		sveltekit({ ...svelteOptions, adapter: adapter(), alias: { $lib: 'src/lib' } })
+	],
 	// The parser worker imports web-tree-sitter after the first page load. Without this,
 	// a cold dev server discovers it late, re-optimizes, and reloads every open page.
 	optimizeDeps: {
