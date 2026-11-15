@@ -12,6 +12,10 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 - `ropeman serve --help` and `-h` print the usage and exit without starting a server or storing a token. A `--help` after `--`, or in place of an option's value, does not count as asking for help. `--help` after `map`, `verify`, `inbox` or `stop` prints the usage too, where it used to fail with exit code 2 ([#109](https://github.com/yoonsooc/ropeman/pull/109)).
 
+### Security
+
+- `ws`, the WebSocket library behind serve's local server, now has to be 8.21.0 or later. Earlier 8.x versions let a client exhaust the server's memory with many tiny fragments ([GHSA-96hv-2xvq-fx4p](https://github.com/advisories/GHSA-96hv-2xvq-fx4p)) and could disclose uninitialized memory ([GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx)).
+
 ## [0.4.0] - 2026-11-14
 
 ### Added
