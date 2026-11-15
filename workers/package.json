@@ -15,10 +15,10 @@
 		"test": "vitest run"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.12.4",
+		"@cloudflare/vitest-plugin": "^1.8.2",
 		"@types/node": "^25.5.0",
 		"typescript": "^5.5.2",
-		"vitest": "~3.2.0",
+		"vitest": "^4.1.12",
 		"wrangler": "^4.74.0"
 	}
 }
