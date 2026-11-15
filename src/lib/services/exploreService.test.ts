@@ -10,9 +10,6 @@ import {
 	localizeSnapshot,
 	uploadExploreSnapshot,
 	exploreSource,
-	exploreFileUrl,
-	fetchExploreFile,
-	type ExploreSource,
 	getCuratedManifest,
 	type CuratedEntry,
 	type ExploreSnapshot
@@ -535,7 +532,6 @@ function snapshotWithPaths(paths: string[], commit?: string): ExploreSnapshot {
 
 const COMMIT = '5758a9c8347d911444dca97a55b708cc4a8de4f8';
 const FASTAPI_ENTRY = SAMPLE_ENTRIES[1];
-const SOURCE: ExploreSource = { owner: 'o', repo: 'react', commit: COMMIT };
 
 describe('validateSnapshot commit', () => {
 	it('keeps a 40-hex commit and drops anything else', () => {
@@ -566,152 +562,5 @@ describe('exploreSource', () => {
 		})!.entries;
 
 		expect(exploreSource(entry, snapshotWithPaths(['fastapi/fastapi/routing.py']))).toBeNull();
-	});
-});
-
-describe('exploreFileUrl', () => {
-	it('points raw and blob views at the commit', () => {
-		expect(exploreFileUrl(SOURCE, 'packages/react/index.js', 'raw')).toBe(
-			`https://raw.githubusercontent.com/o/react/${COMMIT}/packages/react/index.js`
-		);
-		expect(exploreFileUrl(SOURCE, 'packages/react/index.js', 'blob')).toBe(
-			`https://github.com/o/react/blob/${COMMIT}/packages/react/index.js`
-		);
-	});
-
-	it('encodes `#`, `?`, `%`, spaces and non-ASCII names', () => {
-		expect(exploreFileUrl(SOURCE, 'docs/a #1?.md', 'raw')).toBe(
-			`https://raw.githubusercontent.com/o/react/${COMMIT}/docs/a%20%231%3F.md`
-		);
-		expect(exploreFileUrl(SOURCE, 'docs/100%.md', 'raw')).toBe(
-			`https://raw.githubusercontent.com/o/react/${COMMIT}/docs/100%25.md`
-		);
-		expect(exploreFileUrl(SOURCE, 'docs/한글/é.md', 'raw')).toBe(
-			`https://raw.githubusercontent.com/o/react/${COMMIT}/docs/%ED%95%9C%EA%B8%80/%C3%A9.md`
-		);
-	});
-
-	it('rejects empty, `.` and `..` segments', () => {
-		for (const path of ['react/../../other/x', 'react/./a.js', 'react//a.js', '..', 'a/', '']) {
-			expect(exploreFileUrl(SOURCE, path, 'raw'), path).toBeNull();
-			expect(exploreFileUrl(SOURCE, path, 'blob'), path).toBeNull();
-		}
-	});
-});
-
-describe('fetchExploreFile', () => {
-	const raw = (repoPath: string) =>
-		`https://raw.githubusercontent.com/o/react/${COMMIT}/${repoPath}`;
-
-	beforeEach(() => {
-		vi.unstubAllGlobals();
-	});
-
-	// Regression: fastapi and tokio hold real folders named after the repository
-	it('fetches the repository path as given, once, even when it starts with the repo name', async () => {
-		const fetchMock = vi.fn().mockResolvedValue(new Response('export {};', { status: 200 }));
-		vi.stubGlobal('fetch', fetchMock);
-
-		const result = await fetchExploreFile(SOURCE, 'react/index.js');
-
-		expect(result).toEqual({ ok: true, content: 'export {};' });
-		expect(fetchMock.mock.calls).toEqual([[raw('react/index.js')]]);
-	});
-
-	it('reports not-found after one request', async () => {
-		const fetchMock = vi.fn().mockResolvedValue(new Response('404', { status: 404 }));
-		vi.stubGlobal('fetch', fetchMock);
-
-		expect(await fetchExploreFile(SOURCE, 'react/gone.js')).toEqual({
-			ok: false,
-			reason: 'not-found'
-		});
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-	});
-
-	it('reports a rate limit', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('limit', { status: 429 })));
-
-		expect(await fetchExploreFile(SOURCE, 'react/a.js')).toEqual({
-			ok: false,
-			reason: 'rate-limited'
-		});
-	});
-
-	it('treats a 403 as a rate limit', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 403 })));
-
-		expect(await fetchExploreFile(SOURCE, 'react/a.js')).toMatchObject({ reason: 'rate-limited' });
-	});
-
-	it('refuses a file whose Content-Length is over 500 KB without reading it', async () => {
-		const response = new Response('x', {
-			status: 200,
-			headers: { 'content-length': '600000' }
-		});
-		const read = vi.spyOn(response, 'arrayBuffer');
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
-
-		expect(await fetchExploreFile(SOURCE, 'react/big.js')).toEqual({
-			ok: false,
-			reason: 'too-large'
-		});
-		expect(read).not.toHaveBeenCalled();
-	});
-
-	it('refuses a body over 500 KB even when the header is smaller', async () => {
-		const body = 'a'.repeat(500_001);
-		vi.stubGlobal(
-			'fetch',
-			vi
-				.fn()
-				.mockResolvedValue(
-					new Response(body, { status: 200, headers: { 'content-length': '1000' } })
-				)
-		);
-
-		expect(await fetchExploreFile(SOURCE, 'react/big.js')).toMatchObject({ reason: 'too-large' });
-	});
-
-	it('refuses binary content', async () => {
-		const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00]);
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(png, { status: 200 })));
-
-		expect(await fetchExploreFile(SOURCE, 'react/logo.png')).toEqual({
-			ok: false,
-			reason: 'binary'
-		});
-	});
-
-	it('decodes UTF-8 text', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('// 한글 é', { status: 200 })));
-
-		expect(await fetchExploreFile(SOURCE, 'react/a.js')).toMatchObject({ content: '// 한글 é' });
-	});
-
-	it('reports the status of another HTTP failure, and none when the request fails', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 502 })));
-		expect(await fetchExploreFile(SOURCE, 'react/a.js')).toEqual({
-			ok: false,
-			reason: 'unavailable',
-			status: 502
-		});
-
-		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
-		expect(await fetchExploreFile(SOURCE, 'react/a.js')).toEqual({
-			ok: false,
-			reason: 'unavailable'
-		});
-	});
-
-	it('rejects a path that would leave the repository without fetching', async () => {
-		const fetchMock = vi.fn();
-		vi.stubGlobal('fetch', fetchMock);
-
-		expect(await fetchExploreFile(SOURCE, 'react/../../x')).toEqual({
-			ok: false,
-			reason: 'invalid-path'
-		});
-		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });

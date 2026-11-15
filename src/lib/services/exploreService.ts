@@ -15,11 +15,7 @@ import type { SemanticLevel } from '$lib/types/semantic';
 import type { Locale } from '$lib/utils/locale';
 import { i18nStore } from '$lib/stores/i18nStore.svelte';
 import curatedRaw from '$lib/data/explore-curated.json';
-import { MAX_FILE_SIZE } from '$lib/utils/filePriority';
-
-const COMMIT_SHA = /^[0-9a-f]{40}$/;
-const commitOrUndefined = (v: unknown) =>
-	typeof v === 'string' && COMMIT_SHA.test(v) ? v : undefined;
+import { isCommitSha, type GitHubSource } from './githubSource';
 
 export interface CuratedEntry {
 	slug: string;
@@ -166,7 +162,7 @@ export function validateSnapshot(data: unknown): ExploreSnapshot | null {
 		semanticLevels: levels,
 		filePaths: Array.isArray(obj.filePaths) ? (obj.filePaths as string[]) : undefined,
 		analyzedAt: typeof obj.analyzedAt === 'string' ? obj.analyzedAt : undefined,
-		commit: commitOrUndefined(obj.commit),
+		commit: isCommitSha(obj.commit) ? obj.commit : undefined,
 		translations: ko ? { ko } : undefined
 	};
 }
@@ -294,75 +290,6 @@ export async function fetchExploreSnapshot(
 	}
 }
 
-/** Where a snapshot's files live on GitHub. Snapshot paths are repository paths. */
-export interface ExploreSource {
-	owner: string;
-	repo: string;
-	commit: string;
-}
-
-/** Null when the snapshot does not record the commit it was analyzed at. */
-export function exploreSource(
-	entry: CuratedEntry,
-	snapshot: ExploreSnapshot
-): ExploreSource | null {
+export function exploreSource(entry: CuratedEntry, snapshot: ExploreSnapshot): GitHubSource | null {
 	return snapshot.commit ? { owner: entry.owner, repo: entry.repo, commit: snapshot.commit } : null;
-}
-
-/**
- * Null when a path segment is empty, `.` or `..`, which the browser would resolve outside the
- * repository.
- */
-export function exploreFileUrl(
-	source: ExploreSource,
-	repoPath: string,
-	view: 'raw' | 'blob'
-): string | null {
-	const segments = repoPath.split('/');
-	if (segments.some((seg) => seg === '' || seg === '.' || seg === '..')) return null;
-	const encoded = segments.map(encodeURIComponent).join('/');
-	const { owner, repo, commit } = source;
-	return view === 'raw'
-		? `https://raw.githubusercontent.com/${owner}/${repo}/${commit}/${encoded}`
-		: `https://github.com/${owner}/${repo}/blob/${commit}/${encoded}`;
-}
-
-export type ExploreFileFailure =
-	| { reason: 'invalid-path' | 'not-found' | 'too-large' | 'binary' | 'rate-limited' }
-	/** `status` is missing when the request never got an answer */
-	| { reason: 'unavailable'; status?: number };
-
-export type ExploreFileResult =
-	| { ok: true; content: string }
-	| ({ ok: false } & ExploreFileFailure);
-
-/** Reads one snapshot file from GitHub at the analyzed commit. */
-export async function fetchExploreFile(
-	source: ExploreSource,
-	path: string
-): Promise<ExploreFileResult> {
-	const url = exploreFileUrl(source, path, 'raw');
-	if (!url) return { ok: false, reason: 'invalid-path' };
-	let res: Response;
-	try {
-		res = await fetch(url);
-	} catch {
-		return { ok: false, reason: 'unavailable' };
-	}
-	if (res.status === 404) return { ok: false, reason: 'not-found' };
-	if (res.status === 403 || res.status === 429) return { ok: false, reason: 'rate-limited' };
-	if (!res.ok) return { ok: false, reason: 'unavailable', status: res.status };
-	// The header is the compressed size when GitHub gzips, so the body length decides too
-	if (Number(res.headers.get('content-length')) > MAX_FILE_SIZE) {
-		return { ok: false, reason: 'too-large' };
-	}
-	let bytes: Uint8Array;
-	try {
-		bytes = new Uint8Array(await res.arrayBuffer());
-	} catch {
-		return { ok: false, reason: 'unavailable' };
-	}
-	if (bytes.length > MAX_FILE_SIZE) return { ok: false, reason: 'too-large' };
-	if (bytes.subarray(0, 8000).includes(0)) return { ok: false, reason: 'binary' };
-	return { ok: true, content: new TextDecoder().decode(bytes) };
 }

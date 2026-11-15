@@ -47,6 +47,21 @@ describe('projectStore', () => {
 		});
 	});
 
+	// A folder opened after a GitHub project must not inherit its commit, or its share would name it
+	describe('githubInfo', () => {
+		it('drops the GitHub project and its commit on reset', () => {
+			// Arrange
+			const commit = 'e129e22125d397b272c6c3a84bf9d11c35e3d8cc';
+			projectStore.githubInfo = { owner: 'octo', repo: 'demo', ref: commit, commit };
+
+			// Act
+			projectStore.reset();
+
+			// Assert
+			expect(projectStore.githubInfo).toBeNull();
+		});
+	});
+
 	describe('setters', () => {
 		it('sets fileTree', () => {
 			const tree = { name: 'root', path: '', kind: 'directory' as const, children: [] };

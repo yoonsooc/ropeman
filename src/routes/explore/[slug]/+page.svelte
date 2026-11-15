@@ -5,21 +5,10 @@
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
-	import { tabStore } from '$lib/stores/tabStore.svelte';
-	import ZUICanvas from '$lib/components/ZUICanvas.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
-	import TabBar from '$lib/components/TabBar.svelte';
-	import CodeViewer from '$lib/components/CodeViewer.svelte';
-	import {
-		exploreFileUrl,
-		exploreSource,
-		fetchExploreFile,
-		fetchExploreSnapshot,
-		type ExploreFileFailure,
-		type ExploreSource
-	} from '$lib/services/exploreService';
-	import { useBreakpoint } from '$lib/utils/responsive.svelte';
+	import SnapshotViewer from '$lib/components/SnapshotViewer.svelte';
+	import { exploreSource, fetchExploreSnapshot } from '$lib/services/exploreService';
+	import { fetchGitHubFile, githubFileUrl, type GitHubSource } from '$lib/services/githubSource';
+	import { toSourceRead, type SourceRead } from '$lib/services/sourceFile';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -27,48 +16,14 @@
 	let loading = $state(true);
 	let status = $state<'ok' | 'not-analyzed' | 'error'>('ok');
 	let errorMessage = $state('');
-	let source = $state<ExploreSource | null>(null);
+	let source = $state<GitHubSource | null>(null);
 
-	const breakpoint = useBreakpoint();
-	const openFile = $derived(
-		tabStore.activeTab?.type === 'code' ? (tabStore.activeTab.filePath ?? null) : null
-	);
-	// On phones the detail is a bottom sheet that would cover the open file
-	const hasSemanticSelection = $derived(
-		semanticStore.selectedSemanticNode !== null &&
-			!semanticStore.panelDismissed &&
-			!(openFile && !breakpoint.isDesktop)
-	);
-
-	const fileOnGitHub = $derived(
-		source && openFile ? exploreFileUrl(source, openFile, 'blob') : null
-	);
-
-	function failureMessage(failure: ExploreFileFailure): string {
-		switch (failure.reason) {
-			case 'invalid-path':
-				return i18nStore.t('explore.fileInvalidPath');
-			case 'not-found':
-				return i18nStore.t('explore.fileNotFound');
-			case 'too-large':
-				return i18nStore.t('explore.fileTooLarge');
-			case 'binary':
-				return i18nStore.t('explore.fileBinary');
-			case 'rate-limited':
-				return i18nStore.t('explore.fileRateLimited');
-			case 'unavailable':
-				return failure.status
-					? i18nStore.t('codeViewer.loadFailed', { error: `HTTP ${failure.status}` })
-					: i18nStore.t('codeViewer.notAccessible');
-		}
+	async function readSnapshotFile(path: string): Promise<SourceRead> {
+		if (!source) return { ok: false, message: i18nStore.t('explore.fileNoCommit') };
+		return toSourceRead(await fetchGitHubFile(source, path), 'github');
 	}
 
-	async function readSnapshotFile(path: string) {
-		if (!source) return { ok: false as const, message: i18nStore.t('explore.fileNoCommit') };
-		const got = await fetchExploreFile(source, path);
-		if (!got.ok) return { ok: false as const, message: failureMessage(got) };
-		return { ok: true as const, content: got.content };
-	}
+	const githubUrl = (path: string) => (source ? githubFileUrl(source, path, 'blob') : null);
 
 	const ldJson = $derived(
 		JSON.stringify({
@@ -116,9 +71,6 @@
 		if (root) {
 			semanticStore.currentLevel = root;
 		}
-		// The diagram is a tab, so a file opened from the detail panel has a tab to return to
-		tabStore.clear();
-		tabStore.openDiagramTab([], 'Project');
 
 		loading = false;
 	});
@@ -213,47 +165,7 @@
 				</a>
 			</div>
 		{:else}
-			<div class="canvas-area">
-				<TabBar
-					tabs={tabStore.tabs}
-					activeTabId={tabStore.activeTabId}
-					onactivate={(id) => tabStore.activateTab(id)}
-					onclose={(id) => tabStore.closeTab(id)}
-				/>
-				<div class="canvas-content">
-					<!-- Stays mounted under an open file so zoom, pan and drill-down survive -->
-					<div class="diagram-view" class:covered={openFile !== null}>
-						<div class="canvas-breadcrumb">
-							<Breadcrumb />
-						</div>
-						<ZUICanvas />
-					</div>
-					{#if openFile}
-						<div class="file-view">
-							{#if fileOnGitHub}
-								<div class="source-bar">
-									<a
-										href={fileOnGitHub}
-										target="_blank"
-										rel="external noopener noreferrer"
-										class="source-link"
-									>
-										{i18nStore.t('explore.viewOnGithub')} ↗
-									</a>
-								</div>
-							{/if}
-							<div class="file-body">
-								<CodeViewer filePath={openFile} read={readSnapshotFile} />
-							</div>
-						</div>
-					{/if}
-				</div>
-			</div>
-			{#if hasSemanticSelection}
-				<aside class="detail-panel">
-					<SemanticDetailPanel ondismiss={() => (semanticStore.panelDismissed = true)} />
-				</aside>
-			{/if}
+			<SnapshotViewer read={readSnapshotFile} {githubUrl} />
 		{/if}
 	</div>
 </div>
@@ -376,75 +288,6 @@
 		overflow: hidden;
 	}
 
-	.canvas-breadcrumb {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		z-index: 10;
-		padding: var(--spacing-2) var(--spacing-4);
-	}
-
-	.canvas-area {
-		--canvas-toolbar-top: 56px;
-		flex: 1;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.canvas-content {
-		flex: 1;
-		min-height: 0;
-		position: relative;
-	}
-
-	.diagram-view {
-		position: absolute;
-		inset: 0;
-	}
-
-	/* Hidden rather than display: none, so the canvas keeps its size and viewport */
-	.diagram-view.covered {
-		visibility: hidden;
-	}
-
-	.file-view {
-		position: absolute;
-		inset: 0;
-		display: flex;
-		flex-direction: column;
-		background: var(--color-background-body);
-	}
-
-	.source-bar {
-		display: flex;
-		justify-content: flex-end;
-		padding: var(--spacing-1-5) var(--spacing-4);
-		border-bottom: 1px solid var(--color-border);
-	}
-
-	.source-link {
-		font-size: var(--font-size-sm);
-		color: var(--color-text-secondary);
-		text-decoration: none;
-	}
-	.source-link:hover {
-		color: var(--color-text-primary);
-	}
-
-	.file-body {
-		flex: 1;
-		min-height: 0;
-	}
-
-	.detail-panel {
-		width: 320px;
-		border-left: 1px solid var(--color-border);
-		overflow-y: auto;
-		overscroll-behavior: contain;
-	}
-
 	.state {
 		flex: 1;
 		display: flex;
@@ -489,7 +332,6 @@
 		}
 	}
 
-	/* Phones: the detail opens as a bottom sheet over the canvas */
 	/* Phones: logo, back, repo name and the one action; the rest steps aside */
 	@media (max-width: 640px) {
 		.explore-header {
@@ -500,23 +342,6 @@
 		.badge,
 		.repo-link {
 			display: none;
-		}
-	}
-
-	@media (max-width: 768px) {
-		.detail-panel {
-			position: fixed;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			width: auto;
-			max-height: 55dvh;
-			z-index: 30;
-			border-left: none;
-			border-top: 1px solid var(--color-border);
-			border-radius: var(--radius-container) var(--radius-container) 0 0;
-			box-shadow: 0 -8px 24px var(--color-shadow);
-			padding-bottom: env(safe-area-inset-bottom);
 		}
 	}
 </style>

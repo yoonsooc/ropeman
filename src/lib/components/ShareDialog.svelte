@@ -4,6 +4,7 @@
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { SHARE_URL } from '$lib/config';
+	import { buildSharePayload, shareSource } from '$lib/services/shareService';
 
 	let { open, onclose }: { open: boolean; onclose: () => void } = $props();
 
@@ -22,45 +23,19 @@
 		}
 	});
 
-	function buildSnapshot() {
-		const cache = semanticStore.cache;
-		const semanticLevels: Record<
-			string,
-			{ parentId: string | null; nodes: any[]; edges: any[]; breadcrumbLabel: string }
-		> = {};
-		for (const [key, level] of cache) {
-			semanticLevels[key] = {
-				parentId: level.parentId,
-				nodes: level.nodes,
-				edges: level.edges,
-				breadcrumbLabel: level.breadcrumbLabel
-			};
-		}
-
-		const filePaths = [...projectStore.astMap.keys()];
-		const languageBreakdown: Record<string, number> = {};
-		for (const fp of filePaths) {
-			const ext = fp.split('.').pop()?.toLowerCase() ?? 'unknown';
-			languageBreakdown[ext] = (languageBreakdown[ext] ?? 0) + 1;
-		}
-
-		return {
-			projectName: projectStore.projectName,
-			semanticLevels,
-			filePaths,
-			metadata: {
-				fileCount: filePaths.length,
-				languageBreakdown
-			},
-			createdAt: new Date().toISOString()
-		};
-	}
+	const source = $derived(shareSource(projectStore.githubInfo));
 
 	async function handleConfirm() {
 		phase = 'loading';
 		try {
-			const snapshot = buildSnapshot();
-			const body = JSON.stringify(snapshot);
+			const payload = buildSharePayload({
+				projectName: projectStore.projectName,
+				levels: semanticStore.cache,
+				filePaths: [...projectStore.astMap.keys()],
+				github: projectStore.githubInfo,
+				now: new Date()
+			});
+			const body = JSON.stringify(payload);
 			if (body.length > 1_048_576) {
 				throw new Error(i18nStore.t('share.tooLarge'));
 			}
@@ -135,6 +110,11 @@
 			<div class="modal-body share-body">
 				{#if phase === 'confirm'}
 					<p class="share-message">{i18nStore.t('share.confirmMessage')}</p>
+					{#if source}
+						<p class="share-note" data-testid="share-includes-source">
+							{i18nStore.t('share.includesSource', { repo: `${source.owner}/${source.repo}` })}
+						</p>
+					{/if}
 					<div class="share-actions">
 						<button class="share-btn share-btn-cancel" onclick={onclose}>
 							{i18nStore.t('share.confirmCancel')}
@@ -211,6 +191,13 @@
 	.share-message {
 		font-size: var(--font-size-base);
 		color: var(--color-text-primary);
+		line-height: 1.6;
+		margin: 0;
+	}
+
+	.share-note {
+		font-size: var(--font-size-sm);
+		color: var(--color-text-secondary);
 		line-height: 1.6;
 		margin: 0;
 	}
