@@ -26,9 +26,22 @@ updates:
       minor-and-patch:
         applies-to: version-updates
         update-types: [minor, patch]
+        patterns: ['*']
+        # A grammar .wasm must match the web-tree-sitter runtime, so each comes in its own PR
+        exclude-patterns: ['web-tree-sitter', 'tree-sitter-*']
       security:
         applies-to: security-updates
         patterns: ['*']
+    ignore:
+      # @types/node follows the Node major CI runs (22), so bump both together by hand
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # TypeScript 7 has no stable compiler API, which svelte-check and typescript-eslint need
+      - dependency-name: typescript
+        versions: ['7.x']
+      # 0.26+ cannot load grammars with the legacy `dylink` section (11 in static/)
+      - dependency-name: web-tree-sitter
+        versions: ['>=0.26.0']
 
   - package-ecosystem: npm
     directory: /bridge
@@ -44,6 +57,13 @@ updates:
       security:
         applies-to: security-updates
         patterns: ['*']
+    ignore:
+      # @types/node follows the Node major CI runs (22), so bump both together by hand
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # TypeScript 7 has no stable compiler API, which svelte-check and typescript-eslint need
+      - dependency-name: typescript
+        versions: ['7.x']
 
   - package-ecosystem: npm
     directory: /workers
@@ -59,3 +79,10 @@ updates:
       security:
         applies-to: security-updates
         patterns: ['*']
+    ignore:
+      # @types/node follows the Node major CI runs (22), so bump both together by hand
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # TypeScript 7 has no stable compiler API, which svelte-check and typescript-eslint need
+      - dependency-name: typescript
+        versions: ['7.x']

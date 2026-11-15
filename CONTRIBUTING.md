@@ -45,7 +45,7 @@ It prints where its token is. Open `http://localhost:5173/bridge` from the dev s
 - When a change moves files or changes how parts fit together, update [`docs/ARCH.md`](docs/ARCH.md) in the same pull request. A new framework, storage or major dependency needs an ADR in [`docs/adr/`](docs/adr/README.md). ARCH and ADRs are written in Korean.
 - A change to the UI comes with a screenshot or a short recording.
 - A change to the bridge's commands, flags or output updates [bridge/README.md](bridge/README.md) and adds a line under Unreleased in [bridge/CHANGELOG.md](bridge/CHANGELOG.md).
-- Dependabot opens the dependency updates every week ([`.github/dependabot.yml`](.github/dependabot.yml)): one pull request with the minor and patch updates for each of the root, `bridge/` and `workers/`, one for GitHub Actions, and one per major update. Security updates come when an alert opens, one pull request per directory. You do not need to open a pull request that only bumps a dependency.
+- Dependabot opens the dependency updates every week ([`.github/dependabot.yml`](.github/dependabot.yml)): one pull request with the minor and patch updates for each of the root, `bridge/` and `workers/`, one for GitHub Actions, and one per major update. `web-tree-sitter` and the `tree-sitter-*` packages come one at a time, because a grammar `.wasm` must match the runtime. Majors we hold back on purpose are listed under `ignore` with the reason. Security updates come when an alert opens, one pull request per directory. You do not need to open a pull request that only bumps a dependency.
 
 Merging to `main` deploys ropeman.dev. Bridge releases are separate and described in [RELEASING.md](RELEASING.md).
 
