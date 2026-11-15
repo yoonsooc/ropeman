@@ -13,6 +13,15 @@ async function fileHandle(
 
 // NotFoundError: no such entry. TypeMismatchError: a folder where a file was expected, or the
 // reverse. TypeError: a name the platform refuses, such as one holding `\` on Windows.
+// Lowercased first, because on a case-insensitive disk `.ENV` opens `.env`
+const KEY_FILE = /^(?:\.npmrc|\.netrc|id_(?:rsa|dsa|ecdsa|ed25519)(?:\..*)?|.+\.(?:pem|key))$/;
+
+/** An `.env` with values, a private key, or a file that holds registry or login tokens */
+export function isSecretFile(path: string): boolean {
+	const name = path.slice(path.lastIndexOf('/') + 1).toLowerCase();
+	return isEnvValueFile(name) || KEY_FILE.test(name);
+}
+
 function failureReason(err: unknown): 'not-found' | 'invalid-path' | 'unavailable' {
 	const name = (err as { name?: unknown } | null)?.name;
 	if (name === 'NotFoundError' || name === 'TypeMismatchError') return 'not-found';
@@ -26,7 +35,7 @@ export async function readFolderFile(
 ): Promise<SourceFileResult> {
 	const segments = pathSegments(path);
 	if (!segments) return { ok: false, reason: 'invalid-path' };
-	if (isEnvValueFile(path)) return { ok: false, reason: 'env-file' };
+	if (isSecretFile(path)) return { ok: false, reason: 'secret-file' };
 	let file: File;
 	try {
 		file = await (await fileHandle(dir, segments)).getFile();
@@ -54,7 +63,7 @@ const evenlySpaced = <T>(items: T[], n: number): T[] =>
 
 export function samplePaths(paths: string[], limit = 8): string[] {
 	const usable = [...new Set(paths)]
-		.filter((path) => pathSegments(path) && !isEnvValueFile(path))
+		.filter((path) => pathSegments(path) && !isSecretFile(path))
 		.sort();
 	return evenlySpaced(usable, limit);
 }

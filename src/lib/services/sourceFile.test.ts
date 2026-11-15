@@ -77,8 +77,8 @@ describe('sourceFailureMessage', () => {
 	it('speaks Korean', () => {
 		settingsStore.language = 'ko';
 
-		expect(sourceFailureMessage({ reason: 'env-file' }, 'folder')).toBe(
-			'환경 변수 값이 든 파일이라 보여 주지 않습니다.'
+		expect(sourceFailureMessage({ reason: 'secret-file' }, 'folder')).toBe(
+			'키나 환경 변수 값 같은 비밀이 들어 있을 수 있는 파일이라 보여 주지 않습니다.'
 		);
 	});
 });

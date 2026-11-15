@@ -446,7 +446,7 @@ interface TranslationSet {
 		| 'notInFolder'
 		| 'tooLarge'
 		| 'binary'
-		| 'envFile'
+		| 'secretFile'
 	>;
 	shareView: Strings<
 		| 'badge'
@@ -1235,7 +1235,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'연결한 폴더에 이 파일이 없습니다. 지도를 만든 뒤 옮겨졌거나 지워졌을 수 있습니다.',
 			tooLarge: '500KB가 넘는 파일이라 보여 주지 않습니다.',
 			binary: '바이너리 파일이라 보여 줄 텍스트가 없습니다.',
-			envFile: '환경 변수 값이 든 파일이라 보여 주지 않습니다.'
+			secretFile: '키나 환경 변수 값 같은 비밀이 들어 있을 수 있는 파일이라 보여 주지 않습니다.'
 		},
 		shareView: {
 			badge: '공유됨',
@@ -2061,7 +2061,8 @@ const translations: Record<Locale, TranslationSet> = {
 				"This file isn't in the connected folder. It may have been moved or deleted since the map was made.",
 			tooLarge: 'This file is larger than 500 KB, so it is not shown.',
 			binary: 'This is a binary file, so there is no text to show.',
-			envFile: 'This file holds environment values, so it is not shown.'
+			secretFile:
+				'This file may hold secrets, such as keys or environment values, so it is not shown.'
 		},
 		shareView: {
 			badge: 'Shared',

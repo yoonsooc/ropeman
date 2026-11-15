@@ -235,7 +235,7 @@ test.describe('Source from a connected folder', () => {
 		await page.getByRole('tab').first().click();
 		await page.locator('.semantic-detail-panel .file-item').nth(1).click();
 		await expect(page.locator('.code-error')).toHaveText(
-			'This file holds environment values, so it is not shown.'
+			'This file may hold secrets, such as keys or environment values, so it is not shown.'
 		);
 		const asked = await page.evaluate(
 			() => (window as unknown as Record<string, string[]>).__folderNames

@@ -161,6 +161,28 @@ function collectSupportedItems(
 	return { kept, cut };
 }
 
+const HEX_REF = /^[0-9a-f]+$/i;
+
+/**
+ * The commit the tree API read at, or null. For a branch or HEAD, GitHub answers with the commit
+ * it resolved. A ref that is itself a SHA comes back as given, and it may name a tree, which
+ * raw.githubusercontent.com cannot read at; only that case pays for a lookup.
+ */
+async function resolvedCommit(info: GitHubRepoInfo, sha: string): Promise<string | null> {
+	if (!isCommitSha(sha)) return null;
+	if (!info.branch || !HEX_REF.test(info.branch)) return sha;
+	try {
+		const res = await fetch(
+			`https://api.github.com/repos/${info.owner}/${info.repo}/git/commits/${sha}`
+		);
+		if (!res.ok) return null;
+		const body: { sha?: unknown } = await res.json();
+		return body.sha === sha ? sha : null;
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Load a GitHub repository: fetch tree, download files, parse ASTs.
  */
@@ -185,9 +207,8 @@ export async function loadGitHubRepo(
 	}
 
 	const treeData: GitHubTreeResponse = await treeRes.json();
+	const commit = await resolvedCommit(info, treeData.sha);
 	options.beforeApply?.();
-	// For a branch or HEAD, GitHub answers with the commit it resolved, not the tree's own SHA.
-	const commit = isCommitSha(treeData.sha) ? treeData.sha : null;
 	const ref = commit ?? (info.branch || treeData.sha);
 
 	// Store GitHub info for on-demand file fetching by CodeViewer

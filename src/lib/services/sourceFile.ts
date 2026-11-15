@@ -3,7 +3,13 @@ import { MAX_FILE_SIZE } from '$lib/utils/filePriority';
 
 export type SourceFileFailure =
 	| {
-			reason: 'invalid-path' | 'not-found' | 'too-large' | 'binary' | 'rate-limited' | 'env-file';
+			reason:
+				| 'invalid-path'
+				| 'not-found'
+				| 'too-large'
+				| 'binary'
+				| 'rate-limited'
+				| 'secret-file';
 	  }
 	| { reason: 'unavailable'; status?: number };
 
@@ -40,8 +46,8 @@ export function sourceFailureMessage(failure: SourceFileFailure, origin: SourceO
 			return t(github ? 'sourceFile.binaryGitHub' : 'sourceFile.binary');
 		case 'rate-limited':
 			return t('sourceFile.rateLimited');
-		case 'env-file':
-			return t('sourceFile.envFile');
+		case 'secret-file':
+			return t('sourceFile.secretFile');
 		case 'unavailable':
 			return failure.status
 				? t('codeViewer.loadFailed', { error: `HTTP ${failure.status}` })

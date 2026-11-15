@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { checkFolder, folderMatches, readFolderFile, samplePaths } from './folderSource';
+import {
+	checkFolder,
+	folderMatches,
+	isSecretFile,
+	readFolderFile,
+	samplePaths
+} from './folderSource';
 
 type Tree = { [name: string]: string | Uint8Array | Tree };
 
@@ -68,8 +74,32 @@ describe('readFolderFile', () => {
 		expect(await readFolderFile(windows, 'a\\b.ts')).toEqual({ ok: false, reason: 'invalid-path' });
 	});
 
-	it('refuses an env file that holds values', async () => {
-		expect(await readFolderFile(shop, '.env')).toEqual({ ok: false, reason: 'env-file' });
+	it('refuses an env file that holds values, a private key or a token file, in any case', async () => {
+		for (const path of [
+			'.env',
+			'.ENV',
+			'deploy/.env.Production',
+			'certs/server.pem',
+			'certs/TLS.KEY',
+			'.ssh/id_rsa',
+			'.ssh/id_ed25519.pub',
+			'.npmrc',
+			'home/.NETRC'
+		]) {
+			expect(await readFolderFile(shop, path), path).toEqual({ ok: false, reason: 'secret-file' });
+		}
+	});
+
+	it('keeps reading files that only look close to a secret', () => {
+		for (const path of [
+			'.env.example',
+			'.ENV.SAMPLE',
+			'src/keys.ts',
+			'src/monkey.ts',
+			'id_card.ts'
+		]) {
+			expect(isSecretFile(path), path).toBe(false);
+		}
 	});
 
 	it('reports a missing file, and a folder where the map has a file', async () => {
@@ -112,7 +142,7 @@ describe('samplePaths', () => {
 	});
 
 	it('leaves out paths it would not read', () => {
-		expect(samplePaths(['.env', '../x', 'src/a.ts'])).toEqual(['src/a.ts']);
+		expect(samplePaths(['.env', '../x', 'id_rsa', 'src/a.ts'])).toEqual(['src/a.ts']);
 	});
 });
 

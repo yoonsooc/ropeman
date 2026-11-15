@@ -645,6 +645,82 @@ describe('loadGitHubRepo', () => {
 		expect(projectStore.githubInfo).toEqual({ owner: 'owner', repo: 'repo', ref: commit, commit });
 	});
 
+	describe('a ref that is a SHA', () => {
+		const COMMIT = 'e129e22125d397b272c6c3a84bf9d11c35e3d8cc';
+		const TREE = '5a8b8bc0dec87da3e88a8c8894894377d119f35b';
+		const lookup = (sha: string) => `https://api.github.com/repos/owner/repo/git/commits/${sha}`;
+
+		/** The trees API echoes a SHA ref as given; git/commits answers 404 for a tree. */
+		function stubGitHub(commits: string[]) {
+			const fetchMock = vi.fn(async (url: string) => {
+				if (url.includes('/git/trees/')) {
+					const sha = url.split('/git/trees/')[1].split('?')[0];
+					return { ok: true, json: async () => ({ ...mockTreeResponse, sha }) };
+				}
+				if (url.includes('/git/commits/')) {
+					const sha = url.split('/git/commits/')[1];
+					return commits.includes(sha)
+						? { ok: true, json: async () => ({ sha }) }
+						: { ok: false, status: 404, json: async () => ({ message: 'Not Found' }) };
+				}
+				return { ok: true, text: async () => 'export const a = 1;' };
+			});
+			vi.stubGlobal('fetch', fetchMock);
+			return fetchMock;
+		}
+
+		// Regression: github.com/o/r/tree/<tree sha> recorded the tree as the commit, so a share
+		// named a SHA raw.githubusercontent.com answers 404 for
+		it('records no commit when the SHA names a tree', async () => {
+			const fetchMock = stubGitHub([COMMIT]);
+
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo', branch: TREE });
+
+			expect(fetchMock).toHaveBeenCalledWith(lookup(TREE));
+			expect(projectStore.githubInfo).toEqual({
+				owner: 'owner',
+				repo: 'repo',
+				ref: TREE,
+				commit: null
+			});
+		});
+
+		it('records the commit once GitHub confirms it is one', async () => {
+			stubGitHub([COMMIT]);
+
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo', branch: COMMIT });
+
+			expect(projectStore.githubInfo).toEqual({
+				owner: 'owner',
+				repo: 'repo',
+				ref: COMMIT,
+				commit: COMMIT
+			});
+		});
+
+		it('records no commit when the lookup fails', async () => {
+			const fetchMock = stubGitHub([COMMIT]);
+			const answer = fetchMock.getMockImplementation()!;
+			fetchMock.mockImplementation(async (url: string) => {
+				if (url.includes('/git/commits/')) throw new TypeError('Failed to fetch');
+				return answer(url);
+			});
+
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo', branch: COMMIT });
+
+			expect(projectStore.githubInfo?.commit).toBeNull();
+		});
+
+		it('looks nothing up for a branch name or HEAD', async () => {
+			const fetchMock = stubGitHub([]);
+
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo', branch: 'develop' });
+			await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+			expect(fetchMock.mock.calls.some(([url]) => url.includes('/git/commits/'))).toBe(false);
+		});
+	});
+
 	// A share names the repository of a GitHub project, which is safe only while the loader can
 	// read nothing but public repositories
 	it('sends no token or credentials, so only a public repository loads', async () => {
