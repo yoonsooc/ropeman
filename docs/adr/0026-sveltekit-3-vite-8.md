@@ -23,6 +23,7 @@
   - 코어 추출기 결과가 픽스처 여섯 개 모두에서 시간 값을 빼면 바이트 단위로 같다.
   - 랜딩(`en.html`, `ko.html`)이 미리 불러오는 JS는 41개 파일, gzip 318.0KiB에서 31개 파일, 297.6KiB가 됐다(빌드 결과로 잰 값이고, 페이지 로드 시간은 재지 않았다).
   - 바뀐 기본값: 앱이 한 시간마다 `/_app/version.json`을 확인하고(`version.pollInterval`), 미리 불러오기를 `Link` 헤더 대신 `<link>`로 쓴다. Vite 8의 기본 빌드 대상은 Chrome 111, Safari 16.4, Firefox 114 이상이다.
+  - 되돌리기: 이 PR을 revert해서 다시 배포한다. 그 배포를 기다릴 수 없으면 Cloudflare Pages 대시보드에서 바로 전 배포로 롤백한다.
 - **재검토 조건**:
   - SvelteKit이 `alias` 설정을 없애기로 하면, 그 전에 `$lib`를 `#lib`로 옮긴다.
   - svelte-check와 typescript-eslint가 TypeScript 7을 받으면 `.github/dependabot.yml`의 7.x 무시를 지우고 다시 본다.

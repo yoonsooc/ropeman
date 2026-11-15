@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 // Vite bundles the config with its relative imports, so the app's own table applies here too
-import { detectLanguage, isEnvFile } from '../src/lib/utils/languageDetector';
+import { detectLanguage, isEnvFile } from '../src/lib/utils/languageDetector.ts';
 
 const SKIP_PATTERNS = new Set([
 	'node_modules',

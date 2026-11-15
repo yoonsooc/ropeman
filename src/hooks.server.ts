@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit/hooks';
 import { type RequestEvent, redirect } from '@sveltejs/kit';
-import { building } from '$app/env';
+import { building, dev } from '$app/env';
 import { env } from 'cloudflare:workers';
 import { LANGUAGE_COOKIE, requestLocale } from '$lib/utils/locale';
 
@@ -56,8 +56,11 @@ async function serveLanding(event: RequestEvent): Promise<Response> {
 		event.request.headers.get('accept-language')
 	);
 	const target = new URL(`/${locale}`, event.url);
-	// `vite dev` has no built files and no ASSETS binding, and renders `/en` or `/ko` on request
+	// `vite dev` has no built files and no ASSETS binding, and renders `/en` or `/ko` on request.
+	// The same fallback serves the prerendered file on Pages too, so a lost binding only logs.
 	const assets = env.ASSETS;
+	if (!assets && !dev)
+		console.error('hooks.server: no ASSETS binding, serving / through event.fetch');
 	// Only the headers that shape a whole-page answer: a 304 for an unchanged file, compression.
 	// A Range or If-Modified-Since could get a slice, or a 304 that keeps the other language.
 	const headers = new Headers();

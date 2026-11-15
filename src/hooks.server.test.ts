@@ -2,7 +2,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 import type { ResolveOptions } from '@sveltejs/kit/hooks';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const environment = vi.hoisted(() => ({ building: false }));
+const environment = vi.hoisted(() => ({ building: false, dev: false }));
 vi.mock('$app/env', () => environment);
 const worker = vi.hoisted(() => ({ env: {} as { ASSETS?: { fetch: typeof fetch } } }));
 vi.mock('cloudflare:workers', () => worker);
@@ -43,6 +43,7 @@ function makeEvent(
 describe('handle', () => {
 	beforeEach(() => {
 		environment.building = false;
+		environment.dev = false;
 	});
 
 	describe('/', () => {
@@ -126,6 +127,48 @@ describe('handle', () => {
 			// Assert
 			expect(response.status).toBe(204);
 			expect(assets.fetch).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('/ without the ASSETS binding', () => {
+		function withoutAssets() {
+			const { event } = makeEvent('/', { 'accept-language': 'en-US' });
+			worker.env.ASSETS = undefined;
+			vi.mocked(event.fetch).mockResolvedValue(
+				new Response(HTML.en, { headers: { 'content-type': 'text/html' } })
+			);
+			return event;
+		}
+
+		it('still serves the landing and logs the missing binding', async () => {
+			// Arrange
+			const event = withoutAssets();
+			const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			// Act
+			const response = await handle({ event, resolve: vi.fn() });
+
+			// Assert
+			expect(await response.text()).toBe(HTML.en);
+			expect(new URL(vi.mocked(event.fetch).mock.calls[0][0] as URL).pathname).toBe('/en');
+			expect(error).toHaveBeenCalledWith(
+				'hooks.server: no ASSETS binding, serving / through event.fetch'
+			);
+			error.mockRestore();
+		});
+
+		it('stays quiet under vite dev, which never has the binding', async () => {
+			// Arrange
+			environment.dev = true;
+			const event = withoutAssets();
+			const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			// Act
+			await handle({ event, resolve: vi.fn() });
+
+			// Assert
+			expect(error).not.toHaveBeenCalled();
+			error.mockRestore();
 		});
 	});
 
