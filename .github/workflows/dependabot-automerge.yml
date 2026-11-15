@@ -3,21 +3,26 @@ name: Dependabot auto-merge
 on:
   pull_request:
     branches: [main]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: ['dependabot/**']
 
 permissions: {}
 
-concurrency:
-  group: dependabot-automerge-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   automerge:
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'yoonsooc/ropeman'
+    if: >-
+      github.event_name == 'pull_request' && github.repository == 'yoonsooc/ropeman' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: write # merge
       pull-requests: write # turn auto-merge on or off
+    concurrency:
+      group: dependabot-automerge-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
 
     steps:
       - name: Read the Dependabot metadata
@@ -29,7 +34,6 @@ jobs:
       # .github/workflows.
       - name: Turn auto-merge on or off
         env:
-          # GitHub counts the merge as made by GITHUB_TOKEN, which starts no `push` run
           GH_TOKEN: ${{ github.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           ECOSYSTEM: ${{ steps.metadata.outputs.package-ecosystem }}
@@ -42,6 +46,7 @@ jobs:
               and (.updateType == "version-update:semver-patch"
                 or (.updateType == "version-update:semver-minor" and one_or_later));
             if $ecosystem != "npm_and_yarn" then "the \($ecosystem) ecosystem"
+            elif length == 0 then "no updates listed"
             else map(select(merges_alone | not) | "\(.dependencyName) \(.newVersion) (\(.updateType))") | join(", ")
             end' <<< "$UPDATES")
           auto=$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest != null')
@@ -51,3 +56,36 @@ jobs:
             echo "::notice::A person merges this pull request: $held"
             [ "$auto" = false ] || gh pr merge --disable-auto "$PR_URL"
           fi
+
+  # GitHub starts no push run for a merge that auto-merge makes for GITHUB_TOKEN, but it does
+  # start a run for a workflow_dispatch that GITHUB_TOKEN sends
+  main-ci:
+    if: >-
+      github.event_name == 'workflow_run' && github.repository == 'yoonsooc/ropeman' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.pull_requests[0].number
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: write # dispatch ci.yml
+      pull-requests: read
+
+    steps:
+      - name: Run CI on main after auto-merge merges the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          for _ in $(seq 1 20); do
+            pr=$(gh pr view "$PR_NUMBER" -R "$GITHUB_REPOSITORY" --json author,state,autoMergeRequest \
+              --jq '"\(.author.login) \(.state) \(.autoMergeRequest != null)"')
+            case "$pr" in
+              "app/dependabot MERGED "*)
+                gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/dispatches" -f ref=main
+                exit 0 ;;
+              "app/dependabot OPEN true") sleep 15 ;;
+              *) exit 0 ;;
+            esac
+          done
+          echo "::warning::#$PR_NUMBER did not merge within 5 minutes, so main CI waits for the next push"

@@ -781,7 +781,7 @@ main push → ci job (lint, svelte-check, build, core·bridge 번들 확인, uni
               4. scripts/health-check.mjs           배포 직후 확인
 ```
 
-- main push는 E2E를 건너뛴다. PR CI는 PR을 그 시점의 main에 합친 트리로 E2E를 돌린다. 그 뒤 main이 움직였으면 병합 전에 PR 브랜치를 갱신해 CI를 다시 통과시킨다
+- main push는 E2E를 건너뛴다. PR CI는 PR을 그 시점의 main에 합친 트리로 E2E를 돌린다. main 규칙 `rule-protect-main`은 필수 검사 `ci`만 요구하고 PR 브랜치가 최신이기를 요구하지 않는다. 그래서 PR CI 뒤에 main이 움직였어도 그대로 병합되고, 합친 결과는 main CI가 E2E 없이 검사한다
 - E2E는 CI에서 워커 4개로 돈다. 모바일·태블릿 프로젝트는 `@responsive` 태그가 붙은 테스트(뷰포트에 따라 동작이 바뀌는 테스트)만 돈다. Playwright 브라우저(headless shell)는 Playwright 버전을 키로 캐시하고, apt 설치(`--with-deps`)는 하지 않는다. 러너 이미지에 Chromium 라이브러리가 이미 있다
 - 앱을 먼저 올린다. 새 앱은 예전 워커의 오류 문자열도 처리하지만, 예전 앱은 새 워커의 오류 코드를 처리하지 못한다
 - 워커는 `src/<name>.ts`, 그 워커만 쓰는 `src/<name>.<part>.ts`(`explore.limits.ts`. 워커 진입 모듈은 핸들러만 export할 수 있다), `wrangler.<name>.toml`이 바뀐 것만 배포한다. `shared.ts`나 `workers/package*.json`이 바뀌면 전부 배포한다
@@ -789,7 +789,7 @@ main push → ci job (lint, svelte-check, build, core·bridge 번들 확인, uni
 - 워커 시크릿(`GEMINI_API_KEY`, `AI_GATEWAY_TOKEN`)은 wrangler로 따로 등록하며 배포가 덮어쓰지 않는다
 - 수동 배포(`npm run deploy`, `npm run deploy:edge:<worker>`)는 장애 대응용이다
 - 의존성 업데이트는 Dependabot(`.github/dependabot.yml`)이 매주 PR로 연다. minor·patch 업데이트는 npm의 루트, `bridge/`, `workers/` 폴더와 GitHub Actions마다 PR 하나로 묶이고, major 업데이트는 하나씩 따로 온다. `web-tree-sitter`와 `tree-sitter-*` 패키지(문법 묶음인 `tree-sitter-wasms` 포함)는 묶음에서 빼서 하나씩 받는다. 문법 `.wasm`은 런타임과 형식이 맞아야 하고, `static/`의 사본은 손으로 바꾼다. 일부러 미루는 업데이트는 `ignore`에 이유와 함께 적는다. `@types/node` major는 CI의 Node 22에 맞춰 손으로 올리고, TypeScript 7은 svelte-check와 typescript-eslint가 쓰는 안정된 컴파일러 API가 아직 없어서 받지 않는다. `web-tree-sitter` 0.26 이상은 `static/`의 문법 11개(예전 `dylink` 섹션 형식)를 불러오지 못해서, 그 문법을 다시 빌드할 때까지 받지 않는다. 11개 모두 `tree-sitter-wasms` 0.1.13에서 왔고(9개는 그대로, bash와 yaml은 import 이름만 바꾼 사본), 이 패키지의 최신판인 0.1.13의 문법 36개가 모두 예전 형식이라 다시 빌드하거나 다른 곳에서 받아야 한다. 보안 업데이트는 알림이 생길 때 폴더마다 PR 하나로 온다. 이 PR도 같은 CI를 거치고 병합하면 배포된다. `workers/` 업데이트는 `workers/package*.json`을 바꾸므로 워커를 전부 다시 배포한다
-- Dependabot PR 안의 업데이트가 모두 patch이거나 1.0 이상 버전의 minor이면 `dependabot-automerge.yml`이 자동 병합을 켜고, 필수 검사 `ci`가 통과하면 GitHub가 병합 커밋으로 합친다. major, 0.x 버전의 minor(0.x에서는 minor가 호환을 깰 수 있다), 유형을 알 수 없는 업데이트, `web-tree-sitter`와 `tree-sitter-*`, npm이 아닌 생태계는 사람이 병합한다. GitHub Actions 업데이트는 `.github/workflows`를 바꾸는데, `GITHUB_TOKEN`은 그런 PR을 병합하지 못한다. 묶음 PR과 보안 PR은 업데이트를 하나씩 보고 하나라도 걸리면 사람에게 남긴다. 나중에 push된 커밋으로 그런 업데이트가 들어오면 자동 병합을 다시 끈다. GitHub는 이 병합을 `GITHUB_TOKEN`이 한 것으로 보고 main push CI를 돌리지 않는다. 그래서 다음에 사람이 병합할 때 main CI가 함께 검사하고 배포한다. 배포할 워커는 `production` 태그와 비교해 고르므로 그사이 바뀐 워커도 빠지지 않는다
+- Dependabot PR 안의 업데이트가 모두 patch이거나 1.0 이상 버전의 minor이면 `dependabot-automerge.yml`이 자동 병합을 켜고, 필수 검사 `ci`가 통과하면 GitHub가 병합 커밋으로 합친다. major, 0.x 버전의 minor(0.x에서는 minor가 호환을 깰 수 있다), 유형을 알 수 없는 업데이트, `web-tree-sitter`와 `tree-sitter-*`, npm이 아닌 생태계는 사람이 병합한다. GitHub Actions 업데이트는 `.github/workflows`를 바꾸는데, `GITHUB_TOKEN`은 그런 PR을 병합하지 못한다. 묶음 PR과 보안 PR은 업데이트를 하나씩 보고 하나라도 걸리면 사람에게 남긴다. 나중에 push된 커밋으로 그런 업데이트가 들어오면 자동 병합을 다시 끈다. GitHub는 이 병합을 `GITHUB_TOKEN`이 한 것으로 보고 main push CI를 돌리지 않는다. 대신 같은 파일의 `main-ci` job이 PR CI가 끝난 뒤 병합을 기다렸다가(최대 5분) `ci.yml`을 main에 dispatch한다. `GITHUB_TOKEN`이 보낸 `workflow_dispatch`는 실행을 만든다. 이 실행도 push와 같이 main CI를 거쳐 배포하고, `release-bridge.yml`이 기다리는 그 커밋의 CI 실행이 된다. 자동 병합된 패키지는 Cloudflare 시크릿을 가진 `deploy` job 안에서 설치되고 실행된다. CI는 동작을 검사하고 패키지 내용은 검사하지 않는다
 - npm 패키지 `@ropeman/bridge`는 main 커밋에 `bridge-v<버전>` 태그를 푸시하면 `release-bridge.yml`이 trusted publishing으로 올린다. 버전 올리기, 태그, 워크플로 검사, 릴리스 중 20~40분 구간, 확인 방법은 [`RELEASING.md`](../RELEASING.md)에 있다
 
 ---
