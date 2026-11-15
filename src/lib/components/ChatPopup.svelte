@@ -109,8 +109,7 @@
 				placeholder={i18nStore.t('chatPlaceholder')}
 				bind:value={inputText}
 				onkeydown={handleKeydown}
-				rows="1"
-			></textarea>
+				rows="1"></textarea>
 			<button class="chat-send-btn" onclick={handleSend} disabled={sendDisabled}>
 				{i18nStore.t('send')}
 			</button>

@@ -51,7 +51,7 @@
 		"mdsvex": "^0.12.7",
 		"playwright": "^1.58.2",
 		"prettier": "^3.8.1",
-		"prettier-plugin-svelte": "^3.5.0",
+		"prettier-plugin-svelte": "^4.1.1",
 		"rehype-slug": "^6.0.0",
 		"svelte": "^5.57.3",
 		"svelte-eslint-parser": "^1.5.1",

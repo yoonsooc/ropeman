@@ -141,8 +141,7 @@
 				placeholder={i18nStore.t('snippet.placeholder')}
 				spellcheck="false"
 				autocomplete="off"
-				autocapitalize="off"
-			></textarea>
+				autocapitalize="off"></textarea>
 		</div>
 	</div>
 
