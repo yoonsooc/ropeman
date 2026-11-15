@@ -5,21 +5,18 @@
 	import { projectStore } from '$lib/stores/projectStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
-	import ZUICanvas from '$lib/components/ZUICanvas.svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
+	import SnapshotViewer from '$lib/components/SnapshotViewer.svelte';
 	import { resolve } from '$app/paths';
 	import { SHARE_URL } from '$lib/config';
-	import type { SemanticLevel } from '$lib/types/semantic';
+	import type { GitHubSource } from '$lib/services/githubSource';
+	import { parseSharePayload, readSharedFile, sharedFileUrl } from '$lib/services/shareService';
 
 	let loading = $state(true);
 	let error = $state('');
 	let snapshotMeta = $state<{ projectName: string; fileCount: number } | null>(null);
+	let source = $state<GitHubSource | null>(null);
 
 	const slug = $derived($page.params.slug);
-	const hasSemanticSelection = $derived(
-		semanticStore.selectedSemanticNode !== null && !semanticStore.panelDismissed
-	);
 
 	onMount(async () => {
 		// Mark the store as a read-only snapshot viewer so drilldowns into
@@ -38,55 +35,23 @@
 				return;
 			}
 
-			const snapshot = await res.json();
+			const shared = parseSharePayload(await res.json());
+			if (!shared) throw new Error('Invalid snapshot');
 
-			// Validate snapshot shape
-			if (!snapshot || typeof snapshot !== 'object' || !snapshot.semanticLevels) {
-				throw new Error('Invalid snapshot');
-			}
-
-			const projectName =
-				typeof snapshot.projectName === 'string'
-					? snapshot.projectName
-					: i18nStore.t('shareView.projectFallback');
-
-			// Inject into stores (read-only mode)
+			const projectName = shared.projectName ?? i18nStore.t('shareView.projectFallback');
 			projectStore.projectName = projectName;
-
-			// Restore semantic cache levels with structural validation
-			const cacheMap = new Map<string, SemanticLevel>();
-			for (const [key, value] of Object.entries(snapshot.semanticLevels)) {
-				const level = value as Record<string, unknown>;
-				if (
-					level &&
-					typeof level === 'object' &&
-					Array.isArray(level.nodes) &&
-					Array.isArray(level.edges) &&
-					typeof level.breadcrumbLabel === 'string' &&
-					(level.parentId === null || typeof level.parentId === 'string')
-				) {
-					cacheMap.set(key, level as unknown as SemanticLevel);
-				}
-			}
-
-			// Find root level
 			const rootLevel =
-				cacheMap.get('__root__') ?? [...cacheMap.values()].find((l) => l.parentId === null);
+				shared.levels.get('__root__') ??
+				[...shared.levels.values()].find((l) => l.parentId === null);
 			if (rootLevel) {
 				semanticStore.currentLevel = rootLevel;
 			}
-
-			// Restore cache for drill-down
-			for (const [key, level] of cacheMap) {
+			for (const [key, level] of shared.levels) {
 				semanticStore.setCachedLevel(key, level);
 			}
-
-			const filePaths = Array.isArray(snapshot.filePaths) ? snapshot.filePaths : [];
-			snapshotMeta = {
-				projectName,
-				fileCount: filePaths.length
-			};
-		} catch (err) {
+			source = shared.source;
+			snapshotMeta = { projectName, fileCount: shared.fileCount };
+		} catch {
 			error = i18nStore.t('shareView.loadFailed');
 		} finally {
 			loading = false;
@@ -150,17 +115,10 @@
 				</a>
 			</div>
 		{:else}
-			<div class="share-breadcrumb">
-				<Breadcrumb />
-			</div>
-			<div class="share-canvas-area">
-				<ZUICanvas />
-			</div>
-			{#if hasSemanticSelection}
-				<div class="share-detail-panel">
-					<SemanticDetailPanel ondismiss={() => (semanticStore.panelDismissed = true)} />
-				</div>
-			{/if}
+			<SnapshotViewer
+				read={(path) => readSharedFile(source, path)}
+				githubUrl={(path) => sharedFileUrl(source, path)}
+			/>
 		{/if}
 	</div>
 </div>
@@ -239,32 +197,6 @@
 		overflow: hidden;
 	}
 
-	.share-breadcrumb {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		z-index: 10;
-		padding: var(--spacing-2) var(--spacing-4);
-	}
-
-	.share-canvas-area {
-		--canvas-toolbar-top: 56px;
-		flex: 1;
-		min-height: 0;
-		position: relative;
-	}
-
-	/* Sits above the floating breadcrumb so the node title stays visible */
-	.share-detail-panel {
-		position: relative;
-		z-index: 11;
-		width: 320px;
-		border-left: 1px solid var(--color-border);
-		overflow-y: auto;
-		overscroll-behavior: contain;
-	}
-
 	.share-loading {
 		flex: 1;
 		display: flex;
@@ -316,23 +248,5 @@
 		max-width: 400px;
 		font-size: var(--font-size-base);
 		line-height: 1.6;
-	}
-
-	/* Phones: the detail opens as a bottom sheet over the canvas */
-	@media (max-width: 768px) {
-		.share-detail-panel {
-			position: fixed;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			width: auto;
-			max-height: 55dvh;
-			z-index: 30;
-			border-left: none;
-			border-top: 1px solid var(--color-border);
-			border-radius: var(--radius-container) var(--radius-container) 0 0;
-			box-shadow: 0 -8px 24px var(--color-shadow);
-			padding-bottom: env(safe-area-inset-bottom);
-		}
 	}
 </style>

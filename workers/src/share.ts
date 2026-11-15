@@ -48,6 +48,29 @@ const MAX_BODY_SIZE = 1_048_576; // 1MB
 const KV_TTL = 1_209_600; // 14 days
 const BASE_URL = 'https://ropeman.dev/share';
 
+// GitHub's characters: an account is letters, digits and hyphens (39 at most), a repository
+// letters, digits, `.`, `_` and `-` (100 at most).
+const OWNER = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+const REPO = /^[A-Za-z0-9._-]{1,100}$/;
+const COMMIT = /^[0-9a-f]{40}$/;
+
+function isShareSource(value: unknown): boolean {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+	const keys = Object.keys(value);
+	if (keys.length !== 3) return false;
+	const { owner, repo, commit } = value as Record<string, unknown>;
+	return (
+		typeof owner === 'string' &&
+		OWNER.test(owner) &&
+		typeof repo === 'string' &&
+		REPO.test(repo) &&
+		repo !== '.' &&
+		repo !== '..' &&
+		typeof commit === 'string' &&
+		COMMIT.test(commit)
+	);
+}
+
 // --- CORS (GET + POST) ---
 function shareCorsHeaders(origin: string): Record<string, string> {
 	return {
@@ -113,6 +136,10 @@ async function handleCreate(request: Request, env: Env, cors: Record<string, str
 
 	if (!body || typeof body !== 'object') {
 		return jsonResponse({ error: 'Invalid payload' }, 400, cors);
+	}
+
+	if ('source' in body && !isShareSource(body.source)) {
+		return jsonResponse({ error: 'Invalid source' }, 400, cors);
 	}
 
 	// Generate unique slug (retry on collision)

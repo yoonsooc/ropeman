@@ -624,6 +624,40 @@ describe('loadGitHubRepo', () => {
 
 		expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('develop'));
 	});
+
+	it('reads the files of a branch at the commit GitHub resolved it to, and records that commit', async () => {
+		const commit = 'e129e22125d397b272c6c3a84bf9d11c35e3d8cc';
+		const fetchMock = vi.fn() as Mock;
+		fetchMock.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ ...mockTreeResponse, sha: commit })
+		});
+		fetchMock.mockResolvedValue({ ok: true, text: async () => 'export const a = 1;' });
+		vi.stubGlobal('fetch', fetchMock);
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo', branch: 'develop' });
+
+		const rawUrls = fetchMock.mock.calls.map(([url]) => String(url)).slice(1);
+		expect(rawUrls).toContain(
+			`https://raw.githubusercontent.com/owner/repo/${commit}/src/index.ts`
+		);
+		expect(rawUrls.every((url) => url.includes(`/${commit}/`))).toBe(true);
+		expect(projectStore.githubInfo).toEqual({ owner: 'owner', repo: 'repo', ref: commit, commit });
+	});
+
+	// A share names the repository of a GitHub project, which is safe only while the loader can
+	// read nothing but public repositories
+	it('sends no token or credentials, so only a public repository loads', async () => {
+		const fetchMock = vi.fn() as Mock;
+		fetchMock.mockResolvedValueOnce({ ok: true, json: async () => mockTreeResponse });
+		fetchMock.mockResolvedValue({ ok: true, text: async () => 'export const a = 1;' });
+		vi.stubGlobal('fetch', fetchMock);
+
+		await loadGitHubRepo({ owner: 'owner', repo: 'repo' });
+
+		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+		for (const call of fetchMock.mock.calls) expect(call).toHaveLength(1);
+	});
 });
 
 describe('loadGitHubRepo beforeApply (New project dialog)', () => {

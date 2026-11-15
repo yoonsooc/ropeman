@@ -110,6 +110,7 @@ interface ShareTranslations {
 	errorMessage: string;
 	close: string;
 	tooLarge: string;
+	includesSource: string;
 }
 
 interface AIErrorTranslations {
@@ -435,11 +436,17 @@ interface TranslationSet {
 		| 'viewOnGithub'
 		| 'backToGallery'
 		| 'fileNoCommit'
-		| 'fileInvalidPath'
-		| 'fileNotFound'
-		| 'fileTooLarge'
-		| 'fileBinary'
-		| 'fileRateLimited'
+	>;
+	sourceFile: Strings<
+		| 'invalidPath'
+		| 'notAtCommit'
+		| 'tooLargeGitHub'
+		| 'binaryGitHub'
+		| 'rateLimited'
+		| 'notInFolder'
+		| 'tooLarge'
+		| 'binary'
+		| 'envFile'
 	>;
 	shareView: Strings<
 		| 'badge'
@@ -451,6 +458,7 @@ interface TranslationSet {
 		| 'notFound'
 		| 'loadFailed'
 		| 'goHome'
+		| 'noSource'
 	>;
 	openMap: Strings<
 		| 'pageTitle'
@@ -470,6 +478,14 @@ interface TranslationSet {
 		| 'unsupportedVersion'
 		| 'invalid'
 		| 'readFailed'
+		| 'connectFolder'
+		| 'changeFolder'
+		| 'folderChecking'
+		| 'folderReading'
+		| 'folderNeeded'
+		| 'folderUnsupported'
+		| 'folderMismatch'
+		| 'folderFailed'
 	>;
 	agentSetup: Strings<
 		| 'installTitle'
@@ -768,7 +784,9 @@ const translations: Record<Locale, TranslationSet> = {
 			errorTitle: '공유 실패',
 			errorMessage: '공유 링크를 만들지 못했습니다. 잠시 후 다시 시도하세요.',
 			close: '닫기',
-			tooLarge: '분석 데이터가 공유 한도(1MB)를 넘습니다. 더 작은 프로젝트로 시도하세요.'
+			tooLarge: '분석 데이터가 공유 한도(1MB)를 넘습니다. 더 작은 프로젝트로 시도하세요.',
+			includesSource:
+				'링크에 공개 GitHub 저장소 {repo}와 분석한 커밋을 함께 담습니다. 링크를 연 사람은 그 커밋의 파일을 GitHub에서 바로 읽습니다.'
 		},
 		aiError: {
 			tpm: '요청이 모델의 토큰 한도를 초과했습니다. 코드 구조 요약 크기를 줄이거나 다른 모델을 선택하세요.',
@@ -1204,13 +1222,20 @@ const translations: Record<Locale, TranslationSet> = {
 			analyzeFromHome: '홈에서 분석하기',
 			viewOnGithub: 'GitHub에서 보기',
 			backToGallery: '갤러리로',
-			fileNoCommit: '이 스냅샷은 분석한 커밋을 기록하지 않아 파일을 열 수 없습니다.',
-			fileInvalidPath: '파일 경로가 올바르지 않아 열 수 없습니다.',
-			fileNotFound: '분석한 커밋의 저장소에 이 파일이 없습니다.',
-			fileTooLarge: '500KB가 넘는 파일입니다. GitHub에서 열어 보세요.',
-			fileBinary: '바이너리 파일이라 여기서 보여 줄 수 없습니다. GitHub에서 열어 보세요.',
-			fileRateLimited:
-				'GitHub가 지금 요청을 제한하고 있습니다. 잠시 후 다시 시도하거나 GitHub에서 열어 보세요.'
+			fileNoCommit: '이 스냅샷은 분석한 커밋을 기록하지 않아 파일을 열 수 없습니다.'
+		},
+		sourceFile: {
+			invalidPath: '파일 경로가 올바르지 않아 열 수 없습니다.',
+			notAtCommit: '분석한 커밋의 저장소에 이 파일이 없습니다.',
+			tooLargeGitHub: '500KB가 넘는 파일입니다. GitHub에서 열어 보세요.',
+			binaryGitHub: '바이너리 파일이라 여기서 보여 줄 수 없습니다. GitHub에서 열어 보세요.',
+			rateLimited:
+				'GitHub가 지금 요청을 제한하고 있습니다. 잠시 후 다시 시도하거나 GitHub에서 열어 보세요.',
+			notInFolder:
+				'연결한 폴더에 이 파일이 없습니다. 지도를 만든 뒤 옮겨졌거나 지워졌을 수 있습니다.',
+			tooLarge: '500KB가 넘는 파일이라 보여 주지 않습니다.',
+			binary: '바이너리 파일이라 보여 줄 텍스트가 없습니다.',
+			envFile: '환경 변수 값이 든 파일이라 보여 주지 않습니다.'
 		},
 		shareView: {
 			badge: '공유됨',
@@ -1221,7 +1246,9 @@ const translations: Record<Locale, TranslationSet> = {
 			notFoundTitle: '링크를 찾을 수 없습니다',
 			notFound: '공유 링크를 찾을 수 없습니다. 만료되었거나 주소가 잘못되었습니다.',
 			loadFailed: '공유 데이터를 불러오지 못했습니다.',
-			goHome: 'Ropeman으로 이동'
+			goHome: 'Ropeman으로 이동',
+			noSource:
+				'이 공유에는 원본 코드가 들어 있지 않습니다. 공개 GitHub 저장소에서 불러온 프로젝트만 공유 화면에서 파일을 보여 줍니다.'
 		},
 		openMap: {
 			pageTitle: '지도 열기',
@@ -1242,7 +1269,18 @@ const translations: Record<Locale, TranslationSet> = {
 			unsupportedVersion:
 				'이 Ropeman이 더 이상 읽지 않는 스키마 {version}로 만든 지도입니다. CLI로 지도를 다시 만드세요.',
 			invalid: '지도 내용이 형식에 맞지 않습니다. 문제가 있는 곳: {field}',
-			readFailed: '파일을 읽지 못했습니다.'
+			readFailed: '파일을 읽지 못했습니다.',
+			connectFolder: '폴더 연결',
+			changeFolder: '다른 폴더 선택',
+			folderChecking: '폴더를 확인하는 중...',
+			folderReading: '{folder} 폴더에서 읽는 중',
+			folderNeeded:
+				'이 파일을 보려면 프로젝트 폴더를 연결하세요. 파일은 이 컴퓨터에서 읽고 어디로도 보내지 않습니다.',
+			folderUnsupported:
+				'이 브라우저는 폴더를 열 수 없어서 파일을 보여 줄 수 없습니다. Chrome이나 Edge에서 이 지도를 열면 볼 수 있습니다.',
+			folderMismatch:
+				'{folder} 폴더는 이 지도를 만든 폴더가 아닌 것 같습니다. 지도에 있는 파일 {checked}개 중 {found}개가 이 폴더에 있습니다. {example} 파일이 있는 폴더를 고르세요.',
+			folderFailed: '폴더를 열지 못했습니다: {error}'
 		},
 		agentSetup: {
 			installTitle: 'ropeman 명령 설치',
@@ -1569,7 +1607,9 @@ const translations: Record<Locale, TranslationSet> = {
 			errorTitle: 'Share failed',
 			errorMessage: "Couldn't create a share link. Try again later.",
 			close: 'Close',
-			tooLarge: 'This analysis is over the 1MB share limit. Try a smaller project.'
+			tooLarge: 'This analysis is over the 1MB share limit. Try a smaller project.',
+			includesSource:
+				'The link also names the public GitHub repository {repo} and the analyzed commit, so viewers can read its files from GitHub.'
 		},
 		aiError: {
 			tpm: "The request is over the model's token limit. Lower the code summary size or pick another model.",
@@ -2008,13 +2048,20 @@ const translations: Record<Locale, TranslationSet> = {
 			viewOnGithub: 'View on GitHub',
 			backToGallery: 'Back to Explore',
 			fileNoCommit:
-				'This snapshot does not record the commit it was analyzed at, so its files cannot be opened.',
-			fileInvalidPath: 'This file path is not valid, so it cannot be opened.',
-			fileNotFound: 'This file is not in the repository at the analyzed commit.',
-			fileTooLarge: 'This file is larger than 500 KB. Open it on GitHub to read it.',
-			fileBinary: 'This is a binary file, so it cannot be shown here. Open it on GitHub.',
-			fileRateLimited:
-				'GitHub is limiting requests right now. Try again in a minute, or open the file on GitHub.'
+				'This snapshot does not record the commit it was analyzed at, so its files cannot be opened.'
+		},
+		sourceFile: {
+			invalidPath: 'This file path is not valid, so it cannot be opened.',
+			notAtCommit: 'This file is not in the repository at the analyzed commit.',
+			tooLargeGitHub: 'This file is larger than 500 KB. Open it on GitHub to read it.',
+			binaryGitHub: 'This is a binary file, so it cannot be shown here. Open it on GitHub.',
+			rateLimited:
+				'GitHub is limiting requests right now. Try again in a minute, or open the file on GitHub.',
+			notInFolder:
+				"This file isn't in the connected folder. It may have been moved or deleted since the map was made.",
+			tooLarge: 'This file is larger than 500 KB, so it is not shown.',
+			binary: 'This is a binary file, so there is no text to show.',
+			envFile: 'This file holds environment values, so it is not shown.'
 		},
 		shareView: {
 			badge: 'Shared',
@@ -2025,7 +2072,9 @@ const translations: Record<Locale, TranslationSet> = {
 			notFoundTitle: 'Link not found',
 			notFound: "This share link doesn't exist. It may have expired, or the URL is wrong.",
 			loadFailed: "Couldn't load the shared analysis.",
-			goHome: 'Go to Ropeman'
+			goHome: 'Go to Ropeman',
+			noSource:
+				'The original code is not included in this share. Only a project loaded from a public GitHub repository shows its files here.'
 		},
 		openMap: {
 			pageTitle: 'Open a map',
@@ -2046,7 +2095,18 @@ const translations: Record<Locale, TranslationSet> = {
 			unsupportedVersion:
 				'This map uses schema {version}, which this Ropeman no longer reads. Make the map again with the CLI.',
 			invalid: "The map doesn't match the format. The problem is at {field}.",
-			readFailed: "Couldn't read the file."
+			readFailed: "Couldn't read the file.",
+			connectFolder: 'Connect folder',
+			changeFolder: 'Choose another folder',
+			folderChecking: 'Checking the folder...',
+			folderReading: 'Reading from {folder}',
+			folderNeeded:
+				'Connect the project folder to read this file. The file is read on this computer and sent nowhere.',
+			folderUnsupported:
+				"This browser can't open a folder, so files can't be shown here. Open this map in Chrome or Edge to read them.",
+			folderMismatch:
+				"{folder} doesn't look like the folder this map was made from: {found} of {checked} files from the map are in it. Choose the folder that holds {example}.",
+			folderFailed: "Couldn't open the folder: {error}"
 		},
 		agentSetup: {
 			installTitle: 'Install the ropeman command',

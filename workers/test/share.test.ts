@@ -23,6 +23,7 @@ function shareRequest(
 }
 
 const snapshot = { projectName: 'ropeman', nodes: [] };
+const COMMIT = 'e129e22125d397b272c6c3a84bf9d11c35e3d8cc';
 
 describe('share worker', () => {
 	it('stores a snapshot for 14 days and serves it back by its slug', async () => {
@@ -77,6 +78,47 @@ describe('share worker', () => {
 
 		expect(broken.status).toBe(400);
 		expect(scalar.status).toBe(400);
+		expect((await bindings.ROPEMAN_SHARE_STORE.list()).keys).toHaveLength(0);
+	});
+
+	it('stores and serves back the GitHub source of a public repository share', async () => {
+		const shared = { ...snapshot, source: { owner: 'sveltejs', repo: 'svelte.dev', commit: COMMIT } };
+
+		const created = await worker.fetch(shareRequest('POST', '/share', { body: JSON.stringify(shared) }), env);
+		const { slug } = (await created.json()) as { slug: string };
+		const fetched = await worker.fetch(shareRequest('GET', `/share/${slug}`), env);
+
+		expect(created.status).toBe(201);
+		expect(await fetched.json()).toEqual(shared);
+	});
+
+	it('answers 400 for a source that is not exactly a GitHub owner, repository and full commit', async () => {
+		const sources: unknown[] = [
+			null,
+			'sveltejs/svelte',
+			[],
+			{ owner: 'sveltejs', repo: 'svelte' },
+			{ owner: 'sveltejs', repo: 'svelte', commit: 'main' },
+			{ owner: 'sveltejs', repo: 'svelte', commit: COMMIT.slice(0, 7) },
+			{ owner: 'sveltejs', repo: 'svelte', commit: COMMIT.toUpperCase() },
+			{ owner: 'sveltejs', repo: 'svelte', commit: COMMIT, path: 'src' },
+			{ owner: 'evil.example/x', repo: 'svelte', commit: COMMIT },
+			{ owner: '-svelte', repo: 'svelte', commit: COMMIT },
+			{ owner: 'a'.repeat(40), repo: 'svelte', commit: COMMIT },
+			{ owner: 'sveltejs', repo: '..', commit: COMMIT },
+			{ owner: 'sveltejs', repo: 'svelte/../../x', commit: COMMIT },
+			{ owner: 'sveltejs', repo: 'svelte?x=1', commit: COMMIT },
+			{ owner: 'sveltejs', repo: 'r'.repeat(101), commit: COMMIT },
+			{ owner: 7, repo: 'svelte', commit: COMMIT },
+		];
+
+		const statuses = [];
+		for (const source of sources) {
+			const response = await worker.fetch(shareRequest('POST', '/share', { body: JSON.stringify({ ...snapshot, source }) }), env);
+			statuses.push(response.status);
+		}
+
+		expect(statuses).toEqual(sources.map(() => 400));
 		expect((await bindings.ROPEMAN_SHARE_STORE.list()).keys).toHaveLength(0);
 	});
 

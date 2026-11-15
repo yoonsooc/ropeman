@@ -16,7 +16,7 @@ src/
 │   ├── [[lang=locale]]/+page.svelte # 메인 페이지 (레이아웃 + AnalyzeModal + testDir 감지). `/`, `/en`, `/ko`가 같은 컴포넌트이고, 공유 미리보기 태그(og·twitter·canonical·hreflang)를 단다
 │   ├── [[lang=locale]]/+page.ts  # 랜딩을 SSR로 `/en`·`/ko` 두 번 프리렌더: 첫 HTML에 첫 화면이 있고 앱이 그 자리에서 hydrate한다. `/`는 굽지 않는다
 │   ├── +layout.svelte            # 전역 레이아웃 (테마 CSS 주입). 마운트하면 <html data-hydrated>를 단다 (E2E가 클릭 전에 기다림)
-│   ├── open/+page.svelte         # JSON 열기: ropeman.json을 골라 읽기 전용 뷰어로 연다 (거부되면 이유와 다시 고르기)
+│   ├── open/+page.svelte         # JSON 열기: ropeman.json을 골라 읽기 전용 뷰어로 연다 (거부되면 이유와 다시 고르기). 파일 원문은 사용자가 연결한 폴더에서 읽는다
 │   ├── bridge/+page.svelte       # Bridge 모드: ropeman serve에 붙어 지도·드릴다운·원문을 RPC로 (로컬 모드는 #token= 자동 연결)
 │   └── +layout.ts                # 기본은 SSR 끔 (브라우저 전용). 켜는 곳은 랜딩([[lang=locale]]/+page.ts)과 /docs
 │
@@ -67,6 +67,10 @@ src/
 │   │   ├── semanticGraphBuilder.ts   # 시맨틱 노드 → SvelteFlow 변환
 │   │   ├── levelLayout.ts            # 단계 배치: 화면 비율에 맞춰 연결 요소를 층으로 놓고 블록을 줄로 쌓고, 카드 사이 틈으로 엣지 경로를 낸다
 │   │   ├── fileSystemService.ts      # File System Access API 래퍼
+│   │   ├── sourceFile.ts             # 소스 없는 뷰어(갤러리, 공유, JSON 열기)가 보여 줄 파일 하나: 경로 조각 검사, 500KB·바이너리 거부, 거부 이유 문장
+│   │   ├── githubSource.ts           # 공개 GitHub 저장소의 한 커밋(owner, repo, commit): 모양 검사, raw·blob 주소, 그 커밋에서 파일 읽기
+│   │   ├── folderSource.ts           # JSON 열기에서 연결한 폴더: 지도 파일 표본으로 맞는 폴더인지 확인, 파일 읽기(`.env` 값 파일 거부)
+│   │   ├── shareService.ts           # 공유 링크 내용(SharePayload): 만들기, 읽기, 공유한 커밋에서 파일 읽기
 │   │   ├── parserService.ts          # Web Worker 통신 (parseFile → { symbols, refs }, parseAllFiles → { astMap, refs, skipped }). 순서와 한도는 sourceExtraction
 │   │   ├── webllmService.ts          # WebLLM Worker 래퍼
 │   │   ├── cacheService.ts           # IndexedDB 채팅 캐시 (Orama)
@@ -92,6 +96,7 @@ src/
 │   │   ├── SemanticDetailPanel.svelte # 노드 상세 패널 (파일 유형별 아이콘)
 │   │   ├── CodeViewer.svelte         # 코드 뷰어 (심볼 사이드바, 폰트 크기 설정 반영, 원본 언어명)
 │   │   ├── TabBar.svelte             # 탭 바 (drag & drop, 원본 파일명 표기)
+│   │   ├── SnapshotViewer.svelte     # 읽기 전용 뷰어 본문(갤러리, 공유, JSON 열기): 탭 바, 캔버스, 코드 탭, 노드 패널. 파일은 페이지가 준 `read`로 읽는다
 │   │   ├── SplitPane.svelte          # 분할 뷰
 │   │   ├── Breadcrumb.svelte         # 경로 네비게이션 (자식 노드 드롭다운, 분할뷰 호환)
 │   │   ├── ExportController.svelte   # 내보내기 컨트롤러 (PNG/SVG)
@@ -148,7 +153,7 @@ workers/                          # Cloudflare Workers
 │   ├── shared.ts                     # CORS 헬퍼, callGemini, jsonResponse
 │   ├── demo.ts                       # ropeman-demo (rate limit + 서버키 + 모델 폴백)
 │   ├── proxy.ts                      # ropeman-proxy (BYOK pass-through + 모델 목록)
-│   ├── share.ts                      # ropeman-share (공유 링크 스냅샷, KV)
+│   ├── share.ts                      # ropeman-share (공유 링크 스냅샷, KV. `source`가 있으면 모양을 검사)
 │   └── explore.ts                    # ropeman-explore (갤러리 스냅샷, KV. 상한은 explore.limits.ts)
 ├── test/                             # workerd에서 도는 워커 테스트 (`npm test --prefix workers`)
 └── wrangler.<name>.toml              # 워커마다 배포 설정 (demo, proxy, share, explore)
@@ -387,7 +392,13 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 - 값은 필드마다 새 객체로 복사한다. 상속된 키는 읽지 않고, 색처럼 화면 스타일이 되는 값은 파일에서 받지 않는다. 라벨과 설명은 Svelte 텍스트로만 그린다.
 - RPC(T2-4가 구현): 요청은 `{ id, type }`이고 응답은 같은 id와 type에 `result`나 `code`·`error`를 담는다. `map.get`은 지도 전체, `node.expand`는 노드 id를 받아 묶음 단계를 바로 돌려주고, 이름이 검증을 통과하면 `node.named` 푸시가 따른다(이미 이름이 있으면 바로 `named` 단계를 돌려주고 푸시는 없다). `file.read`는 #72 모양 그대로다. 서버는 연결마다 `hello`로 스키마 버전을 먼저 알린다. `map.changed`는 바뀐 경로만 알리고, 뷰어가 `map.get`을 다시 부른다.
 - JSON 열기(`/open`)는 파싱한 지도를 `mapViewer.toViewerLevels()`로 펼쳐 스냅샷 모드(`readOnlyMode = 'snapshot'`)로 보여 준다. 파일에 없는 단계는 "스냅샷에 없음"으로 보이고 AI를 부르지 않는다. 스냅샷 모드에서는 노드의 다시 분석 버튼도 숨긴다.
-- 공개 갤러리 상세(`/explore/[slug]`)도 스냅샷 모드로 보여 준다. 스냅샷에는 소스가 없어서, 노드 패널에서 파일을 누르면 코드 탭이 열리고 `exploreService.fetchExploreFile()`이 분석한 커밋에서 raw.githubusercontent.com으로 파일을 읽는다. 커밋은 스냅샷의 `commit`이고, 경로는 저장소 경로 그대로다(fastapi의 `fastapi/`, tokio의 `tokio/`처럼 저장소 이름과 같은 폴더도 벗기지 않는다). `commit`이 없는 스냅샷은 파일을 열 수 없다고 알린다. 기본 브랜치 HEAD에서 읽으면 그 뒤 옮겨지거나 지워진 파일이 404가 되기 때문이다. 500KB가 넘거나 바이너리인 파일, `.`·`..`·빈 경로 조각은 보여 주지 않고 이유를 알린다. 파일 위에 같은 커밋의 GitHub 링크를 둔다. 캔버스는 파일이 열려 있는 동안에도 마운트된 채 가려져 확대·이동·드릴다운 상태를 지킨다.
+- 갤러리 상세, 공유 보기, JSON 열기는 같은 뷰어 본문(`SnapshotViewer.svelte`)을 쓴다. 지도에는 원문이 없어서, 노드 패널에서 파일을 누르면 코드 탭이 열리고 페이지가 준 `read`가 파일을 가져온다. 어디서 가져오든 `sourceFile`의 규칙을 따른다. `.`·`..`·빈 경로 조각은 요청 전에 거부하고, 500KB가 넘거나 앞 8000바이트에 NUL이 있는 파일은 보여 주지 않고 이유를 알린다. 캔버스는 파일이 열려 있는 동안에도 마운트된 채 가려져 확대·이동·드릴다운 상태를 지킨다.
+- JSON 열기의 원문: 파일을 누르면 "폴더 연결" 버튼이 나오고, `showDirectoryPicker({ mode: 'read' })`로 고른 프로젝트 폴더에서 `folderSource.readFolderFile()`이 읽는다. 아무것도 보내지 않고, 다른 지도를 열면 연결을 끊는다. 연결하기 전에 `folderSource.checkFolder()`가 지도 노드의 파일 경로 중 최대 8개를 정렬한 목록에서 고르게 뽑아 폴더에 있는지만 본다(읽지 않는다). 절반이 안 되면 믿지 않고, 몇 개가 있었는지와 맞는 폴더에 있어야 할 파일 하나를 알린다. 프로젝트 폴더의 상위 폴더를 고른 경우가 여기 걸린다. 지도 경로는 프로젝트 루트 기준이다. 값이 든 `.env`는 Bridge `file.read`처럼 보여 주지 않는다. 폴더 선택기가 없는 브라우저(Safari, Firefox)에는 버튼 대신 Chrome이나 Edge에서 열라는 문장을 보여 준다.
+- 공개 갤러리 상세(`/explore/[slug]`)도 스냅샷 모드로 보여 준다. 파일은 `githubSource.fetchGitHubFile()`이 분석한 커밋에서 raw.githubusercontent.com으로 읽는다. 커밋은 스냅샷의 `commit`이고, 경로는 저장소 경로 그대로다(fastapi의 `fastapi/`, tokio의 `tokio/`처럼 저장소 이름과 같은 폴더도 벗기지 않는다). `commit`이 없는 스냅샷은 파일을 열 수 없다고 알린다. 기본 브랜치 HEAD에서 읽으면 그 뒤 옮겨지거나 지워진 파일이 404가 되기 때문이다. 파일 위에 같은 커밋의 GitHub 링크를 둔다.
+- 공유 링크(`ShareDialog`가 share 워커에 올리고 KV에 14일 둔다)는 단계와 파일 경로만 담고 원문은 담지 않는다(`shareService.SharePayload`). GitHub에서 불러온 프로젝트의 공유는 `source: { owner, repo, commit }`를 더하고, 공유 보기(`/share/[slug]`)는 그 커밋에서 갤러리와 같은 `fetchGitHubFile()`로 파일을 읽는다. 공유 경로는 `저장소이름/경로`라서 `shareService.shareRepoPath()`가 앞의 저장소 이름을 벗긴다. 폴더에서 연 프로젝트의 공유와 이 필드가 생기기 전에 만든 공유에는 `source`가 없고, 보기 화면은 원본 코드가 공유에 들어 있지 않다고 알린다. 확인 창은 저장소와 커밋이 링크에 담긴다고 미리 알린다.
+  - 공개 저장소만: `githubLoader`는 토큰도 자격 증명도 없이 읽으므로 공개 저장소만 불러온다(`githubLoader.test.ts`가 요청마다 옵션이 없는지 본다). 토큰으로 읽는 길이 생기면 그 로드는 `commit`을 남기지 않아야 한다.
+  - 정확한 커밋: GitHub 트리 API는 브랜치나 HEAD를 물어도 `sha`에 해석한 커밋을 돌려준다(트리 자체의 SHA가 아니다. 2026-11-15 sveltejs/svelte, sindresorhus/is에서 `commits/HEAD`와 같은 값으로 확인). 로더는 그 값이 40자리 SHA면 모든 파일을 그 커밋에서 읽고 `githubInfo.commit`(`types/github.ts`)에 남긴다. 그래서 공유가 이름 붙인 커밋이 분석한 파일과 같다. SHA가 아니면 예전처럼 브랜치에서 읽고 `commit`은 null이라 공유에 `source`를 싣지 않는다.
+  - 모양 검사: share 워커는 `source`가 있으면 owner(영숫자와 `-`, 영숫자로 시작, 39자 이하), repo(영숫자와 `.`·`_`·`-`, 100자 이하, `.`·`..` 제외), 40자리 소문자 커밋, 정확히 이 세 키인지 보고 아니면 400을 돌려준다. 앱의 `githubSource.parseGitHubSource()`도 같은 규칙이라 워커가 거절할 출처는 처음부터 싣지 않고, 공유를 읽을 때 규칙에 맞지 않는 `source`는 없는 것으로 본다. 공유는 14일 뒤 지워지므로 이 필드는 되돌리기 어렵지 않다.
 
 ### 지도 검증기 (`mapVerifier.ts`, T2-3)
 

@@ -1,6 +1,7 @@
 import type { FileNode } from '$lib/types/fileTree';
 import type { ASTSymbol, ParseSkip } from '$lib/types/ast';
 import type { CutFile } from '$lib/utils/filePriority';
+import type { GitHubInfo } from '$lib/types/github';
 
 interface ProjectState {
 	fileTree: FileNode | null;
@@ -14,7 +15,7 @@ interface ProjectState {
 function createProjectStore() {
 	let fileTree = $state.raw<FileNode | null>(null);
 	let astMap = $state.raw<Map<string, ASTSymbol[]>>(new Map());
-	let githubInfo = $state<{ owner: string; repo: string; ref: string } | null>(null);
+	let githubInfo = $state<GitHubInfo | null>(null);
 	let isLoading = $state(false);
 	let projectName = $state('');
 	let parsingProgress = $state({ done: 0, total: 0 });
@@ -41,7 +42,7 @@ function createProjectStore() {
 		get githubInfo() {
 			return githubInfo;
 		},
-		set githubInfo(v: { owner: string; repo: string; ref: string } | null) {
+		set githubInfo(v: GitHubInfo | null) {
 			githubInfo = v;
 		},
 

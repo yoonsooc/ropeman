@@ -19,6 +19,7 @@ import {
 	type PathFilter
 } from '$lib/utils/filePriority';
 import { settingsStore } from '$lib/stores/settingsStore.svelte';
+import { isCommitSha } from '$lib/services/githubSource';
 
 interface GitHubTreeItem {
 	path: string;
@@ -185,10 +186,12 @@ export async function loadGitHubRepo(
 
 	const treeData: GitHubTreeResponse = await treeRes.json();
 	options.beforeApply?.();
-	const ref = info.branch || treeData.sha;
+	// For a branch or HEAD, GitHub answers with the commit it resolved, not the tree's own SHA.
+	const commit = isCommitSha(treeData.sha) ? treeData.sha : null;
+	const ref = commit ?? (info.branch || treeData.sha);
 
 	// Store GitHub info for on-demand file fetching by CodeViewer
-	projectStore.githubInfo = { owner: info.owner, repo: info.repo, ref };
+	projectStore.githubInfo = { owner: info.owner, repo: info.repo, ref, commit };
 
 	// Compute the path filter once (defaults + the user's exclude and include entries)
 	const filter = createPathFilter(
