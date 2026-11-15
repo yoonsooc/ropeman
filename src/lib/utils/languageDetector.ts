@@ -158,9 +158,14 @@ export function isSupported(language: string): boolean {
 	return SUPPORTED_LANGUAGES.has(language);
 }
 
+const TSX_GRAMMAR = 'tree-sitter-tsx.wasm';
+
+/** Every grammar file getGrammarFile can name: the ones static/ must hold. */
+export const ALL_GRAMMAR_FILES: readonly string[] = [...Object.values(GRAMMAR_FILES), TSX_GRAMMAR];
+
 // `.tsx` stays the typescript language, but only the tsx grammar reads JSX.
 // `.ts` keeps the typescript grammar because tsx misreads `<T>value` casts as JSX.
 export function getGrammarFile(language: string, filePath: string): string | null {
-	if (language === 'typescript' && extensionOf(filePath) === '.tsx') return 'tree-sitter-tsx.wasm';
+	if (language === 'typescript' && extensionOf(filePath) === '.tsx') return TSX_GRAMMAR;
 	return GRAMMAR_FILES[language] ?? null;
 }

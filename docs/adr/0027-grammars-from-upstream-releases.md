@@ -1,0 +1,35 @@
+# ADR-27: tree-sitter 문법은 언어마다 원본 저장소의 릴리스 파일을 받는다
+
+- **날짜**: 2026-11-16
+- **문제**: 파서 엔진 `web-tree-sitter`가 0.25.10에 묶여 있었다. 0.26부터는 예전 `dylink` 섹션 형식으로 링크한 문법을 불러오지 못하는데, `static/`의 문법 19개 중 11개(bash, c_sharp, json, kotlin, php, ruby, scala, swift, toml, tsx, yaml)가 그 형식이었다. 11개 모두 제3자 묶음 `tree-sitter-wasms` 0.1.13에서 왔고, 이 묶음은 최신판도 예전 형식이다. Dependabot PR #127은 이 때문에 wasm `LinkError`로 실패했다. 묶음 안의 문법도 오래됐다(Scala 0.19, Swift 0.4, YAML·TOML은 2022년의 ikatyang 0.5). 나머지 8개 중 5개(c, cpp, go, java, rust)는 언어별 npm 패키지에서 복사했고, 3개(python, javascript, typescript)는 출처 기록 없이 손으로 넣었다. `static/`을 다시 만드는 방법이 어디에도 없었다.
+- **검토 대안**:
+  - (A) 0.25에 머물고 `tree-sitter-wasms`를 계속 쓴다. 할 일은 없지만 엔진과 문법이 계속 낡고, YAML·Bash는 엔진이 내보내지 않는 함수를 고친 사본(`scripts/alias-grammar-imports.mjs`)을 계속 써야 한다.
+  - (B) 언어마다 npm 문법 패키지를 의존성으로 두고 `node_modules`에서 복사한다. Dependabot이 버전을 알려 주지만, 패키지를 올려도 `static/`의 사본은 누군가 다시 복사해야 바뀐다. npm판이 GitHub 릴리스보다 늦은 문법도 여럿이다(2026-11-16 기준 Rust 0.24.0과 0.24.2, C 0.24.1과 0.24.2, PHP 0.24.2와 0.25.1, Scala 0.24.0과 0.26.13, Swift 0.7.1과 0.7.3, YAML 0.7.1과 0.7.2).
+  - (C) 각 문법의 원본 저장소가 GitHub 릴리스에 올린 `.wasm`을 받는다. 저장소, 릴리스, 커밋, 받은 방법, ABI 버전, 라이선스, sha256을 매니페스트에 적고, 스크립트 하나가 `static/`을 처음부터 다시 만든다.
+  - (D) 모든 문법을 원본 소스에서 tree-sitter CLI로 직접 빌드한다. 빌드를 우리가 쥐지만 빌드 도구와 시간이 들고, 원본이 같은 CLI로 빌드해 올린 파일과 다르게 만들 이유가 없다.
+- **결정**: (C)를 골랐다. 엔진은 `web-tree-sitter` 0.27.2로 올렸다.
+  - 19개 모두 원본이 최신 릴리스에 `.wasm`을 올려 두어서 직접 빌드한 문법은 없다. 매니페스트의 `obtained`는 모두 `release-asset`이다. ABI는 14나 15이고, 엔진이 받는 범위는 13~15다.
+  - 매니페스트는 `scripts/grammars/manifest.json`, 스크립트는 `node scripts/grammars/fetch.mjs`다. 받은 파일의 sha256이 매니페스트와 다르면 멈추고, 매니페스트에 없는 `tree-sitter*.wasm`은 지운다. 엔진 파일 `web-tree-sitter.wasm`은 설치된 패키지에서 복사한다. 문법을 올릴 때는 매니페스트의 `version`을 고치고 `--update`로 돌리면 커밋, sha256, ABI를 다시 적는다.
+  - `scripts/grammars/manifest.test.ts`가 `static/`의 문법 목록, 바이트, ABI가 매니페스트와 같은지, 엔진 파일이 설치된 `web-tree-sitter`와 같은지 본다. 엔진만 올리고 스크립트를 돌리지 않은 PR은 여기서 실패한다.
+  - Kotlin은 지금 쓰는 fwcd/tree-sitter-kotlin의 최신 릴리스 0.3.8을 받는다. tree-sitter-grammars/tree-sitter-kotlin(1.1.0)은 이름만 같은 다른 문법이라 노드 이름이 다르다. YAML과 TOML은 ikatyang 저장소가 멈춘 뒤 이어받은 tree-sitter-grammars 저장소에서 받는다.
+  - 빠진 import: 엔진은 `__assert_fail`(bash, c_sharp, cpp, php, ruby, yaml)과 `abort`(kotlin, yaml)를 내보내지 않는다. 엔진은 모르는 import를 처음 부를 때 실패하는 함수로 이어 둔다. 두 함수는 스캐너가 assert에 걸리거나 스스로 멈출 때만 불리므로, 정상 입력에서는 불리지 않는다. 비교한 모든 저장소에서 파싱 실패 수가 그대로였다.
+  - 지운 것: `tree-sitter-wasms`와 npm 문법 패키지 5개(`tree-sitter-c`, `-cpp`, `-go`, `-java`, `-rust`). 코드는 이 패키지를 import하지 않았고 `.wasm`을 복사하는 데만 썼다. `scripts/alias-grammar-imports.mjs`, 그 테스트, 수정본 고지 `LICENSES/tree-sitter-grammars-NOTICE.txt`도 지웠다. 이제 `static/`의 문법은 원본 파일 그대로다.
+  - Dependabot: `web-tree-sitter` 0.26 이상 무시를 지웠다. `web-tree-sitter`는 묶음 PR에서 계속 뺀다. 그 PR은 사람이 스크립트를 돌릴 때까지 실패하므로, 묶음에 두면 다른 업데이트까지 막는다. `tree-sitter-*` 제외는 해당하는 npm 패키지가 없어져 지웠다.
+- **기각 이유**:
+  - (A) 엔진을 올릴 수 없고, 손으로 고친 문법 사본이 남는다.
+  - (B) Dependabot이 버전을 올려도 `static/`이 따라가지 않으니 알림 말고는 얻는 것이 없다. 릴리스보다 늦은 npm판을 받게 되고, 문법 패키지의 네이티브 바인딩 설치 스크립트까지 들어온다.
+  - (D) 원본이 올린 파일이 이미 새 형식(`dylink.0`)이고 ABI도 맞다. 원본이 `.wasm`을 올리지 않는 문법이 생기면 그 문법만 빌드한다.
+- **결과**:
+  - 바꾸기 전에 `scripts/grammar-measure`로 문법별 파일, 파싱 실패, 심볼, import, 참조 종류별 개수를 기록하고 바꾼 뒤 같은 명령으로 비교했다. 대상은 PASEO(`e0f545fed`), 이 저장소(`83a6ae4`), 언어마다 하나씩 고른 공개 저장소 12개다.
+  - PASEO: typescript(4,344파일), bash, c, cpp, java, json, toml, yaml은 개수가 모두 같다. tsx는 심볼 +4, 호출 −4, 해석된 호출 +41이다. 예전 tsx 문법(0.20)이 테스트 파일 하나를 오류 22개로 잘못 읽던 것이 오류 2개로 줄어서다. kotlin은 파일 하나(`PaseoHardwareKeyboardModule.kt`)에서 심볼 13개, 참조 52개가 줄었다. 이 파일은 두 엔진 모두 `'A'.code`를 읽지 못하는데, 같은 0.3.8 문법이 0.25 엔진에서는 오류 1개, 0.27 엔진에서는 오류 4개로 복구한다. 엔진의 오류 복구가 바뀐 탓이라 쿼리로 고칠 수 없다.
+  - 공개 저장소: C#(MediatR)은 심볼이 83개에서 397개, 해석된 호출이 0개에서 319개가 됐다. 예전 문법이 파일 범위 namespace(`namespace X;`)를 읽지 못했다. Scala(os-lib)는 심볼 255개에서 471개, 해석된 호출 116개에서 266개다. Swift(Alamofire)는 해석된 호출이 2,811개에서 2,899개, C(fmt)는 함수가 18개 늘었다. Go, Java, PHP, Python, Ruby, Rust는 개수가 같다.
+  - 고친 쿼리와 개요: C# `for_each_statement`가 `foreach_statement`가 됐다. Scala `extends`는 `compound_type` 없이 `type` 필드를 나열하므로 첫 타입을 `inherits`, `with`나 쉼표 뒤 타입을 `implements`로 읽는다. Scala `new Foo(x)`는 더 이상 `call_expression`을 품지 않아 `instance_expression`을 호출로 읽는다. Scala `class`·`object`·`trait` 본문의 `def`를 메서드 자식으로 둔다. YAML 0.7은 깨진 문서 앞의 정상 문서를 `document` 없이 루트 아래에 두기도 해서, 그런 노드도 문서로 읽는다.
+  - 정답 픽스처: poly-shop의 호출 재현율이 0.946에서 1이 됐다(Scala 호출 2개). 픽스처에 TSX 파일 둘과 Bash 파일 셋을 더하고 정답 관계 6개를 적었다. 두 엔진 모두 같은 4개를 맞히고, `source`로 불러온 함수의 호출 2개를 똑같이 놓친다.
+  - 추출 시간(PASEO, Apple M4, 두 엔진을 번갈아 3회씩 두 번): 0.25는 8.38~9.10초, 0.27은 7.73~8.07초다. PASEO 시간의 대부분인 TypeScript 문법 파일은 바이트가 같으므로 차이는 엔진에서 온다.
+  - `static/`의 `.wasm` 합계는 26,570,503바이트에서 32,313,533바이트가 됐다. 브라우저는 저장소에 있는 언어의 문법만 받는다. 크게 는 것은 scala(0.2MB에서 4.6MB), c_sharp(4.0MB에서 5.4MB), swift(3.1MB에서 3.8MB)이고, tsx는 2.4MB에서 1.4MB로 줄었다. 가장 큰 파일(5.4MB)도 Cloudflare Pages의 파일당 상한 25MiB 아래다.
+  - 되돌리기: 문법 하나만 되돌릴 때는 매니페스트에서 그 문법의 `version`을 이전 릴리스로 고치고 `node scripts/grammars/fetch.mjs --update`를 돌린다. 0.27 엔진이 받는 릴리스여야 한다(`dylink.0` 형식, ABI 13~15). 엔진까지 되돌릴 때는 이 PR을 revert한다. 예전 11개 파일은 0.27 엔진에서 열리지 않으므로 엔진과 `static/`을 함께 되돌려야 한다.
+- **재검토 조건**:
+  - 원본이 릴리스에 `.wasm`을 올리지 않는 문법이 생기면, 그 문법은 원본 소스에서 tree-sitter CLI로 빌드하고 매니페스트의 `obtained`를 `built`로 적는다.
+  - Kotlin을 tree-sitter-grammars/tree-sitter-kotlin으로 옮길지 따로 본다. 1.1.0은 PASEO와 moshi의 Kotlin 114파일에서 오류가 3개로, fwcd 0.3.8의 66개보다 훨씬 적다. 노드 이름이 달라 Kotlin 쿼리와 개요를 다시 써야 한다.
+  - 엔진이 `__assert_fail`이나 `abort`를 부르는 문법을 거부하게 되거나, 그 함수 때문에 파싱이 실패하는 입력이 나오면 다시 본다.
+  - 문법 하나가 Cloudflare Pages의 파일당 상한에 가까워지면 그 문법만 지연 로드나 다른 호스팅을 본다.

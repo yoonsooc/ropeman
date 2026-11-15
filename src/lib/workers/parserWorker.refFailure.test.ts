@@ -15,7 +15,7 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 
 	class Parser extends real.Parser {
 		static init() {
-			return real.Parser.init({ locateFile: () => fromStatic('/tree-sitter.wasm') });
+			return real.Parser.init({ locateFile: () => fromStatic('/web-tree-sitter.wasm') });
 		}
 	}
 	const Language = { load: (url: string) => real.Language.load(fromStatic(url)) };

@@ -9,7 +9,7 @@ const grammarFiles = readdirSync(staticDir).filter((f) => /^tree-sitter-.+\.wasm
 const languages = new Map<string, Language>();
 
 beforeAll(async () => {
-	await Parser.init({ locateFile: () => `${staticDir}tree-sitter.wasm` });
+	await Parser.init({ locateFile: () => `${staticDir}web-tree-sitter.wasm` });
 	for (const file of grammarFiles) languages.set(file, await Language.load(`${staticDir}${file}`));
 });
 

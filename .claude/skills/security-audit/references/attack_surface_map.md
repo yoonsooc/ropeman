@@ -82,7 +82,7 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 
 ## 5. 정적 자산 (`static/`)
 
-- `robots.txt`, `favicon.svg`, 11개 tree-sitter WASM 파일 (~18MB)
+- `robots.txt`, `favicon.svg`, tree-sitter WASM 파일 20개(엔진과 문법 19개, 약 32MB, 출처는 `scripts/grammars/manifest.json`)
 - 사용자 업로드 경로 없음
 - WASM **SRI 해시 없음** (Cloudflare Pages 캐시 의존)
 

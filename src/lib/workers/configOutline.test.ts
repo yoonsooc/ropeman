@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
-import fs from 'node:fs';
 import { detectLanguage } from '$lib/utils/languageDetector';
 import { buildCodeMap } from '$lib/services/codeMapBuilder';
 import { formatPayloadPreview, selectSkeleton } from '$lib/services/skeletonExtractor';
@@ -9,12 +8,6 @@ import { FIXTURE_AST } from '$lib/services/__fixtures__/skeletonWire';
 import type { ASTRef, ASTSymbol } from '$lib/types/ast';
 import type { FileNode } from '$lib/types/fileTree';
 import type { SkeletonFile } from '$lib/types/skeleton';
-import {
-	aliasImports,
-	GRAMMAR_IMPORT_ALIASES,
-	servedGrammar,
-	upstreamGrammar
-} from '../../../scripts/alias-grammar-imports.mjs';
 
 vi.mock('web-tree-sitter', async (importOriginal) => {
 	const real = await importOriginal<typeof import('web-tree-sitter')>();
@@ -24,7 +17,7 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 
 	class Parser extends real.Parser {
 		static init() {
-			return real.Parser.init({ locateFile: () => fromStatic('/tree-sitter.wasm') });
+			return real.Parser.init({ locateFile: () => fromStatic('/web-tree-sitter.wasm') });
 		}
 	}
 	const Language = { load: (url: string) => real.Language.load(fromStatic(url)) };
@@ -863,24 +856,7 @@ ${k()}=${v()} ./run.sh
 	});
 });
 
-describe('grammar builds', () => {
-	const imports = (bytes: Uint8Array) =>
-		WebAssembly.Module.imports(new WebAssembly.Module(new Uint8Array(bytes))).map(
-			(entry) => entry.name
-		);
-
-	it.each(Object.entries(GRAMMAR_IMPORT_ALIASES))(
-		'serves %s from tree-sitter-wasms with only the imports the runtime lacks renamed',
-		(file, aliases) => {
-			const upstream = fs.readFileSync(upstreamGrammar(file));
-			const served = fs.readFileSync(servedGrammar(file));
-
-			expect(Buffer.from(aliasImports(upstream, aliases)).equals(served)).toBe(true);
-			expect(imports(upstream)).toEqual(expect.arrayContaining(Object.keys(aliases)));
-			for (const name of Object.keys(aliases)) expect(imports(served)).not.toContain(name);
-		}
-	);
-
+describe('grammar imports', () => {
 	it('parses the shell tests and YAML that called a missing import', async () => {
 		// Regression: `[[ ... == ... ]]` called isalpha and any YAML called operator new, which
 		// web-tree-sitter 0.25 does not export, so the parse threw "resolved is not a function"

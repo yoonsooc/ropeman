@@ -417,6 +417,48 @@
 			"line": 6,
 			"written": "Pricing.fee",
 			"to": "java/src/com/shop/Pricing.java#Pricing.fee"
+		},
+		{
+			"kind": "calls",
+			"from": "typescript/src/ErrorBanner.tsx",
+			"line": 5,
+			"written": "fail",
+			"to": "typescript/src/report.ts#fail"
+		},
+		{
+			"kind": "calls",
+			"from": "typescript/src/ErrorBanner.tsx",
+			"line": 8,
+			"written": "Badge",
+			"to": "typescript/src/Badge.tsx#Badge"
+		},
+		{
+			"kind": "calls",
+			"from": "shell/deploy.sh",
+			"line": 5,
+			"written": "log",
+			"to": "shell/lib.sh#log"
+		},
+		{
+			"kind": "calls",
+			"from": "shell/deploy.sh",
+			"line": 9,
+			"written": "build",
+			"to": "shell/deploy.sh#build"
+		},
+		{
+			"kind": "calls",
+			"from": "shell/deploy.sh",
+			"line": 13,
+			"written": "deploy",
+			"to": "shell/deploy.sh#deploy"
+		},
+		{
+			"kind": "calls",
+			"from": "shell/notify.sh",
+			"line": 3,
+			"written": "log",
+			"to": "shell/lib.sh#log"
 		}
 	]
 }

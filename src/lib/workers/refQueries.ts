@@ -27,11 +27,14 @@ const JSX = `
 (jsx_opening_element name: (_) @jsx)
 (jsx_self_closing_element name: (_) @jsx)`;
 
-/** `class A extends B with C`: the class's base, then the traits it mixes in */
-function scalaBases(type: string): string {
-	return `([(class_definition extend: (extends_clause type: ${type}))
-  (object_definition extend: (extends_clause type: ${type}))
-  (trait_definition extend: (extends_clause type: ${type}))] @owner)`;
+/**
+ * `class A extends B with C` and Scala 3's `extends B, C`: the class's base comes first, then the
+ * traits it mixes in. The grammar lists them all as `type` fields of one clause.
+ */
+function scalaBases(clause: string): string {
+	return `([(class_definition extend: (extends_clause ${clause}))
+  (object_definition extend: (extends_clause ${clause}))
+  (trait_definition extend: (extends_clause ${clause}))] @owner)`;
 }
 
 // A command or script path: letters, digits and `_./+-`, not starting with `-` (an option)
@@ -88,9 +91,10 @@ export const QUERIES: Readonly<Record<string, string>> = {
 ([(class_declaration (base_list (_) @inherits)) (interface_declaration (base_list (_) @inherits))] @owner)
 ([(struct_declaration (base_list (_) @implements)) (record_declaration (base_list (_) @inherits))] @owner)`,
 	'tree-sitter-scala.wasm': `${CALL}
-${scalaBases('[(type_identifier) (stable_type_identifier) (generic_type)] @inherits')}
-${scalaBases('(compound_type base: (_) @inherits)')}
-${scalaBases('(compound_type extra: (_) @implements)')}`,
+(instance_expression [(type_identifier) (stable_type_identifier) (generic_type)] @callee)
+${scalaBases('. type: (_) @inherits')}
+${scalaBases('"with" . type: (_) @implements')}
+${scalaBases('"," . type: (_) @implements')}`,
 	// Every command, and the script a shell runs (`bash deploy.sh`); `source` is an import. Only
 	// bare words: a quoted, `$`-expanded or `KEY=value` word is an argument's text, not a name
 	'tree-sitter-bash.wasm': `(command name: (command_name) @callee
@@ -207,7 +211,7 @@ export const LOCALS: Readonly<Record<string, LocalRules>> = {
 		query: `
 (parameter name: (identifier) @local)
 (local_declaration_statement (variable_declaration (variable_declarator (identifier) @local)))
-(for_each_statement left: (identifier) @local)
+(foreach_statement left: (identifier) @local)
 (catch_declaration name: (identifier) @local)`,
 		scopes: [
 			'method_declaration',
