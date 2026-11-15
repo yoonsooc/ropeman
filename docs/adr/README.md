@@ -56,3 +56,4 @@
 | [ADR-24](0024-ropeman-map-format.md)                 | `ropeman.json` 형식과 버전, Bridge RPC가 같은 타입을 쓴다              | 2026-11-12 |
 | [ADR-25](0025-agent-names-the-map.md)                | 맥락은 사용자의 에이전트가 쥐고, 깊은 폴더는 일꾼이 동시에 이름 붙인다 | 2026-11-13 |
 | [ADR-26](0026-sveltekit-3-vite-8.md)                 | SvelteKit 3, Vite 8, TypeScript 6으로 같이 올린다                      | 2026-11-15 |
+| [ADR-27](0027-grammars-from-upstream-releases.md)    | tree-sitter 문법은 언어마다 원본 저장소의 릴리스 파일을 받는다         | 2026-11-16 |

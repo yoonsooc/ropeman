@@ -100,10 +100,8 @@ function outlineYaml(root: OutlineNode, filePath: string): ASTSymbol[] {
 			? { services: composeServices }
 			: {};
 	const symbols: ASTSymbol[] = [];
-	// A document with a syntax error is skipped whole: recovery can read a broken value as a key
-	for (const doc of named(root, 'document').filter((d) => !d.hasError)) {
-		const top = doc.namedChildren.find((c) => c.type === 'block_node' || c.type === 'flow_node');
-		const mapping = top && yamlMapping(top);
+	for (const top of yamlDocuments(root)) {
+		const mapping = yamlMapping(top);
 		if (!mapping) continue;
 		const pairs = yamlPairs(mapping);
 		const resource = kubernetesResource(mapping, pairs);
@@ -118,6 +116,21 @@ function outlineYaml(root: OutlineNode, filePath: string): ASTSymbol[] {
 		}
 	}
 	return symbols;
+}
+
+const isYamlNode = (node: OutlineNode) => node.type === 'block_node' || node.type === 'flow_node';
+
+/**
+ * The top node of each document without a syntax error: recovery can read a broken value as a
+ * key. Recovery from a broken document can also drop the `document` around the valid ones before
+ * it, leaving their nodes directly under the root.
+ */
+function yamlDocuments(root: OutlineNode): OutlineNode[] {
+	return root.namedChildren.flatMap((child) => {
+		if (child.hasError) return [];
+		if (child.type === 'document') return child.namedChildren.filter(isYamlNode).slice(0, 1);
+		return isYamlNode(child) ? [child] : [];
+	});
 }
 
 type YamlExpanders = Partial<Record<string, (value: OutlineNode) => ASTSymbol[]>>;

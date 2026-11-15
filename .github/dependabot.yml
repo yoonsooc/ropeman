@@ -27,8 +27,10 @@ updates:
         applies-to: version-updates
         update-types: [minor, patch]
         patterns: ['*']
-        # A grammar .wasm must match the web-tree-sitter runtime, so each comes in its own PR
-        exclude-patterns: ['web-tree-sitter', 'tree-sitter-*']
+        # A web-tree-sitter PR fails until someone reruns scripts/grammars/fetch.mjs to copy the
+        # new engine .wasm into static/, so it must not hold the group back. Grammars come from
+        # the GitHub releases in scripts/grammars/manifest.json, not npm (ADR-27).
+        exclude-patterns: ['web-tree-sitter']
       security:
         applies-to: security-updates
         patterns: ['*']
@@ -39,9 +41,6 @@ updates:
       # TypeScript 7 has no stable compiler API, which svelte-check and typescript-eslint need
       - dependency-name: typescript
         versions: ['7.x']
-      # 0.26+ cannot load grammars with the legacy `dylink` section (11 in static/)
-      - dependency-name: web-tree-sitter
-        versions: ['>=0.26.0']
 
   - package-ecosystem: npm
     directory: /bridge

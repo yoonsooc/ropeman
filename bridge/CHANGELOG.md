@@ -4,6 +4,10 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 ## [Unreleased]
 
+### Changed
+
+- The parser engine is web-tree-sitter 0.27, and every language grammar the command loads is the build its upstream repository publishes with its latest release. Maps change where the old grammars misread code: C# files with a file-scoped `namespace X;` now list their classes and methods, Scala classes, objects and traits list their methods, Scala `new Foo(x)` counts as a call, and Swift, TSX and C files with constructs the old grammars could not parse read more of their symbols and calls ([ADR-27](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0027-grammars-from-upstream-releases.md)).
+
 ## [0.5.0] - 2026-11-15
 
 ### Changed

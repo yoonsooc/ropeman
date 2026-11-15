@@ -26,7 +26,7 @@ export type GrammarParse = (
 export async function createGrammarParser(
 	wasmUrl: (file: string) => string
 ): Promise<GrammarParse> {
-	await Parser.init({ locateFile: () => wasmUrl('tree-sitter.wasm') });
+	await Parser.init({ locateFile: () => wasmUrl('web-tree-sitter.wasm') });
 	const parser = new Parser();
 	const grammars = new Map<string, Language>();
 	const grammarFor = async (file: string) => {
@@ -684,18 +684,14 @@ function extractGenericSymbols(rootNode: any, language: string): ASTSymbol[] {
 				break;
 			}
 
-			// Scala object_definition, trait_definition
+			// Scala class, object and trait, with the methods in their body
+			case 'class_definition':
 			case 'object_definition':
 			case 'trait_definition': {
-				const nameNode = node.childForFieldName('name');
-				if (nameNode) {
-					const kind = node.type === 'trait_definition' ? 'interface' : 'class';
-					symbols.push({
-						name: nameNode.text,
-						kind: kind as SymbolKind,
-						lineStart: node.startPosition.row + 1,
-						lineEnd: node.endPosition.row + 1
-					});
+				if (node.childForFieldName('name')) {
+					const symbol = buildClassSymbol(node, language);
+					if (node.type === 'trait_definition') symbol.kind = 'interface';
+					symbols.push(symbol);
 					return;
 				}
 				break;

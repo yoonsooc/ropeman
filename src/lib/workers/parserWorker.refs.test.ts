@@ -11,7 +11,7 @@ vi.mock('web-tree-sitter', async (importOriginal) => {
 
 	class Parser extends real.Parser {
 		static init() {
-			return real.Parser.init({ locateFile: () => fromStatic('/tree-sitter.wasm') });
+			return real.Parser.init({ locateFile: () => fromStatic('/web-tree-sitter.wasm') });
 		}
 	}
 	const Language = { load: (url: string) => real.Language.load(fromStatic(url)) };
@@ -402,13 +402,16 @@ class App {
 			`object App {
   def run(): Unit = {
     log("start")
-    repo.save(user)
+    repo.save(new User(name))
+    new Box[Int](1)
   }
 }
 `,
 			[
-				['calls', 3, 'App', 'log'],
-				['calls', 4, 'App', 'repo.save']
+				['calls', 3, 'App.run', 'log'],
+				['calls', 4, 'App.run', 'repo.save'],
+				['calls', 4, 'App.run', 'User'],
+				['calls', 5, 'App.run', 'Box']
 			]
 		]
 	])('reads the calls in %s', async (filePath, source, expected) => {

@@ -20,7 +20,7 @@ import { isReadableTarget, walkDirectory } from './walk';
 export const NODE_MAX_FILE_SIZE = 2_000_000;
 
 export interface ExtractOptions {
-	/** Folder holding `tree-sitter.wasm` and the grammar `.wasm` files */
+	/** Folder holding `web-tree-sitter.wasm` and the grammar `.wasm` files */
 	wasmDir: string;
 	filter?: PathFilter;
 	maxFileSize?: number;
