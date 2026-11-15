@@ -76,9 +76,9 @@ Phase 2 Agent에 컨텍스트로 주입하기 위한 공격면 인벤토리. 코
 - Root `wrangler.toml`: Pages 설정, 변수 없음
 - `workers/wrangler.*.toml` 4종: `[vars] ALLOWED_ORIGINS` 평문 (공개 의도)
 - 잠금 파일: npm `package-lock.json`(루트, `workers/`, `bridge/`)을 추적한다. `bun.lock`은 `.gitignore`에 있고 추적하지 않는다
-- `.github/workflows/ci.yml`: `actions/checkout@v4`, `setup-node@v4`, npm ci + lint + build + test:unit + test:e2e
-- Dependabot: **없음**
-- Permissions block: 명시되지 않음 (GitHub 기본값)
+- `.github/workflows/ci.yml`: `actions/checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, npm ci + lint + build + test:unit + test:e2e. `release-bridge.yml`은 같은 액션(`download-artifact@v8` 포함)을 커밋 SHA로 고정한다
+- Dependabot: `.github/dependabot.yml`. GitHub Actions와 npm(루트, `bridge/`, `workers/`) 주간 버전 업데이트, 보안 업데이트는 폴더마다 PR 하나로 묶는다
+- Permissions block: 워크플로 기본값 `contents: read`. `ci.yml` deploy job만 `contents: write`, `release-bridge.yml` publish job만 `id-token: write`
 
 ## 5. 정적 자산 (`static/`)
 

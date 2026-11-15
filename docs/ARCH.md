@@ -773,6 +773,7 @@ main push → ci job (lint, svelte-check, build, core·bridge 번들 확인, uni
 - 필요한 GitHub secret: `CLOUDFLARE_API_TOKEN` (Workers Scripts Edit, Cloudflare Pages Edit), `CLOUDFLARE_ACCOUNT_ID`
 - 워커 시크릿(`GEMINI_API_KEY`, `AI_GATEWAY_TOKEN`)은 wrangler로 따로 등록하며 배포가 덮어쓰지 않는다
 - 수동 배포(`npm run deploy`, `npm run deploy:edge:<worker>`)는 장애 대응용이다
+- 의존성 업데이트는 Dependabot(`.github/dependabot.yml`)이 매주 PR로 연다. minor·patch 업데이트는 npm의 루트, `bridge/`, `workers/` 폴더와 GitHub Actions마다 PR 하나로 묶이고, major 업데이트는 하나씩 따로 온다. 보안 업데이트는 알림이 생길 때 폴더마다 PR 하나로 온다. 이 PR도 같은 CI를 거치고 병합하면 배포된다. `workers/` 업데이트는 `workers/package*.json`을 바꾸므로 워커를 전부 다시 배포한다
 - npm 패키지 `@ropeman/bridge`는 main 커밋에 `bridge-v<버전>` 태그를 푸시하면 `release-bridge.yml`이 trusted publishing으로 올린다. 버전 올리기, 태그, 워크플로 검사, 릴리스 중 20~40분 구간, 확인 방법은 [`RELEASING.md`](../RELEASING.md)에 있다
 
 ---
