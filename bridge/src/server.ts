@@ -86,12 +86,55 @@ function bundledViewer(): string {
 
 const USAGE = `usage:
   ropeman serve [--root <repo>] [--out <folder>] [--local] [--port <n>] [--cli claude|gemini]
-                [--detach] [--idle-minutes <n>]
+                [--detach] [--idle-minutes <n>] [--allow-origin <url>] [--viewer <dir>]
+                [--token <value>]
   ropeman stop --out <folder>
   ropeman map --root <repo> --out <folder> [--depth <n>]
   ropeman verify --root <repo> --map <ropeman.json>
   ropeman inbox --out <folder>
   ropeman --version`;
+
+const SERVE_ARGS = new Map<string, 'value' | 'flag'>([
+	['--root', 'value'],
+	['--out', 'value'],
+	['--port', 'value'],
+	['--cli', 'value'],
+	['--token', 'value'],
+	['--allow-origin', 'value'],
+	['--viewer', 'value'],
+	['--idle-minutes', 'value'],
+	[DETACHED_CHILD, 'value'],
+	['--local', 'flag'],
+	['--detach', 'flag']
+]);
+
+const HELP = new Set(['--help', '-h']);
+
+/** `--help` or `-h` before any `--` and not as the value of the option before it. */
+function helpAsked(args: readonly string[]): boolean {
+	for (let i = 0; i < args.length && args[i] !== '--'; i++) {
+		if (HELP.has(args[i])) return true;
+		// Every option but serve's flags takes a value, since map, verify, inbox and stop have
+		// only string options
+		if (args[i].startsWith('--') && SERVE_ARGS.get(args[i]) !== 'flag') i++;
+	}
+	return false;
+}
+
+function serveArgsProblem(args: readonly string[]): string | null {
+	for (let i = 0; i < args.length; i++) {
+		const kind = SERVE_ARGS.get(args[i]);
+		if (!kind) return `unknown argument '${args[i]}'`;
+		if (kind === 'flag') continue;
+		const value = args[i + 1];
+		// Any other value is kept, a token that starts with `--` included
+		if (value === undefined || SERVE_ARGS.has(value) || HELP.has(value)) {
+			return `${args[i]} needs a value`;
+		}
+		i++;
+	}
+	return null;
+}
 
 /** `--idle-minutes`: stop after this long with no page open; 0, the default here, never. */
 function parseIdleMinutes(args: string[]): number {
@@ -152,6 +195,7 @@ async function main() {
 		out: (text) => process.stdout.write(`${text}\n`),
 		err: (text) => process.stderr.write(`${text}\n`)
 	};
+	if (helpAsked(argv)) return void console.log(USAGE);
 	const commands = { map: runMap, verify: runVerify, inbox: runInbox, stop: runStop };
 	if (Object.hasOwn(commands, argv[0] ?? '')) {
 		const command = commands[argv[0] as keyof typeof commands];
@@ -160,9 +204,13 @@ async function main() {
 		return;
 	}
 	if (argv[0] === '--version') return void console.log(pkg.version);
-	if (argv[0] === '--help' || argv[0] === '-h') return void console.log(USAGE);
 	// `ropeman serve …` and `ropeman-bridge …` run the same server
 	if (argv[0] === 'serve') argv.shift();
+	const problem = serveArgsProblem(argv);
+	if (problem !== null) {
+		console.error(`Cannot start: ${problem}.\n${USAGE}`);
+		process.exit(1);
+	}
 	const port = parsePort(argv);
 	const root = parseDirFlag(argv, '--root');
 	const out = parseOutFlag(argv, root);

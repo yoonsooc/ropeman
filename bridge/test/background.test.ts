@@ -5,16 +5,14 @@ import http from 'http';
 import net from 'net';
 import os from 'os';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { build } from 'vite';
 import { HOST } from '../src/bridge';
 import { readRecord, type ServeRecord, writeRecord } from '../src/background';
 import { SERVE_FILE, SERVE_LOG_FILE } from '../src/workFolder';
 import { parseServerMessage } from '../../src/lib/services/ropemanMapSchema';
 import type { ServerMessage } from '../../src/lib/types/ropemanMap';
+import { buildBundle } from './bundle';
 
 const TOKEN = 'background-test-token-42';
-const repo = fileURLToPath(new URL('../..', import.meta.url));
 /** node and the shell tools, and no `claude`: serve queues folders instead of calling a model */
 const PATH = [path.dirname(process.execPath), '/bin', '/usr/bin'].join(path.delimiter);
 const env = { ...process.env, PATH, ROPEMAN_BRIDGE_TOKEN: TOKEN };
@@ -101,16 +99,7 @@ describe.skipIf(process.platform === 'win32')('serve in the background', () => {
 
 	// The packaged CLI, built into a folder of this run's: the detached serve is a real process
 	beforeAll(async () => {
-		const cache = path.join(repo, 'node_modules', '.cache');
-		fs.mkdirSync(cache, { recursive: true });
-		// Under node_modules, so the bundle finds `ws`, its one runtime dependency
-		outDir = fs.mkdtempSync(path.join(cache, 'ropeman-bridge-test-'));
-		await build({
-			configFile: path.join(repo, 'bridge/vite.config.ts'),
-			logLevel: 'silent',
-			build: { outDir, emptyOutDir: true }
-		});
-		bundle = path.join(outDir, 'server.mjs');
+		({ dir: outDir, bundle } = await buildBundle());
 	}, 60_000);
 
 	afterAll(() => {
