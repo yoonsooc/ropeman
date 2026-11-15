@@ -391,20 +391,6 @@ async function tryConnect(page: Page, port: number, token: string) {
 	await page.locator('.bridge-form button[type=submit]').click();
 }
 
-/** A port that takes the TCP connection and never answers the upgrade, as a held prompt does. */
-async function silentPort(): Promise<{ port: number; close(): void }> {
-	const sockets = new Set<net.Socket>();
-	const server = net.createServer((socket) => sockets.add(socket));
-	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-	return {
-		port: (server.address() as net.AddressInfo).port,
-		close: () => {
-			for (const s of sockets) s.destroy();
-			server.close();
-		}
-	};
-}
-
 const guide = (page: Page) => page.getByTestId('access-guide');
 
 test.describe('Connection guide on ropeman.dev', () => {
@@ -429,16 +415,26 @@ test.describe('Connection guide on ropeman.dev', () => {
 		});
 
 		test(`${variant.tag}: waiting on the prompt while the socket hangs`, async ({ browser }) => {
-			const silent = await silentPort();
 			const { page, context } = await open(browser, 'prompt');
+			// Headless Chromium 158 (Playwright 1.65) closes a loopback socket about 50 ms after it
+			// connects while the permission is undecided, so the page holds it as a shown prompt does
+			await page.evaluate(() => {
+				window.WebSocket = class {
+					onopen = null;
+					onmessage = null;
+					onclose = null;
+					onerror = null;
+					send() {}
+					close() {}
+				} as unknown as typeof WebSocket;
+			});
 
-			await tryConnect(page, silent.port, TOKEN);
+			await tryConnect(page, await freePort(), TOKEN);
 
 			await expect(guide(page)).toHaveAttribute('data-state', 'prompt-pending');
 			await expect(guide(page)).toBeVisible();
 			await shot(page, `${variant.tag}-guide-prompt-pending`);
 			await context.close();
-			silent.close();
 		});
 
 		test(`${variant.tag}: granted, then serve down, then a wrong token`, async ({ browser }) => {
