@@ -28,12 +28,12 @@ Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 �
 명령을 한 번 설치하고, 지도를 만들 폴더에서 serve를 실행하세요.
 
 ```bash
-npm install -g @ropeman/bridge@0.4.0
+npm install -g @ropeman/bridge@0.5.0
 cd ~/code/your-project
 ropeman serve --root .
 ```
 
-전역 설치 없이 `npx @ropeman/bridge@0.4.0 serve --root .`로도 같은 명령을 실행할 수 있습니다. 오래된 npm에서는 이 방법으로 실행 파일을 못 찾을 수 있습니다. `--cli`를 주지 않으면 serve는 `PATH`에 `claude`가 있을 때 그것을 씁니다. `gemini`는 스스로 고르지 않습니다. 실행하면 아래처럼 출력합니다.
+전역 설치 없이 `npx @ropeman/bridge@0.5.0 serve --root .`로도 같은 명령을 실행할 수 있습니다. 오래된 npm에서는 이 방법으로 실행 파일을 못 찾을 수 있습니다. `--cli`를 주지 않으면 serve는 `PATH`에 `claude`가 있을 때 그것을 씁니다. `gemini`는 스스로 고르지 않습니다. 실행하면 아래처럼 출력합니다.
 
 ```text
 [09:41:02] Workers naming opened folders: claude
@@ -107,8 +107,11 @@ serve가 토큰을 출력하는 곳은 이 주소뿐입니다. 토큰은 `#` 뒤
 | `--allow-origin <url>`   | 이 출처의 연결도 받습니다                                                             |
 | `--local`                | `http://127.0.0.1:<포트>/bridge`에서 뷰어를 내줍니다 ([로컬 모드](#로컬-모드로-쓰기)) |
 | `--viewer <폴더>`        | 대신 이 폴더를 `http://127.0.0.1:<포트>/`에서 내줍니다                                |
+| `--help`, `-h`           | 사용법을 출력하고, serve를 켜지 않고 끝납니다                                         |
 
 `--root`가 없으면 serve는 지도도 없고 파일도 읽지 않습니다.
+
+`ropeman serve --help`는 모든 옵션이 담긴 사용법을 출력합니다. 인자가 잘못되면 serve는 켜지지 않습니다. 철자가 틀린 옵션, `--port=9900`(`--port 9900`으로 쓰세요), `--root` 없이 준 폴더, 값이 빠진 옵션은 거절하고, 사용법을 출력한 뒤 종료 코드 1로 끝납니다.
 
 serve는 아래 순서로 처음 찾은 토큰을 씁니다.
 

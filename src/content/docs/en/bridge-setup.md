@@ -28,12 +28,12 @@ A file you open goes from serve to the page over `127.0.0.1`. serve refuses `.en
 Install the command once, then run serve in the folder you want to map:
 
 ```bash
-npm install -g @ropeman/bridge@0.4.0
+npm install -g @ropeman/bridge@0.5.0
 cd ~/code/your-project
 ropeman serve --root .
 ```
 
-Without a global install, `npx @ropeman/bridge@0.4.0 serve --root .` runs the same command. Older npm versions can fail to find the executable this way. Without `--cli`, serve uses `claude` when it is on your `PATH`. It never picks `gemini` on its own. The output looks like this:
+Without a global install, `npx @ropeman/bridge@0.5.0 serve --root .` runs the same command. Older npm versions can fail to find the executable this way. Without `--cli`, serve uses `claude` when it is on your `PATH`. It never picks `gemini` on its own. The output looks like this:
 
 ```text
 [09:41:02] Workers naming opened folders: claude
@@ -107,8 +107,11 @@ This address is the only place serve prints the token. The token comes after `#`
 | `--allow-origin <url>`   | Also accept connections from this origin                                             |
 | `--local`                | Serve the viewer at `http://127.0.0.1:<port>/bridge` ([local mode](#use-local-mode)) |
 | `--viewer <dir>`         | Serve this directory at `http://127.0.0.1:<port>/` instead                           |
+| `--help`, `-h`           | Print the usage and exit without starting serve                                      |
 
 Without `--root`, serve has no map and reads no files.
+
+`ropeman serve --help` prints the usage with every option. serve does not start when an argument is wrong. It refuses a misspelled option, `--port=9900` (write `--port 9900`), a folder given without `--root`, and an option with no value. Then it prints the usage and exits with code 1.
 
 serve takes its token from the first of these that is set:
 
