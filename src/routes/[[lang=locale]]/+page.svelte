@@ -69,9 +69,9 @@
 		if (!routerStarted) return;
 		const named = urlLanguage();
 		const shown = i18nStore.locale;
-		const options = { replaceState: true, noScroll: true, keepFocus: true };
+		const options = { replace: true, reset: false };
 		if (named && named !== shown) {
-			goto(resolve('/'), options);
+			goto(resolve(''), options);
 		} else if (!named && shown === 'ko') {
 			const ko = resolve('/[[lang=locale]]', { lang: 'ko' });
 			// eslint-disable-next-line svelte/no-navigation-without-resolve -- the path is resolved; the visitor's query and hash ride along

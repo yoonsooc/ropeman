@@ -348,11 +348,11 @@
 								<p class="error-msg" id="landing-github-error" role="alert">{error}</p>
 							{/if}
 							<div class="try-links">
-								<a class="example-link" href={resolve('/explore')} data-tour-step="explore">
+								<a class="example-link" href={resolve('explore')} data-tour-step="explore">
 									{i18nStore.t('landing.exampleCta')}
 									<span aria-hidden="true">&#x2192;</span>
 								</a>
-								<a class="example-link" href={resolve('/open')}>
+								<a class="example-link" href={resolve('open')}>
 									{i18nStore.t('landing.openMapCta')}
 									<span aria-hidden="true">&#x2192;</span>
 								</a>
@@ -370,7 +370,7 @@
 					<figure class="hero-visual">
 						<a
 							class="hero-shot"
-							href={resolve('/explore/transformers')}
+							href={resolve('explore/transformers')}
 							aria-label={i18nStore.t('landing.heroShotLink')}
 						>
 							<!-- One image per theme, picked in CSS, because hydration keeps the prerendered src -->
@@ -436,10 +436,10 @@
 
 				<footer class="landing-footer">
 					<span class="footer-copy">&copy; 2026 Ropeman</span>
-					<a class="footer-link" href={resolve('/explore')}>
+					<a class="footer-link" href={resolve('explore')}>
 						{i18nStore.t('explore.navLabel')}
 					</a>
-					<a class="footer-link" href={resolve(`/docs/${i18nStore.locale}/getting-started`)}>
+					<a class="footer-link" href={resolve(`docs/${i18nStore.locale}/getting-started`)}>
 						{i18nStore.t('docs.footerLink')}
 					</a>
 					<a class="footer-link" href="mailto:contact@ropeman.dev">contact@ropeman.dev</a>

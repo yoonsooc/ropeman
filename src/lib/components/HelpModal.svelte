@@ -165,10 +165,7 @@
 								<details class="faq-item">
 									<summary class="faq-question">{item.q}</summary>
 									<p class="faq-answer">{item.a}</p>
-									<a
-										class="faq-learn-more"
-										href={resolve(`/docs/${i18nStore.locale}/${item.slug}`)}
-									>
+									<a class="faq-learn-more" href={resolve(`docs/${i18nStore.locale}/${item.slug}`)}>
 										{i18nStore.t('docs.learnMore')} →
 									</a>
 								</details>

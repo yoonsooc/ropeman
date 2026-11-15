@@ -17,7 +17,7 @@ export default defineConfig({
 		emptyOutDir: true,
 		target: 'node22',
 		minify: false,
-		rollupOptions: { external: ['ws'], output: { entryFileNames: 'server.mjs' } }
+		rolldownOptions: { external: ['ws'], output: { entryFileNames: 'server.mjs' } }
 	},
 	ssr: { noExternal: true },
 	plugins: [

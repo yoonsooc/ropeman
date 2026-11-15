@@ -191,7 +191,9 @@ test.describe('in a Korean browser', () => {
 		await useSettings(page, {});
 		await page.goto('/');
 		await waitForApp(page);
+		await expect(page).toHaveURL(/\/ko$/);
 		await page.locator('header .lang-toggle').click();
+		await expect(page).toHaveURL(/\/$/);
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText(HEADLINE);
 
 		await withoutAppScripts(page);

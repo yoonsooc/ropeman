@@ -1,14 +1,22 @@
+import type { RequestEvent } from '@sveltejs/kit';
+import type { ResolveOptions } from '@sveltejs/kit/hooks';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { RequestEvent, ResolveOptions } from '@sveltejs/kit';
 
-const environment = vi.hoisted(() => ({ building: false }));
-vi.mock('$app/environment', () => environment);
+const environment = vi.hoisted(() => ({ building: false, dev: false }));
+vi.mock('$app/env', () => environment);
+const worker = vi.hoisted(() => ({ env: {} as { ASSETS?: { fetch: typeof fetch } } }));
+vi.mock('cloudflare:workers', () => worker);
 
 const { handle } = await import('./hooks.server');
 
 const HTML = { en: '<html lang="en"><h1>Map a repo</h1>', ko: '<html lang="ko"><h1>지도</h1>' };
 
-function makeEvent(path: string, headers: Record<string, string> = {}, params = {}) {
+function makeEvent(
+	path: string,
+	headers: Record<string, string> = {},
+	params = {},
+	origin = 'https://ropeman.dev'
+) {
 	const assets = {
 		fetch: vi.fn(async (request: Request) => {
 			const locale = new URL(request.url).pathname.slice(1) as 'en' | 'ko';
@@ -17,7 +25,7 @@ function makeEvent(path: string, headers: Record<string, string> = {}, params = 
 			});
 		})
 	};
-	const request = new Request(`https://ropeman.dev${path}`, { headers });
+	const request = new Request(`${origin}${path}`, { headers });
 	const cookies = new Map(
 		(headers.cookie ?? '').split('; ').map((pair) => pair.split('=') as [string, string])
 	);
@@ -26,15 +34,16 @@ function makeEvent(path: string, headers: Record<string, string> = {}, params = 
 		request,
 		params,
 		cookies: { get: (name: string) => cookies.get(name) },
-		platform: { env: { ASSETS: assets } },
 		fetch: vi.fn()
 	} as unknown as RequestEvent;
+	worker.env.ASSETS = assets as unknown as { fetch: typeof fetch };
 	return { event, assets };
 }
 
 describe('handle', () => {
 	beforeEach(() => {
 		environment.building = false;
+		environment.dev = false;
 	});
 
 	describe('/', () => {
@@ -121,6 +130,48 @@ describe('handle', () => {
 		});
 	});
 
+	describe('/ without the ASSETS binding', () => {
+		function withoutAssets() {
+			const { event } = makeEvent('/', { 'accept-language': 'en-US' });
+			worker.env.ASSETS = undefined;
+			vi.mocked(event.fetch).mockResolvedValue(
+				new Response(HTML.en, { headers: { 'content-type': 'text/html' } })
+			);
+			return event;
+		}
+
+		it('still serves the landing and logs the missing binding', async () => {
+			// Arrange
+			const event = withoutAssets();
+			const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			// Act
+			const response = await handle({ event, resolve: vi.fn() });
+
+			// Assert
+			expect(await response.text()).toBe(HTML.en);
+			expect(new URL(vi.mocked(event.fetch).mock.calls[0][0] as URL).pathname).toBe('/en');
+			expect(error).toHaveBeenCalledWith(
+				'hooks.server: no ASSETS binding, serving / through event.fetch'
+			);
+			error.mockRestore();
+		});
+
+		it('stays quiet under vite dev, which never has the binding', async () => {
+			// Arrange
+			environment.dev = true;
+			const event = withoutAssets();
+			const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			// Act
+			await handle({ event, resolve: vi.fn() });
+
+			// Assert
+			expect(error).not.toHaveBeenCalled();
+			error.mockRestore();
+		});
+	});
+
 	describe('other pages', () => {
 		async function render(path: string, params: Record<string, string>) {
 			const { event } = makeEvent(path, {}, params);
@@ -156,6 +207,22 @@ describe('handle', () => {
 
 			// Assert
 			expect(html).toBe('<html lang="en" data-theme="dark"><title>Page</title>');
+		});
+	});
+
+	describe('the pages.dev alias', () => {
+		it('redirects to the same page on ropeman.dev', async () => {
+			// Arrange
+			const { event } = makeEvent('/share/abc?view=tree', {}, {}, 'https://ropeman.pages.dev');
+
+			// Act
+			const handled = handle({ event, resolve: vi.fn() });
+
+			// Assert
+			await expect(handled).rejects.toMatchObject({
+				status: 301,
+				location: 'https://ropeman.dev/share/abc?view=tree'
+			});
 		});
 	});
 });

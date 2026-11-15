@@ -50,11 +50,11 @@
 	autofocus
 >
 	<header class="explore-header">
-		<a href={resolve('/')} class="explore-logo">Ropeman</a>
+		<a href={resolve('')} class="explore-logo">Ropeman</a>
 		<nav class="explore-nav">
 			<a
 				class="explore-nav-btn"
-				href={resolve('/')}
+				href={resolve('')}
 				title={i18nStore.t('explore.home')}
 				aria-label={i18nStore.t('explore.home')}
 			>
@@ -62,7 +62,7 @@
 			</a>
 			<a
 				class="explore-nav-btn"
-				href={resolve(`/docs/${i18nStore.locale}/getting-started`)}
+				href={resolve(`docs/${i18nStore.locale}/getting-started`)}
 				title={i18nStore.t('docs.headerLink')}
 				aria-label={i18nStore.t('docs.headerLink')}
 			>
@@ -111,7 +111,7 @@
 					<a
 						class="explore-card"
 						class:featured={index === 0 && (filtered.length + 1) % 3 === 0}
-						href={resolve(`/explore/${entry.slug}`)}
+						href={resolve(`explore/${entry.slug}`)}
 					>
 						<img
 							class="card-thumb"

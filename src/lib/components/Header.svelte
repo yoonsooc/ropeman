@@ -166,7 +166,7 @@
 		</button>
 		<a
 			class="header-btn header-link"
-			href={resolve('/explore')}
+			href={resolve('explore')}
 			title={i18nStore.t('header.gallery')}
 			aria-label={i18nStore.t('header.gallery')}
 		>
@@ -176,7 +176,7 @@
 		</a>
 		<a
 			class="header-btn header-link"
-			href={resolve(`/docs/${i18nStore.locale}/getting-started`)}
+			href={resolve(`docs/${i18nStore.locale}/getting-started`)}
 			title={i18nStore.t('docs.headerLink')}
 			aria-label={i18nStore.t('docs.headerLink')}
 		>

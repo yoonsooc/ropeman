@@ -1,0 +1,30 @@
+# ADR-26: SvelteKit 3, Vite 8, TypeScript 6으로 같이 올린다
+
+- **날짜**: 2026-11-15
+- **문제**: SvelteKit 2.x에 남은 보안 알림 두 개(향상된 폼 제출의 외부 리디렉션, 프리렌더 페이지의 `cache-control` XSS, 둘 다 낮음)와 SvelteKit 2가 끌어오는 `cookie` 0.6의 알림은 SvelteKit 3.0에서만 고쳐진다. Dependabot도 3.2.0(#126)과 Vite 8(#122)을 제안했다. SvelteKit 3은 Vite 8.0.12 이상, `@sveltejs/vite-plugin-svelte` 7, TypeScript 6 이상, Node 22.17 이상을 요구하고, `svelte.config.js`가 있으면 빌드를 멈춘다. 그래서 세 의존성과 설정 위치를 함께 옮겨야 한다.
+- **검토 대안**:
+  - (A) SvelteKit 2.70에 머문다. 할 일은 없지만 알림 세 개가 남고, Dependabot이 3.x를 계속 제안한다.
+  - (B) Vite 8과 TypeScript 6을 SvelteKit 2.70.4에서 먼저 올리고, SvelteKit 3은 다음 PR로 옮긴다. 2.70.4도 Vite 8, vite-plugin-svelte 7, TypeScript 6을 받는다. 번들러 변경과 프레임워크 변경의 원인을 따로 가를 수 있지만, 알림은 두 번째 PR까지 남고 CI와 리뷰를 두 번 돈다.
+  - (C) 셋을 한 PR로 옮기고 `$lib`는 그대로 둔다. SvelteKit 3에서 `alias` 설정은 deprecated지만 동작한다.
+  - (D) (C)에 더해 이전 가이드대로 `$lib`를 `#lib` subpath import(확장자 포함)로 모두 바꾼다. `src/`, `packages/`, `bridge/`, `scripts/`, `tests/`의 196개 파일, import 705개가 바뀐다.
+- **결정**: (C)를 골랐다. 알림을 한 번에 닫고, 소스는 이전 가이드가 요구하는 곳만 바꾼다.
+  - 설정은 `vite.config.js`의 `sveltekit()` 옵션으로 옮겼다. `vitest.config.ts`는 SvelteKit 없이 컴포넌트와 문서(`.md`)를 컴파일하므로 같은 파일의 `svelteOptions`(확장자, 전처리)를 가져다 쓴다.
+  - Node가 빌드 중 직접 여는 `src/params.ts`(예전 `src/params/locale.ts`)는 Vite 별칭을 거치지 않아서 `$lib`를 못 찾는다. 그래서 이 파일만 `#lib/utils/locale.ts`(`package.json`의 `imports`)를 쓴다.
+  - `adapter-cloudflare` 8은 `event.platform`을 넘기지 않는다. `hooks.server.ts`는 `ASSETS`를 `cloudflare:workers`의 `env`에서 읽는다. `wrangler types`가 만드는 워커 런타임 타입은 DOM 타입과 부딪혀서(앱 tsconfig에 넣으면 svelte-check 오류가 난다), `src/app.d.ts`가 `env.ASSETS`만 선언한다.
+  - `ropeman.pages.dev`에서 `ropeman.dev`로 보내는 리디렉션은 외부 주소라 `{ external: true }`를 붙였다. 붙이지 않으면 SvelteKit 3이 `redirect_external_not_allowed`를 던진다.
+  - `eslint-plugin-svelte`를 3.24로 올렸다. 3.15는 SvelteKit 3에서 `svelte/no-navigation-without-resolve` 규칙을 끈다.
+- **기각 이유**:
+  - (A) 알림이 남는다.
+  - (B) SvelteKit 3이 Vite 8과 TypeScript 6을 요구하므로 (B)의 첫 PR은 결국 같은 의존성을 옮긴다. 같은 게이트(E2E, Pages 빌드 응답 비교, 추출 결과 비교)를 한 번 돌려 합친 변경을 확인했다.
+  - (D) 기계적인 import 변경 700여 줄이 SvelteKit 3의 동작 변경을 가린다. `$lib`에서 `#lib`로 옮기는 일은 다음 단위 작업으로 따로 한다.
+- **결과**:
+  - 비공개 포트 E2E: main과 같이 206개 통과, 17개 스킵. SvelteKit 3의 `goto`는 같은 라우트 안의 이동에서도 SvelteKit 2보다 주소를 늦게 바꾼다. dev 서버에서 언어를 바꾼 뒤 제목이 바뀌고 주소가 `/`가 되기까지 main은 약 8ms, 이 변경은 약 45ms였다(각 5회). 그래서 제목만 기다리고 새로고침하던 `landing-first-paint`의 한 테스트가 전체 실행 세 번 중 두 번 `/ko`를 새로고침해 실패했다. 옆 테스트처럼 주소가 `/`가 될 때까지 기다리게 고쳤고, 그 뒤 전체 실행 두 번과 그 테스트 60회 반복(동시 12개)이 모두 통과했다.
+  - `wrangler pages dev`로 띄운 두 빌드(main, 이 변경)에 같은 요청 11개를 보낸 결과가 같다. 한국어·영어 브라우저의 `/`, 쿠키가 있는 `/`, `/en`, `/ko`, `If-None-Match`의 304, `Cache-Control`과 `Vary`, `ropeman.pages.dev`의 301을 봤다.
+  - 코어 추출기 결과가 픽스처 여섯 개 모두에서 시간 값을 빼면 바이트 단위로 같다.
+  - 랜딩(`en.html`, `ko.html`)이 미리 불러오는 JS는 41개 파일, gzip 318.0KiB에서 31개 파일, 297.6KiB가 됐다(빌드 결과로 잰 값이고, 페이지 로드 시간은 재지 않았다).
+  - 바뀐 기본값: 앱이 한 시간마다 `/_app/version.json`을 확인하고(`version.pollInterval`), 미리 불러오기를 `Link` 헤더 대신 `<link>`로 쓴다. Vite 8의 기본 빌드 대상은 Chrome 111, Safari 16.4, Firefox 114 이상이다.
+  - 되돌리기: 이 PR을 revert해서 다시 배포한다. 그 배포를 기다릴 수 없으면 Cloudflare Pages 대시보드에서 바로 전 배포로 롤백한다.
+- **재검토 조건**:
+  - SvelteKit이 `alias` 설정을 없애기로 하면, 그 전에 `$lib`를 `#lib`로 옮긴다.
+  - svelte-check와 typescript-eslint가 TypeScript 7을 받으면 `.github/dependabot.yml`의 7.x 무시를 지우고 다시 본다.
+  - 어댑터나 `wrangler types`가 DOM과 부딪히지 않는 `cloudflare:workers` 타입을 주면 `src/app.d.ts`의 선언을 지운다.

@@ -27,20 +27,20 @@
 		>
 			<span class="material-symbols-outlined">menu</span>
 		</button>
-		<a class="logo" href={resolve('/')}>
+		<a class="logo" href={resolve('')}>
 			<h1 class="header-title">{i18nStore.t('title')}</h1>
 		</a>
 		<span class="header-subtitle">{i18nStore.t('docs.title')}</span>
 	</div>
 	<div class="header-right">
-		<a class="header-btn back-link" href={resolve('/')} title={i18nStore.t('docs.backToApp')}>
+		<a class="header-btn back-link" href={resolve('')} title={i18nStore.t('docs.backToApp')}>
 			<span class="material-symbols-outlined">arrow_back</span>
 			<span class="back-label">{i18nStore.t('docs.backToApp')}</span>
 		</a>
 		<div class="header-divider"></div>
 		<a
 			class="header-btn"
-			href={resolve(`/docs/${otherLang}/${slug || 'getting-started'}`)}
+			href={resolve(`docs/${otherLang}/${slug || 'getting-started'}`)}
 			title={i18nStore.t('header.languageToggle')}
 			onclick={() => {
 				settingsStore.language = otherLang;
