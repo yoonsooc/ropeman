@@ -373,17 +373,20 @@
 							href={resolve('explore/transformers')}
 							aria-label={i18nStore.t('landing.heroShotLink')}
 						>
-							<!-- One image per theme, picked in CSS, because hydration keeps the prerendered src -->
-							{#each ['dark', 'light'] as theme (theme)}
-								<img
-									class="shot-{theme}"
-									src="/landing/explore-transformers-{theme}.webp"
-									width="1600"
-									height="928"
-									alt={i18nStore.t('landing.heroShotAlt')}
-									decoding="async"
-									loading="lazy"
-								/>
+							<!-- One image per language and theme, picked in CSS from <html lang> and the theme,
+							     because hydration keeps the prerendered src. Hidden lazy images never load. -->
+							{#each ['en', 'ko'] as locale (locale)}
+								{#each ['dark', 'light'] as theme (theme)}
+									<img
+										class="shot-{locale} shot-{theme}"
+										src="/landing/explore-transformers-{locale}-{theme}.webp"
+										width="1600"
+										height="928"
+										alt={i18nStore.t('landing.heroShotAlt')}
+										decoding="async"
+										loading="lazy"
+									/>
+								{/each}
 							{/each}
 						</a>
 						<figcaption>{i18nStore.t('landing.heroShotCaption')}</figcaption>
@@ -795,7 +798,9 @@
 	}
 
 	:global([data-theme='light']) .hero-shot img.shot-dark,
-	:global(:root:not([data-theme='light'])) .hero-shot img.shot-light {
+	:global(:root:not([data-theme='light'])) .hero-shot img.shot-light,
+	:global(:root[lang='ko']) .hero-shot img.shot-en,
+	:global(:root:not([lang='ko'])) .hero-shot img.shot-ko {
 		display: none;
 	}
 

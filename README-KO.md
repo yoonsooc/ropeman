@@ -8,14 +8,24 @@
 
 ## 코딩 에이전트에서 쓰기
 
+`ropeman` 명령을 설치하고, 에이전트가 스킬을 읽는 폴더에 스킬을 저장합니다. `curl`은 내 에이전트에 맞는 줄을 실행하세요.
+
 ```bash
 npm install -g @ropeman/bridge@0.5.0     # ropeman 명령, Node 22 이상
+
+# Claude Code (테스트함)
 curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+# Codex (테스트 안 함)
+curl --create-dirs -fsSLo ~/.agents/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+# Gemini CLI (테스트 안 함)
+curl --create-dirs -fsSLo ~/.gemini/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+# Cursor (테스트 안 함)
+curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
 ```
 
 그다음 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 검사한 뒤, `ropeman serve`를 띄우고 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다. 브라우저에서 그 주소를 열고, 폴더를 눌러 드릴다운하고 파일을 눌러 소스를 봅니다.
 
-두 번째 명령은 Claude Code용 스킬 설치이고, Claude Code에서 테스트했습니다. Codex, Gemini CLI, Cursor는 각자의 문서에 따르면 다른 폴더에서 스킬을 읽고, Ropeman은 이들에서 아직 테스트하지 않았습니다. 폴더와 자세한 내용은 [`skill/README-KO.md`](skill/README-KO.md)에 있습니다. 명령은 macOS, Linux, WSL 셸 기준입니다.
+스킬은 Claude Code에서 테스트했습니다. Codex, Gemini CLI, Cursor는 각자의 문서에 따르면 이 폴더에서 스킬을 읽지만, Ropeman은 이들에서 아직 테스트하지 않았습니다. 다른 에이전트라면 그 에이전트가 스킬을 읽는 폴더에 `ropeman/SKILL.md`로 저장하세요. 스킬을 지원하지 않는 에이전트라면 `SKILL.md` 내용을 대화에 붙여 넣으세요. 자세한 내용은 [`skill/README-KO.md`](skill/README-KO.md)에 있습니다. 명령은 macOS, Linux, WSL 셸 기준입니다.
 
 아래의 브라우저 앱은 설치 없이 계속 쓸 수 있습니다. ropeman.dev에서 폴더나 GitHub 저장소를 열거나, `ropeman.json`을 엽니다.
 
@@ -95,7 +105,7 @@ Ropeman에는 AI 모드가 세 가지 있습니다.
 2. **API 키 (BYOK)** 는 내 Google Gemini, Anthropic, OpenAI 키를 씁니다. 키는 브라우저(localStorage)에만 저장합니다. Gemini 요청은 Google로 바로 가고, Anthropic과 OpenAI 요청은 브라우저 제약 때문에 Ropeman 엣지 프록시를 거칩니다. 프록시는 키를 저장하지 않습니다.
 3. **브라우저 AI**는 web-llm으로 브라우저 안에서 WebGPU 모델을 돌립니다. 처음 한 번 모델을 내려받은 뒤에는 오프라인으로 분석합니다. 실험 기능입니다.
 
-**브리지 모드**는 이 세 모드와 따로, 별도 페이지에서 씁니다. `ropeman serve`가 내 컴퓨터의 폴더 지도를 만들고, https://ropeman.dev/bridge 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 `claude` 일꾼이 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. serve는 `--cli gemini`를 줄 때만 `gemini`를 씁니다. 파일을 누르면 소스가 열립니다. 코드는 Ropeman 서버로 가지 않습니다. serve를 직접 켜려면 `npm install -g @ropeman/bridge@0.5.0`로 설치하고, 프로젝트 폴더에서 `ropeman serve --root .`를 실행하고, https://ropeman.dev/bridge를 열어 `~/.ropeman/bridge-token`의 토큰을 붙여 넣으세요. Safari를 쓰거나 브라우저가 연결을 막았다면 `--local`을 붙여 serve를 켜고, serve가 출력한 주소를 여세요. 옵션, 토큰, 보안 검사는 [bridge/README.md](bridge/README.md)에 있습니다.
+**브리지 모드**는 이 세 모드와 따로, 별도 페이지에서 씁니다. `ropeman serve`가 내 컴퓨터의 폴더 지도를 만들고, https://ropeman.dev/bridge 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 일꾼 CLI(`claude`, 또는 `--cli gemini`를 주면 `gemini`)가 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. 파일을 누르면 소스가 열립니다. 코드는 Ropeman 서버로 가지 않습니다. serve를 직접 켜려면 `npm install -g @ropeman/bridge@0.5.0`로 설치하고, 프로젝트 폴더에서 `ropeman serve --root .`를 실행하고, https://ropeman.dev/bridge를 열어 `~/.ropeman/bridge-token`의 토큰을 붙여 넣으세요. Safari를 쓰거나 브라우저가 연결을 막았다면 `--local`을 붙여 serve를 켜고, serve가 출력한 주소를 여세요. 옵션, 토큰, 보안 검사는 [bridge/README.md](bridge/README.md)에 있습니다.
 
 ## 아키텍처
 

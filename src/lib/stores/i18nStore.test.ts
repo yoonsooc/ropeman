@@ -266,6 +266,23 @@ describe('i18nStore', () => {
 			}
 		});
 
+		it('tells an agent outside the list how to add the skill, in both languages', () => {
+			for (const language of ['ko', 'en'] as const) {
+				// Arrange
+				settingsStore.language = language;
+
+				// Act
+				const body = i18nStore.t('agentSetup.otherBody');
+				const untested = i18nStore.t('agentSetup.otherUntested');
+
+				// Assert
+				expect(body).toContain('ropeman/SKILL.md');
+				expect(body).toMatch(language === 'ko' ? /붙여 넣/ : /paste/);
+				expect(untested).toMatch(language === 'ko' ? /테스트하지 않았습니다/ : /not been tested/);
+				expect(`${body} ${untested}`).not.toMatch(/Claude/);
+			}
+		});
+
 		// Regression: /bridge said "your local CLI (Claude Code or Gemini) names the parts", but the
 		// agent names the top levels, a claude worker names opened folders, and gemini needs --cli
 		it('says on /bridge who names each part, in both languages', () => {
@@ -281,6 +298,25 @@ describe('i18nStore', () => {
 				expect(desc).toContain('claude');
 				expect(desc).toContain('--cli gemini');
 				expect(desc).not.toMatch(/local CLI|로컬 CLI|Nothing goes through|거치지 않습니다/);
+			}
+		});
+
+		// Regression: the landing and /bridge said "a headless claude worker", as if claude were the
+		// only CLI serve runs, when gemini runs with --cli gemini
+		it('names both worker CLIs wherever the copy says who names opened folders', () => {
+			for (const language of ['ko', 'en'] as const) {
+				// Arrange
+				settingsStore.language = language;
+
+				for (const key of ['bridge.desc', 'landing.featureDrillDesc']) {
+					// Act
+					const text = i18nStore.t(key);
+
+					// Assert
+					expect(text, key).toContain('claude');
+					expect(text, key).toContain('--cli gemini');
+					expect(text, key).not.toMatch(/claude worker|claude 일꾼|Without claude|claude가 없으면/);
+				}
 			}
 		});
 

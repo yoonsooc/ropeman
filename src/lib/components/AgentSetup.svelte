@@ -45,28 +45,34 @@
 			docs: 'cursor.com/docs/context/skills'
 		}
 	] as const;
-	type Agent = (typeof AGENTS)[number];
+	/** Any other agent, as skill/README.md says: save SKILL.md where it loads skills, or paste it */
+	const TABS = [...AGENTS, { id: 'other' }] as const;
+	type Tab = (typeof TABS)[number];
 
 	const uid = $props.id();
-	let selected = $state<Agent>(AGENTS[0]);
+	let selected = $state<Tab>(TABS[0]);
+	const tabName = (tab: Tab) => (tab.id === 'other' ? t('otherAgent') : tab.name);
 	const skillCommand = $derived(
-		`curl --create-dirs -fsSLo ${selected.dir}/ropeman/SKILL.md ${SKILL_URL}`
+		selected.id === 'other'
+			? ''
+			: `curl --create-dirs -fsSLo ${selected.dir}/ropeman/SKILL.md ${SKILL_URL}`
 	);
 
 	/** The last copy, keyed by the command text so switching agents clears it */
-	let copy = $state<{ text: string; ok: boolean } | null>(null);
+	let copy = $state<{ text: string; ok: boolean; agent: string } | null>(null);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
 	const copied = (text: string) => copy?.text === text && copy.ok;
 	const copyFailed = (text: string) => copy?.text === text && !copy.ok;
 
 	async function copyCommand(text: string, source: HTMLElement | undefined) {
 		clearTimeout(copyTimer);
+		const agent = tabName(selected);
 		try {
 			await navigator.clipboard.writeText(text);
-			copy = { text, ok: true };
+			copy = { text, ok: true, agent };
 			copyTimer = setTimeout(() => (copy = null), 2000);
 		} catch {
-			copy = { text, ok: false };
+			copy = { text, ok: false, agent };
 			if (source) window.getSelection()?.selectAllChildren(source);
 		}
 	}
@@ -76,7 +82,7 @@
 
 	const tabs: HTMLButtonElement[] = [];
 	function onTabKey(e: KeyboardEvent, index: number) {
-		const last = AGENTS.length - 1;
+		const last = TABS.length - 1;
 		const next =
 			e.key === 'ArrowRight'
 				? index === last
@@ -93,7 +99,7 @@
 							: null;
 		if (next === null) return;
 		e.preventDefault();
-		selected = AGENTS[next];
+		selected = TABS[next];
 		tabs[next]?.focus();
 	}
 
@@ -109,7 +115,7 @@
 				? t('copyFailed')
 				: copy.text === INSTALL
 					? t('copiedInstall')
-					: t('copiedSkill', { agent: selected.name })
+					: t('copiedSkill', { agent: copy.agent })
 	);
 </script>
 
@@ -139,19 +145,19 @@
 	<li class="step">
 		<h3>{t('skillTitle')}</h3>
 		<div class="agents" role="tablist" aria-label={t('agentsLabel')}>
-			{#each AGENTS as agent, i (agent.id)}
+			{#each TABS as tab, i (tab.id)}
 				<button
 					bind:this={tabs[i]}
 					type="button"
 					role="tab"
-					id="{uid}-tab-{agent.id}"
-					aria-selected={selected.id === agent.id}
+					id="{uid}-tab-{tab.id}"
+					aria-selected={selected.id === tab.id}
 					aria-controls="{uid}-panel"
-					tabindex={selected.id === agent.id ? 0 : -1}
-					onclick={() => (selected = agent)}
+					tabindex={selected.id === tab.id ? 0 : -1}
+					onclick={() => (selected = tab)}
 					onkeydown={(e) => onTabKey(e, i)}
 				>
-					{agent.name}
+					{tabName(tab)}
 				</button>
 			{/each}
 		</div>
@@ -162,38 +168,49 @@
 			aria-labelledby="{uid}-tab-{selected.id}"
 			tabindex="0"
 		>
-			<p>{t('skillBody', { agent: selected.name })}</p>
-			<div class="command">
-				<pre data-testid="skill-command"><code bind:this={skillCode}>{skillCommand}</code></pre>
-				<button
-					type="button"
-					class="copy"
-					aria-label={t('copySkill', { agent: selected.name })}
-					onclick={() => copyCommand(skillCommand, skillCode)}
-				>
-					<span aria-hidden="true" class="material-symbols-outlined"
-						>{copied(skillCommand) ? 'check' : 'content_copy'}</span
-					>
-					<span>{copied(skillCommand) ? t('copied') : t('copy')}</span>
-				</button>
-			</div>
-			{#if copyFailed(skillCommand)}
-				<p class="copy-failed" data-testid="copy-failed">{t('copyFailed')}</p>
-			{/if}
-			<p class="note" data-testid="agent-support">
-				{#if selected.tested}
-					<span aria-hidden="true" class="material-symbols-outlined tested">check_circle</span>
-					{t('tested', { agent: selected.name })}
-				{:else}
+			{#if selected.id === 'other'}
+				<p>{t('otherBody')}</p>
+				<p class="note" data-testid="agent-support">
 					<span aria-hidden="true" class="material-symbols-outlined">info</span>
 					<span>
-						{t('untested', { agent: selected.name, dir: selected.dir })}
-						<a href={`https://${selected.docs}`} target="_blank" rel="noopener noreferrer"
-							>{t('docsLink', { agent: selected.name })}</a
-						>
+						{t('otherUntested')}
+						<a href={SKILL_URL} target="_blank" rel="noopener noreferrer">{t('skillFileLink')}</a>
 					</span>
+				</p>
+			{:else}
+				<p>{t('skillBody', { agent: selected.name })}</p>
+				<div class="command">
+					<pre data-testid="skill-command"><code bind:this={skillCode}>{skillCommand}</code></pre>
+					<button
+						type="button"
+						class="copy"
+						aria-label={t('copySkill', { agent: selected.name })}
+						onclick={() => copyCommand(skillCommand, skillCode)}
+					>
+						<span aria-hidden="true" class="material-symbols-outlined"
+							>{copied(skillCommand) ? 'check' : 'content_copy'}</span
+						>
+						<span>{copied(skillCommand) ? t('copied') : t('copy')}</span>
+					</button>
+				</div>
+				{#if copyFailed(skillCommand)}
+					<p class="copy-failed" data-testid="copy-failed">{t('copyFailed')}</p>
 				{/if}
-			</p>
+				<p class="note" data-testid="agent-support">
+					{#if selected.tested}
+						<span aria-hidden="true" class="material-symbols-outlined tested">check_circle</span>
+						{t('tested', { agent: selected.name })}
+					{:else}
+						<span aria-hidden="true" class="material-symbols-outlined">info</span>
+						<span>
+							{t('untested', { agent: selected.name, dir: selected.dir })}
+							<a href={`https://${selected.docs}`} target="_blank" rel="noopener noreferrer"
+								>{t('docsLink', { agent: selected.name })}</a
+							>
+						</span>
+					{/if}
+				</p>
+			{/if}
 		</div>
 	</li>
 

@@ -1,11 +1,11 @@
 ---
 title: 브리지 설정
-description: ropeman serve로 내 컴퓨터의 폴더 지도를 만들고 ropeman.dev/bridge나 로컬 모드에서 엽니다. 폴더 안의 부분에는 헤드리스 Claude Code 일꾼이 이름을 붙입니다.
+description: ropeman serve로 내 컴퓨터의 폴더 지도를 만들고 ropeman.dev/bridge나 로컬 모드에서 엽니다. 폴더 안의 부분에는 헤드리스 일꾼 CLI가 이름을 붙입니다.
 category: guides
 order: 6
 ---
 
-**브리지 모드**는 내 컴퓨터에 있는 폴더의 지도를 보여 줍니다. `ropeman serve`(npm 패키지 `@ropeman/bridge`)가 폴더를 읽고, [ropeman.dev/bridge](https://ropeman.dev/bridge) 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 폴더를 누르면 그 안의 하위 폴더와 파일이 바로 보이고, 이어서 헤드리스 **Claude Code** 일꾼(`claude -p`)이 각 부분에 이름을 붙입니다. 파일을 누르면 소스가 열립니다.
+**브리지 모드**는 내 컴퓨터에 있는 폴더의 지도를 보여 줍니다. `ropeman serve`(npm 패키지 `@ropeman/bridge`)가 폴더를 읽고, [ropeman.dev/bridge](https://ropeman.dev/bridge) 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 폴더를 누르면 그 안의 하위 폴더와 파일이 바로 보이고, 이어서 헤드리스 일꾼 CLI가 각 부분에 이름을 붙입니다. 기본은 Claude Code(`claude -p`)이고, serve를 `--cli gemini`로 켜면 Gemini CLI가 붙입니다. 파일을 누르면 소스가 열립니다.
 
 Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 합니다. 에이전트에게 "map this repo"라고 요청하고, 에이전트가 알려 주는 로컬 모드 주소를 여세요. [시작하기](/docs/ko/getting-started)를 보세요. 이 문서는 serve를 직접 띄울 때를 다룹니다.
 
@@ -20,7 +20,7 @@ Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 �
 ## 사전 준비
 
 - Node.js 22 이상
-- 연 폴더에 이름을 붙이려면 Claude Code(`claude`)를 설치하고 로그인해 둡니다. Gemini CLI는 serve를 `--cli gemini`로 켤 때만 이름을 붙입니다. CLI가 없어도 지도는 볼 수 있고, 폴더는 폴더 이름을 그대로 씁니다.
+- 연 폴더에 이름을 붙일 일꾼 CLI를 설치하고 로그인해 둡니다. serve는 기본으로 Claude Code(`claude`)를 쓰고, Gemini CLI(`gemini`)는 serve를 `--cli gemini`로 켤 때만 씁니다. 일꾼 CLI가 없어도 지도는 볼 수 있습니다. serve를 `--out` 없이 직접 켰다면 폴더는 폴더 이름을 그대로 씁니다.
 - Chrome, Edge, Firefox 중 하나. Safari는 ropeman.dev에서 serve에 연결하지 못하므로 [로컬 모드](#로컬-모드로-쓰기)로 serve를 켜세요.
 
 ## serve 실행

@@ -57,9 +57,9 @@ Unparseable files are skipped silently and do not block the rest of the project.
 
 Yes. You can analyze your own code with Ropeman, personal or commercial. The tool itself is provided as-is from [ropeman.dev](https://ropeman.dev). If you use **Demo** mode, remember the shared quota is for evaluation; switch to **API Key** for sustained professional use.
 
-### Can I use my own Claude Code or Gemini CLI?
+### Can I use my own coding agent?
 
-Not in the main app. Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to `ropeman serve` on your machine. Your coding agent names the top levels. A headless `claude` worker names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. serve runs `gemini` only with `--cli gemini`. See [Bridge Setup](/docs/en/bridge-setup).
+Yes, through the Ropeman skill. [Getting Started](/docs/en/getting-started) shows how to install it for Claude Code, Codex, Gemini CLI, Cursor or another agent. The in-browser AI modes do not use your agent. Bridge mode at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to `ropeman serve` on your machine. Your coding agent names the top levels. A headless worker CLI (`claude`, or `gemini` with `--cli gemini`) names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. See [Bridge Setup](/docs/en/bridge-setup).
 
 ### Does Ropeman work offline?
 

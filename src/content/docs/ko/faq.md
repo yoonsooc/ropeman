@@ -75,9 +75,9 @@ WebGPU 모드는 모델을 처음 내려받은 뒤에는 오프라인에서 동�
 
 네. AI 분석이 완료된 후 헤더의 **공유하기** 버튼을 누르면 공개 링크가 만들어집니다. 이 링크로 다른 사람에게 분석 결과를 보여 줄 수 있습니다. 링크는 14일 동안 유지됩니다.
 
-### 내 Claude Code나 Gemini CLI를 쓸 수 있나요?
+### 내 코딩 에이전트를 쓸 수 있나요?
 
-메인 앱에서는 쓸 수 없습니다. [ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드가 내 컴퓨터의 `ropeman serve`에 연결합니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 `claude` 일꾼이 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. serve는 `--cli gemini`를 줄 때만 `gemini`를 씁니다. 방법은 [브리지 설정](/docs/ko/bridge-setup)에 있습니다.
+네, Ropeman 스킬로 씁니다. Claude Code, Codex, Gemini CLI, Cursor와 다른 에이전트에 설치하는 방법은 [시작하기](/docs/ko/getting-started)에 있습니다. 브라우저 안의 AI 모드는 내 에이전트를 쓰지 않습니다. [ropeman.dev/bridge](https://ropeman.dev/bridge)의 브리지 모드가 내 컴퓨터의 `ropeman serve`에 연결합니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 일꾼 CLI(`claude`, 또는 `--cli gemini`를 주면 `gemini`)가 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. 방법은 [브리지 설정](/docs/ko/bridge-setup)에 있습니다.
 
 ### Ropeman은 어떻게 설치하나요?
 

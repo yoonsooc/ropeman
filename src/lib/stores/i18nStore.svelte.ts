@@ -496,6 +496,10 @@ interface TranslationSet {
 		| 'tested'
 		| 'untested'
 		| 'docsLink'
+		| 'otherAgent'
+		| 'otherBody'
+		| 'otherUntested'
+		| 'skillFileLink'
 		| 'askTitle'
 		| 'askBody'
 		| 'connectLead'
@@ -707,7 +711,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'에이전트는 한 단계씩 이름을 붙입니다. 검증기는 파일마다 정확히 한 부분에 들어갔는지, 핵심 심볼이 그 부분에 선언되어 있는지 봅니다. 검사에 실패한 단계는 폴더 이름을 그대로 둡니다.',
 			featureDrillTitle: '눌러서 더 깊이',
 			featureDrillDesc:
-				'폴더를 누르면 헤드리스 claude 일꾼이 에이전트가 쓴 맥락 요약을 받아 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일을 읽어 보여 줍니다. claude가 없으면 연 폴더는 에이전트가 다음 대화에서 이름을 붙입니다.',
+				'폴더를 누르면 일꾼 CLI(claude, 또는 --cli gemini를 주면 gemini)가 에이전트가 쓴 맥락 요약을 받아 이름을 붙입니다. 일꾼 CLI가 없으면 연 폴더는 에이전트가 다음 대화에서 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일을 읽어 보여 줍니다.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: '불러오기',
 			githubOr: '또는 GitHub 저장소 URL을 입력하세요',
@@ -1293,6 +1297,11 @@ const translations: Record<Locale, TranslationSet> = {
 			untested:
 				'{agent} 문서에 따르면 {dir}에서 스킬을 읽습니다. Ropeman은 {agent}에서 아직 테스트하지 않았습니다.',
 			docsLink: '{agent} 문서 보기',
+			otherAgent: '다른 에이전트',
+			otherBody:
+				'에이전트가 스킬을 읽는 폴더에 SKILL.md를 ropeman/SKILL.md로 저장하세요. 스킬을 지원하지 않는 에이전트라면 SKILL.md 내용을 대화에 붙여 넣고 그 단계를 따르라고 요청하세요.',
+			otherUntested: 'Ropeman은 다른 에이전트에서 아직 테스트하지 않았습니다.',
+			skillFileLink: 'SKILL.md 열기',
 			askTitle: '에이전트에게 “map this repo” 요청',
 			askBody:
 				'에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 검사합니다. 그다음 ropeman serve를 띄우고 {address} 같은 주소를 알려 줍니다. 브라우저에서 그 주소를 여세요. serve가 페이지를 직접 서빙하는 로컬 모드라서 권한 창도, 붙여 넣을 토큰도 없습니다.',
@@ -1383,7 +1392,7 @@ const translations: Record<Locale, TranslationSet> = {
 		bridge: {
 			pageTitle: '브리지',
 			title: 'ropeman serve에 연결',
-			desc: 'ropeman serve는 내 컴퓨터에서 돌면서 폴더 하나의 지도를 내줍니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 claude 일꾼이 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. serve는 --cli gemini를 줄 때만 gemini를 씁니다. 파일을 누르면 serve가 디스크에서 그 파일만 읽어 옵니다. 코드는 Ropeman 서버로 가지 않습니다.',
+			desc: 'ropeman serve는 내 컴퓨터에서 돌면서 폴더 하나의 지도를 내줍니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 일꾼 CLI(claude, 또는 --cli gemini를 주면 gemini)가 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일만 읽어 옵니다. 코드는 Ropeman 서버로 가지 않습니다.',
 			agentSummary: '코딩 에이전트를 쓰면 에이전트가 serve를 띄웁니다',
 			startServe: '직접 띄우려면 지도를 만들 폴더에서 serve를 실행하세요.',
 			portLabel: '포트',
@@ -1531,7 +1540,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'Your agent names one level at a time. The verifier checks that each file sits in exactly one part and that each key symbol is declared there. A level whose names fail keeps its folder names.',
 			featureDrillTitle: 'Click to go deeper',
 			featureDrillDesc:
-				'Click a folder and a headless claude worker names it from the brief your agent wrote. Click a file and serve reads it from disk. Without claude, your agent names opened folders on your next message.',
+				'Click a folder and a worker CLI (claude, or gemini with --cli gemini) names it from the brief your agent wrote. Without a worker CLI, your agent names opened folders on your next message. Click a file and serve reads it from disk.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: 'Load',
 			githubOr: 'or enter a GitHub repository URL',
@@ -2120,6 +2129,11 @@ const translations: Record<Locale, TranslationSet> = {
 			untested:
 				"{agent}'s documentation says it loads skills from {dir}. Ropeman has not been tested with {agent} yet.",
 			docsLink: 'Read the {agent} docs',
+			otherAgent: 'Other agent',
+			otherBody:
+				'Save SKILL.md as ropeman/SKILL.md in the folder your agent loads skills from. If your agent has no skill support, paste the text of SKILL.md into the conversation and ask it to follow the steps.',
+			otherUntested: 'Ropeman has not been tested with other agents yet.',
+			skillFileLink: 'Open SKILL.md',
 			askTitle: 'Ask your agent to “map this repo”',
 			askBody:
 				'The agent builds the map, names the top two levels and checks them. Then it starts ropeman serve and gives you an address like {address}. Open it in your browser. serve hosts the page itself (local mode), so there is no permission prompt and no token to paste.',
@@ -2212,7 +2226,7 @@ const translations: Record<Locale, TranslationSet> = {
 		bridge: {
 			pageTitle: 'Bridge',
 			title: 'Connect to ropeman serve',
-			desc: "ropeman serve runs on your machine and serves the map of one folder. Your coding agent names the top levels. A headless claude worker names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. serve runs gemini only with --cli gemini. Click a file and serve reads just that file from disk. Your code does not go to Ropeman's servers.",
+			desc: "ropeman serve runs on your machine and serves the map of one folder. Your coding agent names the top levels. A headless worker CLI (claude, or gemini with --cli gemini) names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. Click a file and serve reads just that file from disk. Your code does not go to Ropeman's servers.",
 			agentSummary: 'With a coding agent, the agent starts serve for you',
 			startServe: 'Or start serve yourself in the folder you want to map:',
 			portLabel: 'Port',

@@ -86,12 +86,34 @@ test.describe('First use from a coding agent', { tag: '@responsive' }, () => {
 
 		await setup.getByRole('tab', { name: 'Claude Code' }).focus();
 		await page.keyboard.press('ArrowLeft');
+		await page.keyboard.press('ArrowLeft');
 
 		await expect(setup.getByRole('tab', { name: 'Cursor' })).toBeFocused();
 		await expect(setup.getByTestId('skill-command')).toContainText('~/.cursor/skills');
 		await page.keyboard.press('ArrowRight');
+		await page.keyboard.press('ArrowRight');
 		await expect(setup.getByRole('tab', { name: 'Claude Code' })).toBeFocused();
 		await expect(setup.getByTestId('agent-support')).toContainText('Tested with Claude Code.');
+	});
+
+	test('an agent outside the list gets the skill file and the paste fallback', async ({ page }) => {
+		await useLanguage(page, 'en');
+		await gotoApp(page);
+		const setup = page.locator('#agent-setup');
+
+		await setup.getByRole('tab', { name: 'Other agent' }).click();
+
+		await expect(setup.getByRole('tabpanel', { name: 'Other agent' })).toContainText(
+			'paste the text of SKILL.md into the conversation'
+		);
+		await expect(setup.getByTestId('skill-command')).toHaveCount(0);
+		await expect(setup.getByTestId('agent-support')).toContainText(
+			'Ropeman has not been tested with other agents yet.'
+		);
+		await expect(setup.getByRole('link', { name: 'Open SKILL.md' })).toHaveAttribute(
+			'href',
+			SKILL_URL
+		);
 	});
 
 	test('Korean shows the same steps with the untested note in Korean', async ({ page }) => {
@@ -143,6 +165,10 @@ test('copy puts the exact command on the clipboard', async ({ page, context }) =
 	expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
 		`curl --create-dirs -fsSLo ~/.agents/skills/ropeman/SKILL.md ${SKILL_URL}`
 	);
+
+	// The announcement names the agent whose command was copied, not the tab picked after it
+	await setup.getByRole('tab', { name: 'Other agent' }).click();
+	await expect(page.getByTestId('copy-status')).toHaveText('Copied the skill command for Codex.');
 });
 
 test('each copy button names the command it copies', async ({ page }) => {
