@@ -36,6 +36,7 @@ import {
 	serveOutValue
 } from './mapCommand.js';
 import { MapSession } from './mapSession.js';
+import { askOnTerminal, inputForServe, type MapInput } from './mapInput.js';
 import pkg from '../package.json';
 
 const DEFAULT_PORT = 9800;
@@ -89,8 +90,8 @@ const USAGE = `usage:
                 [--detach] [--idle-minutes <n>] [--allow-origin <url>] [--viewer <dir>]
                 [--token <value>]
   ropeman stop --out <folder>
-  ropeman map --root <repo> --out <folder> [--depth <n>]
-  ropeman verify --root <repo> --map <ropeman.json>
+  ropeman map --root <repo> --out <folder> [--depth <n>] [--input ropeman|<graph file>]
+  ropeman verify --root <repo> --map <ropeman.json> [--input ropeman|<graph file>]
   ropeman inbox --out <folder>
   ropeman --version`;
 
@@ -193,7 +194,9 @@ async function main() {
 		wasmDir: WASM_DIR,
 		generator: { name: pkg.name, version: pkg.version },
 		out: (text) => process.stdout.write(`${text}\n`),
-		err: (text) => process.stderr.write(`${text}\n`)
+		err: (text) => process.stderr.write(`${text}\n`),
+		// A coding agent runs the command with no terminal; it gets the choices on stdout instead
+		...(process.stdin.isTTY && process.stderr.isTTY && { ask: askOnTerminal })
 	};
 	if (helpAsked(argv)) return void console.log(USAGE);
 	const commands = { map: runMap, verify: runVerify, inbox: runInbox, stop: runStop };
@@ -322,10 +325,21 @@ async function main() {
 		runner.killNow();
 		if (out) removeRecord(out, instance);
 	});
+	let input: MapInput | undefined;
+	if (root) {
+		try {
+			input = (await inputForServe(root, out)).input;
+		} catch (err) {
+			console.error(`Cannot start: ${(err as Error).message}`);
+			process.exit(1);
+		}
+		if (input.kind === 'graph') log(`Map input: ${input.file}, as ropeman map recorded it`);
+	}
 	const session = root
 		? new MapSession({
 				root,
 				wasmDir: WASM_DIR,
+				input,
 				naming: defaultCli
 					? {
 							cli: defaultCli,

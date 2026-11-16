@@ -1,0 +1,30 @@
+# ADR-28: graph.json은 사용자가 고를 때만 쓰는 보조 입력이고, 만드는 도구는 설치하지 않는다
+
+- **날짜**: 2026-11-17
+- **문제**: Graphify나 비슷한 도구로 이미 `graph.json`을 만든 사용자가 많다. 이 파일을 지도의 입력으로 열 수 있으면 다시 추출하지 않아도 된다. 그런데 어댑터(`graphifyAdapter.ts`)는 비교 실험용이었고 사용자 경로가 없었다. 정할 것은 세 가지다. graph.json을 주 입력으로 올릴지 보조 입력으로 둘지, 파일이 있을 때 누가 입력을 고르는지, Graphify가 없을 때 Ropeman이 설치하거나 실행할지다. 실제 사례로 PASEO에 있던 `graphify-out/graph.json`은 `packages/server`만 담고 있었다(코드 파일 1,305개, `.tsx` 0개). 파일이 있다고 그 파일로 바꾸면 사용자가 모르는 사이에 지도의 4분의 3이 사라진다.
+- **검토 대안**:
+  - (A) graph.json을 주 입력으로 올리고, 없으면 Graphify를 설치하거나 실행해 만든다. Graphify 생태계와 맞지만 설치가 필요 없다는 Ropeman의 약속이 깨지고, 남의 도구(그리고 그 LLM 단계)를 사용자 기계에서 돌리게 된다.
+  - (B) 자체 추출이 기본이고, graph.json이 있으면 자동으로 그 파일을 쓴다. 고를 일이 없지만 일부만 담은 파일이나 낡은 파일을 사용자가 모른 채 쓴다.
+  - (C) 자체 추출이 기본이고, graph.json은 사용자가 고를 때만 쓴다. 터미널이면 `ropeman map`이 직접 묻고, 터미널이 없으면(코딩 에이전트가 돌릴 때) 아무것도 쓰지 않고 선택지를 내고 끝난다. 에이전트가 사용자에게 묻고 `--input`으로 넘긴다. 선택은 작업 폴더에 남긴다.
+  - (D) 그래프 파일 입력을 만들지 않는다. 할 일은 없지만 이미 파일을 가진 사용자의 요청에 답하지 못한다.
+- **결정**: (C)를 골랐다.
+  - 근거는 `docs/measurements/2026-11-13-paseo-graphify-comparison.md`의 PASEO 비교다. 같은 모델과 프롬프트에 입력만 바꿔 다섯 폴더를 3번씩 나누게 했더니, 입력을 바꾼 두 실행의 일치가 같은 입력을 다시 돌린 두 실행의 일치와 같은 범위에 있었다. n=3에서 묶음이 달라졌다는 증거를 찾지 못했다. 대신 graph.json 입력의 프롬프트가 1.2~2.4배 컸고, 지도를 만드는 시간은 Ropeman 추출 7.2초, Graphify 147.8초(`update` 120.9초와 `cluster-only` 26.9초)였다. 주 입력을 바꿀 이유가 없고, 이미 파일을 가진 사용자에게만 재추출을 아껴 주는 보조 입력이 맞다.
+  - 찾는 위치는 `graphify-out/graph.json`과 `.graphicle/graph.json`이다. `--input <파일>`은 어디에 있는 파일이든 받는다. 알려진 위치의 파일이 링크면 읽지 않는다. 복제한 저장소가 사용자의 다른 파일을 가리키는 링크를 심을 수 있어서다.
+  - 터미널 판단은 stdin과 stderr가 모두 TTY인지로 한다. 질문은 stderr로 내서 stdout은 JSON 보고만 남는다. 선택지는 자체 추출이 1번이고 Enter가 1번이다. 그다음 파일마다 크기, 수정 시각, 만든 도구, 커버리지를 보인다. 터미널이 없으면 `{ "done": false, "inputRequired", "choices" }`를 내고 종료 코드 2로 끝난다. 2는 원래 "잘못된 인자, stderr를 읽으라"는 뜻이라, 이 기능을 모르는 예전 스킬도 stderr의 안내(`--input ropeman` 또는 `--input <파일>`)를 읽는다.
+  - 선택(`--input`이나 질문의 답)은 `OUT/input.json`에 쓴다. 이후 `ropeman map`, 그 지도 옆의 `ropeman verify`, `serve --out`이 같은 입력을 쓴다. 기록된 그래프 파일이 사라지거나 읽히지 않으면 자체 추출로 돌아가지 않고 멈춘다(`map`·`verify`는 2, serve는 1). 그래프 파일이 없고 선택도 없으면 아무것도 기록하지 않아서 예전 호출은 그대로 돈다. 보고에는 `input` 필드만 더해진다.
+  - 커버리지는 그래프의 코드 파일과 디스크의 코드 파일(Ropeman이 파싱하는 언어의 소스 파일과, 그래프에 있고 디스크에 있는 다른 파일)을 비교한다. 문서와 설정 파일은 세지 않는다. 90% 미만이면 `low`이고, 선택지, stderr, 보고의 `input.warnings`가 지도에 그 파일들만 나온다고 알린다. 거부하지는 않는다. 사용자가 `packages/server`만 보고 싶을 수 있다. 디스크에 없는 그래프 파일(지운 파일, `node_modules`처럼 걷지 않는 폴더)은 지도에서 빼고 개수와 예를 알린다. 디스크의 파일을 하나도 담지 않은 그래프는 거부한다.
+  - 읽는 형식은 Graphify `graph.json`(`graph.schema_version` 1, `graph.graphify_version` 있음) 하나다. 실제 출력(Graphify 0.9.104, `tests/fixtures/graphify/`, PASEO)으로 확인한 것이 이것뿐이다. 나머지는 쓴 도구를 밝히는 이유와 함께 거부한다(`identifyGraphFile`). Graphicle은 소스(`crates/graphicle-graph/src/export.rs`, 54ed0fb)상 Graphify 0.9.103을 옮긴 같은 형식이고 `graph.graphicle_version`을 쓰지만, 실제 Graphicle 파일로 확인하지 못했다. 이 작업에서 릴리스 바이너리로 픽스처를 만들려 했으나 실행이 막혔다. graf의 `export snapshot-json`은 graf 고유 형식이고(`edges`, `file`, `line`), `export graphify-json`은 `graph.schema_version`이 없고 `file_type`에 graf의 노드 종류를 쓴다(b7d179d). graphify-csharp의 `csharp.json`은 파일 노드가 없는 추출 형식이고 위치가 `L<줄>:C<열>`이다(74641ba). 셋 모두 실제 파일이 없어서 소스로만 읽었다.
+  - 층은 지금 규칙 그대로다. ast 층만 코드 사실로 읽고 LLM이 만든 semantic 층과 군집은 읽지 않는다(A-10). 그래프에서 만든 지도도 같은 묶기, 이름 검사, 검증기를 거치고, 검증은 그 그래프의 코드 사실에 대고 한다.
+  - Ropeman은 Graphify나 다른 도구를 설치, 내려받기, 실행하지 않는다. 스킬도 에이전트에게 그러지 말라고 적는다. 파일이 없으면 자체 추출을 쓰고, 사용자가 원하면 직접 만드는 방법을 한 줄로 알린다.
+- **기각 이유**:
+  - (A) 측정에서 주 입력을 바꿀 근거가 나오지 않았고, 147.8초와 별도 설치가 드는 길을 기본으로 둘 이유가 없다. 남의 도구를 대신 설치하고 돌리는 것은 사용자가 고르지 않은 일이다.
+  - (B) PASEO처럼 일부만 담은 파일로 조용히 바뀌면 사용자는 지도에서 빠진 부분을 알 수 없다.
+  - (D) 이미 graph.json을 가진 사용자의 재추출을 아끼지 못한다. 어댑터와 검증 경로가 이미 있어서 들어가는 코드가 작다.
+- **결과**:
+  - `packages/core/src/graphExtraction.ts`의 `extractGraphFile`이 그래프 파일을 디스크와 대조한 `Extraction`과 커버리지로 바꾼다. `bridge/src/mapInput.ts`가 찾기, 질문, 기록, 보고를 맡는다. `MapSession`은 기록된 입력으로 추출한다.
+  - PASEO(`e0f545fed`) 복사본에 원래의 `graphify-out/graph.json`(28MB)을 두고 돌린 결과: 선택지는 "1,305 of 5,391 code files on disk (24%)", 빠진 곳은 `packages/app` 2,975개 등, `.tsx` 865개였다. 터미널 없이 돌리면 종료 코드 2와 선택지, 터미널(가상 터미널)에서 2를 고르면 그래프 입력으로 지도를 쓰고 `ropeman verify`가 그 입력에 대고 통과했다.
+- **재검토 조건**:
+  - 실제 Graphicle이나 graf 출력 파일로 어댑터 결과를 확인하면 그 형식을 받는다. 확인은 Graphify 픽스처처럼 정답 저장소(`tests/fixtures/graphs/`)를 그 도구로 읽은 파일을 픽스처로 두고 점수를 기록하는 방식으로 한다.
+  - Graphify가 `schema_version`을 올리면 어댑터를 다시 확인한다.
+  - 입력에 따라 묶음이 달라진다는 측정이 나오면(n을 늘린 비교 등) 주 입력 결정을 다시 본다.
+  - serve가 켜진 뒤 입력을 바꾸는 일이 잦으면, 지금처럼 멈추고 다시 띄우는 대신 serve가 `input.json`을 다시 읽게 한다.

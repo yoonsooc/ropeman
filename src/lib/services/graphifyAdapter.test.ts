@@ -10,7 +10,12 @@ import type {
 	GuessBinding,
 	SymbolRecord
 } from '$lib/types/codeMap';
-import { GraphifyFormatError, readGraphifyGraph, type IssueReason } from './graphifyAdapter';
+import {
+	GraphifyFormatError,
+	identifyGraphFile,
+	readGraphifyGraph,
+	type IssueReason
+} from './graphifyAdapter';
 import { codeMapEdges, scoreCodeMap, toBaseline, type GroundTruth } from './codeMapScore';
 
 const FIXTURES = fileURLToPath(new URL('../../../tests/fixtures', import.meta.url));
@@ -407,5 +412,101 @@ describe('readGraphifyGraph on Graphify 0.9.104 output for the ground-truth repo
 			);
 			expect(dangling, repo).toEqual([]);
 		}
+	});
+});
+
+/**
+ * Each foreign shape below is written from that tool's source, not from a real output file:
+ * graf `src/model.rs` and `src/export.rs` (b7d179d), graphify-csharp `GraphifyDtos.cs`
+ * (74641ba), Graphicle `crates/graphicle-graph/src/export.rs` (54ed0fb).
+ */
+describe('identifyGraphFile', () => {
+	it('reads Graphify graph.json with schema_version 1 and its version', () => {
+		// Arrange
+		const json = readJson('graphify/ts-monorepo.graph.json');
+
+		// Act
+		const format = identifyGraphFile(json);
+
+		// Assert
+		expect(format).toEqual({ ok: true, writer: { name: 'graphify', version: '0.9.104' } });
+	});
+
+	it.each([
+		['not-an-object', []],
+		[
+			'graphify-csharp',
+			{
+				directed: true,
+				multigraph: true,
+				nodes: [],
+				edges: [],
+				hyperedges: [],
+				graphify_csharp: { schema_version: 'csharp/v1', diagnostics: [] }
+			}
+		],
+		[
+			'graf-snapshot',
+			{
+				schema_version: 1,
+				generation: 3,
+				kind: 'graf',
+				root: '.',
+				nodes: [],
+				edges: [],
+				metadata: {}
+			}
+		],
+		[
+			'graf-graphify-json',
+			{
+				directed: false,
+				multigraph: true,
+				graph: {},
+				nodes: [],
+				links: [],
+				_graf: { schema_version: 1 }
+			}
+		],
+		[
+			'graphicle',
+			{
+				graph: { schema_version: 1, graphicle_version: '0.9.103-graphicle.0.1.18' },
+				nodes: [],
+				links: []
+			}
+		],
+		['schema-version', { directed: false, graph: {}, nodes: [], links: [] }],
+		[
+			'schema-version',
+			{ graph: { schema_version: 2, graphify_version: '1.0.0' }, nodes: [], links: [] }
+		],
+		['unknown-writer', { graph: { schema_version: 1 }, nodes: [], links: [] }]
+	])('refuses %s with a reason', (code, json) => {
+		// Act
+		const format = identifyGraphFile(json);
+
+		// Assert
+		expect(format).toMatchObject({ ok: false, code });
+		expect(!format.ok && format.message).toMatch(/\w/);
+	});
+});
+
+describe('readGraphifyGraph with keepFile', () => {
+	it('leaves out a file, its symbols and the relations into it', () => {
+		// Arrange
+		const json = readJson('graphify/ts-monorepo.graph.json');
+		const gone = 'apps/web/src/lib/events.ts';
+
+		// Act
+		const { map, issues } = readGraphifyGraph(json, null, (file) => file !== gone);
+
+		// Assert
+		expect(map.files.has(gone as FilePath)).toBe(false);
+		expect(map.files.size).toBe(readGraphifyGraph(json, null).map.files.size - 1);
+		const leftOut = issues.filter((i) => i.reason === 'not-on-disk');
+		expect(leftOut.length).toBeGreaterThan(1);
+		expect(leftOut.every((i) => i.file === gone)).toBe(true);
+		expect(codeMapEdges(map).some((e) => e.to.startsWith(gone))).toBe(false);
 	});
 });

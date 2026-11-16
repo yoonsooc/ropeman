@@ -19,6 +19,16 @@ import {
 } from '../../src/lib/types/ropemanMap';
 import { resolveRoot } from './fileRead.js';
 import {
+	INPUT_FILE,
+	OWN_INPUT,
+	chooseInput,
+	choicesOf,
+	graphWarnings,
+	inputForVerify,
+	inputReport,
+	type Ask
+} from './mapInput.js';
+import {
 	applyNames,
 	importCount,
 	parseNamingAnswer,
@@ -447,12 +457,16 @@ export interface CommandEnv {
 	now?: () => Date;
 	/** The size `ropeman.json` must fit; MAX_MAP_BYTES unless a test sets a smaller one */
 	maxMapBytes?: number;
+	/** Asks the user on the terminal; absent when stdin or stderr is not a terminal */
+	ask?: Ask;
 }
 
 class UsageError extends Error {}
 
-const MAP_USAGE = 'usage: ropeman map --root <repo> --out <folder> [--depth <n>]';
-const VERIFY_USAGE = 'usage: ropeman verify --root <repo> --map <ropeman.json>';
+const MAP_USAGE =
+	'usage: ropeman map --root <repo> --out <folder> [--depth <n>] [--input ropeman|<graph file>]';
+const VERIFY_USAGE =
+	'usage: ropeman verify --root <repo> --map <ropeman.json> [--input ropeman|<graph file>]';
 const INBOX_USAGE = 'usage: ropeman inbox --out <folder>';
 
 function options(args: string[], names: string[], usage: string) {
@@ -584,18 +598,46 @@ function workText(work: Work): string {
 }
 
 export async function runMap(args: string[], env: CommandEnv): Promise<number> {
-	const values = options(args, ['root', 'out', 'depth'], MAP_USAGE);
+	const values = options(args, ['root', 'out', 'depth', 'input'], MAP_USAGE);
 	const root = rootOf(values.root, MAP_USAGE);
 	const depth = values.depth === undefined ? DEFAULT_DEPTH : Number(values.depth);
 	if (!Number.isInteger(depth) || depth < 1) {
 		throw new UsageError(`--depth must be a whole number from 1.\n${MAP_USAGE}`);
 	}
 	const out = outFolder(root, values.out);
+	const chosen = await chooseInput({ root, out, flag: values.input, ask: env.ask, err: env.err });
+	if ('needed' in chosen) {
+		const where = chosen.needed.map((c) => c.location).join(', ');
+		env.out(
+			JSON.stringify(
+				{
+					done: false,
+					inputRequired: `Graph files exist in the repository (${where}). Ask the user which input to use, then run ropeman map again with --input and the chosen value.`,
+					choices: choicesOf(chosen.needed)
+				},
+				null,
+				1
+			)
+		);
+		env.err(
+			`ropeman: graph files exist (${where}); ask the user, then pass --input ${OWN_INPUT} or --input <graph file>. stdout lists the choices.`
+		);
+		return 2;
+	}
 	const namesPath = path.join(out, NAMES_FILE);
 	const { names, problems } = parseNames(readOutFile(out, NAMES_FILE, MAX_NAMES_BYTES));
+	const { input } = chosen;
+	let extraction: Extraction;
+	if (input.kind === 'graph') {
+		extraction = input.read.extraction;
+		env.err(`Read ${extraction.map.files.size} files from ${input.file}`);
+		for (const warning of graphWarnings(input.read.coverage)) env.err(`Warning: ${warning}`);
+	} else {
+		extraction = await extract(root, env);
+	}
 
 	const built = buildNamedMap({
-		extraction: await extract(root, env),
+		extraction,
 		project: path.basename(root),
 		names,
 		nameProblems: problems,
@@ -626,9 +668,23 @@ export async function runMap(args: string[], env: CommandEnv): Promise<number> {
 	const workPath = path.join(out, WORK_FILE);
 	writeAtomic(mapPath, fitted.text);
 	writeAtomic(workPath, workText(built.work));
+	const coverage =
+		input.kind === 'graph'
+			? {
+					...built.report.coverage,
+					notInGraph: input.read.coverage.missing,
+					noGrammar: built.report.coverage.noGrammar - input.read.coverage.missing
+				}
+			: built.report.coverage;
+	const files = {
+		map: mapPath,
+		work: workPath,
+		names: namesPath,
+		...(chosen.decidedBy !== 'default' && { input: path.join(out, INPUT_FILE) })
+	};
 	env.out(
 		JSON.stringify(
-			{ ...built.report, fileLevels, files: { map: mapPath, work: workPath, names: namesPath } },
+			{ input: inputReport(chosen), ...built.report, coverage, fileLevels, files },
 			null,
 			1
 		)
@@ -637,9 +693,10 @@ export async function runMap(args: string[], env: CommandEnv): Promise<number> {
 }
 
 export async function runVerify(args: string[], env: CommandEnv): Promise<number> {
-	const values = options(args, ['root', 'map'], VERIFY_USAGE);
+	const values = options(args, ['root', 'map', 'input'], VERIFY_USAGE);
 	const root = rootOf(values.root, VERIFY_USAGE);
 	if (!values.map) throw new UsageError(`--map is required.\n${VERIFY_USAGE}`);
+	const chosen = await inputForVerify(root, values.map, values.input);
 	let text: string;
 	try {
 		text = fs.readFileSync(values.map, 'utf8');
@@ -653,9 +710,14 @@ export async function runVerify(args: string[], env: CommandEnv): Promise<number
 	};
 	const parsed = parseRopemanMap(text);
 	if (!parsed.ok) return refused(parsed);
-	const result = verifyMap(parsed.value, (await extract(root, env)).map);
+	const codeMap =
+		chosen.input.kind === 'graph'
+			? chosen.input.read.extraction.map
+			: (await extract(root, env)).map;
+	const result = verifyMap(parsed.value, codeMap);
 	if (!result.parsed) return refused(result.failure);
 	report({
+		input: inputReport(chosen),
 		ok: result.violations.length === 0,
 		violations: result.violations,
 		unverifiedEdges: result.unverified.length,

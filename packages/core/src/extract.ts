@@ -76,7 +76,7 @@ export async function extractDirectory(root: string, options: ExtractOptions): P
 	};
 }
 
-function foldersOf(root: FileNode): string[] {
+export function foldersOf(root: FileNode): string[] {
 	const folders = [''];
 	const visit = (node: FileNode) => {
 		for (const child of node.children ?? []) {
