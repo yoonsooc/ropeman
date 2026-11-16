@@ -39,6 +39,13 @@ interface LandingTranslations {
 	heroShotAlt: string;
 	heroShotCaption: string;
 	heroShotLink: string;
+	railLabel: string;
+	navSetup: string;
+	navTry: string;
+	navExample: string;
+	navHow: string;
+	measured: string;
+	measuredSource: string;
 	dropRegion: string;
 	loadingTitle: string;
 	parsingLabel: string;
@@ -734,6 +741,13 @@ const translations: Record<Locale, TranslationSet> = {
 			heroShotCaption:
 				'huggingface/transformers를 실제로 분석한 결과입니다. 눌러서 직접 살펴보세요.',
 			heroShotLink: 'huggingface/transformers 분석 예시 열기',
+			railLabel: '이 페이지',
+			navSetup: '시작하기',
+			navTry: '브라우저에서 써 보기',
+			navExample: '분석 예시',
+			navHow: '동작 방식',
+			measured: '모델 없이 파일 5,730개, 심볼 31,486개, import 28,378개를 7.2초에 읽었습니다.',
+			measuredSource: 'PASEO 저장소, 2026-11-13 측정',
 			dropRegion: '폴더 놓는 곳',
 			loadingTitle: '프로젝트 불러오는 중',
 			parsingLabel: '파일 파싱 중',
@@ -1562,6 +1576,13 @@ const translations: Record<Locale, TranslationSet> = {
 				"Ropeman analysis of huggingface/transformers: domain nodes and their links, with the selected node's files and key symbols on the right",
 			heroShotCaption: 'A real analysis of huggingface/transformers. Click to explore it.',
 			heroShotLink: 'Open the huggingface/transformers example',
+			railLabel: 'On this page',
+			navSetup: 'Get started',
+			navTry: 'Try in the browser',
+			navExample: 'Example',
+			navHow: 'How it works',
+			measured: 'Read 5,730 files, 31,486 symbols and 28,378 imports in 7.2 s, with no model.',
+			measuredSource: 'PASEO repository, measured 2026-11-13',
 			dropRegion: 'Folder drop area',
 			loadingTitle: 'Loading project',
 			parsingLabel: 'Parsing files',
