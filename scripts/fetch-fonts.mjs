@@ -13,24 +13,48 @@ const licenses = path.join(repo, 'static/fonts/LICENSES');
 // Google serves woff2 only to a browser it recognizes
 const UA =
 	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-const TEXT_CSS =
-	'https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=JetBrains+Mono:wght@400..500&family=Space+Grotesk:wght@400..700';
-const ICON_CSS =
-	'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0';
-// The UI is English and Korean; Korean falls back to system fonts, which these families lack.
-// JetBrains Mono also draws the user's source code, whose comments and strings can be in any script.
-const UI_SUBSETS = ['latin', 'latin-ext'];
-const CODE_SUBSETS = [...UI_SUBSETS, 'cyrillic', 'greek', 'vietnamese'];
-const subsets = (family) => (family === 'JetBrains Mono' ? CODE_SUBSETS : UI_SUBSETS);
 const GOOGLE_FONTS =
 	'https://raw.githubusercontent.com/google/fonts/3cb0866aebe5de40156f418a1750cb329e81ebdb';
 const MATERIAL_ICONS =
 	'https://raw.githubusercontent.com/google/material-design-icons/10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7';
+// The UI is English and Korean. A code face also draws the user's source code, whose comments and
+// strings can be in any script. `hangul` keeps Google's numbered slices, the ones that carry Korean.
+const UI_SUBSETS = ['latin', 'latin-ext'];
+const CODE_SUBSETS = [...UI_SUBSETS, 'cyrillic', 'greek', 'vietnamese'];
+const TEXT_FAMILIES = [
+	{
+		family: 'Inter',
+		axes: 'wght@400..700',
+		subsets: UI_SUBSETS,
+		license: ['Inter-OFL.txt', 'ofl/inter/OFL.txt']
+	},
+	{
+		family: 'JetBrains Mono',
+		axes: 'wght@400..500',
+		subsets: CODE_SUBSETS,
+		license: ['JetBrainsMono-OFL.txt', 'ofl/jetbrainsmono/OFL.txt']
+	},
+	{
+		family: 'Space Grotesk',
+		axes: 'wght@400..700',
+		subsets: UI_SUBSETS,
+		license: ['SpaceGrotesk-OFL.txt', 'ofl/spacegrotesk/OFL.txt']
+	}
+];
+const TEXT_CSS = `https://fonts.googleapis.com/css2?${TEXT_FAMILIES.map(
+	({ family, axes }) => `family=${family.replace(/ /g, '+')}:${axes}`
+).join('&')}`;
+const ICON_CSS =
+	'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0';
 const LICENSE_URLS = {
-	'Inter-OFL.txt': `${GOOGLE_FONTS}/ofl/inter/OFL.txt`,
-	'JetBrainsMono-OFL.txt': `${GOOGLE_FONTS}/ofl/jetbrainsmono/OFL.txt`,
-	'SpaceGrotesk-OFL.txt': `${GOOGLE_FONTS}/ofl/spacegrotesk/OFL.txt`,
+	...Object.fromEntries(
+		TEXT_FAMILIES.map(({ license: [file, url] }) => [file, `${GOOGLE_FONTS}/${url}`])
+	),
 	'MaterialSymbols-Apache-2.0.txt': `${MATERIAL_ICONS}/LICENSE`
+};
+const keeps = (face) => {
+	const { subsets } = TEXT_FAMILIES.find((f) => f.family === face.family);
+	return subsets.includes(face.subset) || (subsets.includes('hangul') && face.slice !== undefined);
 };
 
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
@@ -51,7 +75,9 @@ function faces(css) {
 				style: prop('font-style'),
 				weight: prop('font-weight'),
 				range: prop('unicode-range'),
-				url: body.match(/url\(([^)]+)\)/)[1]
+				url: body.match(/url\(([^)]+)\)/)[1],
+				// CJK families come as numbered slices with no subset comment
+				slice: subset ? undefined : body.match(/\.(\d+)\.woff2\)/)?.[1]
 			};
 		}
 	);
@@ -61,7 +87,7 @@ const slug = (family) => family.toLowerCase().replace(/\s+/g, '-');
 const icons = iconNames(readSources(repo));
 const iconCss = `${ICON_CSS}&icon_names=${icons.join(',')}`;
 const wanted = [
-	...faces((await get(TEXT_CSS)).toString()).filter((f) => subsets(f.family).includes(f.subset)),
+	...(TEXT_FAMILIES.length ? faces((await get(TEXT_CSS)).toString()).filter(keeps) : []),
 	...faces((await get(iconCss)).toString()).map((f) => ({ ...f, icon: true }))
 ];
 
@@ -76,7 +102,8 @@ try {
 	const files = [];
 	const rules = [];
 	for (const face of wanted) {
-		const file = `${slug(face.family)}${face.subset ? `-${face.subset}` : ''}.woff2`;
+		const part = face.subset ?? face.slice;
+		const file = `${slug(face.family)}${part ? `-${part}` : ''}.woff2`;
 		const bytes = await get(face.url);
 		fs.writeFileSync(path.join(fontsDir, file), bytes);
 		files.push({
