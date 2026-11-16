@@ -20,7 +20,7 @@ A file you open goes from serve to the page over `127.0.0.1`. serve refuses `.en
 ## Before you start
 
 - Node.js 22 or later.
-- A worker CLI, installed and signed in, to name the folders you open. serve uses Claude Code (`claude`) by default, and Gemini CLI (`gemini`) only when you start serve with `--cli gemini`. Without a worker CLI the map still works, and folders keep their folder names.
+- A worker CLI, installed and signed in, to name the folders you open. serve uses Claude Code (`claude`) by default, and Gemini CLI (`gemini`) only when you start serve with `--cli gemini`. Without a worker CLI the map still works. When you start serve yourself, without `--out`, folders keep their folder names.
 - Chrome, Edge or Firefox. Safari cannot connect from ropeman.dev, so in Safari start serve in [local mode](#use-local-mode).
 
 ## Start serve

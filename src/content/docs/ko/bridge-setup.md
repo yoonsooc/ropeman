@@ -20,7 +20,7 @@ Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 �
 ## 사전 준비
 
 - Node.js 22 이상
-- 연 폴더에 이름을 붙일 일꾼 CLI를 설치하고 로그인해 둡니다. serve는 기본으로 Claude Code(`claude`)를 쓰고, Gemini CLI(`gemini`)는 serve를 `--cli gemini`로 켤 때만 씁니다. 일꾼 CLI가 없어도 지도는 볼 수 있고, 폴더는 폴더 이름을 그대로 씁니다.
+- 연 폴더에 이름을 붙일 일꾼 CLI를 설치하고 로그인해 둡니다. serve는 기본으로 Claude Code(`claude`)를 쓰고, Gemini CLI(`gemini`)는 serve를 `--cli gemini`로 켤 때만 씁니다. 일꾼 CLI가 없어도 지도는 볼 수 있습니다. serve를 `--out` 없이 직접 켰다면 폴더는 폴더 이름을 그대로 씁니다.
 - Chrome, Edge, Firefox 중 하나. Safari는 ropeman.dev에서 serve에 연결하지 못하므로 [로컬 모드](#로컬-모드로-쓰기)로 serve를 켜세요.
 
 ## serve 실행

@@ -165,6 +165,10 @@ test('copy puts the exact command on the clipboard', async ({ page, context }) =
 	expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
 		`curl --create-dirs -fsSLo ~/.agents/skills/ropeman/SKILL.md ${SKILL_URL}`
 	);
+
+	// The announcement names the agent whose command was copied, not the tab picked after it
+	await setup.getByRole('tab', { name: 'Other agent' }).click();
+	await expect(page.getByTestId('copy-status')).toHaveText('Copied the skill command for Codex.');
 });
 
 test('each copy button names the command it copies', async ({ page }) => {

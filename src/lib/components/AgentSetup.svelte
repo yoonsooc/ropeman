@@ -59,19 +59,20 @@
 	);
 
 	/** The last copy, keyed by the command text so switching agents clears it */
-	let copy = $state<{ text: string; ok: boolean } | null>(null);
+	let copy = $state<{ text: string; ok: boolean; agent: string } | null>(null);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
 	const copied = (text: string) => copy?.text === text && copy.ok;
 	const copyFailed = (text: string) => copy?.text === text && !copy.ok;
 
 	async function copyCommand(text: string, source: HTMLElement | undefined) {
 		clearTimeout(copyTimer);
+		const agent = tabName(selected);
 		try {
 			await navigator.clipboard.writeText(text);
-			copy = { text, ok: true };
+			copy = { text, ok: true, agent };
 			copyTimer = setTimeout(() => (copy = null), 2000);
 		} catch {
-			copy = { text, ok: false };
+			copy = { text, ok: false, agent };
 			if (source) window.getSelection()?.selectAllChildren(source);
 		}
 	}
@@ -114,7 +115,7 @@
 				? t('copyFailed')
 				: copy.text === INSTALL
 					? t('copiedInstall')
-					: t('copiedSkill', { agent: tabName(selected) })
+					: t('copiedSkill', { agent: copy.agent })
 	);
 </script>
 
