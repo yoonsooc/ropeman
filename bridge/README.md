@@ -1,6 +1,6 @@
 # @ropeman/bridge
 
-Local server for Ropeman. `ropeman serve` maps a folder on your machine and sends the map to the Ropeman viewer over a WebSocket. The coding agent you talk to names the top of the map through the Ropeman skill (`skill/ropeman/` in the Ropeman repository), with the `ropeman map`, `verify` and `inbox` commands below, and writes a brief. Deeper folders you open are named by headless workers (`claude -p`) that get that brief.
+Local server for Ropeman. `ropeman serve` maps a folder on your machine and sends the map to the Ropeman viewer over a WebSocket. The coding agent you talk to names the top of the map through the Ropeman skill (`skill/ropeman/` in the Ropeman repository), with the `ropeman map`, `verify` and `inbox` commands below, and writes a brief. Deeper folders you open are named by a headless worker CLI that gets that brief: `claude -p` (Claude Code) when it is installed, or Gemini CLI with `--cli gemini`. With no worker CLI, the agent you talk to names them on its next turn.
 
 ## Usage
 
@@ -65,12 +65,12 @@ With `--viewer <dir>` the bridge serves that directory's files, except dotfiles 
 ## Map files
 
 ```bash
-ropeman map --root <repo> --out <folder> [--depth <n>]
-ropeman verify --root <repo> --map <ropeman.json>
+ropeman map --root <repo> --out <folder> [--depth <n>] [--input ropeman|<graph file>]
+ropeman verify --root <repo> --map <ropeman.json> [--input ropeman|<graph file>]
 ropeman inbox --out <folder>
 ```
 
-Each file in the folder (`--out`) has one writer: the agent writes `names.json` and `brief.md`, `ropeman map` writes `ropeman.json` and `work.json`, serve writes `queue.json`, `naming-log.jsonl` and `serve.json`, `serve --detach` writes `serve.log` and holds `serve.lock` while it starts serve, and `ropeman inbox` writes `inbox-read.json`. A cloned repository can ship any of them, so Ropeman reads only regular files directly in the folder, never through a link and never past a size limit, and refuses an `--out` that is a link. Inside the repository the folder gets a `.gitignore` of `*`, so git does not commit it.
+Each file in the folder (`--out`) has one writer: the agent writes `names.json` and `brief.md`, `ropeman map` writes `ropeman.json`, `work.json` and `input.json`, serve writes `queue.json`, `naming-log.jsonl` and `serve.json`, `serve --detach` writes `serve.log` and holds `serve.lock` while it starts serve, and `ropeman inbox` writes `inbox-read.json`. A cloned repository can ship any of them, so Ropeman reads only regular files directly in the folder, never through a link and never past a size limit, and refuses an `--out` that is a link. Inside the repository the folder gets a `.gitignore` of `*`, so git does not commit it.
 
 `ropeman map` extracts the repository and reads `<folder>/names.json`, an object keyed by node id whose values are `{ "label", "description", "keySymbols" }`, the fields serve asks its CLI for. A level gets names only when every one of its parts has an entry and the verifier passes the result. Every other level stays grouped, so the `ropeman.json` it writes always verifies. It also writes `work.json`, the parts to name next: the shallowest stage with no names yet (stage 1 is the top level, stage 2 the folders inside it, up to `--depth`, default 2) , every folder in `queue.json` (`"queued": true`), and every level whose names were refused. Each part lists its file count, up to 12 paths and up to 24 declared names, never file contents. The report on stdout is JSON: `done`, `coverage` (files listed, in the map, by reason), `stages`, `problems` (each with a `code`, the `level`, the `nodeId` and a message), `next` and `fileLevels`. The codes are the verifier's (`key-symbol-unknown`, `file-unassigned`, …) plus `names-unreadable`, `node-unknown`, `name-missing`, `name-invalid` and `map-invalid`. Exit code 0 means no problems, 1 problems, 2 bad arguments.
 
@@ -78,7 +78,19 @@ A part that holds two or more files directly in one folder (`files:<folder>`) ge
 
 `--out` may be outside the repository. Inside it, the folder must be one the walk skips, such as `.ropeman`, or the map would list its own files. Each run starts from the files on disk and replaces `ropeman.json` and `work.json` through a rename, so a run can be repeated or interrupted.
 
-`ropeman verify` checks any `ropeman.json` against a fresh extraction and prints `{ "ok", "violations", "unverifiedEdges", "checked" }`, or `{ "ok": false, "failure" }` with the parser's code when the file is not a map it reads.
+`ropeman verify` checks any `ropeman.json` against a fresh extraction of its input and prints `{ "input", "ok", "violations", "unverifiedEdges", "checked" }`, or `{ "ok": false, "failure" }` with the parser's code when the file is not a map it reads. The input is `--input`, else the choice recorded in `input.json` beside the map, else Ropeman's own extraction.
+
+### Graph file input
+
+By default `ropeman map` extracts the repository itself. A graph file that another tool already wrote can be the input instead, but only when the user chooses it. Ropeman never installs, downloads or runs that tool.
+
+- `ropeman map` looks for `graphify-out/graph.json` and `.graphicle/graph.json` under `--root`. With `--input <file>` it reads that file instead, wherever it is. A file at a known location that is a link is not read.
+- When it finds one and has no choice yet, it asks on a terminal: Ropeman's own extraction first, as the default (Enter), then each file with its size, modification time, writer and coverage. Without a terminal (stdin or stderr is not a TTY, as when a coding agent runs it), it writes no map files (it only creates the folder), prints `{ "done": false, "inputRequired", "choices" }` and exits 2. Each entry of `choices` has the `input` value to pass with `--input`, or `refused` with the reason the file cannot be used.
+- The choice, from `--input` or the prompt, goes to `<folder>/input.json`, signed with a key kept in `~/.ropeman/input-key` and bound to that folder. A record without a valid signature, such as one a cloned repository ships or one copied from another folder, is refused, so a repository cannot choose an input for you. Later runs of `map`, `verify` beside that map, and `serve --out <folder>` use it until `--input` changes it. A recorded graph file that is gone or unreadable stops `map` and `verify` with exit 2 and serve with exit 1; Ropeman does not fall back to its own extraction. With no graph file and no choice, nothing is recorded and `ropeman map` behaves as before.
+- Coverage compares the graph's code files with the code files on disk: source files in a language Ropeman parses, and every other file the graph holds. The report's `input.coverage` gives `covered` of `codeFiles`, the missing files by folder and extension, and the graph's files that are no longer on disk, which the map leaves out. Below 90% (`low`), the prompt, stderr and `input.warnings` say that the map shows only the files in the graph. A graph that holds no file on disk is refused.
+- The map from a graph file goes through the same grouping, naming checks and verifier as one from Ropeman's own extraction, against the graph's code facts. Only the ast layer is read; the LLM-made semantic layer and the communities are not (ADR-28).
+- Only Graphify's `graph.json` with `graph.schema_version` 1 and `graph.graphify_version` is read; it was checked against Graphify 0.9.104 output. Graphicle's `graph.json`, graf's `export graphify-json` and `export snapshot-json`, and graphify-csharp's `csharp.json` are refused with a reason that names the writer. Their formats were read from source only, with no real output file to check against.
+- serve reads the recorded input when it starts. After changing the input, run `ropeman stop --out <folder>` and start serve again.
 
 `ropeman inbox` prints `{ "queued": [...], "named": [...] }`: the folders in `queue.json` that `ropeman.json` still holds without names, and the worker results logged since the last `ropeman inbox` (node, folder, names, worker, time). serve drops a queued folder once it has names or no longer exists. Each log entry has a `seq` that only grows, and `inbox-read.json` keeps the last one shown, so trimming the log (serve keeps it under 1,000,000 bytes), restarting serve or removing the log never shows an entry twice or skips one. `ropeman inbox` refuses a folder with no `ropeman.json`.
 

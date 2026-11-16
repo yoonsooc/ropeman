@@ -46,6 +46,8 @@ export const ISSUE_REASONS = {
 		'A contains or method edge carrying a call context: graphify kept one edge per node pair and the call it dropped has no line.',
 	'reverse-import':
 		'The other half of a two-file import cycle, which graphify drops and marks `reverse_import`. Its line is unknown.',
+	'not-on-disk':
+		'A file the caller left out: not on disk, or in a folder Ropeman does not walk. Its symbols and relations go with it.',
 	downgraded:
 		'EXTRACTED made INFERRED: one of several candidates for a site, an `indirect_call`, or AMBIGUOUS.',
 	malformed: 'An entry missing a field the format requires.'
@@ -70,20 +72,77 @@ export interface GraphifyImport {
 export class GraphifyFormatError extends Error {}
 
 /**
+ * Why a graph file is not read as a map input. Only Graphify's own graph.json was checked
+ * against real files; each other writer is named, so the user learns which tool wrote the file
+ * and that Ropeman has not checked its output, instead of getting a map built on a guess.
+ */
+export const GRAPH_FILE_REFUSALS = {
+	'not-an-object': 'The file is not one JSON object.',
+	'graphify-csharp':
+		"graphify-csharp's csharp.json is the extraction shape: no file nodes, `edges` instead of `links`, and `L<line>:C<col>` locations. Ropeman reads only Graphify's graph.json.",
+	'graf-snapshot':
+		"graf's `export snapshot-json` is graf's own format (`edges`, `file`, `line`). Ropeman reads only Graphify's graph.json.",
+	'graf-graphify-json':
+		"graf's `export graphify-json` has no `graph.schema_version`, and its `file_type` holds graf's node kinds. Ropeman has not checked it against a real file.",
+	graphicle:
+		"Written by Graphicle (`graph.graphicle_version`). Its graph.json follows Graphify's, but Ropeman has not checked it against a real Graphicle file, so it does not read it yet.",
+	'schema-version':
+		'`graph.schema_version` is missing or not 1. `graphify update --no-cluster` and Graphify before schema 1 write no version; run Graphify without --no-cluster.',
+	'unknown-writer':
+		'`graph.graphify_version` is missing, so the file does not say that Graphify wrote it.'
+} as const;
+
+export type GraphFileRefusal = keyof typeof GRAPH_FILE_REFUSALS;
+
+export type GraphFileFormat =
+	| { ok: true; writer: { name: 'graphify'; version: string } }
+	| { ok: false; code: GraphFileRefusal; message: string };
+
+/**
+ * Which tool wrote a parsed graph file, from the fields each one writes, and whether Ropeman
+ * reads it as a map input. Graphify's graph.json (`graph.schema_version` 1 with
+ * `graph.graphify_version`) is the one format checked against real files. `readGraphifyGraph`
+ * is looser, because the comparison experiment feeds it hand-written graphs.
+ */
+export function identifyGraphFile(json: unknown): GraphFileFormat {
+	const refuse = (code: GraphFileRefusal): GraphFileFormat => ({
+		ok: false,
+		code,
+		message: GRAPH_FILE_REFUSALS[code]
+	});
+	if (!isRecord(json)) return refuse('not-an-object');
+	if ('graphify_csharp' in json) return refuse('graphify-csharp');
+	if ('schema_version' in json && 'generation' in json && 'edges' in json) {
+		return refuse('graf-snapshot');
+	}
+	if ('_graf' in json) return refuse('graf-graphify-json');
+	const graph = isRecord(json.graph) ? json.graph : {};
+	if (typeof graph.graphicle_version === 'string') return refuse('graphicle');
+	if (graph.schema_version !== GRAPHIFY_SCHEMA_VERSION) return refuse('schema-version');
+	if (typeof graph.graphify_version !== 'string') return refuse('unknown-writer');
+	return { ok: true, writer: { name: 'graphify', version: graph.graphify_version } };
+}
+
+/**
  * A Graphify graph.json as a code map, so Graphify's extraction is scored like Ropeman's
  * (T1-12). Only the ast layer becomes code facts; `community` and `community_name` are not
  * read. Everything left out or weakened is reported with its reason. `rootDir`, less a trailing
- * `/`, is what FilePaths start with, as `CodeMap.root`. Throws GraphifyFormatError on an
+ * `/`, is what FilePaths start with, as `CodeMap.root`. `keepFile`, given the `source_file`
+ * of a file node, leaves out that file and everything in it (`not-on-disk`). Throws GraphifyFormatError on an
  * unknown `schema_version`.
  */
-export function readGraphifyGraph(json: unknown, rootDir: string | null): GraphifyImport {
+export function readGraphifyGraph(
+	json: unknown,
+	rootDir: string | null,
+	keepFile: (sourceFile: string) => boolean = () => true
+): GraphifyImport {
 	const root = rootDir === null ? null : rootDir.replace(/\/+$/, '');
 	const { nodes, links } = parseGraph(json);
 	const issues: GraphifyIssue[] = [];
 	const report: Report = (reason, subject, file, line) =>
 		issues.push({ reason, subject, file, line });
 
-	const graph = classifyNodes(nodes, links, root, report);
+	const graph = classifyNodes(nodes, links, root, keepFile, report);
 	const builders = new Map<string, FileBuilder>();
 	for (const file of graph.files.values()) {
 		const symbols = buildSymbolTree(file, graph, report);
@@ -230,6 +289,7 @@ function classifyNodes(
 	nodes: readonly unknown[],
 	links: readonly unknown[],
 	root: string | null,
+	keepFile: (sourceFile: string) => boolean,
 	report: Report
 ): Graph {
 	const roles = new Map<string, NodeRole>();
@@ -239,6 +299,7 @@ function classifyNodes(
 		report(reason, raw.id, raw.source_file || null, parseLine(raw.source_location));
 	};
 	const symbols: RawNode[] = [];
+	const leftOut = new Set<string>();
 	for (const raw of nodes) {
 		if (!isRawNode(raw)) {
 			report('malformed', JSON.stringify(raw).slice(0, 120), null, null);
@@ -250,6 +311,9 @@ function classifyNodes(
 			roles.set(raw.id, { role: 'package', module: raw.label, sourceFile: raw.source_file });
 		} else if (raw.file_type !== 'code') {
 			drop(raw, 'not-code');
+		} else if (isFileNode(raw) && !keepFile(raw.source_file)) {
+			leftOut.add(raw.source_file);
+			drop(raw, 'not-on-disk');
 		} else if (isFileNode(raw) && !files.has(raw.source_file)) {
 			const path = (root === null ? raw.source_file : `${root}/${raw.source_file}`) as FilePath;
 			const file = { id: raw.id, sourceFile: raw.source_file, path };
@@ -262,7 +326,8 @@ function classifyNodes(
 	const byFile = new Map<string, SymbolNode[]>();
 	for (const raw of symbols) {
 		const line = parseLine(raw.source_location);
-		if (!files.has(raw.source_file)) drop(raw, 'no-file-node');
+		if (leftOut.has(raw.source_file)) drop(raw, 'not-on-disk');
+		else if (!files.has(raw.source_file)) drop(raw, 'no-file-node');
 		else if (line === null) drop(raw, 'no-location');
 		else {
 			const symbol = toSymbolNode(raw, line);
@@ -361,8 +426,7 @@ const inLineOrder = (symbols: readonly SymbolNode[]) =>
 
 /** A relation's target as the code map can name it */
 type Resolved =
-	| { kind: 'end'; end: Endpoint; name: string }
-	| { kind: 'unresolved'; label: string };
+	{ kind: 'end'; end: Endpoint; name: string } | { kind: 'unresolved'; label: string };
 
 /** One relation at one line */
 interface Hit {

@@ -52,7 +52,7 @@ src/
 │   │   ├── rustImports.ts            # Cargo.toml 크레이트 루트와 파일 배치로 Rust `use` 경로를 모듈 파일에 연결
 │   │   ├── refResolver.ts            # 참조 위치(호출, 상속, 동적 import)의 대상을 import·같은 파일·같은 패키지로 정하고(EXTRACTED), 이름이 하나뿐일 때만 추론(INFERRED)
 │   │   ├── codeMapScore.ts           # 코드 지도를 정답 그래프(`tests/fixtures/graphs/`)와 비교해 관계 종류별 precision·recall과 놓친 관계를 낸다
-│   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다 (T1-12 비교용)
+│   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다. `identifyGraphFile`이 쓴 도구를 가려 읽을 형식만 받는다 (T1-12 비교, ADR-28 입력)
 │   │   ├── ropemanMapSchema.ts       # `ropeman.json`과 Bridge RPC 메시지를 믿지 않는 입력으로 파싱 (크기, JSON, 형식, 버전, 구조, 단계 트리)
 │   │   ├── mapViewer.ts              # 파싱한 ropeman.json을 시맨틱 스토어가 캐시하는 단계 모양으로 펼친다
 │   │   ├── exploreSnapshotBuilder.ts # 검증한 ropeman.json → 갤러리 스냅샷(분석 커밋, 한국어 옆 사전)과 출고 검사. `scripts/explore/pipeline.mjs`만 쓴다
@@ -163,6 +163,7 @@ bridge/                           # 로컬 Bridge와 `ropeman serve` (`@ropeman/
 │   ├── server.ts                     # CLI 진입점(`ropeman serve`·`stop`·`map`·`verify`·`inbox`, `ropeman-bridge`): 플래그 해석, 토큰, 지도 세션, listen, 유휴 종료
 │   ├── background.ts                 # `serve --detach`와 `ropeman stop`: 작업 폴더의 `serve.json` 기록, `serve.lock` 잠금, 자기 세션으로 띄우기, 비밀로 확인하고 멈춤 요청
 │   ├── mapCommand.ts                 # `ropeman map`·`verify`·`inbox`: 에이전트가 쓴 이름 적용 → 검증 → `ropeman.json`·`work.json`, 대기열과 일꾼 기록
+│   ├── mapInput.ts                   # 지도의 입력(자체 추출 또는 사용자가 고른 그래프 파일): 찾기, 터미널 질문, `input.json` 기록, 보고 (ADR-28)
 │   ├── workFolder.ts                 # 에이전트와 serve가 함께 쓰는 폴더(`--out`)의 파일 이름, 요약 자르기, 대기열·일꾼 기록 읽기·쓰기, 원자적 쓰기
 │   ├── bridge.ts                     # 한 포트에 HTTP(로컬 모드 정적 서빙)와 WebSocket. 들어온 메시지는 모두 `parseRpcRequest`를 거쳐 RPC 처리
 │   ├── mapSession.ts                 # `--root` 하나의 지도: 추출, `map.get`·`node.expand` 답, `--out`의 이름과 대기열(또는 `--cli` 이름 작업), 파일 변경 감시 → `map.changed`
@@ -181,6 +182,7 @@ packages/core/                    # Node 추출 코어 (npm 워크스페이스 �
 ├── src/
 │   ├── walk.ts                       # 폴더 순회: 브라우저와 같은 건너뛰기 규칙, 상한 없음. 파일 링크는 대상도 같은 규칙으로 확인, 폴더 링크는 따라가지 않음
 │   ├── extract.ts                    # 순회 → 해석 설정 → 파싱 → 코드 지도 → 계층 요약 (`extractDirectory`)
+│   ├── graphExtraction.ts            # 그래프 파일 → 디스크와 대조한 같은 `Extraction`과 커버리지 (`extractGraphFile`, ADR-28)
 │   ├── groupedMap.ts                 # 추출 → 폴더로 묶은 `grouped` 단계와 파일 단계(노드 id가 폴더 부분을 가리켜 id만으로 단계를 다시 만든다)
 │   └── cli.ts                        # `ropeman-extract <폴더> [--out 파일]`
 ├── test/                             # 브라우저 경로와 같은 지도인지(parity), Node 전용 규칙, 폴더로 묶은 지도의 검증(`mapVerifier.test.ts`)
@@ -361,7 +363,7 @@ AST 파싱 완료 → AnalyzeModal에서 트랙 선택 (보낼 크기 KB와 대�
 
 - 고정 장치: `skeletonWire.test.ts`가 v2 이전 코드로 찍어 둔 전송 문자열 7종(최상위·드릴다운, 예산 무제한·50KB, 예산을 넘는 파일 하나)과 지금 출력을 비교한다.
 - 추출 점수: `tests/fixtures/graphs/`의 정답 그래프로 잰다 (9절).
-- graph.json 어댑터 (`graphifyAdapter.ts`, 순수 함수): `readGraphifyGraph(json, root)`가 Graphify가 만든 `graph.json`(`schema_version` 1)을 같은 코드 지도로 읽는다. T1-12가 Ropeman 추출과 Graphify 추출을 `scoreCodeMap`으로 나란히 재려고 둔다. 앱에서 사용자의 graph.json을 여는 경로는 아직 없다.
+- graph.json 어댑터 (`graphifyAdapter.ts`, 순수 함수): `readGraphifyGraph(json, root)`가 Graphify가 만든 `graph.json`(`schema_version` 1)을 같은 코드 지도로 읽는다. T1-12가 Ropeman 추출과 Graphify 추출을 `scoreCodeMap`으로 나란히 재려고 둔다. 사용자 경로는 `ropeman map --input`이다(아래 "그래프 파일 입력"). 브라우저 앱에서 graph.json을 여는 경로는 없다.
   - ast 층(`_origin: ast`)만 코드 사실로 읽는다. LLM이 만든 semantic 층, 군집 번호와 군집 이름(`community_name`)은 읽지 않는다(A-10). 관계의 EXTRACTED/INFERRED는 graph.json 값을 그대로 쓰고 출처는 `graphify`다. AMBIGUOUS는 INFERRED로 읽는다.
   - 경로는 `{root}/{source_file}`이다. 심볼 id는 graph.json 노드 id를 쓰지 않고, `contains`·`method` 트리를 줄 순서로 다시 세워 `fileFromAst`와 같은 규칙(`부모.이름`, 같은 이름이 또 나오면 `~n`)으로 만든다. 줄은 `L9` 같은 시작 줄뿐이라 `end: null`이다. 심볼 종류는 이름 모양(`f()`, `.m()`)과 `_callable_class`로만 정한다.
   - graph.json은 방향 없는 단순 그래프라 노드 쌍마다 관계를 하나만 남긴다. 같은 관계가 다른 줄에서 또 나오면 `also_seen`에 접는데, 어댑터는 이것을 줄마다 위치로 다시 편다. 다른 관계끼리 부딪혀 사라진 것(파일 맨 위의 호출이 `contains`에 덮인 경우 등)은 되살리지 못하고 이유(`folded-call`, `reverse-import`)만 남긴다.
@@ -468,16 +470,18 @@ file.read(path)    → #72 그대로 (루트 안, 실제 .env 거부, 500KB, 연
 
 ```
 ropeman map --root R --out O     → 추출 → O/names.json 적용 → 단계마다 검증 → O/ropeman.json, O/work.json, 보고(JSON)
+                                   (그래프 파일이 있고 고른 입력이 없으면: 터미널은 질문, 아니면 선택지 JSON과 종료 코드 2)
+ropeman map ... --input I        → I(`ropeman` 또는 그래프 파일)를 O/input.json에 남기고 그 입력으로 같은 절차
 MAIN                             → work.json을 읽고 부분마다 label·description·keySymbols를 O/names.json에 쓴다
 ropeman map (다시)               → 문제(코드·단계·노드)를 고칠 때까지 반복, 끝나면 다음 단계
 MAIN                             → O/brief.md: 사용자 의도, 용어, 이름 규칙, 위 단계 이름
-ropeman verify --root R --map F  → 아무 ropeman.json이나 새 추출과 대조, 위반 JSON
+ropeman verify --root R --map F  → 아무 ropeman.json이나 그 입력(--input, F 옆 input.json, 없으면 새 추출)과 대조, 위반 JSON
 ropeman serve --root R --out O --detach → 백그라운드 serve: O/ropeman.json의 이름을 내주고, 이름 없는 폴더는 일꾼에게(결과는 O/naming-log.jsonl), 일꾼이 없으면 O/queue.json에
 ropeman stop --out O             → O의 serve를 멈춘다
 ropeman inbox --out O            → 남은 대기열 + 지난번 이후의 일꾼 결과 (MAIN이 다음 메시지마다)
 ```
 
-- 작업 폴더의 파일은 쓰는 쪽이 하나씩이다. MAIN은 `names.json`·`brief.md`, `ropeman map`은 `ropeman.json`·`work.json`, serve는 `queue.json`·`naming-log.jsonl`·`serve.json`, `serve --detach`는 `serve.log`, `ropeman inbox`는 `inbox-read.json`만 쓴다(`ropeman stop`은 포트에 아무것도 듣지 않는 `serve.json`만 지운다). 예외는 `serve.lock`이다. 여러 `--detach` 시작이 `wx`로 다투고, 이긴 쪽만 확인하고 띄운다. 모든 파일은 임시 파일에 새로 쓰고 이름을 바꾼다. 그래서 읽는 쪽이 반쯤 쓴 파일을 보지 않고, 그 자리에 심어 둔 링크는 따라가지 않고 바뀐다. 나중의 Claude Code 채널도 같은 파일을 쓴다.
+- 작업 폴더의 파일은 쓰는 쪽이 하나씩이다. MAIN은 `names.json`·`brief.md`, `ropeman map`은 `ropeman.json`·`work.json`·`input.json`, serve는 `queue.json`·`naming-log.jsonl`·`serve.json`, `serve --detach`는 `serve.log`, `ropeman inbox`는 `inbox-read.json`만 쓴다(`ropeman stop`은 포트에 아무것도 듣지 않는 `serve.json`만 지운다). 예외는 `serve.lock`이다. 여러 `--detach` 시작이 `wx`로 다투고, 이긴 쪽만 확인하고 띄운다. 모든 파일은 임시 파일에 새로 쓰고 이름을 바꾼다. 그래서 읽는 쪽이 반쯤 쓴 파일을 보지 않고, 그 자리에 심어 둔 링크는 따라가지 않고 바뀐다. 나중의 Claude Code 채널도 같은 파일을 쓴다.
 - 작업 폴더 읽기: 클론한 저장소는 `.ropeman/brief.md`를 자격 증명 파일로 가는 링크로, 또는 FIFO로 실어 보낼 수 있다. 그래서 `--out` 바로 아래의 일반 파일만 읽는다(`workFolder.ts`의 `readOutFile`). 링크를 따라가지 않고(`O_NOFOLLOW`, Windows는 `lstat`), 막히지 않게 열고(`O_NONBLOCK`, FIFO와 장치는 거부), 상한까지만 읽는다. 상한은 요약 4,000바이트(넘으면 잘라 쓴다), `names.json` 8MiB, `queue.json` 1MiB, `ropeman.json` 16MiB, 기록 1,000,000바이트이고, 요약 말고는 넘으면 읽지 않는다. `--out` 자체는 실제 경로라서 읽은 바이트는 늘 그 폴더 안의 것이다.
 - `names.json`: 노드 id마다 `{ label, description, keySymbols }`. 일꾼에게 묻는 필드이고 검사도 같다(`parseNamingAnswer`, `applyNames`). 한 단계는 부분 전부에 이름이 있고 `verifyMap`을 통과해야 이름이 붙는다. 나머지는 `grouped`로 남기므로 쓰인 `ropeman.json`은 늘 통과한다. 파서가 거부한 단계도 그 단계만 되돌린다.
 - 단계: 깊이다. 1단계는 최상위, 2단계는 그 안의 폴더이고 기본은 2단계까지(`--depth`). `work.json`에는 이름이 없는 가장 얕은 단계, 대기열의 폴더(`queued: true`), 이름이 거부된 단계가 나온다. 부분마다 종류, 파일 수, 경로 12개, 선언한 이름 24개(일꾼 프롬프트와 같은 `summarizePart`), 부분 사이 관계와 관계마다의 import 수, 위 단계에서 붙인 이름이 들어가고, 한 줄에 부분 하나다. 파일 내용과 실제 `.env`는 없다.
@@ -494,6 +498,30 @@ ropeman inbox --out O            → 남은 대기열 + 지난번 이후의 일�
 - 검증: `bridge/test/mapCommand.test.ts`(30개)가 임시 저장소에서 첫 실행, 단계 적용, 끝과 재실행이 같은 바이트를 쓰는지, 문제 코드별 단계 되돌리기, 단계 밖의 거부된 단계, 출력 폴더 규칙, `verify`, 대기열 한 바퀴, 폴더가 생겼다 사라진 뒤 이름이 돌아오는지, 사라진 폴더의 대기열 정리, 가짜 일꾼이 요약과 위 단계 이름을 받아 이름 붙이고 기록하며 `inbox`가 그것을 한 번만 돌려주는지, 긴 요약 자르기를 본다. 심어 둔 파일(요약·이름·대기열 링크, FIFO 요약, 3GiB 희소 요약, 링크인 `--out`), git이 작업 폴더를 커밋하지 않는지와 사용자의 숨은 폴더에는 `.gitignore`를 넣지 않는지, 기록을 못 쓸 때, 일꾼보다 늦게 온 에이전트 이름, `--out` 모드의 동시 2개와 취소, 기록 자르기와 바뀐 기록의 `inbox`, serve `--out` 값과 `ropeman map` 없는 `inbox` 폴더도 본다. `bridge/test/detectCli.test.ts`(2개)는 PATH에 가짜 `gemini`만 있으면 일꾼을 고르지 않고, `claude`가 있으면 그것을 고르는지 본다. `tests/bridge-mode.spec.ts`는 일꾼 이름 뒤에 "claude 일꾼" 띠가 뜨는지, 일꾼이 없는 `--out` 모드에서 대기열 안내와 `ropeman map` 뒤의 이름이 같은 화면에 뜨는지 본다.
 - PASEO 실측(`e0f545fed`, Apple M4, 2026-11-13, 모델 비용 합계 2.24달러): 새 Claude Code 세션(`claude -p`, sonnet, 프로젝트 설정만, `ropeman` 명령만 허용)에 스킬을 설치하고 "이 저장소 지도 그려줘. 서버와 앱이 어떻게 통신하는지 알고 싶다. 저장소는 읽기 전용이니 결과는 <폴더>에"라고만 했다. 최종 스킬로 첫 대화는 16턴, 114초, 0.37달러였다. `ropeman map`을 3번 돌려 두 단계(최상위 하나와 그 아래 폴더 12개, 부분 87개)에 이름을 붙이고 문제 0개로 끝냈고, `brief.md`(사용자 목표, 용어 6개, 이름 규칙 "전송을 다루면 WebSocket·session을 쓴다", 위 단계 이름)를 썼다. `ropeman verify`는 위반 0, 단계 735, 노드 1,398, 관계 1,438, 근거 12,244를 확인했다. 커버리지 보고는 본 파일 6,756, 지도 6,173(읽음 6,171, 크기 초과 1, 파싱 실패 1), 문법 없음 583이다. `ropeman map` 한 번은 7~8초다. serve(`--out`, 일꾼 `claude` 자동 감지)를 띄우고 headless Chromium으로 최상위와 `packages` 아래 이름을 확인한 뒤 `packages/server`를 열자 claude 일꾼이 9.0초 뒤 이름을 보냈다("Daemon source and WebSocket sessions" 등, 요약의 규칙을 따랐다. 0.059달러). 그 안의 `src`는 12.5초(0.081달러)였고, 화면 띠는 "The claude worker named these parts. Worker runs this session: 2."였다. 같은 세션에 "뷰어에서 좀 눌러 봤어. WebSocket 세션은 어디서 다뤄?"를 보내자 에이전트가 먼저 `ropeman inbox`를 돌려 일꾼 기록 2줄을 읽고, 답에 "열어 본 `packages/server/src/server`를 일꾼이 'WebSocket sessions and request handlers'로 이름 붙였다"를 넣었다(5턴, 13초, 0.44달러). 앞선 판들: 파이프 금지 규칙 전 실행(14턴, 113초, 0.52달러, `sed`로 보고를 자르려다 막혀 규칙을 넣었다), 대기열만 있던 판(첫 대화 0.34달러, 대기열 처리 0.43달러).
 - 확인하지 않은 것: Claude Code 밖의 에이전트(Codex, Gemini CLI, Cursor), Windows, gemini 일꾼.
+
+### 그래프 파일 입력 (ADR-28)
+
+지도의 기본 입력은 Ropeman 자체 추출이다. 다른 도구가 이미 만든 그래프 파일은 사용자가 고를 때만 입력이 된다. Ropeman은 그 도구를 설치하거나 실행하지 않는다.
+
+```
+mapInput.chooseInput()            # --input > O/input.json > 찾은 파일(터미널이면 질문, 아니면 선택지 JSON) > 자체 추출
+→ graphExtraction.extractGraphFile()
+    identifyGraphFile()           # 쓴 도구 가리기. Graphify schema 1만 받고 나머지는 이유 코드로 거부
+    walkDirectory()               # 디스크 목록. 자체 추출과 같은 건너뛰기 규칙
+    readGraphifyGraph(keepFile)   # 디스크에 없는 파일 노드와 그 심볼·관계는 `not-on-disk`로 뺀다
+    → Extraction { map, hierarchy, listed, skipped: [], folders } + 커버리지
+→ buildNamedMap()                 # 자체 추출과 같은 묶기·이름 검사·검증기
+```
+
+- 찾는 위치: `graphify-out/graph.json`, `.graphicle/graph.json`. 파일이나 그 경로의 폴더가 링크면(실제 경로가 다르면) 읽지 않는다(`link`, 리뷰 W3). `--input <파일>`은 위치와 상관없이 읽는다.
+- 입력 결정(`mapInput.ts`의 `Decision`): `flag`(`--input`), `recorded`(`O/input.json`), `prompt`(터미널 질문), `default`(찾은 파일이 없거나 모두 읽을 수 없음). `flag`와 `prompt`만 `input.json`을 쓴다. 기록에는 `~/.ropeman/input-key`(사용자마다 처음 쓸 때 만드는 무작위 키, 0600)로 만든 HMAC-SHA256 서명이 붙고, 서명은 작업 폴더의 실제 경로와 입력 값을 묶는다. 서명이 맞지 않는 기록(클론한 저장소가 실어 보낸 것, 다른 폴더에서 복사한 것)은 거부한다. 클론의 사본은 umask 077이면 체크아웃에서도 0600이고 Windows는 모드가 없어서, 모드 검사로는 막지 못한다(리뷰 W1). 터미널 판단은 `server.ts`에서 stdin과 stderr가 모두 TTY인지로 하고, 질문 함수(`CommandEnv.ask`)를 넘길지 말지로만 갈린다. 질문은 stderr, 보고는 stdout이다. 답은 빈 줄이 1번(자체 추출)이고, 잘못된 답은 세 번까지 다시 묻는다. 입력이 닫히거나 세 번 틀리면 아무것도 쓰지 않고 종료 코드 2다.
+- 터미널 없이 고를 것이 남으면 `{ done: false, inputRequired, choices }`를 내고 지도 파일을 쓰지 않는다(작업 폴더만 만든다). `choices[0]`은 `ropeman`이고, 나머지는 파일마다 `--input`에 넘길 `input`(절대 경로), 크기, 수정 시각, 쓴 도구, 커버리지, `summary`, `warnings`, 또는 `refused`다. 종료 코드 2를 쓰는 이유는 예전 스킬도 "2면 stderr를 읽는다"로 처리하기 때문이다.
+- 기록된 입력은 `map`, 그 지도 폴더의 `verify`, `serve --out`이 읽는다. 기록된 그래프 파일이 없거나 거부되면 자체 추출로 돌아가지 않고 멈춘다. serve는 시작할 때 한 번 읽고, 파일이 바뀌어 다시 추출할 때 같은 그래프 파일을 다시 읽는다(`extractInput`). 입력을 바꾸면 serve를 멈추고 다시 띄운다.
+- 커버리지(`GraphCoverage`): 분모는 디스크의 코드 파일이다. Ropeman이 파싱하는 언어의 소스 파일(`inferLanguage`가 언어를 주고 Markdown과 설정 파일이 아닌 것)과, 그래프에 있고 디스크에 있는 다른 파일의 합이다. 분자는 그래프에 있고 디스크에 있는 파일이다. 빠진 파일은 앞 두 폴더와 확장자별로 다섯 개까지, 그래프에만 있는 파일은 개수와 예 다섯 개를 낸다. `ratio < 0.9`(`LOW_COVERAGE`)면 `low`이고 경고만 한다. 분자가 0이면 `no-files-on-disk`로 거부한다. 형식 식별은 통과했지만 `nodes`·`links` 배열이 없는 파일은 `malformed`로 거부한다(리뷰 W2). 보고의 `coverage`에는 `notInGraph`(자체 추출이라면 읽었을 파일 가운데 그래프에 없는 것, 문서·설정 포함)가 붙고, `noGrammar`는 그만큼 뺀 값이라 자체 추출의 `noGrammar`와 같은 뜻이다. 그래프에서 온 경로는 보고에서 80자로 자른다.
+- 형식 확인 상태(2026-11-17): Graphify 0.9.104 `graph.json`만 실제 파일(`tests/fixtures/graphify/`, PASEO `packages/server` 그래프 28MB)로 확인했다. Graphicle(`graphicle`), graf `export snapshot-json`(`graf-snapshot`)과 `export graphify-json`(`graf-graphify-json`), graphify-csharp(`graphify-csharp`)는 각 저장소의 소스로만 읽었고 거부한다. `graph.schema_version`이 없거나 1이 아니면 `schema-version`, `graph.graphify_version`이 없으면 `unknown-writer`다.
+- PASEO 실측(`e0f545fed` 복사본, 원래 `graphify-out/graph.json`): 선택지 "Holds 1,305 of 5,391 code files on disk (24%)", 빠진 곳 `packages/app` 2,975개, 확장자 `.ts` 3,057개·`.tsx` 865개. 그래프에서 만든 지도를 그 입력으로 `verify`하면 위반 0(단계 241, 노드 1,545, 관계 1,975, 근거 5,879), `--input ropeman`으로 하면 `coverage-missing` 4,425개와 `evidence-unknown` 289개로 실패한다. 그래서 `verify`는 지도의 입력에 대고 검사해야 한다.
+- 그래프 파일이 없을 때: main과 이 브랜치로 ts-monorepo 픽스처에 `ropeman map`을 돌리면 `ropeman.json`(`generatedAt` 빼고), `work.json`, 보고(`input` 필드 빼고)가 같다.
+- 검증: `bridge/test/mapInput.test.ts`(26개)가 찾기와 링크 거부, 질문 문구, 터미널 없는 선택지와 종료 코드, 기록과 재사용, 사라진 기록 파일, 심어 둔 기록 파일, 거부 형식, 터미널 답(빈 줄, 1, 2, 잘못된 답, 닫힌 입력, 세 번 틀림), serve 입력을 본다. `packages/core/test/graphExtraction.test.ts`(9개)가 커버리지 계산, 걷지 않는 폴더와 env 파일, 거부 이유를, `graphifyAdapter.test.ts`가 `identifyGraphFile`과 `keepFile`을 본다.
 
 ### 갤러리 스냅샷 파이프라인 (`scripts/explore/`)
 

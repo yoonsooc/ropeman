@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { setTimeout as sleep } from 'timers/promises';
-import { extractDirectory, type Extraction } from '../../packages/core/src/extract';
+import type { Extraction } from '../../packages/core/src/extract';
 import { groupExtraction, type GroupedMap } from '../../packages/core/src/groupedMap';
 import { verifyMap } from '../../src/lib/services/mapVerifier';
 import { DEFAULT_PATH_FILTER, shouldSkipPath } from '../../src/lib/utils/filePriority';
@@ -18,6 +18,7 @@ import {
 import type { CLIType } from './auth.js';
 import { CliError, type CliRunner, headlessCommand } from './cli.js';
 import { isEnvValueFile } from './fileRead.js';
+import { extractInput, type MapInput } from './mapInput.js';
 import {
 	applyNames,
 	nameLevel,
@@ -56,6 +57,8 @@ export interface SessionOptions {
 	/** Real path of `--root` */
 	root: string;
 	wasmDir: string;
+	/** What the map is built from, as `ropeman map` recorded it; own extraction when absent */
+	input?: MapInput;
 	/** The headless worker CLI that names an expanded node; null leaves it to the agent's queue */
 	naming: NamingOptions | null;
 	/**
@@ -89,8 +92,7 @@ interface NamingJob {
 }
 
 export type ExpandResult =
-	| { ok: true; level: MapLevel }
-	| { ok: false; code: RpcErrorCode<'node.expand'>; error: string };
+	{ ok: true; level: MapLevel } | { ok: false; code: RpcErrorCode<'node.expand'>; error: string };
 
 /**
  * When the folders are checked a second time after their watchers open: macOS can drop a change
@@ -294,9 +296,11 @@ export class MapSession {
 		const started = performance.now();
 		const since = Date.now();
 		const run = (async () => {
-			const extraction = await extractDirectory(this.options.root, {
-				wasmDir: this.options.wasmDir
-			});
+			const extraction = await extractInput(
+				this.options.root,
+				this.options.input ?? { kind: 'ropeman' },
+				this.options.wasmDir
+			);
 			const snapshot: Snapshot = {
 				version: ++this.version,
 				extraction,
