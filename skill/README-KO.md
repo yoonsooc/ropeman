@@ -50,7 +50,7 @@ curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubus
 
 1. `ropeman --version`으로 설치를 확인한다.
 2. 출력 폴더를 정한다. 기본은 저장소 안의 숨은 폴더 `.ropeman`이고, 저장소를 바꾸면 안 되면 저장소 밖 폴더를 쓴다.
-3. `ropeman map --root <저장소> --out <폴더>`를 실행한다. 저장소를 추출해 폴더로 묶은 지도 `ropeman.json`, 다음에 이름을 붙일 단계 `work.json`, 커버리지와 문제 목록(JSON)을 낸다. 저장소에 그래프 파일이 있으면 아무것도 쓰지 않고 선택지를 낸다. 에이전트는 사용자에게 어느 입력을 쓸지 묻고, 고른 값을 `--input`으로 넘겨 다시 실행한다.
+3. `ropeman map --root <저장소> --out <폴더>`를 실행한다. 저장소를 추출해 폴더로 묶은 지도 `ropeman.json`, 다음에 이름을 붙일 단계 `work.json`, 커버리지와 문제 목록(JSON)을 낸다. 저장소에 그래프 파일이 있고 고른 입력이 없으면 지도를 쓰지 않고 선택지를 낸다. 에이전트는 사용자에게 어느 입력을 쓸지 묻고, 고른 값을 `--input`으로 넘겨 다시 실행한다.
 4. `work.json`을 읽고 그 단계의 부분마다 이름, 한 문장 설명, 핵심 심볼을 `names.json`에 쓴다. 1단계는 저장소 최상위, 2단계는 그 안의 폴더다.
 5. 3을 다시 실행한다. 문제가 있으면 코드(`name-missing`, `key-symbol-unknown` 등)대로 고치고, 없으면 다음 단계로 간다. 검증기를 통과하지 못한 단계는 지도에 폴더 이름으로 남는다.
 6. `ropeman verify --root <저장소> --map <폴더>/ropeman.json`으로 위반이 0개인지 확인한다.

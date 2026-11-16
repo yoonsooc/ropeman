@@ -672,8 +672,8 @@ export async function runMap(args: string[], env: CommandEnv): Promise<number> {
 		input.kind === 'graph'
 			? {
 					...built.report.coverage,
-					notInGraph: input.read.coverage.missing,
-					noGrammar: built.report.coverage.noGrammar - input.read.coverage.missing
+					notInGraph: input.read.notInGraph,
+					noGrammar: built.report.coverage.noGrammar - input.read.notInGraph
 				}
 			: built.report.coverage;
 	const files = {

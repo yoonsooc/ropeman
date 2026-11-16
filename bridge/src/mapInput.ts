@@ -1,4 +1,6 @@
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import readline from 'readline';
 import { extractDirectory, type Extraction } from '../../packages/core/src/extract';
@@ -82,8 +84,8 @@ export async function findCandidates(root: string): Promise<Candidate[]> {
 		const stat = fs.lstatSync(file, { throwIfNoEntry: false });
 		if (!stat) continue;
 		const base = { location, file, bytes: stat.size, modified: stat.mtime };
-		// A cloned repository can ship the file as a link to one of the user's files
-		if (stat.isSymbolicLink()) {
+		// A cloned repository can ship the file, or a folder on its path, as a link to the user's files
+		if (stat.isSymbolicLink() || fs.realpathSync.native(file) !== file) {
 			found.push({
 				...base,
 				read: {
@@ -120,32 +122,58 @@ async function inputOf(root: string, value: string, from: string): Promise<MapIn
 	return { kind: 'graph', file: path.resolve(value), read: await readGraph(root, value, from) };
 }
 
+/** This user's key for signing recorded choices, created on first use. */
+function inputKey(): Buffer {
+	const file = path.join(os.homedir(), '.ropeman', 'input-key');
+	try {
+		fs.mkdirSync(path.dirname(file), { recursive: true });
+		fs.writeFileSync(file, randomBytes(32).toString('base64url'), { flag: 'wx', mode: 0o600 });
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+	}
+	return fs.readFileSync(file);
+}
+
+/** Binds a choice to one work folder, so a copied or planted `input.json` does not verify. */
+const signature = (folder: string, value: string) =>
+	createHmac('sha256', inputKey()).update(`${folder}\n${value}`).digest('base64url');
+
 /**
- * The choice recorded in `folder`, or null when there is none. `record` writes it mode 0600, so
- * a copy that a cloned repository ships (mode 644 on checkout) is refused: it would pick a graph
- * file the user never chose.
+ * The choice recorded in `folder`, a real path, or null when there is none. A cloned repository
+ * can ship `.ropeman/input.json` with any mode, and Windows keeps no modes, so the record is
+ * trusted only when it carries the signature `record` made with this user's key for this folder.
+ * Otherwise it would pick a graph file the user never chose.
  */
 export function recordedInput(folder: string): string | null {
-	const read = readOutFile(folder, INPUT_FILE, MAX_INPUT_FILE_BYTES, { owned: true });
+	const read = readOutFile(folder, INPUT_FILE, MAX_INPUT_FILE_BYTES);
 	if (read === null) return null;
 	const bad = (why: string) =>
 		new InputError(
 			`${path.join(folder, INPUT_FILE)} ${why}; pass --input ropeman or --input <graph file> to choose again.`
 		);
 	if ('refused' in read) throw bad(`was not read: ${read.refused}`);
-	if (read.exposed) throw bad(`is ${read.exposed}, so ropeman map did not write it`);
+	let value: unknown;
+	let mac: unknown;
 	try {
-		const value = (JSON.parse(read.text) as { input?: unknown }).input;
-		if (typeof value === 'string' && value.length > 0 && !read.cut) return value;
+		({ input: value, mac } = JSON.parse(read.text) as { input?: unknown; mac?: unknown });
 	} catch {
 		// reported below
 	}
-	throw bad('is not a recorded choice');
+	if (read.cut || typeof value !== 'string' || value.length === 0 || typeof mac !== 'string') {
+		throw bad('is not a recorded choice');
+	}
+	const want = Buffer.from(signature(folder, value));
+	const got = Buffer.from(mac);
+	if (got.length !== want.length || !timingSafeEqual(got, want)) {
+		throw bad('was not written by ropeman map for this folder on this machine');
+	}
+	return value;
 }
 
 function record(out: string, input: MapInput): void {
 	const value = input.kind === 'ropeman' ? OWN_INPUT : input.file;
-	writeAtomic(path.join(out, INPUT_FILE), `${JSON.stringify({ input: value })}\n`, 0o600);
+	const text = `${JSON.stringify({ input: value, mac: signature(out, value) })}\n`;
+	writeAtomic(path.join(out, INPUT_FILE), text, 0o600);
 }
 
 const usable = (candidates: readonly Candidate[]) =>
@@ -201,7 +229,12 @@ export async function inputForVerify(
 	flag: string | undefined
 ): Promise<Chosen> {
 	if (flag !== undefined) return { input: await inputOf(root, flag, '--input'), decidedBy: 'flag' };
-	const folder = path.dirname(path.resolve(mapFile));
+	let folder: string;
+	try {
+		folder = fs.realpathSync.native(path.dirname(path.resolve(mapFile)));
+	} catch {
+		return { input: OWN, decidedBy: 'default' };
+	}
 	const recorded = recordedInput(folder);
 	if (recorded === null) return { input: OWN, decidedBy: 'default' };
 	const from = `The input recorded in ${path.join(folder, INPUT_FILE)},`;

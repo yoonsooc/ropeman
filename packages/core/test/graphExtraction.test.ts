@@ -138,6 +138,7 @@ describe('extractGraphFile', () => {
 				)
 		],
 		['no-files-on-disk', () => writeGraph(graphOf(['elsewhere/a.ts']))],
+		['malformed', () => writeGraph({ graph: { schema_version: 1, graphify_version: '0.9.104' } })],
 		['no-files-on-disk', () => writeGraph(graphOf([]))]
 	])('refuses with %s', async (code, make) => {
 		// Arrange

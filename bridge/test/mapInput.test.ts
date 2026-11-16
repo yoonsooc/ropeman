@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -65,9 +65,11 @@ beforeEach(() => {
 	write('app/view.tsx', 'export function f() {}\n');
 	write('app/state.ts', 'export function f() {}\n');
 	out = path.join(base, 'out');
+	vi.stubEnv('HOME', path.join(base, 'home'));
 });
 
 afterEach(() => {
+	vi.unstubAllEnvs();
 	fs.rmSync(base, { recursive: true, force: true });
 });
 
@@ -138,6 +140,20 @@ describe('findCandidates', () => {
 			['.graphicle/graph.json', 'graphicle']
 		]);
 		expect(found[0].read.ok && found[0].read.coverage).toMatchObject({ covered: 2, codeFiles: 4 });
+	});
+
+	it('refuses a graph file reached through a folder link', async () => {
+		// Arrange
+		const elsewhere = path.join(base, 'theirs');
+		fs.mkdirSync(elsewhere);
+		fs.writeFileSync(path.join(elsewhere, 'graph.json'), JSON.stringify(graphOf(SERVER)));
+		fs.symlinkSync(elsewhere, path.join(root, 'graphify-out'));
+
+		// Act
+		const [found] = await findCandidates(root);
+
+		// Assert
+		expect(found.read).toMatchObject({ ok: false, code: 'link' });
 	});
 
 	it('refuses a graph file that is a link', async () => {
@@ -297,23 +313,69 @@ describe('ropeman map input', () => {
 		expect(run.stderr.join('\n')).toMatch(/recorded in .*input\.json.*no such file/);
 	});
 
-	it('refuses a recorded choice that ropeman map did not write, such as one a clone ships', async () => {
+	it.each([0o600, 0o644])(
+		'refuses a recorded choice a clone ships (mode %o) instead of using its graph',
+		async (mode) => {
+			// Arrange
+			write('graphify-out/graph.json', JSON.stringify(graphOf(SERVER)));
+			fs.mkdirSync(out);
+			const planted = JSON.stringify({ input: graphFile(), mac: 'x'.repeat(43) });
+			fs.writeFileSync(path.join(out, INPUT_FILE), planted, { mode });
+
+			// Act
+			const run = await map();
+
+			// Assert
+			expect(run.code).toBe(2);
+			expect(run.stderr.join('\n')).toMatch(/was not written by ropeman map for this folder/);
+			expect(fs.existsSync(path.join(out, MAP_FILE))).toBe(false);
+		}
+	);
+
+	it('refuses a recorded choice copied from another work folder', async () => {
 		// Arrange
 		write('graphify-out/graph.json', JSON.stringify(graphOf(SERVER)));
-		fs.mkdirSync(out);
-		fs.writeFileSync(path.join(out, INPUT_FILE), JSON.stringify({ input: graphFile() }), {
-			mode: 0o644
-		});
+		await map(['--input', graphFile()]);
+		const other = path.join(base, 'other');
+		fs.mkdirSync(other);
+		fs.copyFileSync(path.join(out, INPUT_FILE), path.join(other, INPUT_FILE));
+
+		// Act
+		const run = env();
+		const code = await runCommand(runMap, ['--root', root, '--out', other], run.e);
+
+		// Assert
+		expect(code).toBe(2);
+		expect(run.stderr.join('\n')).toMatch(/was not written by ropeman map for this folder/);
+	});
+
+	it('uses own extraction with a note when a candidate is not a graph it reads', async () => {
+		// Arrange
+		write('graphify-out/graph.json', JSON.stringify({ graph: GRAPHIFY }));
 
 		// Act
 		const run = await map();
 
 		// Assert
-		expect(run.code).toBe(2);
-		expect(run.stderr.join('\n')).toMatch(
-			/input\.json is mode 644, so ropeman map did not write it/
-		);
-		expect(fs.existsSync(path.join(out, MAP_FILE))).toBe(false);
+		expect(run.code).toBe(0);
+		expect(run.report.input.notUsed).toEqual([
+			expect.objectContaining({ location: 'graphify-out/graph.json', code: 'malformed' })
+		]);
+	});
+
+	it('counts files outside the graph apart from files in no language Ropeman reads', async () => {
+		// Arrange
+		write('graphify-out/graph.json', JSON.stringify(graphOf(SERVER)));
+		write('package.json', '{}');
+		write('logo.png', 'png');
+
+		// Act
+		const own = await map(['--input', 'ropeman']);
+		const run = await map(['--input', graphFile()]);
+
+		// Assert
+		expect(run.report.coverage).toMatchObject({ inMap: 2, notInGraph: 3 });
+		expect(run.report.coverage.noGrammar).toBe(own.report.coverage.noGrammar);
 	});
 
 	it('refuses --input naming a file Ropeman does not read, with the reason', async () => {
