@@ -1,11 +1,11 @@
 ---
 title: Bridge Setup
-description: Map a folder on your machine with ropeman serve, open it at ropeman.dev/bridge or in local mode, and let a headless Claude Code worker name its parts
+description: Map a folder on your machine with ropeman serve, open it at ropeman.dev/bridge or in local mode, and let a headless worker CLI name its parts
 category: guides
 order: 6
 ---
 
-**Bridge mode** shows a map of a folder on your machine. `ropeman serve` (npm package `@ropeman/bridge`) reads the folder, and the page at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to it over `ws://127.0.0.1:9800`. Click a folder to open it. Its subfolders and files show right away, and then a headless **Claude Code** worker (`claude -p`) names the parts. Click a file to open its source.
+**Bridge mode** shows a map of a folder on your machine. `ropeman serve` (npm package `@ropeman/bridge`) reads the folder, and the page at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to it over `ws://127.0.0.1:9800`. Click a folder to open it. Its subfolders and files show right away, and then a headless worker CLI names the parts: Claude Code (`claude -p`) by default, or Gemini CLI when you start serve with `--cli gemini`. Click a file to open its source.
 
 With the Ropeman skill installed, your coding agent runs these steps for you: ask it to "map this repo" and open the local mode address it gives you. See [Getting Started](/docs/en/getting-started). This page is for starting serve yourself.
 
@@ -20,7 +20,7 @@ A file you open goes from serve to the page over `127.0.0.1`. serve refuses `.en
 ## Before you start
 
 - Node.js 22 or later.
-- Claude Code (`claude`), installed and signed in, to name the folders you open. Gemini CLI names them only when you start serve with `--cli gemini`. Without a CLI the map still works, and folders keep their folder names.
+- A worker CLI, installed and signed in, to name the folders you open. serve uses Claude Code (`claude`) by default, and Gemini CLI (`gemini`) only when you start serve with `--cli gemini`. Without a worker CLI the map still works, and folders keep their folder names.
 - Chrome, Edge or Firefox. Safari cannot connect from ropeman.dev, so in Safari start serve in [local mode](#use-local-mode).
 
 ## Start serve

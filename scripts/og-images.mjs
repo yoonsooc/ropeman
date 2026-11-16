@@ -1,5 +1,6 @@
 // Writes the landing's share images (og:image), one per language, at 1200x630, the size
-// LinkedIn, KakaoTalk and X show uncropped: the landing's own headline over its hero screenshot.
+// LinkedIn, KakaoTalk and X show uncropped: the landing's own headline over its hero screenshot
+// in the same language.
 // The page supplies the text, fonts and colors, so the images follow the landing when it changes.
 // Run against a server with the built app: node scripts/og-images.mjs http://127.0.0.1:8788
 // CHROME_PATH picks a Chromium other than the one Playwright pins.
@@ -13,7 +14,7 @@ for (const locale of ['en', 'ko']) {
 	const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
 	await page.goto(`${origin}/${locale}`);
 	await page.locator('html[data-hydrated]').waitFor({ state: 'attached' });
-	await page.evaluate(async () => {
+	await page.evaluate(async (locale) => {
 		const h1 = document.querySelector('h1');
 		const lead = h1.childNodes[0].textContent.trim();
 		const accent = h1.querySelector('.headline-accent').textContent.trim();
@@ -53,12 +54,12 @@ for (const locale of ['en', 'ko']) {
 			borderRadius: '12px',
 			border: '1px solid var(--color-border)'
 		});
-		shot.src = '/landing/explore-transformers-dark.webp';
+		shot.src = `/landing/explore-transformers-${locale}-dark.webp`;
 		card.append(brand, headline, shot);
 		document.body.append(card);
 		await shot.decode();
 		await document.fonts.ready;
-	});
+	}, locale);
 	await page.screenshot({ path: new URL(`landing-${locale}.png`, out).pathname });
 	await page.close();
 }

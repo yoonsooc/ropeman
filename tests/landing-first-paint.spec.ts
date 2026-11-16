@@ -220,6 +220,11 @@ test('a language saved before the cookie existed never shows the other language'
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(KO_HEADLINE);
 	await expect(page.locator('#app')).toBeVisible();
 	await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
+	// The served landing was English, and hydration keeps a prerendered src
+	await expect(page.locator('.hero-shot img:visible')).toHaveAttribute(
+		'src',
+		'/landing/explore-transformers-ko-dark.webp'
+	);
 
 	// The app wrote the cookie, so the next visit gets Korean from the first byte
 	await withoutAppScripts(page);
@@ -264,6 +269,40 @@ test('`/ko` stays Korean over a saved English choice and leaves the choice alone
 	expect(JSON.parse(saved!).language).toBe('en');
 });
 
+test('the hero screenshot is in the landing language, and only that one loads', async ({
+	page
+}) => {
+	const shots: string[] = [];
+	page.on('request', (r) => {
+		if (r.url().includes('/landing/explore-transformers')) shots.push(new URL(r.url()).pathname);
+	});
+	await useSettings(page, {});
+	await withoutAppScripts(page);
+	await page.goto('/ko');
+
+	await expect(page.locator('.hero-shot img:visible')).toHaveAttribute(
+		'src',
+		'/landing/explore-transformers-ko-dark.webp'
+	);
+	await page.locator('.hero-shot').scrollIntoViewIfNeeded();
+	await expect(page.locator('.hero-shot img:visible')).toHaveJSProperty('complete', true);
+
+	await page.unrouteAll();
+	await page.goto('/en');
+	await waitForApp(page);
+	await page.locator('.hero-shot').scrollIntoViewIfNeeded();
+
+	await expect(page.locator('.hero-shot img:visible')).toHaveAttribute(
+		'src',
+		'/landing/explore-transformers-en-dark.webp'
+	);
+	await expect(page.locator('.hero-shot img:visible')).toHaveJSProperty('complete', true);
+	expect([...new Set(shots)].sort()).toEqual([
+		'/landing/explore-transformers-en-dark.webp',
+		'/landing/explore-transformers-ko-dark.webp'
+	]);
+});
+
 test('picking English on `/ko` moves to `/` in English', async ({ page }) => {
 	await useSettings(page, {});
 	await page.goto('/ko');
@@ -285,7 +324,7 @@ test('the stored light theme applies before the app boots', async ({ page }) => 
 	// Regression: hydration keeps a prerendered src, so the light theme showed the dark screenshot
 	await expect(page.locator('.hero-shot img:visible')).toHaveAttribute(
 		'src',
-		'/landing/explore-transformers-light.webp'
+		'/landing/explore-transformers-en-light.webp'
 	);
 
 	await page.unrouteAll();
@@ -295,6 +334,6 @@ test('the stored light theme applies before the app boots', async ({ page }) => 
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 	await expect(page.locator('.hero-shot img:visible')).toHaveAttribute(
 		'src',
-		'/landing/explore-transformers-light.webp'
+		'/landing/explore-transformers-en-light.webp'
 	);
 });
