@@ -4,6 +4,51 @@
  * MIT License, Copyright (c) 2026 Meta Platforms, Inc. See LICENSES/astryx-MIT.txt.
  * Light surfaces snap to the Neutral ramp; dark surfaces and the accent are Ropeman's own.
  */
+/*
+ * Hangul comes from the OS Korean UI face, named and scaled to sit with IBM Plex Sans, so the
+ * Korean page fetches no font file. A face the OS lacks is skipped for the next local() name.
+ */
+@font-face {
+	font-family: 'Ropeman Hangul';
+	font-weight: 400;
+	src:
+		local('AppleSDGothicNeo-Regular'), local('Apple SD Gothic Neo Regular'), local('Malgun Gothic'),
+		local('NotoSansKR-Regular'), local('Noto Sans KR Regular');
+	unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+D7B0-D7FF;
+	size-adjust: 94%;
+}
+
+@font-face {
+	font-family: 'Ropeman Hangul';
+	font-weight: 500;
+	src:
+		local('AppleSDGothicNeo-Medium'), local('Apple SD Gothic Neo Medium'), local('Malgun Gothic'),
+		local('NotoSansKR-Medium'), local('Noto Sans KR Medium');
+	unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+D7B0-D7FF;
+	size-adjust: 94%;
+}
+
+@font-face {
+	font-family: 'Ropeman Hangul';
+	font-weight: 600;
+	src:
+		local('AppleSDGothicNeo-SemiBold'), local('Apple SD Gothic Neo SemiBold'),
+		local('Malgun Gothic Bold'), local('MalgunGothicBold'), local('NotoSansKR-SemiBold'),
+		local('Noto Sans KR SemiBold');
+	unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+D7B0-D7FF;
+	size-adjust: 94%;
+}
+
+@font-face {
+	font-family: 'Ropeman Hangul';
+	font-weight: 700;
+	src:
+		local('AppleSDGothicNeo-Bold'), local('Apple SD Gothic Neo Bold'), local('Malgun Gothic Bold'),
+		local('MalgunGothicBold'), local('NotoSansKR-Bold'), local('Noto Sans KR Bold');
+	unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+D7B0-D7FF;
+	size-adjust: 94%;
+}
+
 :root {
 	--color-background-body: #ffffff;
 	--color-background-surface: #f1f1f1;
@@ -92,12 +137,11 @@
 	--spacing-6: 1.5rem;
 	--spacing-7: 1.75rem;
 	--spacing-8: 2rem;
-	--spacing-9: 2.25rem;
 	--spacing-10: 2.5rem;
 	--spacing-12: 3rem;
-	--radius-inner: 4px;
-	--radius-element: 8px;
-	--radius-container: 12px;
+	--radius-inner: 2px;
+	--radius-element: 4px;
+	--radius-container: 6px;
 	--radius-full: 9999px;
 	--font-size-xs: 0.625rem;
 	--font-size-sm: 0.75rem;
@@ -118,8 +162,10 @@
 	--duration-medium: 300ms;
 	--ease-standard: cubic-bezier(0.24, 1, 0.4, 1);
 
-	--font-display: 'Space Grotesk', sans-serif;
-	--font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	--font-body:
+		'IBM Plex Sans', 'Ropeman Hangul', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR',
+		-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--font-display: var(--font-body);
 	--font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 
 	--header-height: 48px;

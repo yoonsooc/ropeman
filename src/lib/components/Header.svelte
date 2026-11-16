@@ -272,8 +272,8 @@
 
 	.header-title {
 		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-accent);
+		font-weight: var(--font-weight-semibold);
+		color: var(--color-text-primary);
 		font-family: var(--font-display);
 	}
 

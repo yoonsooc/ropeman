@@ -23,22 +23,16 @@ const UI_SUBSETS = ['latin', 'latin-ext'];
 const CODE_SUBSETS = [...UI_SUBSETS, 'cyrillic', 'greek', 'vietnamese'];
 const TEXT_FAMILIES = [
 	{
-		family: 'Inter',
+		family: 'IBM Plex Sans',
 		axes: 'wght@400..700',
 		subsets: UI_SUBSETS,
-		license: ['Inter-OFL.txt', 'ofl/inter/OFL.txt']
+		license: ['IBMPlexSans-OFL.txt', 'ofl/ibmplexsans/OFL.txt']
 	},
 	{
 		family: 'JetBrains Mono',
 		axes: 'wght@400..500',
 		subsets: CODE_SUBSETS,
 		license: ['JetBrainsMono-OFL.txt', 'ofl/jetbrainsmono/OFL.txt']
-	},
-	{
-		family: 'Space Grotesk',
-		axes: 'wght@400..700',
-		subsets: UI_SUBSETS,
-		license: ['SpaceGrotesk-OFL.txt', 'ofl/spacegrotesk/OFL.txt']
 	}
 ];
 const TEXT_CSS = `https://fonts.googleapis.com/css2?${TEXT_FAMILIES.map(
