@@ -843,7 +843,7 @@ main push → ci job (lint, svelte-check, build, core·bridge 번들 확인, uni
 ## 9. 테스트
 
 - 단위 테스트는 vitest로 `src/**/*.test.ts`를 돈다. 파서 워커 테스트는 `web-tree-sitter`의 wasm 경로를 `static/`으로 바꿔 Node에서 실제 문법으로 파싱한다. `vitest.setup.ts`는 참조 쿼리가 실패해 경고를 남긴 테스트를 실패로 만든다(2절 "스켈레톤 v2"의 참조 위치 추출).
-- E2E는 Playwright로 `tests/*.spec.ts`를 돈다. 로컬 폴더는 `?testDir=<절대 경로>`로 연다. dev 서버 미들웨어(`scripts/vite-dev-fs-plugin.js`)가 폴더를 훑고 파일을 읽어 주고, `testLoader.ts`가 파싱한다.
+- E2E는 Playwright로 `tests/*.spec.ts`를 돈다. Playwright는 dev 서버를 포트 5180(`E2E_PORT`로 바꾼다)에 직접 띄우고, 그 포트에 이미 서버가 있으면 재사용하지 않고 실패한다. 5173의 dev 서버는 다른 체크아웃의 코드일 수 있어서, 워크트리에서 돌린 E2E가 그 코드를 검사하지 않게 한다. 로컬 폴더는 `?testDir=<절대 경로>`로 연다. dev 서버 미들웨어(`scripts/vite-dev-fs-plugin.js`)가 폴더를 훑고 파일을 읽어 주고, `testLoader.ts`가 파싱한다.
 
 ### 추출 정답 그래프
 

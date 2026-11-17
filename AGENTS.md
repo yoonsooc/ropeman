@@ -42,8 +42,9 @@ Node 22. Run `npm ci` once; it also installs the git hooks.
 | Type check core / bridge | `npm run check:core`, `npm ci --prefix bridge && npm run check:bridge`                           |
 | Worker tests             | `npm ci --prefix workers && npm test --prefix workers`                                           |
 | E2E                      | `npx playwright install --only-shell chromium`, then `npm run bundle:viewer && npm run test:e2e` |
+| E2E port                 | `npm run test:e2e` starts its own dev server on port 5180 (`E2E_PORT` overrides)                 |
 
-`workers/test/` is not part of `npm run test:unit`; it runs in workerd through `npm test --prefix workers`. CI (`.github/workflows/ci.yml`) runs every check above on each pull request. Before you push, run at least `npm run test:unit && npm run build && npm run lint`.
+The E2E run never reuses a server already on its port, so a dev server on 5173 from another checkout cannot stand in for the one under test. `workers/test/` is not part of `npm run test:unit`; it runs in workerd through `npm test --prefix workers`. CI (`.github/workflows/ci.yml`) runs every check above on each pull request. Before you push, run at least `npm run test:unit && npm run build && npm run lint`.
 
 ## Conventions
 
