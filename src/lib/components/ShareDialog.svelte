@@ -104,7 +104,9 @@
 					<span class="material-symbols-outlined" style="font-size:18px;">share</span>
 					{i18nStore.t('share.confirmTitle')}
 				</h2>
-				<button class="modal-close" onclick={onclose}>&#10005;</button>
+				<button class="modal-close" onclick={onclose} aria-label={i18nStore.t('common.close')}
+					><span aria-hidden="true" class="material-symbols-outlined">close</span></button
+				>
 			</div>
 
 			<div class="modal-body share-body">

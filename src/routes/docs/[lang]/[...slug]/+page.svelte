@@ -137,6 +137,10 @@
 		color: var(--color-text-primary);
 	}
 
+	.docs-content :global(.code-word) {
+		white-space: nowrap;
+	}
+
 	.docs-content :global(pre) {
 		background: var(--color-syntax-background);
 		border: 1px solid var(--color-border);

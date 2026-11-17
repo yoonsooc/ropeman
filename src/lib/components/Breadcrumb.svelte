@@ -155,10 +155,11 @@
 					}
 				}}
 			>
-				<span class="crumb-icon">&#9673;</span>
+				<span aria-hidden="true" class="material-symbols-outlined crumb-icon">home</span>
 				<span class="crumb-label">{i18nStore.t('common.project')}</span>
 				{#if semanticPath.length === 0}
-					<span class="crumb-chevron">&#9662;</span>
+					<span aria-hidden="true" class="material-symbols-outlined crumb-chevron">expand_more</span
+					>
 				{/if}
 			</button>
 			{#if openDropdownIndex === -1}
@@ -178,7 +179,9 @@
 		</div>
 
 		{#each semanticPath as crumb, i}
-			<span class="separator">&rsaquo;</span>
+			<span aria-hidden="true" class="material-symbols-outlined separator-chevron"
+				>chevron_right</span
+			>
 			<div class="crumb-dropdown-wrapper">
 				<button
 					class="crumb"
@@ -197,7 +200,9 @@
 				>
 					<span class="crumb-label">{crumb.label}</span>
 					{#if i === semanticPath.length - 1 && getSemanticChildren(i).length > 0}
-						<span class="crumb-chevron">&#9662;</span>
+						<span aria-hidden="true" class="material-symbols-outlined crumb-chevron"
+							>expand_more</span
+						>
 					{/if}
 				</button>
 				{#if openDropdownIndex === i}
@@ -220,7 +225,9 @@
 	<nav class="breadcrumb-bar">
 		{#each codePathSegments as segment, i}
 			{#if i > 0}
-				<span class="separator">&rsaquo;</span>
+				<span aria-hidden="true" class="material-symbols-outlined separator-chevron"
+					>chevron_right</span
+				>
 			{/if}
 			{#if i === codePathSegments.length - 1}
 				<!-- Filename (last segment, no dropdown) -->
@@ -244,7 +251,9 @@
 							>
 						{/if}
 						<span class="crumb-label">{segment}</span>
-						<span class="crumb-chevron">&#9662;</span>
+						<span aria-hidden="true" class="material-symbols-outlined crumb-chevron"
+							>expand_more</span
+						>
 					</button>
 					{#if openDropdownIndex === i}
 						{@const dirPath = codePathSegments.slice(0, i + 1).join('/')}
@@ -289,7 +298,7 @@
 		min-height: 32px;
 	}
 
-	.separator {
+	.separator-chevron {
 		color: var(--color-text-tertiary);
 		font-size: var(--font-size-base);
 		margin: 0 var(--spacing-0-5);
@@ -339,9 +348,8 @@
 	}
 
 	.crumb-chevron {
-		font-size: 8px;
+		font-size: 14px;
 		color: var(--color-text-tertiary);
-		margin-left: var(--spacing-0-5);
 	}
 
 	.crumb-dropdown-wrapper {

@@ -4,14 +4,17 @@
 		"account_tree",
 		"add",
 		"arrow_back",
+		"arrow_forward",
 		"article",
 		"auto_awesome",
 		"block",
 		"bolt",
 		"build",
 		"cable",
+		"chat",
 		"check",
 		"check_circle",
+		"chevron_left",
 		"chevron_right",
 		"close",
 		"cloud",
@@ -64,8 +67,10 @@
 		"progress_activity",
 		"psychology",
 		"refresh",
+		"remove",
 		"rule",
 		"schedule",
+		"search",
 		"settings",
 		"settings_input_component",
 		"share",
@@ -125,9 +130,9 @@
 		},
 		{
 			"file": "material-symbols-outlined.woff2",
-			"source": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=account_tree,add,arrow_back,article,auto_awesome,block,bolt,build,cable,check,check_circle,chevron_right,close,cloud,code,coffee,content_copy,create_new_folder,css,dark_mode,data_object,delete,deployed_code,description,download,error,expand_less,expand_more,explore_off,fact_check,folder,folder_open,front_hand,gavel,help,help_outline,home,hourglass_empty,html,image,info,inventory_2,javascript,key_off,keyboard_arrow_down,keyboard_arrow_up,legend_toggle,light_mode,link_off,lock,map,memory,menu,menu_book,open_in_browser,open_in_new,photo_library,play_arrow,play_circle,power_off,progress_activity,psychology,refresh,rule,schedule,settings,settings_input_component,share,shield_lock,stop_circle,terminal,translate,upload_file,verified_user,visibility_off,vpn_key,warning,zoom_in",
-			"sha256": "101d439c475becf3e81f65c88b5646f1c10412237ff3fe7a6cb45ec68cb85326",
-			"bytes": 8580
+			"source": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=account_tree,add,arrow_back,arrow_forward,article,auto_awesome,block,bolt,build,cable,chat,check,check_circle,chevron_left,chevron_right,close,cloud,code,coffee,content_copy,create_new_folder,css,dark_mode,data_object,delete,deployed_code,description,download,error,expand_less,expand_more,explore_off,fact_check,folder,folder_open,front_hand,gavel,help,help_outline,home,hourglass_empty,html,image,info,inventory_2,javascript,key_off,keyboard_arrow_down,keyboard_arrow_up,legend_toggle,light_mode,link_off,lock,map,memory,menu,menu_book,open_in_browser,open_in_new,photo_library,play_arrow,play_circle,power_off,progress_activity,psychology,refresh,remove,rule,schedule,search,settings,settings_input_component,share,shield_lock,stop_circle,terminal,translate,upload_file,verified_user,visibility_off,vpn_key,warning,zoom_in",
+			"sha256": "98e7707429afb703ddc89f92828dd49b164d4038d2120b734168b18110de1cca",
+			"bytes": 8708
 		}
 	],
 	"licenses": [

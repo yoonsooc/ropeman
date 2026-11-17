@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import type { AccessState, BrowserFamily } from '$lib/services/bridgeAccess';
+	import InlineCodeText from '$lib/components/InlineCodeText.svelte';
 
 	let {
 		state,
@@ -136,7 +137,7 @@
 
 	{#if state === 'refused' && !local}
 		<pre class="guide-command"><code>{TOKEN}</code></pre>
-		<p class="guide-hint">{t('refusedHint')}</p>
+		<p class="guide-hint"><InlineCodeText text={t('refusedHint')} /></p>
 		<p class="guide-hint">{t('allowOrigin')}</p>
 		<pre class="guide-command"><code>{allowThisPage}</code></pre>
 	{/if}

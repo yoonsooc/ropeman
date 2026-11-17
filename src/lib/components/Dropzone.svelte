@@ -17,6 +17,7 @@
 	import { parseGitHubUrl, githubLoadErrorKey } from '$lib/utils/githubUrl';
 	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 	import AgentSetup from '$lib/components/AgentSetup.svelte';
+	import InlineCodeText from '$lib/components/InlineCodeText.svelte';
 
 	const breakpoint = useBreakpoint();
 	// M4: File System Access API + directory drag are desktop-only. On phones
@@ -193,18 +194,7 @@
 >
 	{#if oncancel}
 		<button class="dropzone-close" onclick={oncancel} title={i18nStore.t('common.cancel')}>
-			<svg
-				width="20"
-				height="20"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-			</svg>
+			<span aria-hidden="true" class="material-symbols-outlined">close</span>
 		</button>
 	{/if}
 	<div class="dropzone-content">
@@ -281,7 +271,7 @@
 						</div>
 						<div>
 							<dt>{i18nStore.t('landing.featureDrillTitle')}</dt>
-							<dd>{i18nStore.t('landing.featureDrillDesc')}</dd>
+							<dd><InlineCodeText text={i18nStore.t('landing.featureDrillDesc')} /></dd>
 						</div>
 					</dl>
 				</section>
@@ -821,8 +811,8 @@
 		width: 64px;
 		height: 64px;
 		border-radius: 50%;
-		border: 2px solid var(--color-accent-muted);
-		border-top-color: var(--color-accent);
+		border: 2px solid var(--color-border);
+		border-top-color: var(--color-text-secondary);
 		animation: spin 0.8s linear infinite;
 	}
 

@@ -13,6 +13,7 @@
 	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
 	import CodeViewer from '$lib/components/CodeViewer.svelte';
 	import BridgeAccessGuide from '$lib/components/BridgeAccessGuide.svelte';
+	import InlineCodeText from '$lib/components/InlineCodeText.svelte';
 	import AgentSetup from '$lib/components/AgentSetup.svelte';
 	import type { ConnectFailure } from '$lib/services/bridgeClient';
 	import {
@@ -320,7 +321,7 @@
 						{:else if naming?.state === 'failed'}
 							<div class="bridge-strip warning" role="status" data-testid="naming-status">
 								<span>
-									{namingText(naming)}
+									<InlineCodeText text={namingText(naming)} />
 									<span class="bridge-detail"
 										>{i18nStore.t('bridge.serverSaid', { error: naming.error })}</span
 									>
@@ -329,7 +330,7 @@
 						{/if}
 						{#if noticeText}
 							<div class="bridge-strip error" role="alert">
-								<span>{noticeText}</span>
+								<span><InlineCodeText text={noticeText} /></span>
 								<button class="bridge-cta secondary" onclick={() => bridgeStore.dismissNotice()}>
 									{i18nStore.t('bridge.dismiss')}
 								</button>
@@ -365,13 +366,13 @@
 						<BridgeAccessGuide state={guide} {browser} host={guideHost} {origin} />
 					{/if}
 					{#if noticeText}
-						<p class="bridge-error" role="alert">{noticeText}</p>
+						<p class="bridge-error" role="alert"><InlineCodeText text={noticeText} /></p>
 					{/if}
 					<button class="bridge-cta secondary" onclick={() => bridgeStore.disconnect()}>
 						{i18nStore.t('bridge.cancel')}
 					</button>
 				{:else}
-					<p class="bridge-desc">{i18nStore.t('bridge.desc')}</p>
+					<p class="bridge-desc"><InlineCodeText text={i18nStore.t('bridge.desc')} /></p>
 					{#if status.state === 'failed' && status.failure.reason !== 'closed'}
 						<div class="bridge-failure" role="alert">
 							<strong>{i18nStore.t('bridge.failedTitle')}</strong>
@@ -430,7 +431,7 @@
 							</button>
 						</form>
 						<p id="bridge-token-hint" class="bridge-hint">
-							{i18nStore.t('bridge.tokenHint', { file: TOKEN_FILE })}
+							<InlineCodeText text={i18nStore.t('bridge.tokenHint', { file: TOKEN_FILE })} />
 						</p>
 						{#if !onLoopback}
 							<p class="bridge-hint">{i18nStore.t('bridge.tokenMemoryOnly')}</p>
@@ -796,8 +797,8 @@
 		width: 40px;
 		height: 40px;
 		border-radius: 50%;
-		border: 2px solid var(--color-accent-muted);
-		border-top-color: var(--color-accent);
+		border: 2px solid var(--color-border);
+		border-top-color: var(--color-text-secondary);
 		animation: spin 0.8s linear infinite;
 	}
 

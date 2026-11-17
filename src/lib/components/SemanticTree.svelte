@@ -220,10 +220,10 @@
 		analyzeDrilldown(semNode);
 	}
 
-	const statusIcons: Record<string, string> = {
-		cached: '\u2713',
-		analyzing: '\u23F3',
-		unanalyzed: '\u2014'
+	const statusIcons: Record<TreeNode['status'], { icon: string }> = {
+		cached: { icon: 'check' },
+		analyzing: { icon: 'hourglass_empty' },
+		unanalyzed: { icon: 'remove' }
 	};
 </script>
 
@@ -246,8 +246,10 @@
 				class="tree-chevron"
 				class:expanded={expandedNodes.has(node.id)}
 				onclick={() => toggleExpand(node.id)}
+				aria-expanded={expandedNodes.has(node.id)}
+				aria-label={node.label}
 			>
-				&#9656;
+				<span aria-hidden="true" class="material-symbols-outlined">chevron_right</span>
 			</button>
 		{:else}
 			<span class="tree-spacer"></span>
@@ -272,12 +274,11 @@
 				</button>
 			{/if}
 			<span
-				class="node-status"
+				aria-hidden="true"
+				class="material-symbols-outlined node-status-icon"
 				class:cached={node.status === 'cached'}
-				class:analyzing={node.status === 'analyzing'}
+				class:analyzing={node.status === 'analyzing'}>{statusIcons[node.status].icon}</span
 			>
-				{statusIcons[node.status]}
-			</span>
 			<span class="node-count">{node.fileCount}</span>
 		</button>
 	</div>
@@ -346,7 +347,6 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 10px;
 		color: var(--color-text-tertiary);
 		background: none;
 		border: none;
@@ -358,6 +358,10 @@
 
 	.tree-chevron.expanded {
 		transform: rotate(90deg);
+	}
+
+	.tree-chevron .material-symbols-outlined {
+		font-size: 16px;
 	}
 
 	.tree-spacer {
@@ -410,17 +414,17 @@
 		min-width: 0;
 	}
 
-	.node-status {
-		font-size: var(--font-size-xs);
+	.node-status-icon {
+		font-size: 14px;
 		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 	}
 
-	.node-status.cached {
+	.node-status-icon.cached {
 		color: var(--color-text-success);
 	}
 
-	.node-status.analyzing {
+	.node-status-icon.analyzing {
 		color: var(--color-text-warning);
 	}
 

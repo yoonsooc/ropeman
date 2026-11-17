@@ -196,37 +196,13 @@
 		<div class="explorer-header">
 			<span class="explorer-title">{i18nStore.t('explorer.title')}</span>
 			<button class="explorer-toggle" onclick={ontoggle} title={i18nStore.t('explorer.hide')}>
-				<svg
-					width="14"
-					height="14"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<polyline points="11 17 6 12 11 7" />
-				</svg>
+				<span aria-hidden="true" class="material-symbols-outlined">chevron_left</span>
 			</button>
 		</div>
 
 		<div class="explorer-search">
 			<div class="search-wrapper">
-				<svg
-					class="search-icon"
-					width="12"
-					height="12"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<circle cx="11" cy="11" r="8" />
-					<line x1="21" y1="21" x2="16.65" y2="16.65" />
-				</svg>
+				<span aria-hidden="true" class="material-symbols-outlined search-icon">search</span>
 				<input
 					type="text"
 					placeholder={i18nStore.t('explorer.filterPlaceholder')}
@@ -239,19 +215,7 @@
 						onclick={() => (searchQuery = '')}
 						title={i18nStore.t('explorer.clearFilter')}
 					>
-						<svg
-							width="12"
-							height="12"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<line x1="18" y1="6" x2="6" y2="18" />
-							<line x1="6" y1="6" x2="18" y2="18" />
-						</svg>
+						<span aria-hidden="true" class="material-symbols-outlined">close</span>
 					</button>
 				{/if}
 			</div>
@@ -265,18 +229,7 @@
 	</aside>
 {:else}
 	<button class="explorer-collapsed-toggle" onclick={ontoggle} title={i18nStore.t('explorer.show')}>
-		<svg
-			width="14"
-			height="14"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		>
-			<polyline points="13 17 18 12 13 7" />
-		</svg>
+		<span aria-hidden="true" class="material-symbols-outlined">chevron_right</span>
 	</button>
 {/if}
 
@@ -435,8 +388,18 @@
 	}
 
 	.search-icon {
+		font-size: 14px;
 		color: var(--color-text-tertiary);
 		flex-shrink: 0;
+	}
+
+	.explorer-toggle .material-symbols-outlined,
+	.explorer-collapsed-toggle .material-symbols-outlined {
+		font-size: 16px;
+	}
+
+	.search-clear .material-symbols-outlined {
+		font-size: 14px;
 	}
 
 	.search-input {

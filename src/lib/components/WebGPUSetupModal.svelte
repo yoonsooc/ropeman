@@ -51,14 +51,16 @@
 		<div class="modal-card webgpu-card" role="dialog" aria-modal="true" tabindex="-1" use:focusTrap>
 			<div class="modal-header">
 				<h2>{i18nStore.t('webgpuSetup.title')}</h2>
-				<button class="modal-close" onclick={handleCancel}>&#10005;</button>
+				<button class="modal-close" onclick={handleCancel} aria-label={i18nStore.t('common.close')}
+					><span aria-hidden="true" class="material-symbols-outlined">close</span></button
+				>
 			</div>
 
 			<div class="modal-body">
 				{#if webgpuStore.status === 'error'}
 					<!-- Error -->
 					<div class="error-section">
-						<div class="error-icon">&#9888;</div>
+						<span aria-hidden="true" class="material-symbols-outlined error-icon">warning</span>
 						<p class="error-text">{webgpuStore.errorMessage}</p>
 						<button class="btn btn-primary" onclick={handleStartDownload}
 							>{i18nStore.t('common.retry')}</button
@@ -173,11 +175,16 @@
 <!-- Download complete notification -->
 {#if webgpuStore.status === 'ready' && webgpuStore.downloadProgress === 100}
 	<div class="download-complete" role="status">
-		<span class="dc-icon">&#10003;</span>
+		<span aria-hidden="true" class="material-symbols-outlined dc-icon">check</span>
 		<span class="dc-text"
 			>{i18nStore.t('webgpuSetup.ready', { model: webgpuStore.selectedModel.label })}</span
 		>
-		<button class="dc-dismiss" onclick={() => (webgpuStore.downloadProgress = 0)}>&#10005;</button>
+		<button
+			class="dc-dismiss"
+			onclick={() => (webgpuStore.downloadProgress = 0)}
+			aria-label={i18nStore.t('common.close')}
+			><span aria-hidden="true" class="material-symbols-outlined">close</span></button
+		>
 	</div>
 {/if}
 
@@ -347,7 +354,6 @@
 	}
 	.dc-icon {
 		font-size: 16px;
-		font-weight: var(--font-weight-bold);
 	}
 	.dc-text {
 		flex: 1;
@@ -360,6 +366,9 @@
 		cursor: pointer;
 		padding: var(--spacing-0-5);
 		opacity: 0.7;
+	}
+	.dc-dismiss .material-symbols-outlined {
+		font-size: 16px;
 	}
 	.dc-dismiss:hover {
 		opacity: 1;

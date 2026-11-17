@@ -60,3 +60,4 @@
 | [ADR-28](0028-graph-file-as-chosen-input.md)          | graph.json은 사용자가 고를 때만 쓰는 보조 입력, 만드는 도구는 설치하지 않음 | 2026-11-17 |
 | [ADR-29](0029-plex-sans-and-local-hangul.md)          | 글자는 IBM Plex Sans 한 벌, 한글은 OS 글꼴에 `local()` 이름을 붙여 씀       | 2026-11-17 |
 | [ADR-30](0030-collapse-single-child-folder-chains.md) | 하위 폴더 하나만 가진 폴더 사슬은 노드 하나로 접는다                        | 2026-11-17 |
+| [ADR-31](0031-flags-as-unbroken-inline-code.md)       | 문구 속 명령줄 플래그는 백틱으로 표시하고 줄바꿈 없는 코드로 그린다         | 2026-11-17 |

@@ -76,7 +76,10 @@
 						{/if}
 						{#if link}
 							<a href={link} target="_blank" rel="external noopener noreferrer" class="source-link">
-								{i18nStore.t('explore.viewOnGithub')} ↗
+								{i18nStore.t('explore.viewOnGithub')}
+								<span aria-hidden="true" class="material-symbols-outlined inline-icon"
+									>open_in_new</span
+								>
 							</a>
 						{/if}
 					</div>

@@ -192,7 +192,9 @@
 				</h2>
 				<div class="header-actions">
 					<button class="btn-reset" onclick={handleReset}>{i18nStore.t('settingsReset')}</button>
-					<button class="modal-close" onclick={onclose}>&#10005;</button>
+					<button class="modal-close" onclick={onclose} aria-label={i18nStore.t('common.close')}
+						><span aria-hidden="true" class="material-symbols-outlined">close</span></button
+					>
 				</div>
 			</div>
 

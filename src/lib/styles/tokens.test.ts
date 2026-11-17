@@ -109,7 +109,7 @@ const SURFACES = [
 	'--color-background-popover'
 ];
 const PAGE = ['--color-background-body', '--color-background-surface'];
-const STATUS = ['error', 'success', 'warning', 'info'];
+const STATUS = ['error', 'success', 'warning'];
 
 const PAIRS: [fg: string, bg: string, floor: number][] = [
 	...[
@@ -126,7 +126,6 @@ const PAIRS: [fg: string, bg: string, floor: number][] = [
 		`--color-${s}-muted`,
 		4.5
 	]),
-	['--color-on-accent', '--color-accent', 4.5],
 	['--color-on-error', '--color-error', 4.5],
 	['--color-on-success', '--color-success', 4.5],
 	['--color-on-inverted', '--color-background-inverted', 4.5],

@@ -40,7 +40,9 @@
 		<div class="modal-card help-card" role="dialog" aria-modal="true" tabindex="-1" use:focusTrap>
 			<div class="modal-header">
 				<h2>{i18nStore.t('help.title')}</h2>
-				<button class="modal-close" onclick={onclose}>&#10005;</button>
+				<button class="modal-close" onclick={onclose} aria-label={i18nStore.t('common.close')}>
+					<span aria-hidden="true" class="material-symbols-outlined">close</span>
+				</button>
 			</div>
 
 			<div class="help-tabs">
@@ -163,10 +165,17 @@
 						<div class="faq-list">
 							{#each helpData.faqItems as item}
 								<details class="faq-item">
-									<summary class="faq-question">{item.q}</summary>
+									<summary class="faq-question">
+										<span aria-hidden="true" class="material-symbols-outlined faq-chevron"
+											>chevron_right</span
+										>{item.q}
+									</summary>
 									<p class="faq-answer">{item.a}</p>
 									<a class="faq-learn-more" href={resolve(`docs/${i18nStore.locale}/${item.slug}`)}>
-										{i18nStore.t('docs.learnMore')} →
+										{i18nStore.t('docs.learnMore')}
+										<span aria-hidden="true" class="material-symbols-outlined inline-icon"
+											>arrow_forward</span
+										>
 									</a>
 								</details>
 							{/each}
@@ -177,7 +186,7 @@
 
 			<div class="help-footer">
 				<button class="help-tour-btn" onclick={handleRestartTour}>
-					<span class="material-symbols-outlined" style="font-size:16px;">play_circle</span>
+					<span aria-hidden="true" class="material-symbols-outlined">play_circle</span>
 					{i18nStore.t('onboarding.restartTour')}
 				</button>
 				<div class="help-footer-info">
@@ -285,11 +294,12 @@
 		justify-content: center;
 		width: 22px;
 		height: 22px;
-		border-radius: 50%;
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
+		border-radius: var(--radius-inner);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-semibold);
+		font-variant-numeric: tabular-nums;
 		flex-shrink: 0;
 		margin-top: 1px;
 	}
@@ -433,18 +443,14 @@
 		display: none;
 	}
 
-	.faq-question::before {
-		content: '';
-		width: 0;
-		height: 0;
-		border-left: 5px solid var(--color-text-tertiary);
-		border-top: 4px solid transparent;
-		border-bottom: 4px solid transparent;
+	.faq-chevron {
+		font-size: 16px;
+		color: var(--color-text-tertiary);
 		flex-shrink: 0;
 		transition: transform var(--duration-fast) var(--ease-standard);
 	}
 
-	.faq-item[open] > .faq-question::before {
+	.faq-item[open] > .faq-question .faq-chevron {
 		transform: rotate(90deg);
 	}
 
@@ -458,7 +464,9 @@
 	}
 
 	.faq-learn-more {
-		display: inline-block;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--spacing-1);
 		margin: 0 var(--spacing-3) var(--spacing-3);
 		padding: 0;
 		font-size: var(--font-size-sm);
@@ -469,6 +477,10 @@
 
 	.faq-learn-more:hover {
 		text-decoration: underline;
+	}
+
+	.help-tour-btn .material-symbols-outlined {
+		font-size: 16px;
 	}
 
 	/* Footer */

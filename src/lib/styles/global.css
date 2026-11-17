@@ -71,7 +71,6 @@
 
 	--color-accent: #4f46e5;
 	--color-accent-muted: color-mix(in srgb, var(--color-accent) 15%, transparent);
-	--color-on-accent: #ffffff;
 
 	--color-error: #c9303a;
 	--color-on-error: #ffffff;
@@ -94,11 +93,6 @@
 	--color-text-warning: #836700;
 	--color-icon-warning: var(--color-text-warning);
 	--color-border-warning: var(--color-text-warning);
-
-	--color-info-muted: #b9d7ff;
-	--color-on-info-muted: #003978;
-	--color-text-info: #0067ce;
-	--color-border-info: var(--color-text-info);
 
 	--color-syntax-background: #1e1e1e;
 	--color-syntax-text: #d4d4d4;
@@ -194,7 +188,6 @@
 	--color-on-inverted: #f1f3fc;
 
 	--color-accent: #a3a6ff;
-	--color-on-accent: #0b0c0e;
 
 	--color-error: #ff705d;
 	--color-on-error: #111111;
@@ -211,10 +204,6 @@
 	--color-warning-muted: #e2b6233d;
 	--color-on-warning-muted: #eec448;
 	--color-text-warning: #eec448;
-
-	--color-info-muted: #88bcff3d;
-	--color-on-info-muted: #a1caff;
-	--color-text-info: #a1caff;
 
 	--color-syntax-background: #000000;
 	--color-syntax-text: #e6edf3;
@@ -338,6 +327,11 @@ button {
 	-webkit-font-smoothing: antialiased;
 	vertical-align: middle;
 	font-size: 20px;
+}
+
+/* An icon inside a line of text follows the text's size */
+.material-symbols-outlined.inline-icon {
+	font-size: 1.15em;
 }
 
 a {

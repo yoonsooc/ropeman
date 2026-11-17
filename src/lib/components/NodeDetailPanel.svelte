@@ -15,49 +15,33 @@
 		method: 'var(--color-method)',
 		import: 'var(--color-import)'
 	};
-
-	const kindIcons: Record<string, string> = {
-		directory: '\uD83D\uDCC1',
-		file: '\uD83D\uDCC4',
-		function: 'f\u2099',
-		class: '\u25C7',
-		method: '\u2192',
-		import: '\u21E5'
-	};
 </script>
 
 <div class="node-detail-panel">
 	{#if node}
 		<div class="panel-header">
 			<div class="header-info">
-				<span
-					class="kind-badge"
-					style="background: {kindColors[node.kind] ?? 'var(--color-accent)'}"
-				>
-					<span class="kind-icon">{kindIcons[node.kind] ?? ''}</span>
+				<span class="kind-badge">
+					<span
+						class="kind-dot"
+						style="background: {kindColors[node.kind] ?? 'var(--color-text-tertiary)'}"
+					></span>
 					{node.kind}
 				</span>
 				<h3 class="node-name">{node.label}</h3>
 			</div>
-			<button class="close-btn" onclick={onclose} title={i18nStore.t('common.close')}
-				>&#10005;</button
+			<button
+				class="close-btn"
+				onclick={onclose}
+				title={i18nStore.t('common.close')}
+				aria-label={i18nStore.t('common.close')}
+				><span aria-hidden="true" class="material-symbols-outlined">close</span></button
 			>
 		</div>
 
 		<div class="panel-content">
 			<div class="file-path">
-				<svg
-					width="14"
-					height="14"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-				</svg>
+				<span aria-hidden="true" class="material-symbols-outlined">folder</span>
 				<span>{node.filePath}</span>
 			</div>
 
@@ -107,7 +91,9 @@
 	{:else}
 		<div class="panel-header">
 			<h3 class="node-name">{i18nStore.t('nodeDetail.title')}</h3>
-			<button class="close-btn" onclick={onclose}>&#10005;</button>
+			<button class="close-btn" onclick={onclose} aria-label={i18nStore.t('common.close')}
+				><span aria-hidden="true" class="material-symbols-outlined">close</span></button
+			>
 		</div>
 		<div class="panel-content">
 			<p class="empty">{i18nStore.t('nodeDetail.empty')}</p>
@@ -156,15 +142,19 @@
 		align-items: center;
 		gap: var(--spacing-1);
 		padding: var(--spacing-0-5) var(--spacing-2);
-		border-radius: var(--radius-container);
+		border-radius: var(--radius-inner);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
-		color: var(--color-on-accent);
+		color: var(--color-text-secondary);
+		background: var(--color-background-muted);
 		width: fit-content;
 	}
 
-	.kind-icon {
-		font-size: 11px;
+	.kind-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: var(--radius-full);
+		flex-shrink: 0;
 	}
 
 	.node-name {
@@ -209,7 +199,8 @@
 		word-break: break-all;
 	}
 
-	.file-path svg {
+	.file-path .material-symbols-outlined {
+		font-size: 14px;
 		flex-shrink: 0;
 	}
 

@@ -111,40 +111,9 @@
 					tabindex="0"
 					aria-selected={tab.id === activeTabId}
 				>
-					<span class="tab-icon">
-						{#if tab.type === 'diagram'}
-							<svg
-								width="12"
-								height="12"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<circle cx="12" cy="12" r="10" />
-								<line x1="2" y1="12" x2="22" y2="12" />
-								<path
-									d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-								/>
-							</svg>
-						{:else}
-							<svg
-								width="12"
-								height="12"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<polyline points="16 18 22 12 16 6" />
-								<polyline points="8 6 2 12 8 18" />
-							</svg>
-						{/if}
-					</span>
+					<span aria-hidden="true" class="material-symbols-outlined tab-icon"
+						>{tab.type === 'diagram' ? 'account_tree' : 'code'}</span
+					>
 					<span class="tab-label">{tabLabel(tab)}</span>
 					<button
 						class="tab-close"
@@ -154,19 +123,7 @@
 						}}
 						title={i18nStore.t('common.close')}
 					>
-						<svg
-							width="10"
-							height="10"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2.5"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<line x1="18" y1="6" x2="6" y2="18" />
-							<line x1="6" y1="6" x2="18" y2="18" />
-						</svg>
+						<span aria-hidden="true" class="material-symbols-outlined">close</span>
 					</button>
 				</div>
 			{/each}
@@ -239,6 +196,7 @@
 	}
 
 	.tab-icon {
+		font-size: 14px;
 		display: flex;
 		align-items: center;
 		flex-shrink: 0;
@@ -276,6 +234,10 @@
 	.tab:hover .tab-close,
 	.tab.active .tab-close {
 		opacity: 1;
+	}
+
+	.tab-close .material-symbols-outlined {
+		font-size: 14px;
 	}
 
 	.tab-close:hover {
