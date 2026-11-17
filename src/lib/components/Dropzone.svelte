@@ -772,7 +772,7 @@
 			max-width: none;
 		}
 
-		/* On a phone the hero paragraph already says how naming and drill-down work */
+		/* On a phone the hero paragraph already covers naming, checking and drill-down */
 		.stage-facts > div:not(:first-child) {
 			display: none;
 		}

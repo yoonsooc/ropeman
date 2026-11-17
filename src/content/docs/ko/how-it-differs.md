@@ -7,14 +7,14 @@ order: 1.5
 
 코드 지도 도구는 몇 갈래가 있습니다. 저장소 전체를 큰 그래프 하나로 그리는 뷰어, 모델이 코드를 읽고 쓴 위키, 에이전트에게 코드 사실 저장소를 주는 메모리 서버입니다. Ropeman은 파서가 뽑은 사실로 지도를 폴더 단계 하나씩 그리고, 검증기가 확인한 이름만 붙입니다. 아래 절마다 Ropeman이 하는 일을 적고, 저장소에서 그것을 보여 주는 코드나 결정 기록을 링크했습니다.
 
-## 1. 모델은 파일 내용을 보지 않고 구조만 읽습니다
+## 1. 모델이 보는 것
 
-추출에는 모델을 쓰지 않습니다. 브라우저에서는 Web Worker가, `ropeman` 명령에서는 Node가 tree-sitter 파서로 파일, 심볼, import, 호출을 찾습니다. 모델에 보내는 프롬프트는 모두 이 결과로 만듭니다.
+추출에는 모델을 쓰지 않습니다. Ropeman이 폴더를 훑고, 브라우저에서는 Web Worker가, `ropeman` 명령에서는 Node가 tree-sitter 파서로 파일마다 심볼, import, 호출을 읽습니다. 모델에 보내는 프롬프트는 모두 이 결과로 만들고, 함수 본문과 주석은 어느 프롬프트에도 들어가지 않습니다.
 
-- 브라우저 앱의 코드 구조 요약에는 파일 경로, 심볼 이름과 종류, import가 들어갑니다([`src/lib/services/skeletonExtractor.ts`의 `toWireFile`](https://github.com/yoonsooc/ropeman/blob/main/src/lib/services/skeletonExtractor.ts), [`src/lib/types/skeleton.ts`](https://github.com/yoonsooc/ropeman/blob/main/src/lib/types/skeleton.ts)).
-- 스킬을 쓰면 `work.json`과 일꾼 프롬프트가 부분마다 파일 수, 경로 표본, 선언한 심볼 이름을 주고, 부분 사이의 import 수를 셉니다([`bridge/src/naming.ts`의 `summarizePart`](https://github.com/yoonsooc/ropeman/blob/main/bridge/src/naming.ts)). 일꾼 프롬프트는 모델에게 파일 내용을 보지 못한다고 알려 줍니다.
+- 브라우저 앱의 코드 구조 요약에는 파일 경로, 심볼 이름과 종류, import가 들어갑니다. Markdown이면 제목과 frontmatter 값, Dockerfile이면 명령 줄도 들어갑니다([`src/lib/services/skeletonExtractor.ts`의 `toWireFile`](https://github.com/yoonsooc/ropeman/blob/main/src/lib/services/skeletonExtractor.ts), [`src/lib/types/skeleton.ts`](https://github.com/yoonsooc/ropeman/blob/main/src/lib/types/skeleton.ts)).
+- 스킬을 쓰면 `work.json`과 일꾼 프롬프트는 그것도 빼고 부분마다 파일 수, 경로 표본, 선언한 심볼 이름을 주고, 부분 사이의 import 수를 셉니다([`bridge/src/naming.ts`의 `summarizePart`](https://github.com/yoonsooc/ropeman/blob/main/bridge/src/naming.ts)). 일꾼 프롬프트는 모델에게 파일 내용을 보지 못한다고 알려 줍니다.
 
-스킬은 에이전트가 `work.json`을 보고 이름을 붙이게 하고, 경로와 심볼만으로 부분의 역할을 알 수 없을 때만 소스 파일을 열게 합니다([`skill/ropeman/SKILL.md`](https://github.com/yoonsooc/ropeman/blob/main/skill/ropeman/SKILL.md)). Ropeman은 실제 `.env` 파일을 읽지 않습니다. 추출은 이 파일을 건너뛰고([`packages/core/src/walk.ts`](https://github.com/yoonsooc/ropeman/blob/main/packages/core/src/walk.ts)), serve는 열기를 거부하고([`bridge/src/fileRead.ts`](https://github.com/yoonsooc/ropeman/blob/main/bridge/src/fileRead.ts)), 일꾼 프롬프트에는 그 경로도 넣지 않습니다. `.env.example` 같은 템플릿 파일은 다른 파일처럼 읽습니다.
+스킬은 에이전트가 `work.json`을 보고 이름을 붙이게 하고, 경로와 심볼만으로 부분의 역할을 알 수 없을 때만 소스 파일을 열게 합니다([`skill/ropeman/SKILL.md`](https://github.com/yoonsooc/ropeman/blob/main/skill/ropeman/SKILL.md)). Ropeman은 실제 `.env` 파일을 읽지 않습니다. 추출은 이 파일에 언어를 주지 않아서 어떤 파서도 열지 않고([`src/lib/utils/languageDetector.ts`](https://github.com/yoonsooc/ropeman/blob/main/src/lib/utils/languageDetector.ts)), 이 파일로 가는 링크도 따라가지 않습니다([`packages/core/src/walk.ts`](https://github.com/yoonsooc/ropeman/blob/main/packages/core/src/walk.ts)). serve는 열기를 거부하고([`bridge/src/fileRead.ts`](https://github.com/yoonsooc/ropeman/blob/main/bridge/src/fileRead.ts)), 일꾼 프롬프트에는 그 경로도 넣지 않습니다. `.env.example` 같은 템플릿 파일은 다른 파일처럼 읽습니다.
 
 ## 2. 이름은 코드와 대조해 검사합니다
 
@@ -28,7 +28,7 @@ order: 1.5
 
 전체 그래프 뷰어는 모든 파일을 한 번에 그리고 묶음은 배치에 맡깁니다. Ropeman은 폴더마다 단계를 하나 만듭니다. 단계의 부분은 하위 폴더 하나하나와, 그 폴더에 바로 든 파일 묶음 하나입니다. 하위 폴더 하나만 있고 직접 든 파일이 없는 폴더는 단계를 만들지 않습니다. 그런 폴더가 이어지면 사슬 전체가 노드 하나가 되고, 제목은 사슬의 경로입니다([ADR-30](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0030-collapse-single-child-folder-chains.md), [`packages/core/src/groupedMap.ts`](https://github.com/yoonsooc/ropeman/blob/main/packages/core/src/groupedMap.ts)의 `chainEnd`).
 
-지도는 추출기가 본 파일을 모두 적고, 파일마다 들어간 부분이나 건너뛴 이유를 답니다([`src/lib/types/coverage.ts`](https://github.com/yoonsooc/ropeman/blob/main/src/lib/types/coverage.ts)). 이 목록에서 파일이 빠진 지도는 검증기가 거부합니다. 폴더를 누르면 그 단계가 열리고, 파일을 누르면 소스를 봅니다.
+지도는 Ropeman이 파싱한 파일과, 파싱하려다 건너뛴 파일을 이유와 함께 모두 적습니다([`src/lib/types/coverage.ts`](https://github.com/yoonsooc/ropeman/blob/main/src/lib/types/coverage.ts)). `ropeman map`의 보고는 Ropeman이 파싱하지 않는 언어의 파일 수도 셉니다. 파싱한 파일이 이 목록에서 빠지거나, 그 파일을 다루는 단계의 어느 부분에도 들어가지 않은 지도는 검증기가 거부합니다. 폴더를 누르면 그 단계가 열리고, 파일을 누르면 소스를 봅니다.
 
 ## 4. 이름은 내 에이전트가 붙입니다
 

@@ -45,6 +45,13 @@ test.describe('Landing Page', () => {
 		);
 	});
 
+	test('opens the page on how Ropeman differs from the landing link', async ({ page }) => {
+		await gotoApp(page);
+		await page.locator('.stage-differs').click();
+		await expect(page).toHaveURL(/\/docs\/en\/how-it-differs$/);
+		await expect(page.locator('h1')).toHaveText('How Ropeman Differs');
+	});
+
 	test('should have theme toggle button in header', async ({ page }) => {
 		await gotoApp(page);
 		const themeBtn = page.locator('header .theme-toggle');
