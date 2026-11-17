@@ -262,18 +262,25 @@
 					</figure>
 					<dl class="stage-facts">
 						<div>
-							<dt>{i18nStore.t('landing.featureMapTitle')}</dt>
-							<dd>{i18nStore.t('landing.featureMapDesc')}</dd>
+							<dt>{i18nStore.t('landing.featureSeesTitle')}</dt>
+							<dd><InlineCodeText text={i18nStore.t('landing.featureSeesDesc')} /></dd>
 						</div>
 						<div>
 							<dt>{i18nStore.t('landing.featureVerifyTitle')}</dt>
 							<dd>{i18nStore.t('landing.featureVerifyDesc')}</dd>
 						</div>
 						<div>
-							<dt>{i18nStore.t('landing.featureDrillTitle')}</dt>
-							<dd><InlineCodeText text={i18nStore.t('landing.featureDrillDesc')} /></dd>
+							<dt>{i18nStore.t('landing.featureLevelsTitle')}</dt>
+							<dd>{i18nStore.t('landing.featureLevelsDesc')}</dd>
+						</div>
+						<div>
+							<dt>{i18nStore.t('landing.featureLocalTitle')}</dt>
+							<dd><InlineCodeText text={i18nStore.t('landing.featureLocalDesc')} /></dd>
 						</div>
 					</dl>
+					<a class="stage-differs" href={resolve(`docs/${i18nStore.locale}/how-it-differs`)}
+						>{i18nStore.t('landing.featureDiffersLink')}</a
+					>
 				</section>
 
 				<section class="landing-setup pane" id="agent-setup" aria-labelledby="landing-setup-title">
@@ -555,9 +562,9 @@
 
 	.stage-facts {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--spacing-6);
-		padding: var(--spacing-5) var(--spacing-4) var(--spacing-6);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--spacing-5) var(--spacing-6);
+		padding: var(--spacing-5) var(--spacing-4) var(--spacing-4);
 	}
 
 	.stage-facts dt {
@@ -574,7 +581,14 @@
 		font-variant-numeric: tabular-nums;
 	}
 
+	.stage-differs {
+		display: inline-block;
+		margin: 0 var(--spacing-4) var(--spacing-6);
+		font-size: var(--font-size-sm);
+	}
+
 	.try-link,
+	.stage-differs,
 	.landing-footer a {
 		color: var(--color-accent);
 		text-underline-offset: 3px;

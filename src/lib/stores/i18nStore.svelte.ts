@@ -14,12 +14,15 @@ interface LandingTranslations {
 	setupTitle: string;
 	tryTitle: string;
 	tryBody: string;
-	featureMapTitle: string;
-	featureMapDesc: string;
+	featureSeesTitle: string;
+	featureSeesDesc: string;
 	featureVerifyTitle: string;
 	featureVerifyDesc: string;
-	featureDrillTitle: string;
-	featureDrillDesc: string;
+	featureLevelsTitle: string;
+	featureLevelsDesc: string;
+	featureLocalTitle: string;
+	featureLocalDesc: string;
+	featureDiffersLink: string;
 	githubPlaceholder: string;
 	githubLoad: string;
 	githubOr: string;
@@ -706,15 +709,19 @@ const translations: Record<Locale, TranslationSet> = {
 			tryTitle: '설치 없이 브라우저에서 써 보기',
 			tryBody:
 				'폴더나 공개 GitHub 저장소를 여기서 열면 AI가 파일을 역할별로 묶습니다. 분석할 때 데모(설정 없음), 내 API 키, 브라우저에서 도는 모델 중에서 고르세요.',
-			featureMapTitle: '코드에서 바로 뽑은 지도',
-			featureMapDesc:
-				'tree-sitter 파싱으로 폴더, 심볼, import를 뽑고 모델은 쓰지 않습니다. 커버리지 보고가 파일마다 어디에 들어갔는지, 건너뛴 파일은 왜 건너뛰었는지 알려 줍니다.',
+			featureSeesTitle: '모델이 보는 것',
+			featureSeesDesc:
+				'폴더, 심볼, import는 tree-sitter 파서가 뽑고 모델은 쓰지 않습니다. 에이전트가 읽는 작업 목록과 일꾼 프롬프트에는 경로, 파일 수, 심볼 이름만 들어가고 파일 내용은 들어가지 않습니다. 실제 `.env` 파일은 읽지 않습니다.',
 			featureVerifyTitle: '코드로 검사한 이름',
 			featureVerifyDesc:
-				'에이전트는 한 단계씩 이름을 붙입니다. 검증기는 파일마다 정확히 한 부분에 들어갔는지, 핵심 심볼이 그 부분에 선언되어 있는지 봅니다. 검사에 실패한 단계는 폴더 이름을 그대로 둡니다.',
-			featureDrillTitle: '눌러서 더 깊이',
-			featureDrillDesc:
-				'폴더를 누르면 일꾼 CLI(claude, 또는 `--cli gemini`를 주면 gemini)가 에이전트가 쓴 맥락 요약을 받아 이름을 붙입니다. 일꾼 CLI가 없으면 연 폴더는 에이전트가 다음 대화에서 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일을 읽어 보여 줍니다.',
+				'검증기는 파일마다 정확히 한 부분에 들어갔는지, 핵심 심볼이 그 부분에 선언되어 있는지, 관계마다 그 관계를 만든 코드의 import, 호출, 상속을 근거로 드는지 봅니다. 검사에 실패한 단계는 폴더 이름을 그대로 둡니다.',
+			featureLevelsTitle: '한 단계씩, 파일은 모두',
+			featureLevelsDesc:
+				'단계 하나는 폴더 하나를 하위 폴더와 바로 든 파일로 나눕니다. 커버리지 보고가 파일마다 어디에 들어갔는지, 건너뛴 파일은 왜 건너뛰었는지 알려 줍니다. 폴더를 누르면 다음 단계가, 파일을 누르면 소스가 열립니다.',
+			featureLocalTitle: '내 에이전트, 내 컴퓨터',
+			featureLocalDesc:
+				'이름은 지금 쓰는 에이전트가 붙이고, 더 깊은 폴더는 일꾼 CLI(claude, 또는 `--cli gemini`를 주면 gemini)가 붙입니다. 일꾼 CLI가 없으면 에이전트가 다음 대화에서 붙입니다. Ropeman용 API 키는 필요 없습니다. serve는 127.0.0.1에서만 듣고 파일은 디스크에서 바로 읽습니다.',
+			featureDiffersLink: 'Ropeman이 다른 점과 그 근거',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: '불러오기',
 			githubOr: '또는 GitHub 저장소 URL을 입력하세요',
@@ -1559,15 +1566,19 @@ const translations: Record<Locale, TranslationSet> = {
 			tryTitle: 'Or try it in the browser, no install',
 			tryBody:
 				'Open a folder or a public GitHub repository here, and an AI groups the files by role. When you analyze, pick Demo (no setup), your own API key, or a model that runs in the browser.',
-			featureMapTitle: 'A map from the code itself',
-			featureMapDesc:
-				'Tree-sitter parsing finds the folders, symbols and imports, with no model involved. The coverage report says where every file went and why any file was skipped.',
+			featureSeesTitle: 'What the model sees',
+			featureSeesDesc:
+				'Tree-sitter parsing finds the folders, symbols and imports, with no model involved. The work list your agent reads and the prompt each worker gets hold paths, file counts and symbol names. They hold no file contents, and Ropeman never reads a real `.env` file.',
 			featureVerifyTitle: 'Names checked against the code',
 			featureVerifyDesc:
-				'Your agent names one level at a time. The verifier checks that each file sits in exactly one part and that each key symbol is declared there. A level whose names fail keeps its folder names.',
-			featureDrillTitle: 'Click to go deeper',
-			featureDrillDesc:
-				'Click a folder and a worker CLI (claude, or gemini with `--cli gemini`) names it from the brief your agent wrote. Without a worker CLI, your agent names opened folders on your next message. Click a file and serve reads it from disk.',
+				'The verifier checks that each file sits in exactly one part, that each key symbol is declared there, and that each link cites the import, call or class base in the code it comes from. A level whose names fail keeps its folder names.',
+			featureLevelsTitle: 'One level at a time, every file placed',
+			featureLevelsDesc:
+				'A level splits one folder into its subfolders and the files directly in it. The coverage report says where every file went and why any file was skipped. Click a folder to open its level, or a file to read its source.',
+			featureLocalTitle: 'Your agent, your machine',
+			featureLocalDesc:
+				'The agent you already use names the map, and a worker CLI (claude, or gemini with `--cli gemini`) names deeper folders. Without a worker CLI, your agent names them on your next message. Ropeman needs no API key of its own. serve listens on 127.0.0.1 only and reads files from disk.',
+			featureDiffersLink: 'How Ropeman differs, with the code behind each point',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: 'Load',
 			githubOr: 'or enter a GitHub repository URL',
