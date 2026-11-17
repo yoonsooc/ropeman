@@ -7,6 +7,40 @@
 	import { clearCache } from '$lib/services/cacheService';
 	import { clearSemanticCache, getSemanticCacheSize } from '$lib/services/semanticCacheService';
 	import { SYNTAX_THEMES } from '$lib/services/syntaxThemeService';
+	import { SHORTCUTS, type Surface } from './surface';
+
+	type Section =
+		| 'aiConnection'
+		| 'skeletonLimit'
+		| 'skipPatterns'
+		| 'includePatterns'
+		| 'cache'
+		| 'symbols'
+		| 'language'
+		| 'codeTheme'
+		| 'codeFontSize'
+		| 'shortcuts'
+		| 'reset';
+
+	// serve extracts and names the Bridge map, so the app's AI, extraction and cache settings do
+	// nothing there. Reset stays out too: on ropeman.dev it would erase the app's saved API keys
+	// from a dialog that never shows them.
+	const SECTIONS: Record<Surface, ReadonlySet<Section>> = {
+		app: new Set([
+			'aiConnection',
+			'skeletonLimit',
+			'skipPatterns',
+			'includePatterns',
+			'cache',
+			'symbols',
+			'language',
+			'codeTheme',
+			'codeFontSize',
+			'shortcuts',
+			'reset'
+		]),
+		bridge: new Set(['language', 'codeTheme', 'codeFontSize', 'shortcuts'])
+	};
 
 	const hasProject = $derived(projectStore.fileTree !== null);
 
@@ -41,8 +75,15 @@
 		}
 	});
 
-	let { open, onclose, onconnect }: { open: boolean; onclose: () => void; onconnect?: () => void } =
-		$props();
+	let {
+		open,
+		onclose,
+		onconnect,
+		surface = 'app'
+	}: { open: boolean; onclose: () => void; onconnect?: () => void; surface?: Surface } = $props();
+
+	const shows = (section: Section) => SECTIONS[surface].has(section);
+	const shortcuts = $derived(SHORTCUTS.filter((s) => s.inSettings && s.surfaces.includes(surface)));
 
 	let cacheEnabled = $state(settingsStore.cacheEnabled);
 	let showSymbols = $state(settingsStore.showSymbols);
@@ -191,7 +232,9 @@
 					{i18nStore.t('settings')}
 				</h2>
 				<div class="header-actions">
-					<button class="btn-reset" onclick={handleReset}>{i18nStore.t('settingsReset')}</button>
+					{#if shows('reset')}
+						<button class="btn-reset" onclick={handleReset}>{i18nStore.t('settingsReset')}</button>
+					{/if}
 					<button class="modal-close" onclick={onclose} aria-label={i18nStore.t('common.close')}
 						><span aria-hidden="true" class="material-symbols-outlined">close</span></button
 					>
@@ -199,7 +242,7 @@
 			</div>
 
 			<div class="modal-body">
-				{#if hasProject}
+				{#if hasProject && shows('aiConnection')}
 					<section class="settings-section">
 						<span class="form-label">{i18nStore.t('settingsAiConnection')}</span>
 						<div class="section-card">
@@ -225,216 +268,217 @@
 					</section>
 				{/if}
 
-				<section class="settings-section">
-					<span class="form-label">{i18nStore.t('settingsSkeletonLimit')}</span>
-					<div class="section-card">
-						<div class="form-row">
-							<label class="checkbox-label">
-								<input
-									type="checkbox"
-									checked={skeletonUnlimited}
-									onchange={handleSkeletonUnlimitedToggle}
-								/>
-								{i18nStore.t('settingsSkeletonUnlimited')}
-							</label>
-						</div>
-						{#if !skeletonUnlimited}
+				{#if shows('skeletonLimit')}
+					<section class="settings-section">
+						<span class="form-label">{i18nStore.t('settingsSkeletonLimit')}</span>
+						<div class="section-card">
 							<div class="form-row">
-								<input
-									type="range"
-									class="settings-range"
-									min="50"
-									max="1000"
-									step="50"
-									value={maxSkeletonKB}
-									oninput={handleSkeletonKBChange}
-								/>
-								<span class="range-value">{maxSkeletonKB} KB</span>
+								<label class="checkbox-label">
+									<input
+										type="checkbox"
+										checked={skeletonUnlimited}
+										onchange={handleSkeletonUnlimitedToggle}
+									/>
+									{i18nStore.t('settingsSkeletonUnlimited')}
+								</label>
 							</div>
-						{/if}
-						<p class="hint">{i18nStore.t('settingsSkeletonHint')}</p>
-					</div>
-				</section>
-
-				<section class="settings-section">
-					<span class="form-label">{i18nStore.t('settingsCustomSkipPatterns')}</span>
-					<div class="section-card">
-						<textarea
-							class="skip-patterns-input"
-							bind:value={customSkipPatternsText}
-							onblur={handleCustomSkipPatternsBlur}
-							placeholder={i18nStore.t('settingsCustomSkipPatternsPlaceholder')}
-							rows="4"
-							spellcheck="false"></textarea>
-						<p class="hint">{i18nStore.t('settingsCustomSkipPatternsHint')}</p>
-					</div>
-				</section>
-
-				<section class="settings-section">
-					<label class="form-label" for="settings-include-patterns">
-						{i18nStore.t('settingsCustomIncludePatterns')}
-					</label>
-					<div class="section-card">
-						<textarea
-							id="settings-include-patterns"
-							class="skip-patterns-input"
-							bind:value={customIncludePatternsText}
-							onblur={handleCustomIncludePatternsBlur}
-							placeholder={i18nStore.t('settingsCustomIncludePatternsPlaceholder')}
-							aria-describedby="settings-include-patterns-hint"
-							rows="4"
-							spellcheck="false"></textarea>
-						<p class="hint" id="settings-include-patterns-hint">
-							{i18nStore.t('settingsCustomIncludePatternsHint')}
-						</p>
-					</div>
-				</section>
-
-				<section class="settings-section">
-					<span class="form-label" id="cache-toggle-label">
-						{i18nStore.t('cacheEnabled')}
-						<span
-							class="info-tooltip-wrap"
-							onmouseenter={handleTooltipEnter}
-							onmouseleave={handleTooltipLeave}
-							data-tooltip={i18nStore.t('cacheEnabledTooltip')}
-						>
-							<span class="material-symbols-outlined info-icon">info</span>
-						</span>
-					</span>
-					<div class="section-card">
-						<div class="form-row cache-row">
-							<button
-								class="toggle"
-								class:active={cacheEnabled}
-								onclick={handleCacheToggle}
-								role="switch"
-								aria-checked={cacheEnabled}
-								aria-labelledby="cache-toggle-label"
-							>
-								<span class="toggle-knob"></span>
-							</button>
-							<span class="cache-size"
-								>{i18nStore.t('settingsUi.cacheEntries', { n: cacheSize })}</span
-							>
-							{#if cacheSize > 0}
-								<button class="btn-cache-clear" onclick={handleCacheClear}>
-									<span class="material-symbols-outlined" style="font-size:14px;">delete</span>
-									{i18nStore.t('clearCache')}
-								</button>
+							{#if !skeletonUnlimited}
+								<div class="form-row">
+									<input
+										type="range"
+										class="settings-range"
+										min="50"
+										max="1000"
+										step="50"
+										value={maxSkeletonKB}
+										oninput={handleSkeletonKBChange}
+									/>
+									<span class="range-value">{maxSkeletonKB} KB</span>
+								</div>
 							{/if}
+							<p class="hint">{i18nStore.t('settingsSkeletonHint')}</p>
 						</div>
-					</div>
-				</section>
+					</section>
+				{/if}
 
-				<section class="settings-section">
-					<span class="form-label" id="symbols-toggle-label">
-						{i18nStore.t('showSymbols')}
-						<span
-							class="info-tooltip-wrap"
-							onmouseenter={handleTooltipEnter}
-							onmouseleave={handleTooltipLeave}
-							data-tooltip={i18nStore.t('showSymbolsTooltip')}
-						>
-							<span class="material-symbols-outlined info-icon">info</span>
-						</span>
-					</span>
-					<div class="section-card">
-						<div class="form-row">
-							<button
-								class="toggle"
-								class:active={showSymbols}
-								onclick={handleShowSymbolsToggle}
-								role="switch"
-								aria-checked={showSymbols}
-								aria-labelledby="symbols-toggle-label"
-							>
-								<span class="toggle-knob"></span>
-							</button>
+				{#if shows('skipPatterns')}
+					<section class="settings-section">
+						<span class="form-label">{i18nStore.t('settingsCustomSkipPatterns')}</span>
+						<div class="section-card">
+							<textarea
+								class="skip-patterns-input"
+								bind:value={customSkipPatternsText}
+								onblur={handleCustomSkipPatternsBlur}
+								placeholder={i18nStore.t('settingsCustomSkipPatternsPlaceholder')}
+								rows="4"
+								spellcheck="false"></textarea>
+							<p class="hint">{i18nStore.t('settingsCustomSkipPatternsHint')}</p>
 						</div>
-					</div>
-				</section>
+					</section>
+				{/if}
+
+				{#if shows('includePatterns')}
+					<section class="settings-section">
+						<label class="form-label" for="settings-include-patterns">
+							{i18nStore.t('settingsCustomIncludePatterns')}
+						</label>
+						<div class="section-card">
+							<textarea
+								id="settings-include-patterns"
+								class="skip-patterns-input"
+								bind:value={customIncludePatternsText}
+								onblur={handleCustomIncludePatternsBlur}
+								placeholder={i18nStore.t('settingsCustomIncludePatternsPlaceholder')}
+								aria-describedby="settings-include-patterns-hint"
+								rows="4"
+								spellcheck="false"></textarea>
+							<p class="hint" id="settings-include-patterns-hint">
+								{i18nStore.t('settingsCustomIncludePatternsHint')}
+							</p>
+						</div>
+					</section>
+				{/if}
+
+				{#if shows('cache')}
+					<section class="settings-section">
+						<span class="form-label" id="cache-toggle-label">
+							{i18nStore.t('cacheEnabled')}
+							<span
+								class="info-tooltip-wrap"
+								onmouseenter={handleTooltipEnter}
+								onmouseleave={handleTooltipLeave}
+								data-tooltip={i18nStore.t('cacheEnabledTooltip')}
+							>
+								<span class="material-symbols-outlined info-icon">info</span>
+							</span>
+						</span>
+						<div class="section-card">
+							<div class="form-row cache-row">
+								<button
+									class="toggle"
+									class:active={cacheEnabled}
+									onclick={handleCacheToggle}
+									role="switch"
+									aria-checked={cacheEnabled}
+									aria-labelledby="cache-toggle-label"
+								>
+									<span class="toggle-knob"></span>
+								</button>
+								<span class="cache-size"
+									>{i18nStore.t('settingsUi.cacheEntries', { n: cacheSize })}</span
+								>
+								{#if cacheSize > 0}
+									<button class="btn-cache-clear" onclick={handleCacheClear}>
+										<span class="material-symbols-outlined" style="font-size:14px;">delete</span>
+										{i18nStore.t('clearCache')}
+									</button>
+								{/if}
+							</div>
+						</div>
+					</section>
+				{/if}
+
+				{#if shows('symbols')}
+					<section class="settings-section">
+						<span class="form-label" id="symbols-toggle-label">
+							{i18nStore.t('showSymbols')}
+							<span
+								class="info-tooltip-wrap"
+								onmouseenter={handleTooltipEnter}
+								onmouseleave={handleTooltipLeave}
+								data-tooltip={i18nStore.t('showSymbolsTooltip')}
+							>
+								<span class="material-symbols-outlined info-icon">info</span>
+							</span>
+						</span>
+						<div class="section-card">
+							<div class="form-row">
+								<button
+									class="toggle"
+									class:active={showSymbols}
+									onclick={handleShowSymbolsToggle}
+									role="switch"
+									aria-checked={showSymbols}
+									aria-labelledby="symbols-toggle-label"
+								>
+									<span class="toggle-knob"></span>
+								</button>
+							</div>
+						</div>
+					</section>
+				{/if}
 
 				<!-- 2-column grid: Language + Code Theme (Stitch layout) -->
 				<div class="settings-grid-2col">
-					<section class="settings-section">
-						<label class="form-label" for="lang-select">{i18nStore.t('settingsLanguage')}</label>
-						<div class="section-card">
-							<select id="lang-select" class="select" value={lang} onchange={handleLangChange}>
-								<option value="ko">한국어</option>
-								<option value="en">English</option>
-							</select>
-						</div>
-					</section>
-
-					<section class="settings-section">
-						<label class="form-label" for="theme-select">{i18nStore.t('codeTheme')}</label>
-						<div class="section-card">
-							<select
-								id="theme-select"
-								class="select"
-								value={syntaxTheme}
-								onchange={handleThemeChange}
-							>
-								{#each SYNTAX_THEMES as theme}
-									<option value={theme.id}
-										>{theme.label} ({theme.mode === 'dark'
-											? i18nStore.t('settingsUi.themeDark')
-											: i18nStore.t('settingsUi.themeLight')})</option
-									>
-								{/each}
-							</select>
-						</div>
-					</section>
+					{#if shows('language')}
+						<section class="settings-section">
+							<label class="form-label" for="lang-select">{i18nStore.t('settingsLanguage')}</label>
+							<div class="section-card">
+								<select id="lang-select" class="select" value={lang} onchange={handleLangChange}>
+									<option value="ko">한국어</option>
+									<option value="en">English</option>
+								</select>
+							</div>
+						</section>
+					{/if}
+					{#if shows('codeTheme')}
+						<section class="settings-section">
+							<label class="form-label" for="theme-select">{i18nStore.t('codeTheme')}</label>
+							<div class="section-card">
+								<select
+									id="theme-select"
+									class="select"
+									value={syntaxTheme}
+									onchange={handleThemeChange}
+								>
+									{#each SYNTAX_THEMES as theme}
+										<option value={theme.id}
+											>{theme.label} ({theme.mode === 'dark'
+												? i18nStore.t('settingsUi.themeDark')
+												: i18nStore.t('settingsUi.themeLight')})</option
+										>
+									{/each}
+								</select>
+							</div>
+						</section>
+					{/if}
 				</div>
 
-				<section class="settings-section">
-					<label class="form-label" for="font-size-input">{i18nStore.t('codeFontSize')}</label>
-					<div class="section-card font-size-row">
-						<input
-							id="font-size-input"
-							type="range"
-							min="10"
-							max="24"
-							step="1"
-							value={settingsStore.codeFontSize}
-							oninput={(e) => {
-								settingsStore.codeFontSize = Number((e.target as HTMLInputElement).value);
-							}}
-						/>
-						<span class="font-size-value">{settingsStore.codeFontSize}px</span>
-					</div>
-				</section>
+				{#if shows('codeFontSize')}
+					<section class="settings-section">
+						<label class="form-label" for="font-size-input">{i18nStore.t('codeFontSize')}</label>
+						<div class="section-card font-size-row">
+							<input
+								id="font-size-input"
+								type="range"
+								min="10"
+								max="24"
+								step="1"
+								value={settingsStore.codeFontSize}
+								oninput={(e) => {
+									settingsStore.codeFontSize = Number((e.target as HTMLInputElement).value);
+								}}
+							/>
+							<span class="font-size-value">{settingsStore.codeFontSize}px</span>
+						</div>
+					</section>
+				{/if}
 
-				<section class="settings-section shortcuts-section">
-					<span class="form-label">{i18nStore.t('shortcuts.title')}</span>
-					<div class="shortcut-list">
-						<div class="shortcut-row">
-							<span class="shortcut-desc">{i18nStore.t('shortcuts.search')}</span>
-							<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>K</kbd></span>
+				{#if shows('shortcuts')}
+					<section class="settings-section shortcuts-section">
+						<span class="form-label">{i18nStore.t('shortcuts.title')}</span>
+						<div class="shortcut-list">
+							{#each shortcuts as shortcut (shortcut.label)}
+								<div class="shortcut-row">
+									<span class="shortcut-desc">{i18nStore.t(`shortcuts.${shortcut.label}`)}</span>
+									<span class="shortcut-keys">
+										{#each shortcut.keys as key, i (key)}{#if i > 0}+{/if}<kbd>{key}</kbd>{/each}
+									</span>
+								</div>
+							{/each}
 						</div>
-						<div class="shortcut-row">
-							<span class="shortcut-desc">{i18nStore.t('shortcuts.toggleTheme')}</span>
-							<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></span>
-						</div>
-						<div class="shortcut-row">
-							<span class="shortcut-desc">{i18nStore.t('shortcuts.toggleView')}</span>
-							<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></span>
-						</div>
-						<div class="shortcut-row">
-							<span class="shortcut-desc">{i18nStore.t('shortcuts.toggleSidebar')}</span>
-							<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>B</kbd></span>
-						</div>
-						<div class="shortcut-row">
-							<span class="shortcut-desc">{i18nStore.t('shortcuts.showHelp')}</span>
-							<span class="shortcut-keys"><kbd>?</kbd></span>
-						</div>
-						<div class="shortcut-row">
-							<span class="shortcut-desc">{i18nStore.t('shortcuts.closeModal')}</span>
-							<span class="shortcut-keys"><kbd>Esc</kbd></span>
-						</div>
-					</div>
-				</section>
+					</section>
+				{/if}
 			</div>
 		</div>
 	</div>

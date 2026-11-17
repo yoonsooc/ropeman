@@ -9,6 +9,8 @@ order: 6
 
 The sidebar works as in the main app. The file explorer lists every file the map saw, and clicking one opens its source. Selecting a part on the map highlights its files and folders in the explorer, and the semantic tree drills down the same way the map does.
 
+The top bar is the main app's too, with language, theme, Help and Settings. Help opens on a Bridge tab. Settings shows only what changes the viewer: language, code theme, code font size and keyboard shortcuts. The gallery and docs links open in a new tab, so the map stays connected. In local mode they open ropeman.dev.
+
 With the Ropeman skill installed, your coding agent runs these steps for you: ask it to "map this repo" and open the local mode address it gives you. See [Getting Started](/docs/en/getting-started), and [The work folder](/docs/en/getting-started#the-work-folder) for the files the agent and serve keep. This page is for starting serve yourself.
 
 Bridge mode runs on its own page. The main app's AI modes (Demo, API Key and WebGPU) are described in [AI Modes](/docs/en/ai-modes).

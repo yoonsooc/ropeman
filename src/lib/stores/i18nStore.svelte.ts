@@ -77,6 +77,9 @@ interface HelpTranslations {
 	tabAiModes: string;
 	tabShortcuts: string;
 	tabFaq: string;
+	tabBridge: string;
+	bridgeTitle: string;
+	bridgeItems: { title: string; body: string }[];
 	usageTitle: string;
 	usageSteps: string[];
 	usageInteraction: string;
@@ -892,6 +895,30 @@ const translations: Record<Locale, TranslationSet> = {
 			tabAiModes: 'AI 모드',
 			tabShortcuts: '단축키',
 			tabFaq: 'FAQ',
+			tabBridge: '브리지',
+			bridgeTitle: '브리지 모드',
+			bridgeItems: [
+				{
+					title: '이 지도는 어디서 왔나요',
+					body: '코딩 에이전트나 내가 이 컴퓨터의 폴더에서 `ropeman serve`를 실행했습니다. serve가 그 폴더를 읽고 127.0.0.1로 이 페이지에 지도를 보냅니다. 코드는 Ropeman 서버로 가지 않습니다.'
+				},
+				{
+					title: '누가 이름을 붙이나요',
+					body: '위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 폴더를 열면 그 안의 부분은 먼저 폴더 이름으로 보입니다. "이름을 기다리는 중"이 보이면 헤드리스 일꾼 CLI(claude, 또는 `--cli gemini`를 주면 gemini)가 지금 이름을 붙이고 있습니다. "에이전트 대기열에 넣었습니다"는 serve에 일꾼 CLI가 없다는 뜻이고, 다음에 에이전트와 대화할 때 에이전트가 이름을 붙입니다. 일꾼이 이름을 붙이면 어느 일꾼이 붙였는지 지도 위 띠에 나옵니다.'
+				},
+				{
+					title: '사이드바',
+					body: '파일 탐색기에는 지도가 본 파일이 모두 있습니다. 파일을 누르면 serve가 디스크에서 그 파일을 읽어 옵니다. 두 번 누르면 그 파일을 가진 부분도 고릅니다. 지도에서 부분을 고르면 탐색기에서 그 파일과 폴더가 강조되고, 시맨틱 트리에서도 지도처럼 드릴다운합니다.'
+				},
+				{
+					title: '다시 연결',
+					body: 'serve가 멈추거나 연결이 끊기면 지도는 그대로 남고 다시 연결 버튼이 나옵니다. serve가 멈췄다면 먼저 다시 실행하세요. 로컬 모드에서는 새로 고치면 저절로 다시 연결됩니다. ropeman.dev에서는 새로 고친 뒤 토큰을 다시 넣으세요.'
+				},
+				{
+					title: '로컬 모드',
+					body: '로컬 모드에서는 serve가 127.0.0.1에서 이 페이지를 직접 띄웁니다. 그래서 브라우저가 권한을 묻지 않고, 페이지는 다른 호스트로 요청을 보내지 않습니다. 갤러리와 문서 링크는 ropeman.dev를 새 탭에서 엽니다.'
+				}
+			],
 			usageTitle: '기본 사용법',
 			usageInteraction: '인터랙션',
 			aiModesTitle: 'AI 분석 모드',
@@ -1721,6 +1748,30 @@ const translations: Record<Locale, TranslationSet> = {
 			tabAiModes: 'AI Modes',
 			tabShortcuts: 'Shortcuts',
 			tabFaq: 'FAQ',
+			tabBridge: 'Bridge',
+			bridgeTitle: 'Bridge mode',
+			bridgeItems: [
+				{
+					title: 'Where this map comes from',
+					body: "Your coding agent, or you, ran `ropeman serve` in a folder on this computer. serve reads that folder and sends this page its map over 127.0.0.1. Your code does not go to Ropeman's servers."
+				},
+				{
+					title: 'Who names the parts',
+					body: 'Your coding agent names the top levels. When you open a folder, its parts show folder names first. "Waiting for names" means a headless worker CLI (claude, or gemini with `--cli gemini`) is naming them now. "Queued for your agent" means serve has no worker CLI, so your agent names them the next time you talk to it. When a worker names the parts, the strip above the map says which worker did.'
+				},
+				{
+					title: 'Sidebar',
+					body: 'The file explorer lists every file the map saw. Click a file and serve reads it from disk. Double-click it to also select the part that holds it. Select a part on the map to highlight its files and folders in the explorer. The semantic tree drills down the same way the map does.'
+				},
+				{
+					title: 'Reconnect',
+					body: 'If serve stops or the connection drops, the map stays as it was and a Reconnect button appears. If serve stopped, start it again first. In local mode, a reload reconnects on its own. On ropeman.dev, paste the token again after a reload.'
+				},
+				{
+					title: 'Local mode',
+					body: 'In local mode, serve hosts this page itself on 127.0.0.1. The browser asks for no permission, and the page sends no requests to other hosts. The gallery and docs links open ropeman.dev in a new tab.'
+				}
+			],
 			usageTitle: 'Getting Started',
 			usageInteraction: 'Interactions',
 			aiModesTitle: 'AI Analysis Modes',

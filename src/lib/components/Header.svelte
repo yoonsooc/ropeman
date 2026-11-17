@@ -9,8 +9,12 @@
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
+	import type { Component } from 'svelte';
+	import { siteLink, type Surface } from './surface';
 
 	let {
+		surface = 'app',
+		status: Status,
 		onsettings,
 		onhelp,
 		onnewproject,
@@ -19,6 +23,9 @@
 		onshare,
 		ongohome
 	}: {
+		surface?: Surface;
+		/** The Bridge viewer's connection controls, in place of the app's project actions */
+		status?: Component;
 		onsettings?: () => void;
 		onhelp?: () => void;
 		onnewproject?: () => void;
@@ -30,7 +37,13 @@
 
 	const canShare = $derived(semanticStore.currentLevel !== null);
 
-	const hasProject = $derived(projectStore.fileTree !== null);
+	// The Bridge viewer fills projectStore from serve's map, but the app's project actions
+	// (new project, AI analysis, share, AI track) and its search index do not apply there
+	const isApp = $derived(surface === 'app');
+	const hasProject = $derived(isApp && projectStore.fileTree !== null);
+	const home = $derived(siteLink(surface, resolve('')));
+	const gallery = $derived(siteLink(surface, resolve('explore')));
+	const docs = $derived(siteLink(surface, resolve(`docs/${i18nStore.locale}/getting-started`)));
 	const isParsing = $derived(
 		projectStore.parsingProgress.total > 0 &&
 			projectStore.parsingProgress.done < projectStore.parsingProgress.total
@@ -64,8 +77,10 @@
 				>
 					<Wordmark />
 				</button>
-			{:else}
+			{:else if isApp}
 				<Wordmark />
+			{:else}
+				<a class="home-link" {...home}><Wordmark /></a>
 			{/if}
 		</div>
 		{#if projectStore.projectName}
@@ -76,6 +91,9 @@
 		{/if}
 	</div>
 	<div class="header-right">
+		{#if Status}
+			<Status />
+		{/if}
 		{#if hasProject}
 			<button
 				class="header-btn text-btn"
@@ -141,7 +159,7 @@
 		</button>
 		<a
 			class="header-btn header-link"
-			href={resolve('explore')}
+			{...gallery}
 			title={i18nStore.t('header.gallery')}
 			aria-label={i18nStore.t('header.gallery')}
 		>
@@ -149,7 +167,7 @@
 		</a>
 		<a
 			class="header-btn header-link"
-			href={resolve(`docs/${i18nStore.locale}/getting-started`)}
+			{...docs}
 			title={i18nStore.t('docs.headerLink')}
 			aria-label={i18nStore.t('docs.headerLink')}
 		>
@@ -186,7 +204,9 @@
 	</div>
 </header>
 
-<SearchBar />
+{#if isApp}
+	<SearchBar />
+{/if}
 
 {#if hasProject}
 	<Breadcrumb />
@@ -229,14 +249,17 @@
 		color: var(--color-text-primary);
 	}
 
-	.home-btn {
+	.home-btn,
+	.home-link {
 		font: inherit;
 		color: inherit;
 		border-radius: var(--radius-inner);
+		text-decoration: none;
 	}
 
 	@media (hover: hover) {
-		.home-btn:hover {
+		.home-btn:hover,
+		.home-link:hover {
 			text-decoration: underline;
 			text-underline-offset: 4px;
 		}

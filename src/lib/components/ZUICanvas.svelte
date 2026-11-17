@@ -6,6 +6,7 @@
 		Background,
 		type Node,
 		type Edge,
+		type FitViewOptions,
 		type Viewport
 	} from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
@@ -44,6 +45,23 @@
 
 	const breakpoint = useBreakpoint();
 	const isCompact = $derived(breakpoint.isMobile || breakpoint.isTablet);
+	let toolbar: HTMLDivElement | undefined = $state();
+	// Cards fill a phone's width, so the toolbar covered the top one: fit them below it
+	const fitViewOptions = $derived<FitViewOptions | undefined>(
+		isCompact && toolbar
+			? {
+					padding: {
+						top: `${toolbar.offsetTop + toolbar.offsetHeight + 8}px`,
+						x: 0.1,
+						bottom: 0.1
+					}
+				}
+			: undefined
+	);
+	// SvelteFlow's first fit runs before the toolbar mounts, so fit again once it has
+	$effect(() => {
+		if (fitViewOptions) requestAnimationFrame(() => exportFns?.fitView());
+	});
 
 	// Levels are laid out for the window's shape, not the canvas element's: a side panel that
 	// opens on a click narrows the canvas, and re-laying the level then would move every card
@@ -557,6 +575,7 @@
 		{nodeTypes}
 		{edgeTypes}
 		fitView
+		{fitViewOptions}
 		minZoom={0.05}
 		maxZoom={4}
 		panOnDrag={[0, 1, 2]}
@@ -571,7 +590,7 @@
 		proOptions={{ hideAttribution: true }}
 		onmove={handleMove}
 	>
-		<Controls />
+		<Controls {fitViewOptions} />
 		{#if showMinimap && !isCompact}
 			<!-- Neutral blocks like the cards, each outlined in its kind color -->
 			<MiniMap
@@ -582,6 +601,7 @@
 		{/if}
 		<Background gap={24} size={1} />
 		<ExportController
+			{fitViewOptions}
 			onready={(fns) => {
 				exportFns = fns;
 				// fitView may not emit a move event; read the initial zoom once
@@ -657,7 +677,7 @@
 
 	<!-- U1-9: Diagram top toolbar (legend, minimap toggle, export) -->
 	{#if semanticStore.currentLevel}
-		<div class="diagram-toolbar">
+		<div class="diagram-toolbar" bind:this={toolbar}>
 			<!-- Legend toggle -->
 			<div class="toolbar-item">
 				<button

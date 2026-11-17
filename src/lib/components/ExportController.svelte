@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useSvelteFlow, type Viewport } from '@xyflow/svelte';
+	import { useSvelteFlow, type FitViewOptions, type Viewport } from '@xyflow/svelte';
 	import { getViewportForBounds } from '@xyflow/system';
 	import { exportAsPNG, exportAsSVG } from '$lib/services/exportService';
 	import { exportAsMarkdown } from '$lib/services/markdownExporter';
@@ -10,8 +10,10 @@
 	import { onMount } from 'svelte';
 
 	let {
+		fitViewOptions,
 		onready
 	}: {
+		fitViewOptions?: FitViewOptions;
 		onready: (fns: {
 			exportPNG: () => void;
 			exportSVG: () => void;
@@ -125,7 +127,7 @@
 			exportMarkdown: handleExportMarkdown,
 			exportHtml: handleExportHtml,
 			exportPdf: handleExportPdf,
-			fitView: () => void fitView(),
+			fitView: () => void fitView(fitViewOptions),
 			getZoom: () => getViewport().zoom,
 			getViewport,
 			setViewport: (viewport: Viewport) => void setViewport(viewport)
