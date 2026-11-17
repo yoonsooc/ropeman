@@ -134,7 +134,7 @@
 				type="button"
 				class="copy"
 				aria-label={t('copyInstall')}
-				title={t('copy')}
+				title={copied(INSTALL) ? t('copied') : t('copy')}
 				onclick={() => copyCommand(INSTALL, installCode)}
 			>
 				<span aria-hidden="true" class="material-symbols-outlined"
@@ -194,7 +194,7 @@
 						type="button"
 						class="copy"
 						aria-label={t('copySkill', { agent: selected.name })}
-						title={t('copy')}
+						title={copied(skillCommand) ? t('copied') : t('copy')}
 						onclick={() => copyCommand(skillCommand, skillCode)}
 					>
 						<span aria-hidden="true" class="material-symbols-outlined"

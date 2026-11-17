@@ -234,8 +234,8 @@
 	}
 
 	.share-btn-confirm {
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 	}
 
 	.share-btn-confirm:hover {
@@ -243,8 +243,8 @@
 	}
 
 	.share-btn-copy {
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 	}
 
 	.share-btn-copy:hover {

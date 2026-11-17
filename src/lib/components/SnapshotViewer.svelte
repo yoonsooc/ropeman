@@ -157,8 +157,8 @@
 	.source-action {
 		flex-shrink: 0;
 		padding: var(--spacing-1) var(--spacing-3);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		border: none;
 		border-radius: var(--radius-element);
 		font-size: var(--font-size-sm);

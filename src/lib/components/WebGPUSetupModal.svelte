@@ -305,7 +305,7 @@
 	}
 	.di-progress-fill {
 		height: 100%;
-		background: var(--color-accent);
+		background: var(--color-text-secondary);
 		border-radius: var(--radius-full);
 		transition: width var(--duration-medium) var(--ease-standard);
 	}

@@ -24,16 +24,24 @@ test('every header control fits at 320px with a project open', async ({ page }) 
 	await expect(page.locator('.loading-overlay')).toBeHidden({ timeout: 120_000 });
 	await expect(page.locator('header .analyze-btn')).toBeVisible();
 
-	const title = await page.locator('header .header-title').boundingBox();
-	const controls = page.locator(
-		'header .header-right > :is(button, a):visible, header .header-right > .track-badge:visible'
-	);
-	expect(await controls.count()).toBeGreaterThanOrEqual(6);
 	await expect(page.locator('header .lang-toggle')).toBeVisible();
-	for (const box of await controls.evaluateAll((els) =>
-		els.map((el) => el.getBoundingClientRect().toJSON())
-	)) {
+
+	// Title and controls are measured together, after the fonts swap in
+	const { title, controls } = await page.evaluate(async () => {
+		await document.fonts.ready;
+		const rect = (el: Element) => el.getBoundingClientRect().toJSON() as DOMRect;
+		return {
+			title: rect(document.querySelector('header .header-title')!),
+			controls: [
+				...document.querySelectorAll('header .header-right > :is(button, a, .track-badge)')
+			]
+				.filter((el) => el.getClientRects().length > 0)
+				.map(rect)
+		};
+	});
+	expect(controls.length).toBeGreaterThanOrEqual(6);
+	for (const box of controls) {
 		expect(box.right).toBeLessThanOrEqual(320);
-		expect(box.left).toBeGreaterThanOrEqual(title!.x + title!.width);
+		expect(box.left).toBeGreaterThanOrEqual(title.right);
 	}
 });

@@ -602,7 +602,7 @@
 		height: 8px;
 		flex-shrink: 0;
 		border-radius: 50%;
-		background: var(--color-accent);
+		background: var(--color-text-secondary);
 		animation: bridge-pulse 1.2s var(--ease-standard) infinite alternate;
 	}
 

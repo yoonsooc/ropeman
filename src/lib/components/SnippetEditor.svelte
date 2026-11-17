@@ -333,8 +333,8 @@
 		gap: var(--spacing-2);
 		margin-top: var(--spacing-4);
 		padding: var(--spacing-3) var(--spacing-6);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		border-radius: var(--radius-element);
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-bold);

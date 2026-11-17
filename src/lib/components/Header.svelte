@@ -99,7 +99,9 @@
 					<span aria-hidden="true" class="material-symbols-outlined analyze-spinner"
 						>progress_activity</span
 					>
-					{projectStore.parsingProgress.done}/{projectStore.parsingProgress.total}
+					<span class="analyze-count"
+						>{projectStore.parsingProgress.done}/{projectStore.parsingProgress.total}</span
+					>
 				{:else}
 					<span aria-hidden="true" class="material-symbols-outlined">account_tree</span>
 					<span class="analyze-label">{i18nStore.t('header.analyze')}</span>
@@ -491,10 +493,9 @@
 			justify-content: center;
 		}
 
-		/* While parsing it also shows the file count */
-		.analyze-btn {
-			width: auto;
-			padding: 0 var(--spacing-1-5);
+		/* The spinner says it is parsing; the count would push the buttons over the title */
+		.analyze-count {
+			display: none;
 		}
 	}
 </style>

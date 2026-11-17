@@ -9,15 +9,16 @@
   - (D) (C)에 더해 IBM Plex Sans `latin` 파일을 `<link rel="preload">`로 미리 받는다.
 - **결정**: (C)를 골랐다.
   - 한국어 페이지가 받는 글꼴은 영어 페이지와 같다. 한글은 OS 글꼴이라 받을 것이 없다.
-  - 굵기를 이름마다 맞춰 두어서, 브라우저가 한 글꼴을 인위로 굵게 그리지 않는다. macOS의 Chromium(headless shell 1223)에서 `/ko`를 열고 CDP `CSS.getPlatformFontsForNode`로 확인했다. 제목(600)은 `AppleSDGothicNeo-SemiBold`, 본문(400)은 `AppleSDGothicNeo-Regular`, 라틴 글자는 IBM Plex Sans 웹 글꼴로 그렸다(2026-11-17).
+  - 굵기를 이름마다 맞춰 두어서, 브라우저가 한 글꼴을 인위로 굵게 그리지 않는다. macOS에서 `/ko`를 열어 확인했다(Chrome for Testing 148과 같은 버전의 headless shell, 2026-11-17). 같은 한글 문장을 `'Ropeman Hangul'`과 `'Apple SD Gothic Neo'`로 그린 너비의 비가 굵기 400·500·600·700 모두 0.94였다. `size-adjust: 94%`는 별칭에만 있으므로, 이 비는 별칭이 그렸다는 뜻이다. CDP `CSS.getPlatformFontsForNode`로는 제목(600)이 `AppleSDGothicNeo-SemiBold`, 본문(400)이 `AppleSDGothicNeo-Regular`, 라틴 글자가 IBM Plex Sans 웹 글꼴이었다. 글꼴 이름만으로는 별칭과 `--font-body`의 원래 가족 이름을 가를 수 없어서 너비로 가렸다.
+  - `--font-body`에서 시스템 UI 글꼴(`-apple-system`, `Segoe UI`)을 한국어 글꼴 이름보다 앞에 둔다. IBM Plex Sans가 오기 전(`swap`)의 라틴 글자를 한국어 글꼴의 라틴 글리프가 아니라 시스템 UI 글꼴이 그리게 하려는 것이다. 시스템 UI 글꼴에는 한글이 없어서 한글은 그대로 뒤의 한국어 이름으로 떨어진다.
   - 측정(`wrangler pages dev`로 띄운 프로덕션 빌드, 캐시를 끈 첫 방문, 1440x900, 다크, 전송 바이트(헤더 포함), 3회 중앙값, 2026-11-17):
 
     |                                                         | 글꼴 `/` | 글꼴 `/ko` | 전체 `/` | 전체 `/ko` |
     | ------------------------------------------------------- | -------- | ---------- | -------- | ---------- |
     | 바꾸기 전(main, Space Grotesk + Inter + JetBrains Mono) | 112.0KB  | 112.0KB    | 535.7KB  | 536.9KB    |
-    | 바꾼 뒤(IBM Plex Sans + JetBrains Mono, 아이콘 78개)    | 81.3KB   | 81.3KB     | 509.9KB  | 507.3KB    |
+    | 바꾼 뒤(IBM Plex Sans + JetBrains Mono, 아이콘 78개)    | 81.3KB   | 81.3KB     | 511.3KB  | 508.4KB    |
 
-    본문 바이트(`responseBodySize`)로 잰 앞 단계 값은 글꼴 110.6KB에서 79.6KB였다. 그 뒤 헤더와 캔버스 도구 막대의 아이콘을 이 글꼴로 옮겨 아이콘이 71개에서 78개가 되었고, 아이콘 글꼴이 7,920바이트에서 8,580바이트로 늘었다. 전체 바이트에는 다시 찍은 히어로 이미지가 두 배 픽셀이라 약 17KB 늘어난 몫이 들어 있다.
+    본문 바이트(`responseBodySize`)로 잰 앞 단계 값은 글꼴 110.6KB에서 79.6KB였다. 그 뒤 헤더와 캔버스 도구 막대의 아이콘을 이 글꼴로 옮겨 아이콘이 71개에서 78개가 되었고, 아이콘 글꼴이 7,920바이트에서 8,580바이트로 늘었다. 전체 바이트에는 다시 찍은 히어로 이미지가 두 배 픽셀이라 약 18KB 늘어난 몫이 들어 있다.
 
   - preload는 하지 않는다. 첫 화면 글꼴은 IBM Plex Sans `latin` 한 파일(약 40KB)과 코드 글꼴, 아이콘 글꼴인데, 셋 다 CSS를 읽자마자 요청된다. preload를 걸면 앱 스크립트와 같은 시점에 회선을 나눠 써서 hydrate가 늦어진다(예전 측정에서 글꼴 요청이 hydrate를 약 1.1초 늦췄다, ARCH 7절). `font-display: swap`이라 글꼴이 늦어도 글자는 먼저 보인다.
 - **기각 이유**:

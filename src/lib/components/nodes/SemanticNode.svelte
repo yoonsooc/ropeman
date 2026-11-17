@@ -167,7 +167,7 @@
 
 	/* Unrelated nodes step back but stay readable; neighbors of the selection stay lit */
 	.semantic-node.dimmed {
-		opacity: 0.6;
+		opacity: 0.85;
 	}
 
 	/* Snapshot viewers (share/explore): the curated data has no deeper level

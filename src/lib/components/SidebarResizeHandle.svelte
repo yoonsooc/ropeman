@@ -45,6 +45,6 @@
 
 	.sidebar-resize-handle:hover,
 	.sidebar-resize-handle:active {
-		background: var(--color-accent);
+		background: var(--color-text-secondary);
 	}
 </style>

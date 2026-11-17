@@ -170,6 +170,7 @@
 	/* Match Header.svelte spacing so gallery pages visually align with
 	   the rest of the app (padding 16px, header-left gap 32px). */
 	.explore-header {
+		flex-shrink: 0;
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-8);

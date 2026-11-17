@@ -69,8 +69,7 @@
 	--color-text-tertiary: #5e5e5e;
 	--color-on-inverted: #ffffff;
 
-	--color-accent: #1d4ed8;
-	--color-accent-hover: #1e40af;
+	--color-accent: #4f46e5;
 	--color-accent-muted: color-mix(in srgb, var(--color-accent) 15%, transparent);
 	--color-on-accent: #ffffff;
 
@@ -160,9 +159,11 @@
 	--duration-medium: 300ms;
 	--ease-standard: cubic-bezier(0.24, 1, 0.4, 1);
 
+	/* The system UI face comes before the Korean names: it fills in for Latin while IBM Plex Sans
+	   loads, and it has no Hangul, so Hangul still falls to the Korean faces */
 	--font-body:
-		'IBM Plex Sans', 'Ropeman Hangul', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR',
-		-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+		'IBM Plex Sans', 'Ropeman Hangul', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
 	--font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 
 	--header-height: 48px;
@@ -193,7 +194,6 @@
 	--color-on-inverted: #f1f3fc;
 
 	--color-accent: #a3a6ff;
-	--color-accent-hover: #8b8eff;
 	--color-on-accent: #0b0c0e;
 
 	--color-error: #ff705d;
@@ -475,8 +475,8 @@ a:hover {
 }
 
 .btn-primary {
-	background: var(--color-accent);
-	color: var(--color-on-accent);
+	background: var(--color-text-primary);
+	color: var(--color-background-body);
 }
 
 .btn-secondary {
@@ -555,7 +555,7 @@ a:hover {
 }
 
 .toggle.active {
-	background: var(--color-accent);
+	background: var(--color-text-secondary);
 }
 
 .toggle-knob {

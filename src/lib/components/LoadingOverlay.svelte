@@ -120,7 +120,7 @@
 
 	.progress-fill {
 		height: 100%;
-		background: var(--color-accent);
+		background: var(--color-text-secondary);
 		border-radius: 3px;
 		transition: width var(--duration-medium) var(--ease-standard);
 	}

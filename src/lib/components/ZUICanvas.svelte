@@ -573,7 +573,12 @@
 	>
 		<Controls />
 		{#if showMinimap && !isCompact}
-			<MiniMap nodeColor={(n) => (n.data?.color as string) ?? 'var(--color-neutral)'} />
+			<!-- Neutral blocks like the cards, each outlined in its kind color -->
+			<MiniMap
+				nodeColor={() => 'var(--color-background-muted)'}
+				nodeStrokeColor={(n) => (n.data?.color as string) ?? 'var(--color-border)'}
+				nodeStrokeWidth={2}
+			/>
 		{/if}
 		<Background gap={24} size={1} />
 		<ExportController
@@ -1128,8 +1133,8 @@
 		min-width: 14px;
 		height: 14px;
 		border-radius: var(--radius-full);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		font-size: var(--font-size-xs);
 		font-weight: var(--font-weight-bold);
 		display: flex;

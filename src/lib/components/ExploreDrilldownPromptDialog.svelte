@@ -204,8 +204,8 @@
 	}
 
 	.btn-primary {
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 	}
 	.btn-primary:hover {
 		opacity: 0.85;

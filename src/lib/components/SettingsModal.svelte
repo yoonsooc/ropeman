@@ -652,7 +652,7 @@
 		height: 12px;
 		width: 12px;
 		border-radius: 50%;
-		background: var(--color-accent);
+		background: var(--color-text-secondary);
 		cursor: pointer;
 	}
 	.range-value {

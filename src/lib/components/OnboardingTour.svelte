@@ -398,8 +398,8 @@
 		height: 22px;
 		padding: 0 var(--spacing-2);
 		border-radius: var(--radius-full);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
 		letter-spacing: 0.05em;
@@ -476,14 +476,14 @@
 		border-radius: var(--radius-element);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
-		color: var(--color-on-accent);
-		background: var(--color-accent);
+		color: var(--color-background-body);
+		background: var(--color-text-primary);
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-standard);
 	}
 
 	.tour-btn-next:hover {
-		background: var(--color-accent-hover);
+		background: var(--color-text-secondary);
 	}
 
 	/* Skip confirmation dialog */

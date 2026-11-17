@@ -247,7 +247,9 @@
 					title={i18nStore.t('node.reanalyze')}
 					onclick={(e) => handleReanalyze(e, node)}
 				>
-					&#x21BB;
+					<span aria-hidden="true" class="material-symbols-outlined tree-reanalyze-icon"
+						>refresh</span
+					>
 				</button>
 			{/if}
 			<span
@@ -430,6 +432,10 @@
 
 	.tree-node:hover .tree-reanalyze-btn {
 		display: flex;
+	}
+
+	.tree-reanalyze-icon {
+		font-size: 14px;
 	}
 
 	.tree-reanalyze-btn:hover {
