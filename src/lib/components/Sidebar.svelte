@@ -1,21 +1,28 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import FileExplorer from './FileExplorer.svelte';
 	import SemanticTree from './SemanticTree.svelte';
 	import SidebarResizeHandle from './SidebarResizeHandle.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { layoutStore } from '$lib/stores/layoutStore.svelte';
+	import type { SemanticNode } from '$lib/types/semantic';
 
 	let {
 		mobile = false,
-		ontogglecontent
+		ontogglecontent,
+		onexpand
 	}: {
 		mobile?: boolean;
 		ontogglecontent?: () => void;
+		/** Bridge mode: the semantic tree opens uncached levels through serve, as the canvas does */
+		onexpand?: (node: SemanticNode) => void;
 	} = $props();
 
 	let activePanel = $state<'files' | 'semantic'>('files');
-	let contentOpen = $state(true);
+	// A phone that mounts the sidebar beside a diagram (Bridge mode) came to see the diagram.
+	// Read once: later changes follow the auto-switch below
+	let contentOpen = $state(untrack(() => !(mobile && semanticStore.cache.size > 0)));
 
 	const hasSemanticData = $derived(semanticStore.cache.size > 0);
 	const railButtons: Partial<Record<'files' | 'semantic', HTMLButtonElement>> = {};
@@ -163,7 +170,7 @@
 							</svg>
 						</button>
 					</div>
-					<SemanticTree />
+					<SemanticTree {onexpand} />
 				</div>
 			{/if}
 		</div>

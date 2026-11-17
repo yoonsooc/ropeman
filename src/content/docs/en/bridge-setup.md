@@ -7,7 +7,9 @@ order: 6
 
 **Bridge mode** shows a map of a folder on your machine. `ropeman serve` (npm package `@ropeman/bridge`) reads the folder, and the page at [ropeman.dev/bridge](https://ropeman.dev/bridge) connects to it over `ws://127.0.0.1:9800`. Click a folder to open it. Its subfolders and files show right away, and then a headless worker CLI names the parts: Claude Code (`claude -p`) by default, or Gemini CLI when you start serve with `--cli gemini`. Click a file to open its source.
 
-With the Ropeman skill installed, your coding agent runs these steps for you: ask it to "map this repo" and open the local mode address it gives you. See [Getting Started](/docs/en/getting-started). This page is for starting serve yourself.
+The sidebar works as in the main app. The file explorer lists every file the map saw, and clicking one opens its source. Selecting a part on the map highlights its files and folders in the explorer, and the semantic tree drills down the same way the map does.
+
+With the Ropeman skill installed, your coding agent runs these steps for you: ask it to "map this repo" and open the local mode address it gives you. See [Getting Started](/docs/en/getting-started), and [The work folder](/docs/en/getting-started#the-work-folder) for the files the agent and serve keep. This page is for starting serve yourself.
 
 Bridge mode runs on its own page. The main app's AI modes (Demo, API Key and WebGPU) are described in [AI Modes](/docs/en/ai-modes).
 

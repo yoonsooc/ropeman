@@ -56,6 +56,105 @@ ropeman map --root . --out .ropeman --input ropeman
 
 Ropeman remembers the choice in the `--out` folder, so later runs use the same input. Ropeman never installs or runs Graphify or any other tool. It reads only Graphify's `graph.json` format and refuses other formats with the reason. [ADR-28](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0028-graph-file-as-chosen-input.md) explains the choice.
 
+### The work folder
+
+The agent and Ropeman share one folder, the work folder. By default it is `.ropeman` in the repository. The agent picks a folder outside the repository when you do not want the repository changed. `ropeman map` writes a `.gitignore` into a work folder inside the repository, so git does not commit it.
+
+Each file in the work folder has one writer. The diagram shows who writes each file and what reads it next.
+
+<figure class="work-folder-diagram">
+<svg viewBox="0 0 430 562" role="img" aria-labelledby="wf-title wf-desc">
+<title id="wf-title">Who writes each file in the work folder</title>
+<desc id="wf-desc">ropeman map writes ropeman.json, work.json and input.json. Your agent reads work.json and writes names.json and brief.md, then runs ropeman map again until no problems are left. ropeman serve --detach shows ropeman.json and writes serve.json, serve.lock and serve.log. When you open an unnamed folder, a worker names it with brief.md and writes naming-log.jsonl; without a worker serve writes queue.json. ropeman inbox reads both for your agent next turn and writes inbox-read.json.</desc>
+<defs><marker id="wf-head" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" class="wf-head"/></marker></defs>
+<rect class="wf-box" x="10" y="8" width="300" height="66" rx="6"/>
+<text class="wf-actor" x="22" y="29">ropeman map</text>
+<text class="wf-verb" x="22" y="48">writes</text>
+<text class="wf-file" x="72" y="48">ropeman.json · work.json</text>
+<text class="wf-verb" x="22" y="66"></text>
+<text class="wf-file" x="72" y="66">input.json</text>
+<text class="wf-note" x="152" y="66">(once you choose an input)</text>
+<path class="wf-arrow" d="M160 74V107" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="168" y="95">work.json: parts to name</text>
+<rect class="wf-box wf-you" x="10" y="108" width="300" height="66" rx="6"/>
+<text class="wf-actor" x="22" y="129">Your agent</text>
+<text class="wf-verb" x="22" y="148">reads</text>
+<text class="wf-file" x="72" y="148">work.json</text>
+<text class="wf-verb" x="22" y="166">writes</text>
+<text class="wf-file" x="72" y="166">names.json · brief.md</text>
+<path class="wf-arrow" d="M310 148H332V34H311" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="338" y="60">names.json:</text>
+<text class="wf-note" x="338" y="74">run map again</text>
+<text class="wf-note" x="338" y="88">until no</text>
+<text class="wf-note" x="338" y="102">problems</text>
+<path class="wf-arrow" d="M160 174V207" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="168" y="195">no problems left</text>
+<rect class="wf-box" x="10" y="208" width="300" height="84" rx="6"/>
+<text class="wf-actor" x="22" y="229">ropeman serve --detach</text>
+<text class="wf-verb" x="22" y="248">shows</text>
+<text class="wf-file" x="72" y="248">ropeman.json</text>
+<text class="wf-verb" x="22" y="266">writes</text>
+<text class="wf-file" x="72" y="266">serve.json · serve.lock</text>
+<text class="wf-verb" x="22" y="284"></text>
+<text class="wf-file" x="72" y="284">serve.log</text>
+<path class="wf-arrow" d="M160 292V325" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="168" y="313">you open an unnamed folder</text>
+<rect class="wf-box" x="10" y="326" width="145" height="102" rx="6"/>
+<text class="wf-actor" x="22" y="347">Worker</text>
+<text class="wf-verb" x="22" y="366"></text>
+<text class="wf-file" x="72" y="366">claude -p</text>
+<text class="wf-verb" x="22" y="384">reads</text>
+<text class="wf-file" x="72" y="384">brief.md</text>
+<text class="wf-verb" x="22" y="402">writes</text>
+<text class="wf-file" x="72" y="402">naming-log</text>
+<text class="wf-verb" x="22" y="420"></text>
+<text class="wf-file" x="72" y="420">.jsonl</text>
+<rect class="wf-box" x="165" y="326" width="145" height="48" rx="6"/>
+<text class="wf-actor" x="177" y="347">No worker</text>
+<text class="wf-verb" x="177" y="366">writes</text>
+<text class="wf-file" x="227" y="366">queue.json</text>
+<path class="wf-arrow" d="M82.5 428V461" marker-end="url(#wf-head)"/>
+<path class="wf-arrow" d="M237.5 374V461" marker-end="url(#wf-head)"/>
+<rect class="wf-box" x="10" y="462" width="300" height="66" rx="6"/>
+<text class="wf-actor" x="22" y="483">ropeman inbox</text>
+<text class="wf-verb" x="22" y="502">reads</text>
+<text class="wf-file" x="72" y="502">queue.json · naming-log.jsonl</text>
+<text class="wf-verb" x="22" y="520">writes</text>
+<text class="wf-file" x="72" y="520">inbox-read.json</text>
+<path class="wf-arrow" d="M160 528V557" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="168" y="549">your agent's next turn</text>
+</svg>
+</figure>
+
+1. `ropeman map` reads the repository and writes `ropeman.json`, the map. Until a level gets names that pass the checks, its parts keep their folder names. `ropeman map` also writes `work.json`, the list of parts that still need names. Once you choose the input, as in [Use a graph file you already have](#use-a-graph-file-you-already-have), it records the choice in `input.json`.
+2. Your agent reads `work.json` and writes `names.json`, which gives each part a label, a description and key symbols. It also writes `brief.md`: what you want to learn, the project's terms, its naming rules and the names of the upper levels.
+3. Your agent runs `ropeman map` again. Ropeman applies `names.json`, checks every name against the code, and writes `ropeman.json` and `work.json` again. A level keeps its names only when all of them pass. The agent repeats steps 2 and 3 until `ropeman map` reports no problems.
+4. Your agent starts `ropeman serve --detach`. The start holds `serve.lock` while it launches serve in the background and writes serve's output to `serve.log`. serve shows the map from `ropeman.json` and records itself in `serve.json`.
+5. When you open a folder that has no names yet, serve asks a headless worker to name its parts: `claude -p`, or Gemini CLI when serve runs with `--cli gemini`. The worker gets the first 4,000 bytes of `brief.md` as context. serve writes each result to `naming-log.jsonl`. Without a worker, serve adds the folder to `queue.json` for your agent.
+6. When you send your next message, the agent runs `ropeman inbox` first. It returns the queued folders and the log lines added since the last check, and records how far it read in `inbox-read.json`. The agent names the queued folders with steps 2 and 3.
+
+| File               | Written by                                 | Read by                                  |
+| ------------------ | ------------------------------------------ | ---------------------------------------- |
+| `ropeman.json`     | `ropeman map`                              | serve, `ropeman verify`, `ropeman inbox` |
+| `work.json`        | `ropeman map`                              | your agent                               |
+| `input.json`       | `ropeman map`, once you choose an input    | `ropeman map`, `ropeman verify`, serve   |
+| `names.json`       | your agent                                 | `ropeman map`                            |
+| `brief.md`         | your agent                                 | serve's workers                          |
+| `naming-log.jsonl` | serve                                      | `ropeman inbox`                          |
+| `queue.json`       | serve                                      | `ropeman map`, serve, `ropeman inbox`    |
+| `inbox-read.json`  | `ropeman inbox`                            | `ropeman inbox`                          |
+| `serve.json`       | serve (`ropeman stop` removes a stale one) | serve, `ropeman stop`                    |
+| `serve.lock`       | `ropeman serve --detach`                   | `ropeman serve --detach`                 |
+| `serve.log`        | `ropeman serve --detach`                   | you, when serve does not start           |
+
+What you can change by hand:
+
+- To change a name, ask your agent. It edits `names.json` and runs `ropeman map`. You can also edit `names.json` yourself and run `ropeman map --root <repo> --out <work folder>`. A name stays only when every name of its level passes the checks.
+- To steer the worker names, edit `brief.md`, for example to add a naming rule. Workers read it each time they name a folder, so the change applies to folders you open next.
+- To use another input, run `ropeman map` with another `--input`. Do not edit `input.json`.
+- Do not edit the other files. `ropeman map` writes `ropeman.json` and `work.json` again on every run, and serve and `ropeman inbox` keep their own records.
+- To delete the work folder, run `ropeman stop --out <work folder>` first, so that serve does not keep running on it.
+
 The quickstart below is the in-browser path, which needs no install.
 
 ## 30-Second Quickstart

@@ -34,6 +34,7 @@ Node 22. Run `npm ci` once; it also installs the git hooks.
 | Task                     | Command                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------ |
 | Dev server               | `npm run dev`                                                                                    |
+| Production preview       | `npm run preview` (builds, then `wrangler pages dev` on http://localhost:8788)                   |
 | Unit tests               | `npm run test:unit` (covers `src/`, `bridge/test/`, `packages/*/test/`, `scripts/`)              |
 | Build                    | `npm run build`                                                                                  |
 | Lint                     | `npm run lint`                                                                                   |

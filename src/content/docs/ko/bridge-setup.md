@@ -7,7 +7,9 @@ order: 6
 
 **브리지 모드**는 내 컴퓨터에 있는 폴더의 지도를 보여 줍니다. `ropeman serve`(npm 패키지 `@ropeman/bridge`)가 폴더를 읽고, [ropeman.dev/bridge](https://ropeman.dev/bridge) 페이지가 `ws://127.0.0.1:9800`으로 serve에 연결합니다. 폴더를 누르면 그 안의 하위 폴더와 파일이 바로 보이고, 이어서 헤드리스 일꾼 CLI가 각 부분에 이름을 붙입니다. 기본은 Claude Code(`claude -p`)이고, serve를 `--cli gemini`로 켜면 Gemini CLI가 붙입니다. 파일을 누르면 소스가 열립니다.
 
-Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 합니다. 에이전트에게 "map this repo"라고 요청하고, 에이전트가 알려 주는 로컬 모드 주소를 여세요. [시작하기](/docs/ko/getting-started)를 보세요. 이 문서는 serve를 직접 띄울 때를 다룹니다.
+사이드바는 메인 앱과 같습니다. 파일 탐색기에는 지도가 본 파일이 모두 나오고, 파일을 누르면 소스가 열립니다. 지도에서 부분을 고르면 탐색기에서 그 부분의 파일과 폴더가 강조되고, 시맨틱 트리도 지도와 같은 방식으로 드릴다운합니다.
+
+Ropeman 스킬을 설치했다면 코딩 에이전트가 이 단계를 대신 합니다. 에이전트에게 "map this repo"라고 요청하고, 에이전트가 알려 주는 로컬 모드 주소를 여세요. [시작하기](/docs/ko/getting-started)를 보세요. 에이전트와 serve가 남기는 파일은 [작업 폴더](/docs/ko/getting-started#작업-폴더)에 정리했습니다. 이 문서는 serve를 직접 띄울 때를 다룹니다.
 
 브리지 모드는 메인 앱과 다른 페이지에서 씁니다. 메인 앱의 AI 모드(데모, API 키, WebGPU)는 [AI 모드 가이드](/docs/ko/ai-modes)를 보세요.
 
