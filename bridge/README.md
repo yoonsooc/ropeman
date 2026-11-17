@@ -5,14 +5,14 @@ Local server for Ropeman. `ropeman serve` maps a folder on your machine and send
 ## Usage
 
 ```bash
-npm install -g @ropeman/bridge@0.7.0
+npm install -g @ropeman/bridge@0.7.1
 ropeman serve --root . --out .ropeman --local
 ropeman serve --root ~/code/project --port 9900 --cli claude
 ropeman serve --root . --out .ropeman --local --detach
 ropeman stop --out .ropeman
 ```
 
-`npx @ropeman/bridge@0.7.0 serve --root .` runs the same command without a global install. Older npm versions can fail to find the executable that way, so the install above is the main form.
+`npx @ropeman/bridge@0.7.1 serve --root .` runs the same command without a global install. Older npm versions can fail to find the executable that way, so the install above is the main form.
 
 `ropeman serve` and `ropeman-bridge` are the same program. Without `--root` it has no map: `map.get` and `node.expand` answer `not-ready` and `file.read` is off.
 
