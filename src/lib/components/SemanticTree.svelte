@@ -7,6 +7,13 @@
 	import DrilldownConfirmModal from './DrilldownConfirmModal.svelte';
 	import type { SemanticNode, SemanticLevel } from '$lib/types/semantic';
 
+	let {
+		onexpand
+	}: {
+		/** Bridge mode: serve opens a level that is not cached, as on the canvas */
+		onexpand?: (node: SemanticNode) => void;
+	} = $props();
+
 	let drilldownConfirmOpen = $state(false);
 	let pendingDrilldownContext = $state<{
 		semNode: SemanticNode;
@@ -158,6 +165,18 @@
 			return;
 		}
 
+		if (onexpand && !semanticStore.hasCachedLevel(semNode.id)) {
+			// serve drills down once the level arrives, if the node is still on the canvas
+			if (level) {
+				semanticStore.currentLevel = level;
+				semanticStore.drilldownPath = pathWithoutLast;
+			}
+			const parentLabel = pathWithoutLast.at(-1)?.label ?? 'Project';
+			tabStore.openDiagramTab(pathWithoutLast, parentLabel);
+			onexpand(semNode);
+			return;
+		}
+
 		// U5-1: Cached nodes drill down immediately without confirmation
 		pendingDrilldownContext = { semNode, node, level, pathWithoutLast };
 		if (semanticStore.hasCachedLevel(semNode.id) || settingsStore.skipDrilldownConfirm) {
@@ -241,7 +260,7 @@
 		>
 			<span class="node-color" style="background: {node.color};"></span>
 			<span class="node-label">{node.label}</span>
-			{#if node.status === 'cached' && node.fileCount > 1}
+			{#if node.status === 'cached' && node.fileCount > 1 && !onexpand}
 				<button
 					class="tree-reanalyze-btn"
 					title={i18nStore.t('node.reanalyze')}

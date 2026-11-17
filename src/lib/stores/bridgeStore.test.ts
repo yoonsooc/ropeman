@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { bridgeStore } from './bridgeStore.svelte';
 import { semanticStore } from './semanticStore.svelte';
 import { projectStore } from './projectStore.svelte';
+import { selectionStore } from './selectionStore.svelte';
 import type { BridgeSocket } from '$lib/services/bridgeClient';
 import type { FilePath } from '$lib/types/codeMap';
 import type { MapLevel, RopemanMap } from '$lib/types/ropemanMap';
@@ -136,6 +137,37 @@ describe('bridgeStore', () => {
 		expect(bridgeStore.status).toMatchObject({ state: 'connected', server: { version: '0.3.0' } });
 		expect(projectStore.projectName).toBe('shop');
 		expect(labels()).toEqual(['src', '.']);
+	});
+
+	it("gives the explorer the map's files, and takes them back on disconnect", async () => {
+		// Arrange, Act
+		await connected();
+		const tree = projectStore.fileTree;
+
+		// Assert
+		expect(tree).toMatchObject({ name: 'shop', path: '', kind: 'directory' });
+		expect(tree!.children!.map((c) => c.path)).toEqual(['src', 'README.md']);
+		expect(tree!.children![0].children!.map((c) => c.path)).toEqual(['src/api', 'src/b.ts']);
+
+		bridgeStore.disconnect();
+		expect(projectStore.fileTree).toBeNull();
+	});
+
+	it("forgets the explorer's picked file on disconnect, so another serve's map starts clean", async () => {
+		await connected();
+		selectionStore.selectedNode = {
+			id: 'file:src/b.ts',
+			kind: 'file',
+			label: 'b.ts',
+			filePath: 'src/b.ts',
+			parentId: null,
+			childCount: 0,
+			isExpanded: false
+		};
+
+		bridgeStore.disconnect();
+
+		expect(selectionStore.selectedNode).toBeNull();
 	});
 
 	it('reports a socket that closed before hello as a failed connection', async () => {

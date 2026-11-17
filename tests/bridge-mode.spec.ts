@@ -259,6 +259,82 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		await shot(page, 'en-desktop-agent-named');
 	});
 
+	test('sidebar: the explorer lists the map files, and it and the canvas point at each other', async ({
+		page
+	}) => {
+		const serve = await startServe('http://localhost:1');
+		await settings(page, 'en');
+		await page.goto(`http://127.0.0.1:${serve.port}/bridge#token=${TOKEN}`);
+		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
+		const aside = page.locator('aside.sidebar');
+
+		// The map is there at once, so the sidebar opens on its tree
+		await expect(aside.locator('.semantic-tree .tree-node', { hasText: 'apps' })).toBeVisible();
+
+		// A node picked on the canvas lights up its folder and files in the explorer
+		await aside.getByTitle('File Explorer').click();
+		await expect(aside.locator('.dir-item', { hasText: 'shop' })).toBeVisible();
+		// The patterns also fit the collapsed folder chains (`packages/core`, `apps/web`)
+		await node(page, /^packages/).click();
+		await expect(aside.locator('.dir-item.highlighted', { hasText: 'packages' })).toBeVisible();
+		await expect(aside.locator('.file-item.highlighted', { hasText: 'pad.ts' })).toBeVisible();
+		await expect(aside.locator('.file-item.highlighted', { hasText: 'config.ts' })).toHaveCount(0);
+		await shot(page, 'en-desktop-sidebar-highlight');
+
+		// A file opens from disk through file.read; a double-click also picks its owner node
+		await aside.locator('.dir-item', { hasText: 'shared' }).click();
+		await aside.locator('.file-item', { hasText: 'config.ts' }).dblclick();
+		await expect(page.locator('.code-filepath')).toHaveText('shared/config.ts');
+		await expect(page.locator('.code-viewer')).toContainText('export');
+		await expect(aside).toBeVisible();
+		await shot(page, 'en-desktop-sidebar-source');
+		await page.getByRole('button', { name: 'Back to map' }).click();
+		await expect(page.locator('.semantic-node.highlighted .node-label')).toHaveText('shared');
+		await expect(aside.locator('.file-item.highlighted', { hasText: 'config.ts' })).toBeVisible();
+
+		// The tree drills down the way the canvas does: serve opens the level, names follow
+		await aside.getByTitle('Semantic Tree').click();
+		await aside.locator('.tree-node', { hasText: 'apps' }).dblclick();
+		await expect(page.locator('.breadcrumb-bar .crumb.active')).toHaveText(/apps/);
+		await expect(page.getByTestId('naming-status')).toBeVisible();
+		await expect(aside.locator('.tree-reanalyze-btn')).toHaveCount(0);
+		serve.release();
+		// The apps/web level holds src and web/*, named `Named apps/web/src` and `Named apps/web`
+		await expect(node(page, 'Named apps/web/src')).toBeVisible({ timeout: 10_000 });
+		await expect(aside.locator('.tree-node', { hasText: 'Named apps/web/src' })).toBeVisible();
+		await shot(page, 'en-desktop-sidebar-tree');
+	});
+
+	test(
+		'sidebar on a phone: the drawer starts closed over the map and closes on a file',
+		{ tag: '@responsive' },
+		async ({ page }, testInfo) => {
+			test.skip(testInfo.project.name !== 'mobile-chromium' && !SHOTS, 'phone layout only');
+			if (testInfo.project.name !== 'mobile-chromium')
+				await page.setViewportSize({ width: 390, height: 844 });
+			const serve = await startServe('http://localhost:1');
+			await settings(page, 'ko');
+			await page.goto(`http://127.0.0.1:${serve.port}/bridge#token=${TOKEN}`);
+			await expect(page.getByTestId('bridge-status')).toHaveText('연결됨');
+			const aside = page.locator('aside.sidebar');
+
+			await expect(aside).toHaveClass(/content-closed/);
+			await expect(page.locator('.mobile-overlay')).toHaveCount(0);
+			await expect(node(page, /^apps/)).toBeVisible();
+			await shot(page, 'ko-mobile-sidebar-closed');
+
+			await aside.getByTitle('파일 탐색기').click();
+			await expect(aside).not.toHaveClass(/content-closed/);
+			await aside.locator('.dir-item', { hasText: 'shared' }).click();
+			await shot(page, 'ko-mobile-sidebar-open');
+			await aside.locator('.file-item', { hasText: 'config.ts' }).click();
+
+			await expect(aside).toHaveClass(/content-closed/);
+			await expect(page.locator('.code-filepath')).toHaveText('shared/config.ts');
+			await shot(page, 'ko-mobile-sidebar-source');
+		}
+	);
+
 	test('local mode in Korean on a phone', { tag: '@responsive' }, async ({ page }, testInfo) => {
 		test.skip(testInfo.project.name !== 'mobile-chromium' && !SHOTS, 'phone layout only');
 		if (testInfo.project.name !== 'mobile-chromium')

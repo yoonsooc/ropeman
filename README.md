@@ -23,7 +23,7 @@ curl --create-dirs -fsSLo ~/.gemini/skills/ropeman/SKILL.md https://raw.githubus
 curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 ```
 
-Then ask your agent to "map this repo". It builds the map, names the top two levels, checks them, starts `ropeman serve` and gives you a `http://127.0.0.1:9800/bridge#token=…` address. Open it in your browser: click a folder to drill down, click a file to read its source.
+Then ask your agent to "map this repo". It builds the map, names the top two levels, checks them, starts `ropeman serve` and gives you a `http://127.0.0.1:9800/bridge#token=…` address. Open it in your browser: click a folder to drill down, click a file to read its source. [The work folder](https://ropeman.dev/docs/en/getting-started#the-work-folder) shows which files the agent and `ropeman serve` keep, and which of them you can edit.
 
 The skill is tested with Claude Code. Codex, Gemini CLI and Cursor load skills from these folders according to their own documentation, but Ropeman has not been tested with them yet. For another agent, save the file as `ropeman/SKILL.md` in the folder that agent loads skills from. If your agent has no skill support, paste the text of `SKILL.md` into the conversation. The details are in [`skill/README.md`](skill/README.md). The commands are for macOS, Linux and WSL shells.
 
@@ -83,17 +83,18 @@ Open [http://localhost:5173](http://localhost:5173) in Chrome or Edge. Folder pi
 
 ### Scripts
 
-| Command                     | Description                    |
-| --------------------------- | ------------------------------ |
-| `npm run dev`               | Start dev server               |
-| `npm run build`             | Production build               |
-| `npm run test:unit`         | Run unit tests (Vitest)        |
-| `npm run test:e2e`          | Run E2E tests (Playwright)     |
-| `npm run lint`              | Lint with ESLint               |
-| `npm run format`            | Format with Prettier           |
-| `npm run deploy`            | Deploy Pages app to Cloudflare |
-| `npm run deploy:edge:demo`  | Deploy edge demo Worker        |
-| `npm run deploy:edge:proxy` | Deploy edge proxy Worker       |
+| Command                     | Description                                             |
+| --------------------------- | ------------------------------------------------------- |
+| `npm run dev`               | Start dev server                                        |
+| `npm run build`             | Production build                                        |
+| `npm run preview`           | Build, then serve it with Cloudflare Pages on port 8788 |
+| `npm run test:unit`         | Run unit tests (Vitest)                                 |
+| `npm run test:e2e`          | Run E2E tests (Playwright)                              |
+| `npm run lint`              | Lint with ESLint                                        |
+| `npm run format`            | Format with Prettier                                    |
+| `npm run deploy`            | Deploy Pages app to Cloudflare                          |
+| `npm run deploy:edge:demo`  | Deploy edge demo Worker                                 |
+| `npm run deploy:edge:proxy` | Deploy edge proxy Worker                                |
 
 Before you contribute, read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and what a pull request needs, and [AGENTS.md](AGENTS.md) for the repository layout, conventions, tests, and when a change needs an ADR. Coding agents read AGENTS.md too.
 

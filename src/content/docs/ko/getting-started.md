@@ -41,6 +41,8 @@ curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubus
 
 설치가 끝나면 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 코드와 맞는지 검사한 뒤, `ropeman serve`를 띄우고 열어 볼 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다.
 
+하위 폴더 하나만 가진 폴더는 건너뜁니다. 이어진 폴더는 경로를 제목으로 단 카드 하나로 보이고, 드릴다운하면 고를 것이 있는 단계가 바로 열립니다.
+
 ### 이미 있는 그래프 파일 쓰기
 
 `ropeman map`은 기본으로 Ropeman이 직접 저장소를 읽습니다. 다른 도구가 이미 그 저장소의 그래프 파일을 만들어 두었다면, 그 파일로 지도를 만들 수도 있습니다. 이 기능은 `@ropeman/bridge` 0.6.0 이상에서 쓸 수 있습니다.
@@ -58,6 +60,106 @@ ropeman map --root . --out .ropeman --input ropeman
 ```
 
 고른 입력은 `--out` 폴더에 남아서 다음 실행도 같은 입력을 씁니다. Ropeman은 Graphify나 다른 도구를 설치하거나 실행하지 않습니다. 읽는 형식은 Graphify의 `graph.json` 하나이고, 다른 형식은 이유와 함께 거부합니다. 이렇게 정한 이유는 [ADR-28](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0028-graph-file-as-chosen-input.md)에 있습니다.
+
+### 작업 폴더
+
+에이전트와 Ropeman은 폴더 하나를 같이 씁니다. 이 폴더를 작업 폴더라고 부릅니다. 기본 위치는 저장소 안의 `.ropeman`이고, 저장소를 바꾸고 싶지 않다고 하면 에이전트가 저장소 밖의 폴더를 고릅니다. 작업 폴더가 저장소 안에 있으면 `ropeman map`이 그 안에 `.gitignore`를 넣어 git이 커밋하지 않게 합니다.
+
+작업 폴더의 파일은 파일마다 쓰는 쪽이 하나입니다. 아래 그림은 파일마다 누가 쓰고 다음에 누가 읽는지 보여 줍니다.
+
+<figure class="work-folder-diagram">
+<svg viewBox="0 0 430 562" role="img" aria-labelledby="wf-title wf-desc">
+<title id="wf-title">작업 폴더의 파일마다 누가 쓰는지</title>
+<desc id="wf-desc">ropeman map이 ropeman.json, work.json, input.json을 씁니다. 에이전트가 work.json을 읽고 names.json과 brief.md를 쓴 뒤, 문제가 없어질 때까지 ropeman map을 다시 돌립니다. ropeman serve --detach가 ropeman.json을 보여 주고 serve.json, serve.lock, serve.log를 씁니다. 이름 없는 폴더를 열면 일꾼이 brief.md를 참고해 이름을 붙이고 naming-log.jsonl에 남깁니다. 일꾼이 없으면 serve가 queue.json에 넣습니다. ropeman inbox가 둘을 읽어 에이전트의 다음 차례에 넘기고 inbox-read.json을 씁니다.</desc>
+<defs><marker id="wf-head" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" class="wf-head"/></marker></defs>
+<rect class="wf-box" x="10" y="8" width="300" height="66" rx="6"/>
+<text class="wf-actor" x="22" y="29">ropeman map</text>
+<text class="wf-verb" x="22" y="48">씀</text>
+<text class="wf-file" x="72" y="48">ropeman.json · work.json</text>
+<text class="wf-verb" x="22" y="66"></text>
+<text class="wf-file" x="72" y="66">input.json</text>
+<text class="wf-note" x="152" y="66">(입력을 고른 뒤)</text>
+<path class="wf-arrow" d="M160 74V107" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="168" y="95">work.json: 이름 붙일 부분</text>
+<rect class="wf-box wf-you" x="10" y="108" width="300" height="66" rx="6"/>
+<text class="wf-actor" x="22" y="129">에이전트</text>
+<text class="wf-verb" x="22" y="148">읽음</text>
+<text class="wf-file" x="72" y="148">work.json</text>
+<text class="wf-verb" x="22" y="166">씀</text>
+<text class="wf-file" x="72" y="166">names.json · brief.md</text>
+<path class="wf-arrow" d="M310 148H332V34H311" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="338" y="60">names.json을</text>
+<text class="wf-note" x="338" y="74">고쳐 map을</text>
+<text class="wf-note" x="338" y="88">다시 실행,</text>
+<text class="wf-note" x="338" y="102">문제가 없을</text>
+<text class="wf-note" x="338" y="116">때까지</text>
+<path class="wf-arrow" d="M160 174V207" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="168" y="195">문제 없음</text>
+<rect class="wf-box" x="10" y="208" width="300" height="84" rx="6"/>
+<text class="wf-actor" x="22" y="229">ropeman serve --detach</text>
+<text class="wf-verb" x="22" y="248">보여 줌</text>
+<text class="wf-file" x="72" y="248">ropeman.json</text>
+<text class="wf-verb" x="22" y="266">씀</text>
+<text class="wf-file" x="72" y="266">serve.json · serve.lock</text>
+<text class="wf-verb" x="22" y="284"></text>
+<text class="wf-file" x="72" y="284">serve.log</text>
+<path class="wf-arrow" d="M160 292V325" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="168" y="313">이름 없는 폴더를 열면</text>
+<rect class="wf-box" x="10" y="326" width="145" height="102" rx="6"/>
+<text class="wf-actor" x="22" y="347">일꾼</text>
+<text class="wf-verb" x="22" y="366"></text>
+<text class="wf-file" x="72" y="366">claude -p</text>
+<text class="wf-verb" x="22" y="384">읽음</text>
+<text class="wf-file" x="72" y="384">brief.md</text>
+<text class="wf-verb" x="22" y="402">씀</text>
+<text class="wf-file" x="72" y="402">naming-log</text>
+<text class="wf-verb" x="22" y="420"></text>
+<text class="wf-file" x="72" y="420">.jsonl</text>
+<rect class="wf-box" x="165" y="326" width="145" height="48" rx="6"/>
+<text class="wf-actor" x="177" y="347">일꾼 없음</text>
+<text class="wf-verb" x="177" y="366">씀</text>
+<text class="wf-file" x="227" y="366">queue.json</text>
+<path class="wf-arrow" d="M82.5 428V461" marker-end="url(#wf-head)"/>
+<path class="wf-arrow" d="M237.5 374V461" marker-end="url(#wf-head)"/>
+<rect class="wf-box" x="10" y="462" width="300" height="66" rx="6"/>
+<text class="wf-actor" x="22" y="483">ropeman inbox</text>
+<text class="wf-verb" x="22" y="502">읽음</text>
+<text class="wf-file" x="72" y="502">queue.json · naming-log.jsonl</text>
+<text class="wf-verb" x="22" y="520">씀</text>
+<text class="wf-file" x="72" y="520">inbox-read.json</text>
+<path class="wf-arrow" d="M160 528V557" marker-end="url(#wf-head)"/>
+<text class="wf-note" x="168" y="549">에이전트의 다음 차례</text>
+</svg>
+</figure>
+
+1. `ropeman map`이 저장소를 읽고 지도인 `ropeman.json`을 씁니다. 한 단계의 이름이 검사를 통과하기 전까지 그 단계의 부분은 폴더 이름을 그대로 씁니다. 이름을 붙여야 할 부분 목록인 `work.json`도 씁니다. [이미 있는 그래프 파일 쓰기](#이미-있는-그래프-파일-쓰기)처럼 입력을 고르면 고른 입력을 `input.json`에 남깁니다.
+2. 에이전트가 `work.json`을 읽고 `names.json`을 씁니다. 부분마다 이름, 설명, 핵심 심볼이 들어갑니다. `brief.md`도 씁니다. 알고 싶은 것, 프로젝트 용어, 이름 규칙, 위 단계 이름이 들어갑니다.
+3. 에이전트가 `ropeman map`을 다시 실행합니다. Ropeman이 `names.json`을 적용하고 이름마다 코드와 맞는지 검사한 뒤 `ropeman.json`과 `work.json`을 다시 씁니다. 한 단계의 이름은 모두 통과해야 남습니다. 에이전트는 `ropeman map`이 문제가 없다고 할 때까지 2단계와 3단계를 되풀이합니다.
+4. 에이전트가 `ropeman serve --detach`를 실행합니다. 이 명령은 serve를 백그라운드로 띄우는 동안 `serve.lock`을 잡고, serve의 출력을 `serve.log`에 씁니다. serve는 `ropeman.json`의 지도를 보여 주고 자기 정보를 `serve.json`에 남깁니다.
+5. 아직 이름이 없는 폴더를 열면 serve가 헤드리스 일꾼에게 그 폴더의 부분에 이름을 붙이게 합니다. 일꾼은 `claude -p`이고, serve를 `--cli gemini`로 실행했으면 Gemini CLI입니다. 일꾼은 `brief.md`의 앞 4,000바이트를 맥락으로 받습니다. serve는 결과를 하나씩 `naming-log.jsonl`에 씁니다. 일꾼이 없으면 serve가 그 폴더를 에이전트 몫으로 `queue.json`에 넣습니다.
+6. 다음 메시지를 보내면 에이전트가 먼저 `ropeman inbox`를 실행합니다. 대기열의 폴더와 지난번 이후에 생긴 기록 줄을 받고, 어디까지 읽었는지 `inbox-read.json`에 남깁니다. 에이전트는 대기열의 폴더에 2단계와 3단계로 이름을 붙입니다.
+
+| 파일               | 쓰는 쪽                                    | 읽는 쪽                                  |
+| ------------------ | ------------------------------------------ | ---------------------------------------- |
+| `ropeman.json`     | `ropeman map`                              | serve, `ropeman verify`, `ropeman inbox` |
+| `work.json`        | `ropeman map`                              | 에이전트                                 |
+| `input.json`       | `ropeman map`(입력을 고른 뒤)              | `ropeman map`, `ropeman verify`, serve   |
+| `names.json`       | 에이전트                                   | `ropeman map`                            |
+| `brief.md`         | 에이전트                                   | serve의 일꾼                             |
+| `naming-log.jsonl` | serve                                      | `ropeman inbox`                          |
+| `queue.json`       | serve                                      | `ropeman map`, serve, `ropeman inbox`    |
+| `inbox-read.json`  | `ropeman inbox`                            | `ropeman inbox`                          |
+| `serve.json`       | serve(오래된 파일은 `ropeman stop`이 지움) | serve, `ropeman stop`                    |
+| `serve.lock`       | `ropeman serve --detach`                   | `ropeman serve --detach`                 |
+| `serve.log`        | `ropeman serve --detach`                   | serve가 시작하지 않을 때 직접 읽음       |
+
+직접 고쳐도 되는 것과 안 되는 것:
+
+- 이름을 바꾸려면 에이전트에게 요청하세요. 에이전트가 `names.json`을 고치고 `ropeman map`을 실행합니다. `names.json`을 직접 고친 뒤 `ropeman map --root <저장소> --out <작업 폴더>`를 실행해도 됩니다. 이름은 그 단계의 이름이 모두 검사를 통과해야 남습니다.
+- 일꾼이 붙이는 이름을 바꾸고 싶으면 `brief.md`에 이름 규칙 같은 내용을 더하세요. 일꾼은 폴더에 이름을 붙일 때마다 이 파일을 읽으므로, 다음에 여는 폴더부터 바뀝니다.
+- 입력을 바꾸려면 `ropeman map`을 다른 `--input`으로 실행하세요. `input.json`은 고치지 마세요.
+- 나머지 파일은 고치지 마세요. `ropeman map`은 실행할 때마다 `ropeman.json`과 `work.json`을 새로 쓰고, serve와 `ropeman inbox`는 각자 자기 기록을 씁니다.
+- 작업 폴더를 지우려면 먼저 `ropeman stop --out <작업 폴더>`로 serve를 멈추세요. 그래야 serve가 지운 폴더를 보며 계속 돌지 않습니다.
 
 아래 퀵스타트는 설치 없이 브라우저에서 쓰는 방법입니다.
 

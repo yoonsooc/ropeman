@@ -8,6 +8,7 @@
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import ZUICanvas from '$lib/components/ZUICanvas.svelte';
+	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import SemanticDetailPanel from '$lib/components/SemanticDetailPanel.svelte';
 	import CodeViewer from '$lib/components/CodeViewer.svelte';
@@ -26,6 +27,8 @@
 	} from '$lib/services/bridgeAccess';
 	import { isLoopbackPage, loadSession, saveSession } from '$lib/services/bridgeSession';
 	import type { RpcErrorCode } from '$lib/types/ropemanMap';
+	import type { SemanticNode } from '$lib/types/semantic';
+	import { useBreakpoint } from '$lib/utils/responsive.svelte';
 
 	const DEFAULT_PORT = 9800;
 	const TOKEN_FILE = '~/.ropeman/bridge-token';
@@ -47,6 +50,9 @@
 	let origin = $state('');
 	let explaining = 0;
 	let stopWatching: (() => void) | null = null;
+
+	const breakpoint = useBreakpoint();
+	const isMobile = $derived(breakpoint.isMobile || breakpoint.isTablet);
 
 	const status = $derived(bridgeStore.status);
 	const showingMap = $derived(
@@ -227,6 +233,8 @@
 		return { ok: false as const, message };
 	}
 
+	const expand = (node: SemanticNode) => bridgeStore.expand(node);
+
 	function backToMap() {
 		const path = semanticStore.drilldownPath;
 		tabStore.openDiagramTab(path, path.length > 0 ? path[path.length - 1].label : 'Project');
@@ -262,82 +270,82 @@
 
 	<div class="bridge-content">
 		{#if showingMap}
-			{#if codeTab?.filePath}
-				<section class="bridge-source" aria-label={codeTab.filePath}>
-					<div class="bridge-source-bar">
-						<button class="bridge-cta secondary" onclick={backToMap}>
-							<span aria-hidden="true" class="material-symbols-outlined">arrow_back</span>
-							{i18nStore.t('bridge.backToMap')}
-						</button>
-					</div>
-					<div class="bridge-source-body">
-						<CodeViewer
-							filePath={codeTab.filePath}
-							read={readSource}
-							revision={bridgeStore.revisionOf(codeTab.filePath)}
-						/>
-					</div>
-				</section>
-			{:else}
-				<div class="bridge-overlay">
-					<Breadcrumb />
-					{#if status.state === 'lost'}
-						<div class="bridge-strip warning" role="alert">
-							<span>{i18nStore.t('bridge.lost')}</span>
-							<button class="bridge-cta" onclick={reconnect}>
-								{i18nStore.t('bridge.reconnect')}
+			<Sidebar mobile={isMobile} onexpand={expand} />
+			<div class="bridge-stage">
+				{#if codeTab?.filePath}
+					<section class="bridge-source" aria-label={codeTab.filePath}>
+						<div class="bridge-source-bar">
+							<button class="bridge-cta secondary" onclick={backToMap}>
+								<span aria-hidden="true" class="material-symbols-outlined">arrow_back</span>
+								{i18nStore.t('bridge.backToMap')}
 							</button>
 						</div>
-					{/if}
-					{#if naming?.state === 'pending'}
-						<div class="bridge-strip" role="status" data-testid="naming-status">
-							<span class="bridge-pulse" aria-hidden="true"></span>
-							<span>{i18nStore.t('bridge.namingPending')}</span>
+						<div class="bridge-source-body">
+							<CodeViewer
+								filePath={codeTab.filePath}
+								read={readSource}
+								revision={bridgeStore.revisionOf(codeTab.filePath)}
+							/>
 						</div>
-					{:else if naming?.state === 'queued'}
-						<div class="bridge-strip" role="status" data-testid="naming-status">
-							<span>{i18nStore.t('bridge.namingQueued')}</span>
-						</div>
-					{:else if namedBy}
-						<div class="bridge-strip" role="status" data-testid="named-by">
-							<span
-								>{i18nStore.t('bridge.namedByWorker', {
-									worker: namedBy,
-									runs: bridgeStore.workerRuns ?? 0
-								})}</span
-							>
-						</div>
-					{:else if naming?.state === 'failed'}
-						<div class="bridge-strip warning" role="status" data-testid="naming-status">
-							<span>
-								{namingText(naming)}
-								<span class="bridge-detail"
-									>{i18nStore.t('bridge.serverSaid', { error: naming.error })}</span
+					</section>
+				{:else}
+					<div class="bridge-overlay">
+						<Breadcrumb />
+						{#if status.state === 'lost'}
+							<div class="bridge-strip warning" role="alert">
+								<span>{i18nStore.t('bridge.lost')}</span>
+								<button class="bridge-cta" onclick={reconnect}>
+									{i18nStore.t('bridge.reconnect')}
+								</button>
+							</div>
+						{/if}
+						{#if naming?.state === 'pending'}
+							<div class="bridge-strip" role="status" data-testid="naming-status">
+								<span class="bridge-pulse" aria-hidden="true"></span>
+								<span>{i18nStore.t('bridge.namingPending')}</span>
+							</div>
+						{:else if naming?.state === 'queued'}
+							<div class="bridge-strip" role="status" data-testid="naming-status">
+								<span>{i18nStore.t('bridge.namingQueued')}</span>
+							</div>
+						{:else if namedBy}
+							<div class="bridge-strip" role="status" data-testid="named-by">
+								<span
+									>{i18nStore.t('bridge.namedByWorker', {
+										worker: namedBy,
+										runs: bridgeStore.workerRuns ?? 0
+									})}</span
 								>
-							</span>
-						</div>
-					{/if}
-					{#if noticeText}
-						<div class="bridge-strip error" role="alert">
-							<span>{noticeText}</span>
-							<button class="bridge-cta secondary" onclick={() => bridgeStore.dismissNotice()}>
-								{i18nStore.t('bridge.dismiss')}
-							</button>
-						</div>
-					{/if}
-				</div>
-				<div class="bridge-canvas">
-					<ZUICanvas
-						onexpand={(node) => bridgeStore.expand(node)}
-						namesPending={naming?.state === 'pending'}
-					/>
-				</div>
-				{#if hasSemanticSelection}
-					<div class="bridge-detail-panel">
-						<SemanticDetailPanel ondismiss={() => (semanticStore.panelDismissed = true)} />
+							</div>
+						{:else if naming?.state === 'failed'}
+							<div class="bridge-strip warning" role="status" data-testid="naming-status">
+								<span>
+									{namingText(naming)}
+									<span class="bridge-detail"
+										>{i18nStore.t('bridge.serverSaid', { error: naming.error })}</span
+									>
+								</span>
+							</div>
+						{/if}
+						{#if noticeText}
+							<div class="bridge-strip error" role="alert">
+								<span>{noticeText}</span>
+								<button class="bridge-cta secondary" onclick={() => bridgeStore.dismissNotice()}>
+									{i18nStore.t('bridge.dismiss')}
+								</button>
+							</div>
+						{/if}
 					</div>
+					<div class="bridge-canvas">
+						<ZUICanvas onexpand={expand} namesPending={naming?.state === 'pending'} />
+					</div>
+					{#if hasSemanticSelection}
+						<div class="bridge-detail-panel">
+							<SemanticDetailPanel ondismiss={() => (semanticStore.panelDismissed = true)} />
+						</div>
+					{/if}
 				{/if}
-			{/if}
+			</div>
 		{:else}
 			<section class="bridge-card" aria-labelledby="bridge-title">
 				<span aria-hidden="true" class="material-symbols-outlined bridge-icon">cable</span>
@@ -545,6 +553,14 @@
 		position: relative;
 		overflow: hidden;
 		min-height: 0;
+	}
+
+	.bridge-stage {
+		flex: 1;
+		display: flex;
+		position: relative;
+		min-width: 0;
+		overflow: hidden;
 	}
 
 	.bridge-overlay {
