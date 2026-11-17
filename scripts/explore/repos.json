@@ -3,7 +3,6 @@
 		"owner": "huggingface",
 		"repo": "transformers",
 		"commit": "0d7a6219179b24586089ae81b45cf725078e681f",
-		"depth": 3,
 		"batch": 1
 	},
 	"fastapi": {
