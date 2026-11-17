@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { iconNames, readSources } from './icon-names.mjs';
+import { iconNames, iconStandIns, readSources, STAND_IN_EXCEPTIONS } from './icon-names.mjs';
 
 const repo = join(__dirname, '..');
 const fontsDir = join(repo, 'src/lib/fonts');
@@ -156,5 +156,34 @@ describe('iconNames', () => {
 			.material-symbols-outlined { font-family: 'Material Symbols Outlined'; }`;
 
 		expect(iconNames([{ path: 'src/a.css', source: css }])).toEqual([]);
+	});
+});
+
+describe('iconStandIns', () => {
+	it('finds no inline SVG or Unicode symbol drawn as an icon in the app', () => {
+		expect(iconStandIns(readSources(repo))).toEqual([]);
+	});
+
+	it('finds the character, its entity, its escape and an inline SVG', () => {
+		const files = [
+			svelte(['<button>&#10005;</button>', '<a>Next →</a>', "const icon = '\\u2713';"].join('\n')),
+			{ path: 'src/B.svelte', source: '<svg viewBox="0 0 24 24"></svg>' }
+		];
+
+		expect(iconStandIns(files).map((line: string) => line.split(' ')[0])).toEqual([
+			'src/A.svelte:1',
+			'src/A.svelte:2',
+			'src/A.svelte:3',
+			'src/B.svelte:1'
+		]);
+	});
+
+	it('leaves comments, plain punctuation and the listed exceptions alone', () => {
+		const files = [
+			svelte(['// a → b', '<p>&copy; 2026 · Ropeman — maps</p>'].join('\n')),
+			...Object.keys(STAND_IN_EXCEPTIONS).map((path) => ({ path, source: '<svg></svg> ✕' }))
+		];
+
+		expect(iconStandIns(files)).toEqual([]);
 	});
 });

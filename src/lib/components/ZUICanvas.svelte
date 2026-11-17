@@ -614,13 +614,19 @@
 							{#if edge.direction === 'outgoing'}
 								<span class="hover-edge-label">
 									<strong>{semanticStore.selectedSemanticNode.label}</strong>
-									→ {edgeVerb(edge.type)}
+									<span aria-hidden="true" class="material-symbols-outlined inline-icon"
+										>arrow_forward</span
+									>
+									{edgeVerb(edge.type)}
 									{#if edge.label}<em>({edge.label})</em>{/if}
 								</span>
 							{:else}
 								<span class="hover-edge-label">
 									<strong>{hoverRelation.hoveredLabel}</strong>
-									→ {edgeVerb(edge.type)}
+									<span aria-hidden="true" class="material-symbols-outlined inline-icon"
+										>arrow_forward</span
+									>
+									{edgeVerb(edge.type)}
 									{#if edge.label}<em>({edge.label})</em>{/if}
 								</span>
 							{/if}

@@ -87,10 +87,13 @@
 			return;
 		}
 
-		const rect = el.getBoundingClientRect();
-		const padding = 8;
 		const vw = window.innerWidth;
 		const vh = window.innerHeight;
+		const before = el.getBoundingClientRect();
+		// The landing scrolls, so a target below the fold would leave the tooltip off screen
+		if (before.top < 0 || before.bottom > vh) el.scrollIntoView({ block: 'center' });
+		const rect = el.getBoundingClientRect();
+		const padding = 8;
 
 		// Cutout position (highlight area)
 		cutoutStyle = `top:${rect.top - padding}px;left:${rect.left - padding}px;width:${rect.width + padding * 2}px;height:${rect.height + padding * 2}px;`;
@@ -145,7 +148,13 @@
 			arrow = 'arrow-left';
 		}
 
-		tooltipStyle = `top:${top}px;left:${left}px;width:${tooltipWidth}px;`;
+		// The pointer sits over the target's center even when the tooltip is clamped to the viewport
+		const edge = 20;
+		const pointerAt =
+			arrow === 'arrow-left'
+				? Math.min(Math.max(rect.top + rect.height / 2 - top, edge), tooltipHeight - edge)
+				: Math.min(Math.max(rect.left + rect.width / 2 - left, edge), tooltipWidth - edge);
+		tooltipStyle = `top:${top}px;left:${left}px;width:${tooltipWidth}px;--pointer-at:${pointerAt}px;`;
 		arrowClass = arrow;
 	}
 
@@ -319,68 +328,37 @@
 			left var(--duration-medium) var(--ease-standard);
 	}
 
-	/* Arrow indicators */
-	.tour-tooltip.arrow-top::before {
-		content: '';
-		position: absolute;
-		top: -8px;
-		left: 50%;
-		transform: translateX(-50%);
-		border-left: 8px solid transparent;
-		border-right: 8px solid transparent;
-		border-bottom: 8px solid var(--color-border);
-	}
-	.tour-tooltip.arrow-top::after {
-		content: '';
-		position: absolute;
-		top: -7px;
-		left: 50%;
-		transform: translateX(-50%);
-		border-left: 7px solid transparent;
-		border-right: 7px solid transparent;
-		border-bottom: 7px solid var(--color-background-surface);
-	}
-
-	.tour-tooltip.arrow-bottom::before {
-		content: '';
-		position: absolute;
-		bottom: -8px;
-		left: 50%;
-		transform: translateX(-50%);
-		border-left: 8px solid transparent;
-		border-right: 8px solid transparent;
-		border-top: 8px solid var(--color-border);
-	}
-	.tour-tooltip.arrow-bottom::after {
-		content: '';
-		position: absolute;
-		bottom: -7px;
-		left: 50%;
-		transform: translateX(-50%);
-		border-left: 7px solid transparent;
-		border-right: 7px solid transparent;
-		border-top: 7px solid var(--color-background-surface);
-	}
-
+	/* Pointer: a rotated square whose two outer edges continue the tooltip border */
+	.tour-tooltip.arrow-top::before,
+	.tour-tooltip.arrow-bottom::before,
 	.tour-tooltip.arrow-left::before {
 		content: '';
 		position: absolute;
-		left: -8px;
-		top: 50%;
-		transform: translateY(-50%);
-		border-top: 8px solid transparent;
-		border-bottom: 8px solid transparent;
-		border-right: 8px solid var(--color-border);
+		width: var(--spacing-3);
+		height: var(--spacing-3);
+		background: var(--color-background-surface);
+		border: 0 solid var(--color-border);
 	}
-	.tour-tooltip.arrow-left::after {
-		content: '';
-		position: absolute;
-		left: -7px;
-		top: 50%;
-		transform: translateY(-50%);
-		border-top: 7px solid transparent;
-		border-bottom: 7px solid transparent;
-		border-right: 7px solid var(--color-background-surface);
+	.tour-tooltip.arrow-top::before {
+		top: calc(var(--spacing-3) / -2);
+		left: var(--pointer-at, 50%);
+		transform: translateX(-50%) rotate(45deg);
+		border-top-width: 1px;
+		border-left-width: 1px;
+	}
+	.tour-tooltip.arrow-bottom::before {
+		bottom: calc(var(--spacing-3) / -2);
+		left: var(--pointer-at, 50%);
+		transform: translateX(-50%) rotate(45deg);
+		border-right-width: 1px;
+		border-bottom-width: 1px;
+	}
+	.tour-tooltip.arrow-left::before {
+		left: calc(var(--spacing-3) / -2);
+		top: var(--pointer-at, 50%);
+		transform: translateY(-50%) rotate(45deg);
+		border-bottom-width: 1px;
+		border-left-width: 1px;
 	}
 
 	.tour-tooltip-header {
@@ -397,12 +375,12 @@
 		min-width: 32px;
 		height: 22px;
 		padding: 0 var(--spacing-2);
-		border-radius: var(--radius-full);
-		background: var(--color-text-primary);
-		color: var(--color-background-body);
+		border-radius: var(--radius-inner);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
-		letter-spacing: 0.05em;
+		font-weight: var(--font-weight-semibold);
+		font-variant-numeric: tabular-nums;
 		flex-shrink: 0;
 	}
 

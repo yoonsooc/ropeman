@@ -106,7 +106,8 @@
 	<header class="explore-header">
 		<a href={resolve('')} class="explore-logo"><Wordmark /></a>
 		<a href={resolve('explore')} class="back-link">
-			← {i18nStore.t('explore.navLabel')}
+			<span aria-hidden="true" class="material-symbols-outlined inline-icon">arrow_back</span>
+			{i18nStore.t('explore.navLabel')}
 		</a>
 		<span class="project-name">{data.entry.owner}/{data.entry.repo}</span>
 		<span class="badge">{data.entry.language}</span>
@@ -117,7 +118,8 @@
 				rel="noopener noreferrer"
 				class="repo-link"
 			>
-				GitHub →
+				GitHub
+				<span aria-hidden="true" class="material-symbols-outlined inline-icon">open_in_new</span>
 			</a>
 			<button class="cta" onclick={() => (window.location.href = resolve(''))}>
 				{i18nStore.t('explore.analyzeOwn')}
@@ -152,7 +154,9 @@
 						rel="noopener noreferrer"
 						class="cta cta-secondary"
 					>
-						{i18nStore.t('explore.viewOnGithub')} ↗
+						{i18nStore.t('explore.viewOnGithub')}
+						<span aria-hidden="true" class="material-symbols-outlined inline-icon">open_in_new</span
+						>
 					</a>
 				</div>
 			</div>
@@ -319,8 +323,8 @@
 		width: 48px;
 		height: 48px;
 		border-radius: 50%;
-		border: 2px solid var(--color-accent-muted);
-		border-top-color: var(--color-accent);
+		border: 2px solid var(--color-border);
+		border-top-color: var(--color-text-secondary);
 		animation: spin 0.8s linear infinite;
 	}
 	@keyframes spin {

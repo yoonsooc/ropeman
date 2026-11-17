@@ -711,7 +711,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'에이전트는 한 단계씩 이름을 붙입니다. 검증기는 파일마다 정확히 한 부분에 들어갔는지, 핵심 심볼이 그 부분에 선언되어 있는지 봅니다. 검사에 실패한 단계는 폴더 이름을 그대로 둡니다.',
 			featureDrillTitle: '눌러서 더 깊이',
 			featureDrillDesc:
-				'폴더를 누르면 일꾼 CLI(claude, 또는 --cli gemini를 주면 gemini)가 에이전트가 쓴 맥락 요약을 받아 이름을 붙입니다. 일꾼 CLI가 없으면 연 폴더는 에이전트가 다음 대화에서 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일을 읽어 보여 줍니다.',
+				'폴더를 누르면 일꾼 CLI(claude, 또는 `--cli gemini`를 주면 gemini)가 에이전트가 쓴 맥락 요약을 받아 이름을 붙입니다. 일꾼 CLI가 없으면 연 폴더는 에이전트가 다음 대화에서 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일을 읽어 보여 줍니다.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: '불러오기',
 			githubOr: '또는 GitHub 저장소 URL을 입력하세요',
@@ -1356,7 +1356,7 @@ const translations: Record<Locale, TranslationSet> = {
 			refusedBody:
 				'serve는 {port} 포트에서 실행 중이지만 이 페이지의 연결을 거부했습니다. 토큰이 틀렸거나 serve가 이 페이지 주소를 허용하지 않기 때문입니다. 어느 쪽인지는 serve를 실행한 터미널에 나옵니다. "wrong token"이 찍혔다면 토큰을 다시 복사해 전체 값을 붙여 넣으세요.',
 			refusedHint:
-				'serve를 --token이나 ROPEMAN_BRIDGE_TOKEN으로 실행했다면 그 값을 넣으세요. 다른 프로그램이 이 포트를 쓰고 있다면 serve를 --port로 실행하고 그 번호를 넣으세요.',
+				'serve를 `--token`이나 `ROPEMAN_BRIDGE_TOKEN`으로 실행했다면 그 값을 넣으세요. 다른 프로그램이 이 포트를 쓰고 있다면 serve를 `--port`로 실행하고 그 번호를 넣으세요.',
 			allowOrigin:
 				'터미널에 "not allowed"가 찍혔다면 serve가 이 페이지 주소를 허용하지 않은 것입니다. serve를 멈추고 이렇게 다시 실행하세요.',
 			unexplainedTitle: '연결되지 않았습니다',
@@ -1392,13 +1392,13 @@ const translations: Record<Locale, TranslationSet> = {
 		bridge: {
 			pageTitle: '브리지',
 			title: 'ropeman serve에 연결',
-			desc: 'ropeman serve는 내 컴퓨터에서 돌면서 폴더 하나의 지도를 내줍니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 일꾼 CLI(claude, 또는 --cli gemini를 주면 gemini)가 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일만 읽어 옵니다. 코드는 Ropeman 서버로 가지 않습니다.',
+			desc: 'ropeman serve는 내 컴퓨터에서 돌면서 폴더 하나의 지도를 내줍니다. 위쪽 단계는 코딩 에이전트가 이름을 붙입니다. 내가 여는 폴더의 부분에는 헤드리스 일꾼 CLI(claude, 또는 `--cli gemini`를 주면 gemini)가 이름을 붙입니다. 일꾼 CLI가 없으면 내가 다음 메시지를 보낼 때 에이전트가 이름을 붙입니다. 파일을 누르면 serve가 디스크에서 그 파일만 읽어 옵니다. 코드는 Ropeman 서버로 가지 않습니다.',
 			agentSummary: '코딩 에이전트를 쓰면 에이전트가 serve를 띄웁니다',
 			startServe: '직접 띄우려면 지도를 만들 폴더에서 serve를 실행하세요.',
 			portLabel: '포트',
 			tokenLabel: '토큰',
 			tokenHint:
-				'serve는 토큰을 화면에 찍지 않고 어디 있는지만 알려 줍니다. 기본 위치는 {file} 파일입니다. --token이나 ROPEMAN_BRIDGE_TOKEN으로 정했다면 그 값을 넣으세요.',
+				'serve는 토큰을 화면에 찍지 않고 어디 있는지만 알려 줍니다. 기본 위치는 `{file}` 파일입니다. `--token`이나 `ROPEMAN_BRIDGE_TOKEN`으로 정했다면 그 값을 넣으세요.',
 			tokenMemoryOnly:
 				'이 페이지는 토큰을 저장하지 않고 메모리에만 둡니다. 새로고침하면 다시 넣으세요.',
 			copyToken: '토큰 파일 내용 보기:',
@@ -1425,7 +1425,7 @@ const translations: Record<Locale, TranslationSet> = {
 			namingQueued:
 				'에이전트 대기열에 넣었습니다. 다음에 에이전트와 대화할 때 이 부분들의 이름을 붙입니다. 그동안은 폴더 이름이 보입니다.',
 			namingNoCli:
-				'serve에 이름을 붙일 방법이 없습니다. Ropeman 스킬이 알려 준 --out을 붙이거나 --cli를 붙여 다시 시작하세요. 폴더 이름을 그대로 씁니다.',
+				'serve에 이름을 붙일 방법이 없습니다. Ropeman 스킬이 알려 준 `--out`을 붙이거나 `--cli`를 붙여 다시 시작하세요. 폴더 이름을 그대로 씁니다.',
 			namingFailed: 'CLI가 이름 붙이기를 끝내지 못했습니다. 폴더 이름을 그대로 씁니다.',
 			namingRejected:
 				'CLI가 붙인 이름이 두 번 다 검사를 통과하지 못했습니다. 폴더 이름을 그대로 씁니다.',
@@ -1435,7 +1435,7 @@ const translations: Record<Locale, TranslationSet> = {
 			mapFailed: '지도를 받지 못했습니다. {reason}',
 			busyExpand:
 				'이 페이지에서 이미 폴더 4개에 이름을 붙이는 중입니다. 하나가 끝난 뒤 다시 누르세요.',
-			noRoot: 'serve가 --root 없이 실행되어 지도도 파일도 없습니다.',
+			noRoot: 'serve가 `--root` 없이 실행되어 지도도 파일도 없습니다.',
 			disconnected: 'serve에 연결되어 있지 않습니다.',
 			otherError: 'serve가 처리하지 못했습니다: {error}',
 			dismiss: '닫기',
@@ -1540,7 +1540,7 @@ const translations: Record<Locale, TranslationSet> = {
 				'Your agent names one level at a time. The verifier checks that each file sits in exactly one part and that each key symbol is declared there. A level whose names fail keeps its folder names.',
 			featureDrillTitle: 'Click to go deeper',
 			featureDrillDesc:
-				'Click a folder and a worker CLI (claude, or gemini with --cli gemini) names it from the brief your agent wrote. Without a worker CLI, your agent names opened folders on your next message. Click a file and serve reads it from disk.',
+				'Click a folder and a worker CLI (claude, or gemini with `--cli gemini`) names it from the brief your agent wrote. Without a worker CLI, your agent names opened folders on your next message. Click a file and serve reads it from disk.',
 			githubPlaceholder: 'https://github.com/owner/repo',
 			githubLoad: 'Load',
 			githubOr: 'or enter a GitHub repository URL',
@@ -2189,7 +2189,7 @@ const translations: Record<Locale, TranslationSet> = {
 			refusedBody:
 				'serve is running on port {port} but turned this page down, because the token is wrong or serve does not allow this page\'s address. The terminal running serve says which. If it says "wrong token", copy the token again and paste the whole value:',
 			refusedHint:
-				'If you started serve with --token or ROPEMAN_BRIDGE_TOKEN, paste that value instead. If another program uses this port, start serve with --port and enter that number.',
+				'If you started serve with `--token` or `ROPEMAN_BRIDGE_TOKEN`, paste that value instead. If another program uses this port, start serve with `--port` and enter that number.',
 			allowOrigin:
 				'If the terminal says "not allowed", serve does not allow this page\'s address. Stop serve and start it like this:',
 			unexplainedTitle: 'The connection did not go through',
@@ -2226,13 +2226,13 @@ const translations: Record<Locale, TranslationSet> = {
 		bridge: {
 			pageTitle: 'Bridge',
 			title: 'Connect to ropeman serve',
-			desc: "ropeman serve runs on your machine and serves the map of one folder. Your coding agent names the top levels. A headless worker CLI (claude, or gemini with --cli gemini) names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. Click a file and serve reads just that file from disk. Your code does not go to Ropeman's servers.",
+			desc: "ropeman serve runs on your machine and serves the map of one folder. Your coding agent names the top levels. A headless worker CLI (claude, or gemini with `--cli gemini`) names the parts of each folder you open. Without a worker CLI, your agent names them on your next message. Click a file and serve reads just that file from disk. Your code does not go to Ropeman's servers.",
 			agentSummary: 'With a coding agent, the agent starts serve for you',
 			startServe: 'Or start serve yourself in the folder you want to map:',
 			portLabel: 'Port',
 			tokenLabel: 'Token',
 			tokenHint:
-				"serve doesn't print the token. It tells you where the token is: by default the file {file}. If you set it with --token or ROPEMAN_BRIDGE_TOKEN, paste that value.",
+				"serve doesn't print the token. It tells you where the token is: by default the file `{file}`. If you set it with `--token` or `ROPEMAN_BRIDGE_TOKEN`, paste that value.",
 			tokenMemoryOnly:
 				"This page keeps the token in memory and doesn't save it, so paste it again after a reload.",
 			copyToken: 'Show the token file:',
@@ -2258,7 +2258,7 @@ const translations: Record<Locale, TranslationSet> = {
 			namingQueued:
 				'Queued for your agent. It names these parts the next time you talk to it. Folder names show until then.',
 			namingNoCli:
-				'serve has no way to name these parts. Start it again with the --out folder from the Ropeman skill, or with --cli. Folder names stay.',
+				'serve has no way to name these parts. Start it again with the `--out` folder from the Ropeman skill, or with `--cli`. Folder names stay.',
 			namingFailed: "The CLI didn't finish naming. Folder names stay.",
 			namingRejected: "The CLI's names failed the checks twice. Folder names stay.",
 			namingStopped: 'Naming stopped. Folder names stay.',
@@ -2266,7 +2266,7 @@ const translations: Record<Locale, TranslationSet> = {
 			expandFailed: "Couldn't open {label}. {reason}",
 			mapFailed: "Couldn't load the map. {reason}",
 			busyExpand: 'This page already has 4 folders being named. Click again when one finishes.',
-			noRoot: 'serve was started without --root, so it has no map and reads no files.',
+			noRoot: 'serve was started without `--root`, so it has no map and reads no files.',
 			disconnected: 'Not connected to serve.',
 			otherError: "serve couldn't do it: {error}",
 			dismiss: 'Dismiss',

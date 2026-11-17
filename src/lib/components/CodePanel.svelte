@@ -85,8 +85,8 @@
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
 		text-transform: uppercase;
-		color: var(--color-accent);
-		background: var(--color-accent-muted);
+		color: var(--color-text-secondary);
+		background: var(--color-background-muted);
 		padding: var(--spacing-0-5) var(--spacing-2);
 		border-radius: var(--radius-inner);
 	}
@@ -123,9 +123,7 @@
 	}
 
 	.code-line.highlighted {
-		background: var(--color-accent-muted);
-		border-left: 3px solid var(--color-accent);
-		padding-left: var(--spacing-2);
+		background: var(--color-background-muted);
 	}
 
 	.line-number {

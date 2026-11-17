@@ -69,7 +69,12 @@
 	<div class="chat-popup">
 		<div class="chat-header">
 			<span class="chat-header-title">{i18nStore.t('chatTitle')}</span>
-			<button class="chat-close-btn" onclick={() => chatStore.toggle()}>&#10005;</button>
+			<button
+				class="chat-close-btn"
+				onclick={() => chatStore.toggle()}
+				aria-label={i18nStore.t('common.close')}
+				><span aria-hidden="true" class="material-symbols-outlined">close</span></button
+			>
 		</div>
 
 		{#if !authStore.isReady}
@@ -117,8 +122,14 @@
 	</div>
 {/if}
 
-<button class="chat-float-btn" onclick={() => chatStore.toggle()}>
-	{chatStore.open ? '✕' : '💬'}
+<button
+	class="chat-float-btn"
+	onclick={() => chatStore.toggle()}
+	aria-label={chatStore.open ? i18nStore.t('common.close') : i18nStore.t('chatTitle')}
+>
+	<span aria-hidden="true" class="material-symbols-outlined"
+		>{chatStore.open ? 'close' : 'chat'}</span
+	>
 </button>
 
 <style>

@@ -96,18 +96,7 @@
 			onclick={() => handleIconClick('files')}
 			title={i18nStore.t('sidebar.fileExplorer')}
 		>
-			<svg
-				width="18"
-				height="18"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-			</svg>
+			<span aria-hidden="true" class="material-symbols-outlined">folder</span>
 		</button>
 		<button
 			bind:this={railButtons.semantic}
@@ -119,23 +108,7 @@
 				? i18nStore.t('sidebar.semanticTree')
 				: i18nStore.t('sidebar.semanticTreeNeedsAnalysis')}
 		>
-			<svg
-				width="18"
-				height="18"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<circle cx="12" cy="5" r="3" />
-				<line x1="12" y1="8" x2="12" y2="14" />
-				<circle cx="6" cy="19" r="3" />
-				<circle cx="18" cy="19" r="3" />
-				<line x1="12" y1="14" x2="6" y2="16" />
-				<line x1="12" y1="14" x2="18" y2="16" />
-			</svg>
+			<span aria-hidden="true" class="material-symbols-outlined">account_tree</span>
 		</button>
 	</div>
 	{#if contentOpen}
@@ -156,18 +129,7 @@
 							onclick={() => (contentOpen = false)}
 							title={i18nStore.t('sidebar.hidePanel')}
 						>
-							<svg
-								width="14"
-								height="14"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<polyline points="11 17 6 12 11 7" />
-							</svg>
+							<span aria-hidden="true" class="material-symbols-outlined">chevron_left</span>
 						</button>
 					</div>
 					<SemanticTree {onexpand} />
@@ -265,6 +227,10 @@
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-secondary);
+	}
+
+	.panel-toggle .material-symbols-outlined {
+		font-size: 16px;
 	}
 
 	.panel-toggle {

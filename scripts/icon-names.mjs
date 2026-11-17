@@ -173,6 +173,69 @@ export function iconNames(files) {
 	return [...names].sort();
 }
 
+// Arrows, geometric shapes, dingbats, symbols and emoji that stand in for an icon, written as the
+// character, an HTML entity or a JavaScript escape
+const STAND_IN_CHAR = /[×‹›←-⇿⌀-⏿■-➿⬀-⯿\u{1f300}-\u{1faff}]/u;
+const STAND_IN_ENTITY = /&(?:times|rsaquo|lsaquo|rarr|larr|uarr|darr|check|#\d+|#x[0-9a-f]+);/gi;
+const STAND_IN_ESCAPE = /\\u(?:\{[0-9a-f]+\}|[0-9a-f]{4})/gi;
+const INLINE_SVG = /<svg\b/;
+
+/** Files that may keep a stand-in, each with the reason */
+export const STAND_IN_EXCEPTIONS = {
+	'src/lib/components/AgentSetup.svelte':
+		'the release work owns this file; its one arrow moves later',
+	'src/lib/components/LoadingOverlay.svelte': 'the spinner is an animated SVG circle, not an icon',
+	'src/lib/components/SearchBar.svelte':
+		'result kinds are letter badges; import and other are glyphs among them'
+};
+
+/**
+ * Lines of `.svelte` files that draw an icon with inline SVG or a Unicode symbol instead of the
+ * icon font
+ * @param {{ path: string, source: string }[]} files
+ * @returns {string[]}
+ */
+export function iconStandIns(files) {
+	const found = [];
+	for (const { path: file, source } of files) {
+		if (!file.endsWith('.svelte') || file in STAND_IN_EXCEPTIONS) continue;
+		source.split('\n').forEach((line, i) => {
+			const text = line.trim();
+			if (/^(\/\/|\*|\/\*|<!--)/.test(text)) return;
+			const decoded = [
+				...[...line.matchAll(STAND_IN_ENTITY)].map(([e]) => decodeEntity(e)),
+				...[...line.matchAll(STAND_IN_ESCAPE)].map(([e]) => decodeEscape(e))
+			];
+			if (INLINE_SVG.test(line) || [line, ...decoded].some((s) => STAND_IN_CHAR.test(s)))
+				found.push(`${file}:${i + 1} ${text}`);
+		});
+	}
+	return found;
+}
+
+const NAMED = {
+	times: '×',
+	rsaquo: '›',
+	lsaquo: '‹',
+	rarr: '→',
+	larr: '←',
+	uarr: '↑',
+	darr: '↓',
+	check: '✓'
+};
+
+function decodeEntity(entity) {
+	const body = entity.slice(1, -1).toLowerCase();
+	if (body.startsWith('#x')) return String.fromCodePoint(parseInt(body.slice(2), 16));
+	if (body.startsWith('#')) return String.fromCodePoint(Number(body.slice(1)));
+	return NAMED[body];
+}
+
+function decodeEscape(escape) {
+	const hex = escape.slice(2).replace(/[{}]/g, '');
+	return String.fromCodePoint(parseInt(hex, 16));
+}
+
 function hasIconClass(element, source) {
 	return element.attributes.some(
 		(a) =>

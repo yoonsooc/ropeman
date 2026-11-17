@@ -40,11 +40,11 @@
 		const track = authStore.activeTrack;
 		switch (track) {
 			case 'edge':
-				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)', icon: '⚡' };
+				return { label: i18nStore.t('track.edge'), color: 'var(--track-demo)' };
 			case 'webgpu':
-				return { label: i18nStore.t('track.webgpu'), color: 'var(--track-webgpu)', icon: '🧠' };
+				return { label: i18nStore.t('track.webgpu'), color: 'var(--track-webgpu)' };
 			case 'byok':
-				return { label: i18nStore.t('track.byok'), color: 'var(--track-byok)', icon: '🔑' };
+				return { label: i18nStore.t('track.byok'), color: 'var(--track-byok)' };
 			default:
 				return null;
 		}

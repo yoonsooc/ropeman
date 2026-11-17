@@ -221,7 +221,9 @@
 						</div>
 					{/if}
 				</div>
-				<button class="modal-close" onclick={onclose}>&#10005;</button>
+				<button class="modal-close" onclick={onclose} aria-label={i18nStore.t('common.close')}>
+					<span aria-hidden="true" class="material-symbols-outlined">close</span>
+				</button>
 			</div>
 
 			<div class="modal-body analyze-body">
@@ -278,7 +280,11 @@
 						{#if authStore.activeTrack === 'byok'}
 							<span class="badge badge-accent">{i18nStore.t('analyze.active')}</span>
 						{/if}
-						<span class="expand-arrow" class:expanded={expandedCard === 'byok'}>&#9656;</span>
+						<span
+							aria-hidden="true"
+							class="material-symbols-outlined expand-chevron"
+							class:expanded={expandedCard === 'byok'}>chevron_right</span
+						>
 					</div>
 					{#if expandedCard === 'byok'}
 						<div class="track-config">
@@ -422,7 +428,11 @@
 							<span class="badge badge-accent">{i18nStore.t('analyze.active')}</span>
 						{/if}
 						{#if webgpuStore.isSupported && !isCompact}
-							<span class="expand-arrow" class:expanded={expandedCard === 'webgpu'}>&#9656;</span>
+							<span
+								aria-hidden="true"
+								class="material-symbols-outlined expand-chevron"
+								class:expanded={expandedCard === 'webgpu'}>chevron_right</span
+							>
 						{/if}
 					</div>
 					{#if expandedCard === 'webgpu' && webgpuStore.isSupported && !isCompact}
@@ -449,7 +459,11 @@
 						<div class="preview-header">
 							<button class="preview-toggle" onclick={() => (showPreview = !showPreview)}>
 								{i18nStore.t('analyze.payloadPreview')}
-								<span class="toggle-arrow" class:expanded={showPreview}>&#9656;</span>
+								<span
+									aria-hidden="true"
+									class="material-symbols-outlined toggle-chevron"
+									class:expanded={showPreview}>chevron_right</span
+								>
 							</button>
 							{#if showPreview}
 								<button
@@ -608,13 +622,13 @@
 		color: var(--color-text-secondary);
 		margin-top: 1px;
 	}
-	.expand-arrow {
-		font-size: var(--font-size-sm);
+	.expand-chevron {
+		font-size: 18px;
 		color: var(--color-text-secondary);
 		transition: transform var(--duration-fast) var(--ease-standard);
 		flex-shrink: 0;
 	}
-	.expand-arrow.expanded {
+	.expand-chevron.expanded {
 		transform: rotate(90deg);
 	}
 	.start-btn {
@@ -699,11 +713,11 @@
 	.copy-json-btn .material-symbols-outlined {
 		font-size: 14px;
 	}
-	.toggle-arrow {
-		font-size: var(--font-size-xs);
+	.toggle-chevron {
+		font-size: 16px;
 		transition: transform var(--duration-fast) var(--ease-standard);
 	}
-	.toggle-arrow.expanded {
+	.toggle-chevron.expanded {
 		transform: rotate(90deg);
 	}
 	.preview-meta {

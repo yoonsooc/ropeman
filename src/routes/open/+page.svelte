@@ -405,8 +405,8 @@
 		width: 48px;
 		height: 48px;
 		border-radius: 50%;
-		border: 2px solid var(--color-accent-muted);
-		border-top-color: var(--color-accent);
+		border: 2px solid var(--color-border);
+		border-top-color: var(--color-text-secondary);
 		animation: spin 0.8s linear infinite;
 	}
 

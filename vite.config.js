@@ -5,6 +5,7 @@ import rehypeSlug from 'rehype-slug';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { devFsPlugin } from './scripts/vite-dev-fs-plugin.js';
+import { rehypeInlineCode } from './scripts/rehype-inline-code.mjs';
 
 const WEBLLM_BUNDLE = '/node_modules/@mlc-ai/web-llm/lib/index.js';
 const WEBLLM_DOC_EXAMPLE = "new URL('./worker.ts', import.meta.url)";
@@ -38,7 +39,10 @@ function webllmSkipLiteralScan() {
 /** Also read by vitest.config.ts, which compiles components and docs without SvelteKit */
 export const svelteOptions = {
 	extensions: ['.svelte', '.md'],
-	preprocess: [vitePreprocess(), mdsvex({ extensions: ['.md'], rehypePlugins: [rehypeSlug] })]
+	preprocess: [
+		vitePreprocess(),
+		mdsvex({ extensions: ['.md'], rehypePlugins: [rehypeSlug, rehypeInlineCode] })
+	]
 };
 
 export default defineConfig({

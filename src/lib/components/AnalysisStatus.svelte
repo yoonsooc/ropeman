@@ -296,7 +296,12 @@
 				</div>
 			{/if}
 		</div>
-		<button class="analysis-error-dismiss" onclick={dismissError}>&#10005;</button>
+		<button
+			class="analysis-error-dismiss"
+			onclick={dismissError}
+			aria-label={i18nStore.t('common.close')}
+			><span aria-hidden="true" class="material-symbols-outlined">close</span></button
+		>
 	</div>
 {/if}
 
@@ -552,6 +557,10 @@
 		padding: 0 var(--spacing-0-5);
 		flex-shrink: 0;
 		line-height: 1;
+	}
+
+	.analysis-error-dismiss .material-symbols-outlined {
+		font-size: 16px;
 	}
 
 	.analysis-error-dismiss:hover {

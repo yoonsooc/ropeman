@@ -17,6 +17,7 @@
 	import 'prismjs/components/prism-java';
 	import 'prismjs/components/prism-c';
 	import 'prismjs/components/prism-cpp';
+	import InlineCodeText from '$lib/components/InlineCodeText.svelte';
 
 	let {
 		filePath: propFilePath,
@@ -247,7 +248,7 @@
 <div class="code-viewer">
 	{#if !currentFilePath && !targetFilePath}
 		<div class="code-empty">
-			<div class="empty-icon">&#128196;</div>
+			<span aria-hidden="true" class="material-symbols-outlined empty-icon">description</span>
 			<p class="empty-text">{i18nStore.t('codeViewer.empty')}</p>
 		</div>
 	{:else if isLoadingFile}
@@ -257,7 +258,7 @@
 		</div>
 	{:else if loadError}
 		<div class="code-error">
-			<p>{loadError}</p>
+			<p><InlineCodeText text={loadError} /></p>
 		</div>
 	{:else}
 		<div class="code-header">
@@ -364,8 +365,8 @@
 	.loading-spinner {
 		width: 16px;
 		height: 16px;
-		border: 2px solid var(--color-text-tertiary);
-		border-top-color: var(--color-accent);
+		border: 2px solid var(--color-border);
+		border-top-color: var(--color-text-secondary);
 		border-radius: 50%;
 		animation: spin 0.8s linear infinite;
 	}

@@ -222,6 +222,30 @@ describe('i18nStore', () => {
 			}
 		});
 
+		// Regression: "--cli gemini" wrapped at its hyphens in the /bridge card. A flag in copy sits
+		// in backticks, which InlineCodeText renders as code that does not wrap
+		it('puts every command-line flag in backticks, the same ones in both languages', () => {
+			// Arrange
+			const ko = messagesFor('ko');
+			const en = messagesFor('en');
+			const codeSpans = (text: string) => [...text.matchAll(/`([^`]*)`/g)].map(([, c]) => c);
+
+			for (const [path, value] of [...ko, ...en]) {
+				const text = String(value);
+
+				// Assert
+				expect(text.split('`').length % 2, `${path} has an unpaired backtick`).toBe(1);
+				expect(text.replace(/`[^`]*`/g, ''), `${path} has a flag outside backticks`).not.toMatch(
+					/(^|[\s(])--[a-z]/
+				);
+			}
+			for (const [path, value] of en) {
+				expect(codeSpans(String(ko.get(path))).sort(), path).toEqual(
+					codeSpans(String(value)).sort()
+				);
+			}
+		});
+
 		// The landing once quoted an extraction time and file counts; a model or extractor change
 		// would leave such a number stale, so the landing carries none
 		it('keeps measured times and counts out of the landing copy', () => {
