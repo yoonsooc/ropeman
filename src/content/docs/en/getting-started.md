@@ -38,6 +38,24 @@ The skill is tested with Claude Code. Codex, Gemini CLI and Cursor load skills f
 
 When both are installed, ask your agent to "map this repo". It builds the map, names the top two levels, checks the names against the code, starts `ropeman serve` and gives you a `http://127.0.0.1:9800/bridge#token=…` address to open.
 
+### Use a graph file you already have
+
+By default `ropeman map` reads the repository with Ropeman's own extraction. If another tool already wrote a graph file for the repository, you can build the map from that file instead. This option needs `@ropeman/bridge` 0.6.0 or later.
+
+`ropeman map` looks for graph files at `graphify-out/graph.json` and `.graphicle/graph.json`. When it finds one, it does not switch to it on its own:
+
+- In a terminal, it asks which input to use. Ropeman's own extraction is the first choice and the default.
+- When your agent runs it, it writes no map and lists the choices. The agent shows them to you and passes your answer with `--input`.
+
+Each graph file in the list shows its size, when it changed, the tool that wrote it, and how many of the code files on disk it covers. The map shows only the files the graph holds, so a graph that covers less than 90% comes with a warning. To choose yourself, pass the file or `ropeman`:
+
+```bash
+ropeman map --root . --out .ropeman --input graphify-out/graph.json
+ropeman map --root . --out .ropeman --input ropeman
+```
+
+Ropeman remembers the choice in the `--out` folder, so later runs use the same input. Ropeman never installs or runs Graphify or any other tool. It reads only Graphify's `graph.json` format and refuses other formats with the reason. [ADR-28](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0028-graph-file-as-chosen-input.md) explains the choice.
+
 The quickstart below is the in-browser path, which needs no install.
 
 ## 30-Second Quickstart

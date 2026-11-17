@@ -58,3 +58,4 @@
 | [ADR-26](0026-sveltekit-3-vite-8.md)                 | SvelteKit 3, Vite 8, TypeScript 6으로 같이 올린다                           | 2026-11-15 |
 | [ADR-27](0027-grammars-from-upstream-releases.md)    | tree-sitter 문법은 언어마다 원본 저장소의 릴리스 파일을 받는다              | 2026-11-16 |
 | [ADR-28](0028-graph-file-as-chosen-input.md)         | graph.json은 사용자가 고를 때만 쓰는 보조 입력, 만드는 도구는 설치하지 않음 | 2026-11-17 |
+| [ADR-29](0029-plex-sans-and-local-hangul.md)         | 글자는 IBM Plex Sans 한 벌, 한글은 OS 글꼴에 `local()` 이름을 붙여 씀       | 2026-11-17 |

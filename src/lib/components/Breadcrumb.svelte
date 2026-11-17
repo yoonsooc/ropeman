@@ -319,7 +319,7 @@
 	}
 
 	.crumb.active {
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		font-weight: var(--font-weight-semibold);
 	}
 
@@ -397,7 +397,7 @@
 	}
 
 	.dropdown-item.current {
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		font-weight: var(--font-weight-semibold);
 	}
 

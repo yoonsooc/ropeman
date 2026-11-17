@@ -177,7 +177,6 @@
 	}
 	.newproject-title {
 		margin: 0;
-		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);

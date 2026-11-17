@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { resolve } from '$app/paths';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
@@ -28,7 +29,7 @@
 			<span class="material-symbols-outlined">menu</span>
 		</button>
 		<a class="logo" href={resolve('')}>
-			<h1 class="header-title">{i18nStore.t('title')}</h1>
+			<span class="header-title"><Wordmark /></span>
 		</a>
 		<span class="header-subtitle">{i18nStore.t('docs.title')}</span>
 	</div>
@@ -42,19 +43,23 @@
 			class="header-btn"
 			href={resolve(`docs/${otherLang}/${slug || 'getting-started'}`)}
 			title={i18nStore.t('header.languageToggle')}
+			aria-label={i18nStore.t('header.languageToggle')}
 			onclick={() => {
 				settingsStore.language = otherLang;
 			}}
 		>
-			{lang === 'ko' ? 'EN' : '한'}
+			<span aria-hidden="true" class="material-symbols-outlined">translate</span>
 		</a>
 		<button
 			class="header-btn"
 			type="button"
 			onclick={() => themeStore.toggle()}
 			title={i18nStore.t(themeStore.current === 'dark' ? 'lightMode' : 'darkMode')}
+			aria-label={i18nStore.t(themeStore.current === 'dark' ? 'lightMode' : 'darkMode')}
 		>
-			{themeStore.current === 'dark' ? '☀' : '☽'}
+			<span aria-hidden="true" class="material-symbols-outlined"
+				>{themeStore.current === 'dark' ? 'light_mode' : 'dark_mode'}</span
+			>
 		</button>
 	</div>
 </header>
@@ -90,9 +95,7 @@
 
 	.header-title {
 		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-accent);
-		font-family: var(--font-display);
+		color: var(--color-text-primary);
 		margin: 0;
 	}
 

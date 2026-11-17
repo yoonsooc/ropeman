@@ -159,7 +159,6 @@
 
 	.prompt-title {
 		margin: 0 0 var(--spacing-2);
-		font-family: var(--font-display);
 		font-size: var(--font-size-lg);
 		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);
@@ -187,7 +186,6 @@
 		gap: var(--spacing-1-5);
 		padding: var(--spacing-2) var(--spacing-4);
 		border-radius: var(--radius-element);
-		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-semibold);
 		text-decoration: none;
@@ -206,8 +204,8 @@
 	}
 
 	.btn-primary {
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 	}
 	.btn-primary:hover {
 		opacity: 0.85;

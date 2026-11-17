@@ -30,49 +30,6 @@
 		return createPathFilter(settingsStore.customSkipPatterns, settingsStore.customIncludePatterns);
 	}
 
-	const languages = [
-		{
-			name: 'Python',
-			color: '#3572A5',
-			icon: `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M11.914 0C5.82 0 6.2 2.656 6.2 2.656l.007 2.752h5.814v.826H3.9S0 5.789 0 11.969c0 6.18 3.403 5.96 3.403 5.96h2.03v-2.867s-.109-3.42 3.35-3.42h5.766s3.24.052 3.24-3.148V3.202S18.28 0 11.914 0zM8.708 1.85c.578 0 1.046.47 1.046 1.052 0 .581-.468 1.051-1.046 1.051-.579 0-1.047-.47-1.047-1.051 0-.582.468-1.052 1.047-1.052z"/><path fill="currentColor" d="M12.087 24c6.093 0 5.713-2.656 5.713-2.656l-.007-2.752h-5.814v-.826h8.123S24 18.211 24 12.031c0-6.18-3.403-5.96-3.403-5.96h-2.03v2.867s.109 3.42-3.35 3.42H9.45s-3.24-.052-3.24 3.148v5.292S5.72 24 12.087 24zm3.206-1.85c-.578 0-1.046-.47-1.046-1.052 0-.581.468-1.051 1.046-1.051.579 0 1.047.47 1.047 1.051 0 .582-.468 1.052-1.047 1.052z"/></svg>`
-		},
-		{
-			name: 'JavaScript',
-			color: '#f1e05a',
-			icon: `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.888-2.015-3.003-2.873-.736-.345-1.554-.585-1.797-1.14-.091-.33-.105-.51-.046-.705.15-.646.915-.84 1.515-.66.39.12.75.42.976.9 1.034-.676 1.034-.676 1.755-1.125-.27-.42-.405-.6-.586-.78-.63-.705-1.469-1.065-2.834-1.034l-.705.089c-.676.165-1.32.525-1.71 1.005-1.14 1.291-.811 3.541.569 4.471 1.365 1.02 3.361 1.244 3.616 2.205.24 1.17-.87 1.545-1.966 1.41-.811-.18-1.26-.586-1.755-1.336l-1.83 1.051c.21.48.45.689.81 1.109 1.74 1.756 6.09 1.666 6.871-1.004.029-.09.24-.705.074-1.65l.046.067zm-8.983-7.245h-2.248c0 1.938-.009 3.864-.009 5.805 0 1.232.063 2.363-.138 2.711-.33.689-1.18.601-1.566.48-.396-.196-.597-.466-.83-.855-.063-.105-.11-.196-.127-.196l-1.825 1.125c.305.63.75 1.172 1.324 1.517.855.51 2.004.675 3.207.405.783-.226 1.458-.691 1.811-1.411.51-.93.402-2.07.397-3.346.012-2.054 0-4.109 0-6.179l.004-.056z"/></svg>`
-		},
-		{
-			name: 'TypeScript',
-			color: '#3178c6',
-			icon: `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M1.125 0C.502 0 0 .502 0 1.125v21.75C0 23.498.502 24 1.125 24h21.75c.623 0 1.125-.502 1.125-1.125V1.125C24 .502 23.498 0 22.875 0zm17.363 9.75c.612 0 1.154.037 1.627.111a6.38 6.38 0 0 1 1.306.34v2.458a3.95 3.95 0 0 0-.643-.361 5.093 5.093 0 0 0-.717-.26 5.453 5.453 0 0 0-1.426-.2c-.3 0-.573.028-.819.086a2.1 2.1 0 0 0-.623.242c-.17.104-.3.229-.393.374a.888.888 0 0 0-.14.49c0 .196.053.373.156.529.104.156.252.304.443.444s.423.276.696.41c.273.135.582.274.926.416.47.197.892.407 1.266.628.374.222.695.473.963.753.268.279.472.598.614.957.142.359.214.776.214 1.253 0 .657-.125 1.21-.373 1.656a3.033 3.033 0 0 1-1.012 1.085 4.38 4.38 0 0 1-1.487.596c-.566.12-1.163.18-1.79.18a9.916 9.916 0 0 1-1.84-.164 5.544 5.544 0 0 1-1.512-.493v-2.63a5.033 5.033 0 0 0 3.237 1.2c.333 0 .624-.03.872-.09.249-.06.456-.144.623-.25.166-.108.29-.234.373-.38a1.023 1.023 0 0 0-.074-1.089 2.12 2.12 0 0 0-.537-.5 5.597 5.597 0 0 0-.807-.444 27.72 27.72 0 0 0-1.007-.436c-.918-.383-1.602-.852-2.053-1.405-.45-.553-.676-1.222-.676-2.005 0-.614.123-1.141.369-1.582.246-.441.58-.804 1.004-1.089a4.494 4.494 0 0 1 1.47-.629 7.536 7.536 0 0 1 1.77-.201zm-15.113.188h9.563v2.166H9.506v9.646H6.789v-9.646H3.375z"/></svg>`
-		},
-		{
-			name: 'Java',
-			color: '#b07219',
-			icon: `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M8.851 18.56s-.917.534.653.714c1.902.218 2.874.187 4.969-.211 0 0 .552.346 1.321.646-4.699 2.013-10.633-.118-6.943-1.149M8.276 15.933s-1.028.762.542.924c2.032.209 3.636.227 6.413-.308 0 0 .384.389.987.602-5.679 1.661-12.007.13-7.942-1.218M13.116 11.475c1.158 1.333-.304 2.533-.304 2.533s2.939-1.518 1.589-3.418c-1.261-1.772-2.228-2.652 3.007-5.688 0-.001-8.216 2.051-4.292 6.573M19.33 20.504s.679.559-.747.991c-2.712.822-11.288 1.069-13.669.033-.856-.373.75-.89 1.254-.998.527-.114.828-.093.828-.093-.953-.671-6.156 1.317-2.643 1.887 9.58 1.553 17.462-.7 14.977-1.82M9.292 13.21s-4.362 1.036-1.544 1.412c1.189.159 3.561.123 5.77-.062 1.806-.152 3.618-.477 3.618-.477s-.637.272-1.098.587c-4.429 1.165-12.986.623-10.522-.568 2.082-1.006 3.776-.892 3.776-.892M17.116 17.584c4.503-2.34 2.421-4.589.968-4.285-.355.074-.515.138-.515.138s.132-.207.385-.297c2.875-1.011 5.086 2.981-.928 4.562 0 0 .07-.062.09-.118M14.401 0s2.494 2.494-2.365 6.33c-3.896 3.077-.889 4.832 0 6.836-2.274-2.053-3.943-3.858-2.824-5.539 1.644-2.469 6.197-3.665 5.189-7.627M9.734 23.924c4.322.277 10.959-.154 11.116-2.198 0 0-.302.775-3.572 1.391-3.688.694-8.239.613-10.937.168 0 0 .553.457 3.393.639"/></svg>`
-		},
-		{
-			name: 'Go',
-			color: '#00ADD8',
-			icon: `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.082.07-.117.07zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zm12.129-2.36c-.736.187-1.239.327-1.963.514-.176.046-.187.058-.34-.117-.174-.199-.303-.327-.548-.444-.737-.362-1.45-.257-2.115.175-.795.514-1.204 1.274-1.192 2.22.011.935.654 1.706 1.577 1.835.795.105 1.46-.175 1.987-.77.105-.13.198-.27.315-.434H10.47c-.245 0-.304-.152-.222-.35.152-.362.432-.97.596-1.274a.315.315 0 0 1 .292-.187h4.253c-.023.316-.023.631-.07.947a4.983 4.983 0 0 1-.958 2.29c-.841 1.11-1.94 1.8-3.33 1.986-1.145.152-2.209-.07-3.143-.77-.865-.655-1.356-1.52-1.484-2.595-.152-1.274.222-2.419.993-3.424.83-1.086 1.928-1.776 3.272-2.02 1.098-.2 2.15-.07 3.096.571.62.41 1.063.97 1.356 1.648.07.105.023.164-.117.2M18.872 16.264c-1.052-.023-2.02-.304-2.853-.97a4.186 4.186 0 0 1-1.52-2.814c-.187-1.332.152-2.548.947-3.62.853-1.145 1.986-1.87 3.39-2.092 1.18-.187 2.291-.058 3.283.655.898.643 1.484 1.497 1.66 2.594.222 1.425-.152 2.676-1.098 3.773-.795.923-1.823 1.52-3.013 1.776-.362.07-.724.105-1.098.117l.303-.42z"/></svg>`
-		},
-		{
-			name: 'Rust',
-			color: '#dea584',
-			icon: `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M23.8346 11.7033l-1.0073-.6236a13.7268 13.7268 0 00-.0283-.2936l.8656-.8069a.3483.3483 0 00-.1154-.578l-1.1066-.414a8.4958 8.4958 0 00-.087-.2856l.6904-.9587a.3462.3462 0 00-.2257-.5446l-1.1663-.1894a9.3574 9.3574 0 00-.1407-.2622l.49-1.0761a.3437.3437 0 00-.0274-.3361.3486.3486 0 00-.3006-.154l-1.1845.0416a6.7444 6.7444 0 00-.1873-.2268l.2723-1.153a.3472.3472 0 00-.417-.4172l-1.1532.2724a14.0183 14.0183 0 00-.2278-.1873l.0415-1.1845a.3442.3442 0 00-.49-.328l-1.076.491c-.0872-.0476-.1742-.0952-.2623-.1407l-.1903-1.1673A.3483.3483 0 0016.256.955l-.9597.6905a8.4867 8.4867 0 00-.2855-.086l-.414-1.1066a.3483.3483 0 00-.5781-.1154l-.8069.8666a9.2936 9.2936 0 00-.2936-.0284L12.2946.1683a.3462.3462 0 00-.5892 0l-.6236 1.0073a13.7383 13.7383 0 00-.2936.0284L9.9803.3374a.3462.3462 0 00-.578.1154l-.4141 1.1065c-.0962.0274-.1903.0567-.2855.086L7.744.955a.3483.3483 0 00-.5447.2258L7.009 2.348a9.3574 9.3574 0 00-.2622.1407l-1.0762-.491a.3462.3462 0 00-.49.328l.0416 1.1845a7.9826 7.9826 0 00-.2278.1873L3.8413 3.425a.3472.3472 0 00-.4171.4171l.2713 1.1531c-.0628.075-.1255.1509-.1863.2268l-1.1845-.0415a.3462.3462 0 00-.328.49l.491 1.0761a9.167 9.167 0 00-.1407.2622l-1.1662.1894a.3483.3483 0 00-.2258.5446l.6904.9587a13.303 13.303 0 00-.087.2855l-1.1065.414a.3483.3483 0 00-.1155.5781l.8656.807a9.2936 9.2936 0 00-.0283.2935l-1.0073.6236a.3442.3442 0 000 .5892l1.0073.6236c.008.0982.0182.1964.0283.2936l-.8656.8079a.3462.3462 0 00.1155.578l1.1065.4141c.0273.0962.0567.1914.087.2855l-.6904.9587a.3452.3452 0 00.2268.5447l1.1662.1893c.0456.088.0922.1751.1408.2622l-.491 1.0762a.3462.3462 0 00.328.49l1.1834-.0415c.0618.0769.1235.1528.1873.2277l-.2713 1.1541a.3462.3462 0 00.4171.4161l1.153-.2713c.075.0638.151.1255.2279.1863l-.0415 1.1845a.3442.3442 0 00.49.327l1.0761-.49c.087.0486.1741.0951.2622.1407l.1903 1.1662a.3483.3483 0 00.5447.2268l.9587-.6904a9.299 9.299 0 00.2855.087l.414 1.1066a.3452.3452 0 00.5781.1154l.8079-.8656c.0972.0111.1954.0203.2936.0294l.6236 1.0073a.3472.3472 0 00.5892 0l.6236-1.0073c.0982-.0091.1964-.0183.2936-.0294l.8069.8656a.3483.3483 0 00.578-.1154l.4141-1.1066a8.4626 8.4626 0 00.2855-.087l.9587.6904a.3452.3452 0 00.5447-.2268l.1903-1.1662c.088-.0456.1751-.0931.2622-.1407l1.0762.49a.3472.3472 0 00.49-.327l-.0415-1.1845a6.7267 6.7267 0 00.2267-.1863l1.1531.2713a.3472.3472 0 00.4171-.416l-.2713-1.1542c.0628-.0749.1255-.1508.1863-.2278l1.1845.0415a.3442.3442 0 00.328-.49l-.49-1.076c.0475-.0872.0951-.1742.1407-.2623l1.1662-.1893a.3483.3483 0 00.2258-.5447l-.6904-.9587.087-.2855 1.1066-.414a.3462.3462 0 00.1154-.5781l-.8656-.8079c.0101-.0972.0202-.1954.0283-.2936l1.0073-.6236a.3442.3442 0 000-.5892zm-6.7413 8.3551a.7138.7138 0 01.2986-1.396.714.714 0 11-.2997 1.396zm-.3422-2.3142a.649.649 0 00-.7715.5l-.3573 1.6685c-1.1035.501-2.3285.7795-3.6193.7795a8.7368 8.7368 0 01-3.6951-.814l-.3574-1.6684a.648.648 0 00-.7714-.499l-1.473.3158a8.7216 8.7216 0 01-.7613-.898h7.1676c.081 0 .1356-.0141.1356-.088v-2.536c0-.074-.0536-.0881-.1356-.0881h-2.0966v-1.6077h2.2677c.2065 0 1.1065.0587 1.394 1.2088.0901.3533.2875 1.5044.4232 1.8729.1346.413.6833 1.2381 1.2685 1.2381h3.5716a.7492.7492 0 00.1296-.0131 8.7874 8.7874 0 01-.8119.9526zM6.8369 20.024a.714.714 0 11-.2997-1.396.714.714 0 01.2997 1.396zM4.1177 8.9972a.7137.7137 0 11-1.304.5791.7137.7137 0 011.304-.579zm-.8352 1.9813l1.5347-.6824a.65.65 0 00.33-.8585l-.3158-.7147h1.2432v5.6025H3.5669a8.7753 8.7753 0 01-.2834-3.348zm6.7343-.5437V8.7836h2.9601c.153 0 1.0792.1772 1.0792.8697 0 .575-.7107.7815-1.2948.7815zm10.7574 1.4862c0 .2187-.008.4363-.0243.651h-.9c-.09 0-.1265.0586-.1265.1477v.413c0 .973-.5487 1.1846-1.0296 1.2382-.4576.0517-.9648-.1913-1.0275-.4717-.2704-1.5186-.7198-1.8436-1.4305-2.4034.8817-.5599 1.799-1.386 1.799-2.4915 0-1.1936-.819-1.9458-1.3769-2.3153-.7825-.5163-1.6491-.6195-1.883-.6195H5.4682a8.7651 8.7651 0 014.907-2.7699l1.0974 1.151a.648.648 0 00.9182.0213l1.227-1.1743a8.7753 8.7753 0 016.0044 4.2762l-.8403 1.8982a.652.652 0 00.33.8585l1.6178.7188c.0283.2875.0425.577.0425.8717zm-9.3006-9.5993a.7128.7128 0 11.984 1.0316.7137.7137 0 01-.984-1.0316zm8.3389 6.71a.7107.7107 0 01.9395-.3625.7137.7137 0 11-.9405.3635z"/></svg>`
-		},
-		{
-			name: 'C/C++',
-			color: '#555555',
-			icon: `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M22.394 6c-.167-.29-.398-.543-.652-.69L12.926.22c-.509-.294-1.34-.294-1.848 0L2.26 5.31c-.508.293-.923 1.013-.923 1.6v10.18c0 .294.104.62.271.91.167.29.398.543.652.69l8.816 5.09c.508.293 1.34.293 1.848 0l8.816-5.09c.254-.147.485-.4.652-.69.167-.29.27-.616.27-.91V6.91c.003-.294-.1-.62-.268-.91zM12 19.11c-3.92 0-7.109-3.19-7.109-7.11 0-3.92 3.19-7.11 7.11-7.11a7.133 7.133 0 0 1 6.156 3.553l-3.076 1.78a3.567 3.567 0 0 0-3.08-1.78A3.56 3.56 0 0 0 8.444 12 3.56 3.56 0 0 0 12 15.555a3.57 3.57 0 0 0 3.08-1.778l3.078 1.78A7.135 7.135 0 0 1 12 19.11zm7.11-6.715h-.79v.79h-.79v-.79h-.79v-.79h.79v-.79h.79v.79h.79zm2.962 0h-.79v.79h-.79v-.79h-.79v-.79h.79v-.79h.79v.79h.79z"/></svg>`
-		},
-		{
-			name: 'Ruby',
-			color: '#CC342D',
-			icon: `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20.156.083c3.033.525 3.893 2.598 3.829 4.77L24 4.822 22.635 22.71 4.89 23.926h.016C3.433 23.864.15 23.729 0 19.139l1.645-3 2.819 6.586.503 1.172 2.805-9.144-.03.007.016-.03 9.255 2.956-1.396-5.431-.99-3.9 8.82-.569-.615-.51L16.5 2.114 20.159.073l-.003.01zM0 19.089zM5.13 5.073c3.561-3.533 8.157-5.621 9.922-3.84 1.762 1.777-.105 6.105-3.673 9.636-3.563 3.532-8.103 5.734-9.864 3.957-1.766-1.777.045-6.217 3.612-9.75l.003-.003z"/></svg>`
-		}
-	];
-
 	let isDragOver = $state(false);
 	let error = $state('');
 	let fallbackInput = $state<HTMLInputElement>(null!);
@@ -273,100 +230,22 @@
 			</div>
 		{:else}
 			<div class="landing" class:mobile={isCompact}>
-				<section class="landing-hero">
-					<div class="hero-text">
-						<h1>
-							{i18nStore.t('landing.headlineLead')}<br /><span class="headline-accent"
-								>{i18nStore.t('landing.headlineAccent')}</span
-							>
-						</h1>
-						<p class="hero-sub">{i18nStore.t('landing.subheadline')}</p>
+				<header class="landing-head pane">
+					<h1>
+						{i18nStore.t('landing.headlineLead')}
+						<span class="headline-accent">{i18nStore.t('landing.headlineAccent')}</span>
+					</h1>
+					<p class="hero-sub">{i18nStore.t('landing.subheadline')}</p>
+				</header>
+
+				<section class="landing-stage" aria-labelledby="landing-example-title">
+					<div class="stage-bar">
+						<h2 id="landing-example-title">{i18nStore.t('landing.navExample')}</h2>
+						<span class="stage-path">huggingface/transformers</span>
+						<a class="stage-link" href={resolve('explore')} data-tour-step="explore"
+							>{i18nStore.t('landing.exampleCta')}</a
+						>
 					</div>
-
-					<div class="hero-paths">
-						<section class="landing-setup" id="agent-setup" aria-labelledby="landing-setup-title">
-							<h2 id="landing-setup-title">{i18nStore.t('landing.setupTitle')}</h2>
-							<AgentSetup />
-						</section>
-
-						<section class="landing-try" aria-labelledby="landing-try-title">
-							<h2 id="landing-try-title">{i18nStore.t('landing.tryTitle')}</h2>
-							<p class="try-body">{i18nStore.t('landing.tryBody')}</p>
-							{#if !isCompact}
-								<button class="cta-btn" data-tour-step="1" onclick={handleOpenDirectory}>
-									<span aria-hidden="true" class="material-symbols-outlined cta-icon"
-										>folder_open</span
-									>
-									{i18nStore.t('landing.cta')}
-								</button>
-								<p class="drag-hint">{i18nStore.t('landing.dragHint')}</p>
-							{:else}
-								<p class="mobile-folder-hint">
-									<span aria-hidden="true" class="material-symbols-outlined">info</span>
-									{i18nStore.t('landing.mobileFolderHint')}
-								</p>
-							{/if}
-							<div class="github-input-section">
-								<label class="github-or" for="landing-github-url">
-									{isCompact
-										? i18nStore.t('landing.mobileGithubLead')
-										: i18nStore.t('landing.githubOr')}
-								</label>
-								<div class="github-input-row">
-									<input
-										id="landing-github-url"
-										type="url"
-										inputmode="url"
-										autocomplete="off"
-										spellcheck="false"
-										class="github-input"
-										aria-invalid={error ? true : undefined}
-										aria-describedby={error ? 'landing-github-error' : undefined}
-										placeholder={i18nStore.t('landing.githubPlaceholder')}
-										bind:value={githubUrl}
-										onkeydown={handleGitHubKeydown}
-										disabled={isLoadingGithub}
-									/>
-									<button
-										class="github-load-btn"
-										onclick={handleGitHubLoad}
-										disabled={isLoadingGithub}
-										aria-busy={isLoadingGithub}
-									>
-										{#if isLoadingGithub}
-											<span aria-hidden="true" class="material-symbols-outlined github-spinner"
-												>progress_activity</span
-											>
-										{:else}
-											<span aria-hidden="true" class="material-symbols-outlined">play_arrow</span>
-										{/if}
-										{i18nStore.t('landing.githubLoad')}
-									</button>
-								</div>
-							</div>
-							{#if error}
-								<p class="error-msg" id="landing-github-error" role="alert">{error}</p>
-							{/if}
-							<div class="try-links">
-								<a class="example-link" href={resolve('explore')} data-tour-step="explore">
-									{i18nStore.t('landing.exampleCta')}
-									<span aria-hidden="true">&#x2192;</span>
-								</a>
-								<a class="example-link" href={resolve('open')}>
-									{i18nStore.t('landing.openMapCta')}
-									<span aria-hidden="true">&#x2192;</span>
-								</a>
-							</div>
-							<div class="hero-languages">
-								{#each languages as lang}
-									<span class="hero-lang" style="color: {lang.color}">
-										{@html lang.icon}
-									</span>
-								{/each}
-							</div>
-						</section>
-					</div>
-
 					<figure class="hero-visual">
 						<a
 							class="hero-shot"
@@ -380,8 +259,8 @@
 									<img
 										class="shot-{locale} shot-{theme}"
 										src="/landing/explore-transformers-{locale}-{theme}.webp"
-										width="1600"
-										height="928"
+										width="2200"
+										height="1360"
 										alt={i18nStore.t('landing.heroShotAlt')}
 										decoding="async"
 										loading="lazy"
@@ -391,61 +270,93 @@
 						</a>
 						<figcaption>{i18nStore.t('landing.heroShotCaption')}</figcaption>
 					</figure>
+					<dl class="stage-facts">
+						<div>
+							<dt>{i18nStore.t('landing.featureMapTitle')}</dt>
+							<dd>{i18nStore.t('landing.featureMapDesc')}</dd>
+						</div>
+						<div>
+							<dt>{i18nStore.t('landing.featureVerifyTitle')}</dt>
+							<dd>{i18nStore.t('landing.featureVerifyDesc')}</dd>
+						</div>
+						<div>
+							<dt>{i18nStore.t('landing.featureDrillTitle')}</dt>
+							<dd>{i18nStore.t('landing.featureDrillDesc')}</dd>
+						</div>
+					</dl>
 				</section>
 
-				<div class="landing-specs-strip">
-					<div class="specs-item">
-						<span aria-hidden="true" class="material-symbols-outlined">computer</span>
-						<span>{i18nStore.t('landing.specLocal')}</span>
-					</div>
-					<div class="specs-item">
-						<span aria-hidden="true" class="material-symbols-outlined">verified</span>
-						<span>{i18nStore.t('landing.specVerified')}</span>
-					</div>
-					<div class="specs-item">
-						<span aria-hidden="true" class="material-symbols-outlined">checklist</span>
-						<span>{i18nStore.t('landing.specCoverage')}</span>
-					</div>
-					<div class="specs-item">
-						<span aria-hidden="true" class="material-symbols-outlined">code</span>
-						<span>{i18nStore.t('landing.specOpenSource')}</span>
-					</div>
-				</div>
-
-				<section class="landing-features">
-					<div class="feature-card">
-						<span aria-hidden="true" class="material-symbols-outlined feature-mat-icon"
-							>account_tree</span
-						>
-						<h2>{i18nStore.t('landing.featureMapTitle')}</h2>
-						<p>{i18nStore.t('landing.featureMapDesc')}</p>
-					</div>
-					<div class="feature-card">
-						<span aria-hidden="true" class="material-symbols-outlined feature-mat-icon"
-							>fact_check</span
-						>
-						<h2>{i18nStore.t('landing.featureVerifyTitle')}</h2>
-						<p>{i18nStore.t('landing.featureVerifyDesc')}</p>
-					</div>
-					<div class="feature-card">
-						<span aria-hidden="true" class="material-symbols-outlined feature-mat-icon"
-							>ads_click</span
-						>
-						<h2>{i18nStore.t('landing.featureDrillTitle')}</h2>
-						<p>{i18nStore.t('landing.featureDrillDesc')}</p>
-					</div>
+				<section class="landing-setup pane" id="agent-setup" aria-labelledby="landing-setup-title">
+					<h2 id="landing-setup-title">{i18nStore.t('landing.setupTitle')}</h2>
+					<AgentSetup />
 				</section>
-				<!-- SnippetEditor hidden from landing — available via direct URL -->
 
-				<footer class="landing-footer">
-					<span class="footer-copy">&copy; 2026 Ropeman</span>
-					<a class="footer-link" href={resolve('explore')}>
-						{i18nStore.t('explore.navLabel')}
-					</a>
-					<a class="footer-link" href={resolve(`docs/${i18nStore.locale}/getting-started`)}>
-						{i18nStore.t('docs.footerLink')}
-					</a>
-					<a class="footer-link" href="mailto:contact@ropeman.dev">contact@ropeman.dev</a>
+				<section class="landing-try pane" aria-labelledby="landing-try-title">
+					<h2 id="landing-try-title">{i18nStore.t('landing.tryTitle')}</h2>
+					<p class="try-body">{i18nStore.t('landing.tryBody')}</p>
+					{#if !isCompact}
+						<div class="try-actions">
+							<button class="cta-btn" data-tour-step="1" onclick={handleOpenDirectory}>
+								<span aria-hidden="true" class="material-symbols-outlined cta-icon"
+									>folder_open</span
+								>
+								{i18nStore.t('landing.cta')}
+							</button>
+							<span class="drag-hint">{i18nStore.t('landing.dragHint')}</span>
+						</div>
+					{:else}
+						<p class="mobile-folder-hint">{i18nStore.t('landing.mobileFolderHint')}</p>
+					{/if}
+					<div class="github-input-section">
+						<label class="github-or" for="landing-github-url">
+							{isCompact
+								? i18nStore.t('landing.mobileGithubLead')
+								: i18nStore.t('landing.githubOr')}
+						</label>
+						<div class="github-input-row">
+							<input
+								id="landing-github-url"
+								type="url"
+								inputmode="url"
+								autocomplete="off"
+								spellcheck="false"
+								class="github-input"
+								aria-invalid={error ? true : undefined}
+								aria-describedby={error ? 'landing-github-error' : undefined}
+								placeholder={i18nStore.t('landing.githubPlaceholder')}
+								bind:value={githubUrl}
+								onkeydown={handleGitHubKeydown}
+								disabled={isLoadingGithub}
+							/>
+							<button
+								class="github-load-btn"
+								onclick={handleGitHubLoad}
+								disabled={isLoadingGithub}
+								aria-busy={isLoadingGithub}
+							>
+								{#if isLoadingGithub}
+									<span aria-hidden="true" class="material-symbols-outlined github-spinner"
+										>progress_activity</span
+									>
+								{/if}
+								{i18nStore.t('landing.githubLoad')}
+							</button>
+						</div>
+					</div>
+					{#if error}
+						<p class="error-msg" id="landing-github-error" role="alert">{error}</p>
+					{/if}
+					<a class="try-link" href={resolve('open')}>{i18nStore.t('landing.openMapCta')}</a>
+				</section>
+
+				<footer class="landing-footer pane">
+					<span>&copy; 2026 Ropeman</span>
+					<a href={resolve(`docs/${i18nStore.locale}/getting-started`)}
+						>{i18nStore.t('docs.footerLink')}</a
+					>
+					<a href="https://github.com/yoonsooc/ropeman">GitHub</a>
+					<span>{i18nStore.t('landing.specOpenSource')}</span>
+					<a href="mailto:contact@ropeman.dev">contact@ropeman.dev</a>
 				</footer>
 			</div>
 		{/if}
@@ -508,293 +419,129 @@
 		cursor: copy;
 	}
 
+	/* Landing layout: a working pane on the left, the product itself filling the right pane */
 	.dropzone-content {
 		width: 100%;
-		max-width: var(--landing-max-width);
-		margin-top: var(--spacing-12);
-		margin-bottom: 64px;
-		padding: 0 var(--spacing-6);
 		color: var(--color-text-secondary);
 	}
 
-	/* Landing layout */
 	.landing {
-		position: relative;
-	}
-
-	.landing > * {
-		position: relative;
-		z-index: 1;
-	}
-
-	/* One column: the promise, the actions, then the real product underneath */
-	.landing-hero {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: var(--spacing-12);
-		padding: 64px var(--spacing-12) var(--spacing-8);
-		background: transparent;
+		/* Wide enough that the skill command breaks only at its path separators */
+		grid-template-columns: clamp(400px, 40vw, 600px) minmax(0, 1fr);
+		grid-template-rows: auto auto auto 1fr;
+		min-height: calc(100dvh - var(--header-height));
 	}
 
-	.hero-text h1 {
-		font-family: var(--font-display);
-		font-size: 44px;
-		font-weight: var(--font-weight-bold);
-		color: var(--color-text-primary);
-		line-height: 1.2;
-		letter-spacing: -0.01em;
-		margin-bottom: 0;
+	.pane {
+		grid-column: 1;
+		min-width: 0;
+		padding: 0 var(--spacing-6);
 	}
 
-	.headline-accent {
-		color: var(--color-accent);
+	.landing-stage {
+		grid-column: 2;
+		grid-row: 1 / -1;
+		position: sticky;
+		top: 0;
+		align-self: start;
+		display: flex;
+		flex-direction: column;
+		height: calc(100dvh - var(--header-height));
+		overflow-y: auto;
+		background: var(--color-background-canvas);
+		border-left: 1px solid var(--color-border);
 	}
 
-	/* The agent path leads; the in-browser path sits beside it as the lighter option */
-	.hero-paths {
-		display: grid;
-		grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-		gap: var(--spacing-9);
-		align-items: start;
+	.landing-head {
+		padding-top: var(--spacing-6);
+		padding-bottom: var(--spacing-6);
+		border-bottom: 1px solid var(--color-border);
 	}
 
-	.landing-setup h2 {
-		font-family: var(--font-display);
-		font-size: var(--font-size-xl);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-text-primary);
-		margin-bottom: var(--spacing-6);
-	}
-
-	.landing-try {
-		padding: var(--spacing-6);
-		background: var(--color-background-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-container);
-	}
-
-	.landing-try h2 {
-		font-family: var(--font-display);
+	.landing-head h1 {
 		font-size: var(--font-size-lg);
 		font-weight: var(--font-weight-semibold);
+		line-height: 1.4;
 		color: var(--color-text-primary);
-		margin-bottom: var(--spacing-2);
 	}
 
-	.try-body {
-		font-size: var(--font-size-base);
-		line-height: 1.6;
-		color: var(--color-text-secondary);
-		margin-bottom: var(--spacing-5);
-	}
-
-	.try-links {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--spacing-1) var(--spacing-4);
-		margin-top: var(--spacing-4);
+	/* The second half of the headline reads as one sentence with the first */
+	.headline-accent {
+		color: inherit;
 	}
 
 	.hero-sub {
-		font-family: var(--font-body);
-		font-size: var(--font-size-lg);
+		margin-top: var(--spacing-2);
+		font-size: var(--font-size-base);
 		line-height: 1.6;
 		color: var(--color-text-secondary);
-		max-width: 640px;
-		margin-top: var(--spacing-4);
-		margin-bottom: 0;
 	}
 
-	/* Click targets (buttons / icon rows / card CTA) should not behave like
-	   selectable text — prevents accidental highlighting on click/drag while
-	   leaving body copy (headline, subheadline, feature cards, footer) freely
-	   selectable for a11y / copy-paste. */
-	.cta-btn,
-	.github-load-btn,
-	.hero-lang {
-		-webkit-user-select: none;
-		user-select: none;
-	}
-
-	.cta-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-2);
-		padding: var(--spacing-2) var(--spacing-5);
-		background: var(--color-background-body);
-		color: var(--color-text-primary);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-element);
-		font-family: var(--font-display);
-		font-size: var(--font-size-base);
+	.pane h2 {
+		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
-		cursor: pointer;
-		transition:
-			border-color var(--duration-fast) var(--ease-standard),
-			color var(--duration-fast) var(--ease-standard),
-			scale var(--duration-fast) var(--ease-standard);
+		line-height: 1.4;
+		color: var(--color-text-primary);
+		margin-bottom: var(--spacing-4);
 	}
 
-	@media (hover: hover) {
-		.cta-btn:hover {
-			border-color: var(--color-accent);
-			color: var(--color-accent);
-		}
+	.landing-setup,
+	.landing-try {
+		padding-top: var(--spacing-5);
+		padding-bottom: var(--spacing-6);
+		border-bottom: 1px solid var(--color-border);
 	}
 
-	.cta-btn:not(:disabled):active {
-		scale: 0.96;
-	}
-
-	.cta-icon {
-		font-size: 20px;
-	}
-
-	.drag-hint {
-		margin-top: var(--spacing-2);
-		font-size: var(--font-size-base);
-		color: var(--color-text-tertiary);
-	}
-
-	.mobile-folder-hint {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-2);
-		margin-top: var(--spacing-2);
-		padding: var(--spacing-2) var(--spacing-3);
-		font-size: var(--font-size-base);
-		line-height: 1.5;
-		color: var(--color-text-secondary);
-		background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-		border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
-		border-radius: var(--radius-element);
-	}
-
-	.mobile-folder-hint .material-symbols-outlined {
-		font-size: 18px;
-		color: var(--color-accent);
-	}
-
-	/* GitHub URL input */
-	.github-input-section {
-		margin-top: var(--spacing-5);
-	}
-
-	.github-or {
-		display: block;
-		font-size: var(--font-size-base);
-		color: var(--color-text-tertiary);
-		margin-bottom: var(--spacing-2);
-	}
-
-	.github-input-row {
+	.stage-bar {
 		display: flex;
-		gap: var(--spacing-2);
 		align-items: center;
-		max-width: 448px;
+		gap: var(--spacing-3);
+		min-height: 40px;
+		padding: 0 var(--spacing-4);
+		border-bottom: 1px solid var(--color-border);
+		background: var(--color-background-body);
+		font-size: var(--font-size-sm);
 	}
 
-	.github-input {
-		flex: 1;
-		min-width: 0;
-		padding: var(--spacing-2) var(--spacing-3);
-		background: var(--color-background-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-element);
-		color: var(--color-text-primary);
-		font-family: var(--font-code);
-		font-size: var(--font-size-base);
-		transition: border-color var(--duration-fast) var(--ease-standard);
-	}
-
-	.github-input:focus {
-		border-color: var(--color-accent);
-	}
-
-	.github-input:disabled {
-		opacity: 0.5;
-	}
-
-	.github-input::placeholder {
-		color: var(--color-text-tertiary);
-	}
-
-	.github-load-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-1);
-		padding: var(--spacing-2) var(--spacing-4);
-		background: var(--color-background-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-element);
-		color: var(--color-text-primary);
-		font-family: var(--font-display);
-		font-size: var(--font-size-base);
+	.stage-bar h2 {
+		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
-		cursor: pointer;
-		transition:
-			border-color var(--duration-fast) var(--ease-standard),
-			background-color var(--duration-fast) var(--ease-standard);
+		color: var(--color-text-primary);
+	}
+
+	.stage-path {
+		font-family: var(--font-code);
+		font-size: var(--font-size-sm);
+		color: var(--color-text-tertiary);
+		overflow: hidden;
+		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
-	@media (hover: hover) {
-		.github-load-btn:hover:not(:disabled) {
-			border-color: var(--color-accent);
-			color: var(--color-accent);
-		}
-	}
-
-	.github-load-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	.github-load-btn .material-symbols-outlined {
-		font-size: 18px;
-	}
-
-	.github-spinner {
-		animation: spin 0.8s linear infinite;
-	}
-
-	.hero-languages {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-2);
-		margin-top: var(--spacing-5);
-		opacity: 0.5;
-	}
-
-	.hero-lang {
-		display: flex;
-		align-items: center;
-	}
-
-	.hero-lang :global(svg) {
-		width: 18px;
-		height: 18px;
+	.stage-link {
+		margin-left: auto;
+		color: var(--color-accent);
+		text-underline-offset: 3px;
+		white-space: nowrap;
 	}
 
 	.hero-visual {
 		margin: 0;
+		padding: var(--spacing-4) var(--spacing-4) 0;
 	}
 
 	.hero-shot {
 		display: block;
-		border-radius: var(--radius-container);
 		overflow: hidden;
 		border: 1px solid var(--color-border);
-		box-shadow: var(--shadow-low);
-		transition: border-color var(--duration-fast) var(--ease-standard);
+		border-radius: var(--radius-inner);
 	}
 
 	.hero-shot img {
 		display: block;
 		width: 100%;
 		height: auto;
-		outline: 1px solid color-mix(in srgb, var(--color-text-primary) 6%, transparent);
-		outline-offset: -1px;
 	}
 
 	:global([data-theme='light']) .hero-shot img.shot-dark,
@@ -806,97 +553,234 @@
 
 	@media (hover: hover) {
 		.hero-shot:hover {
-			border-color: var(--color-accent-muted);
+			border-color: var(--color-text-tertiary);
 		}
 	}
 
 	.hero-visual figcaption {
-		margin-top: var(--spacing-3);
-		font-size: var(--font-size-base);
+		margin-top: var(--spacing-2);
+		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 	}
 
-	.example-link {
+	.stage-facts {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--spacing-6);
+		padding: var(--spacing-5) var(--spacing-4) var(--spacing-6);
+	}
+
+	.stage-facts dt {
+		font-size: var(--font-size-sm);
+		font-weight: var(--font-weight-semibold);
+		color: var(--color-text-primary);
+		margin-bottom: var(--spacing-1);
+	}
+
+	.stage-facts dd {
+		font-size: var(--font-size-sm);
+		line-height: 1.55;
+		color: var(--color-text-secondary);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.try-link,
+	.landing-footer a {
+		color: var(--color-accent);
+		text-underline-offset: 3px;
+	}
+
+	.try-body {
+		font-size: var(--font-size-base);
+		line-height: 1.6;
+		color: var(--color-text-secondary);
+	}
+
+	.try-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--spacing-2) var(--spacing-3);
+		margin-top: var(--spacing-4);
+	}
+
+	.cta-btn,
+	.github-load-btn {
+		-webkit-user-select: none;
+		user-select: none;
 		display: inline-flex;
 		align-items: center;
 		gap: var(--spacing-1-5);
-		padding: var(--spacing-2) 0;
-		font-size: var(--font-size-base);
+		height: 32px;
+		padding: 0 var(--spacing-3);
+		background: var(--color-background-surface);
+		color: var(--color-text-primary);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-inner);
+		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-medium);
-		color: var(--color-accent);
+		white-space: nowrap;
+		cursor: pointer;
+		transition:
+			background-color var(--duration-fast) var(--ease-standard),
+			border-color var(--duration-fast) var(--ease-standard);
 	}
 
-	/* Technical Specs Strip — Stitch v2 */
-	.landing-specs-strip {
+	@media (hover: hover) {
+		.cta-btn:hover,
+		.github-load-btn:hover:not(:disabled) {
+			background: var(--color-background-muted);
+		}
+	}
+
+	.cta-btn:not(:disabled):active {
+		scale: 0.96;
+	}
+
+	.cta-icon {
+		font-size: 16px;
+	}
+
+	.drag-hint,
+	.github-or {
+		font-size: var(--font-size-sm);
+		color: var(--color-text-tertiary);
+	}
+
+	.mobile-folder-hint {
+		margin-top: var(--spacing-3);
+		font-size: var(--font-size-sm);
+		line-height: 1.5;
+		color: var(--color-text-secondary);
+	}
+
+	.github-input-section {
+		margin-top: var(--spacing-4);
+	}
+
+	.github-or {
+		display: block;
+		margin-bottom: var(--spacing-1-5);
+	}
+
+	.github-input-row {
+		display: flex;
+		gap: var(--spacing-2);
+	}
+
+	.github-input {
+		flex: 1;
+		min-width: 0;
+		height: 32px;
+		padding: 0 var(--spacing-3);
+		background: var(--color-background-body);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-inner);
+		color: var(--color-text-primary);
+		font-family: var(--font-code);
+		font-size: var(--font-size-sm);
+	}
+
+	.github-input:focus {
+		border-color: var(--color-accent);
+	}
+
+	.github-input:disabled,
+	.github-load-btn:disabled {
+		opacity: 0.5;
+	}
+
+	.github-input::placeholder {
+		color: var(--color-text-tertiary);
+	}
+
+	.github-spinner {
+		font-size: 16px;
+		animation: spin 0.8s linear infinite;
+	}
+
+	.try-link {
+		display: inline-block;
+		margin-top: var(--spacing-4);
+		font-size: var(--font-size-sm);
+	}
+
+	.landing-footer {
 		display: flex;
 		flex-wrap: wrap;
-		justify-content: space-between;
-		align-items: center;
-		gap: var(--spacing-8);
-		margin-top: var(--spacing-8);
-		padding: var(--spacing-6) var(--spacing-12);
-		border-top: 1px solid color-mix(in srgb, var(--color-text-tertiary) 20%, transparent);
-		background: color-mix(in srgb, var(--color-background-surface) 40%, transparent);
-		border-radius: var(--radius-element);
-		opacity: 0.7;
-	}
-
-	.specs-item {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-2);
-		font-family: var(--font-display);
+		gap: var(--spacing-1) var(--spacing-4);
+		padding-top: var(--spacing-4);
+		padding-bottom: var(--spacing-6);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-semibold);
-		color: var(--color-text-secondary);
+		color: var(--color-text-tertiary);
 	}
 
-	.specs-item .material-symbols-outlined {
-		font-size: 18px;
-		color: var(--color-text-secondary);
-		opacity: 0.8;
+	@media (max-width: 1023px) {
+		.landing {
+			grid-template-columns: minmax(0, 1fr);
+			grid-template-rows: none;
+		}
+
+		.landing-stage {
+			grid-column: 1;
+			grid-row: auto;
+			position: static;
+			height: auto;
+			overflow: visible;
+			border-left: none;
+			border-bottom: 1px solid var(--color-border);
+		}
+
+		.landing-head {
+			order: 1;
+		}
+
+		.landing-stage {
+			order: 2;
+		}
+
+		.landing-setup {
+			order: 3;
+		}
+
+		.landing-try {
+			order: 4;
+		}
+
+		.landing-footer {
+			order: 5;
+		}
+
+		.stage-facts {
+			grid-template-columns: minmax(0, 1fr);
+			gap: var(--spacing-4);
+		}
 	}
 
-	/* Feature cards */
-	.landing-features {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: var(--spacing-6);
-		margin-top: var(--spacing-12);
-		margin-bottom: 80px;
-	}
+	@media (max-width: 720px) {
+		/* A phone shows the left of the canvas at a size its text can be read */
+		.hero-shot {
+			aspect-ratio: 5 / 4;
+		}
 
-	/* Feature cards are informational only — no click handler, so avoid
-	   hover affordances (pointer cursor, border highlight) that would
-	   suggest otherwise. */
-	.feature-card {
-		background: var(--color-background-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-container);
-		padding: var(--spacing-8);
-		text-align: left;
-	}
+		.hero-shot img {
+			width: 180%;
+			max-width: none;
+		}
 
-	.feature-mat-icon {
-		color: var(--color-accent);
-		font-size: 30px;
-		margin-bottom: var(--spacing-4);
-		display: block;
-	}
+		/* On a phone the hero paragraph already says how naming and drill-down work */
+		.stage-facts > div:not(:first-child) {
+			display: none;
+		}
 
-	.feature-card h2 {
-		font-family: var(--font-display);
-		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-text-primary);
-		margin-bottom: var(--spacing-2);
-	}
+		.pane {
+			padding-left: var(--spacing-4);
+			padding-right: var(--spacing-4);
+		}
 
-	.feature-card p {
-		font-family: var(--font-body);
-		font-size: var(--font-size-base);
-		line-height: 1.625;
-		color: var(--color-text-secondary);
+		.landing-head {
+			padding-top: var(--spacing-5);
+		}
 	}
 
 	.error-msg {
@@ -964,7 +848,6 @@
 	}
 
 	.loading-text h2 {
-		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
@@ -985,82 +868,6 @@
 	@keyframes spin {
 		to {
 			transform: rotate(360deg);
-		}
-	}
-
-	/* Responsive */
-	@media (max-width: 960px) {
-		.hero-paths {
-			grid-template-columns: minmax(0, 1fr);
-		}
-	}
-
-	@media (max-width: 720px) {
-		.dropzone {
-			padding: var(--spacing-6) var(--spacing-4);
-		}
-
-		.dropzone-content {
-			margin-top: 0;
-			padding: 0;
-		}
-
-		.landing-hero {
-			grid-template-columns: minmax(0, 1fr);
-			gap: var(--spacing-10);
-			padding: var(--spacing-8) 0;
-		}
-
-		.hero-text {
-			text-align: center;
-		}
-
-		.landing-try {
-			padding: var(--spacing-5);
-		}
-
-		.hero-text h1 {
-			font-size: 32px;
-		}
-
-		.hero-sub {
-			max-width: none;
-		}
-
-		.landing-specs-strip {
-			padding: var(--spacing-5) var(--spacing-6);
-			gap: var(--spacing-5);
-			justify-content: center;
-		}
-
-		.landing-features {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.landing-footer {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		gap: var(--spacing-4);
-		padding: var(--spacing-8) 0 var(--spacing-6);
-		font-size: var(--font-size-sm);
-		color: var(--color-text-tertiary);
-	}
-
-	.footer-copy {
-		letter-spacing: 0.02em;
-	}
-
-	.footer-link {
-		color: var(--color-text-secondary);
-		text-decoration: none;
-		transition: color var(--duration-fast) var(--ease-standard);
-	}
-
-	@media (hover: hover) {
-		.footer-link:hover {
-			color: var(--color-accent);
 		}
 	}
 </style>

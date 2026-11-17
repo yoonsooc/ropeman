@@ -129,7 +129,6 @@
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 		margin-bottom: 0;
-		font-family: var(--font-display);
 	}
 	.title-dot {
 		width: 8px;

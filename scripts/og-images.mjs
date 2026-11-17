@@ -1,7 +1,8 @@
 // Writes the landing's share images (og:image), one per language, at 1200x630, the size
 // LinkedIn, KakaoTalk and X show uncropped: the landing's own headline over its hero screenshot
 // in the same language.
-// The page supplies the text, fonts and colors, so the images follow the landing when it changes.
+// The page supplies the mark (Wordmark.svelte), text, fonts and colors, so the images follow the
+// landing when it changes.
 // Run against a server with the built app: node scripts/og-images.mjs http://127.0.0.1:8788
 // CHROME_PATH picks a Chromium other than the one Playwright pins.
 import { chromium } from '@playwright/test';
@@ -31,27 +32,24 @@ for (const locale of ['en', 'ko']) {
 		});
 		const brand = style(document.createElement('div'), {
 			fontSize: '26px',
-			fontWeight: '600',
-			color: 'var(--color-accent)',
+			color: 'var(--color-text-primary)',
 			marginBottom: '24px'
 		});
-		brand.textContent = 'Ropeman';
+		brand.append(document.querySelector('.wordmark').cloneNode(true));
 		const headline = style(document.createElement('div'), {
-			fontSize: '60px',
-			lineHeight: '1.12',
-			fontWeight: '700',
-			letterSpacing: '-0.02em',
+			fontSize: '56px',
+			lineHeight: '1.15',
+			fontWeight: '600',
+			letterSpacing: '-0.01em',
 			color: 'var(--color-text-primary)'
 		});
-		const accentLine = style(document.createElement('span'), { color: 'var(--color-accent)' });
-		accentLine.textContent = accent;
-		headline.append(lead, document.createElement('br'), accentLine);
+		headline.append(lead, document.createElement('br'), accent);
 		const shot = style(document.createElement('img'), {
 			position: 'absolute',
 			left: '64px',
 			top: '316px',
 			width: '1072px',
-			borderRadius: '12px',
+			borderRadius: '6px',
 			border: '1px solid var(--color-border)'
 		});
 		shot.src = `/landing/explore-transformers-${locale}-dark.webp`;

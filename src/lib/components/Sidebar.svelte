@@ -219,9 +219,8 @@
 	}
 
 	.icon-btn.active {
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		background: var(--color-background-muted);
-		border-left: 2px solid var(--color-accent);
 	}
 
 	.icon-btn.disabled {
@@ -256,7 +255,6 @@
 	}
 
 	.panel-title {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-secondary);

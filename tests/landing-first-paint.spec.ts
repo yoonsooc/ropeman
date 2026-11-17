@@ -41,10 +41,11 @@ async function copyInstall(page: Page) {
 test('the first HTML response already holds the landing', async ({ request }) => {
 	const html = await (await request.get('/')).text();
 
-	expect(html).toContain('Map a repo<br');
+	expect(html).toMatch(/<h1[^>]*>\s*Map a repo/);
 	expect(html).toContain('from your coding agent');
 	expect(html).toContain('Set it up in three steps');
-	expect(html).toContain(INSTALL);
+	// The command wraps at its slashes (<wbr>), and Svelte marks each piece with a comment
+	expect(html.replace(/<wbr[^>]*>|<!--[^>]*-->/g, '')).toContain(INSTALL);
 });
 
 test.describe('without JavaScript', () => {
@@ -287,7 +288,7 @@ test('the hero screenshot is in the landing language, and only that one loads', 
 		'/landing/explore-transformers-ko-dark.webp'
 	);
 	await page.locator('.hero-shot').scrollIntoViewIfNeeded();
-	await expect(page.locator('.hero-shot img:visible')).toHaveJSProperty('naturalWidth', 1600);
+	await expect(page.locator('.hero-shot img:visible')).toHaveJSProperty('naturalWidth', 2200);
 
 	await page.unrouteAll();
 	await page.goto('/en');
@@ -298,7 +299,7 @@ test('the hero screenshot is in the landing language, and only that one loads', 
 		'src',
 		'/landing/explore-transformers-en-dark.webp'
 	);
-	await expect(page.locator('.hero-shot img:visible')).toHaveJSProperty('naturalWidth', 1600);
+	await expect(page.locator('.hero-shot img:visible')).toHaveJSProperty('naturalWidth', 2200);
 	// Chromium revalidates an image it already holds (304, no body) even when the image is hidden
 	expect(shots.filter((s) => !/ (200|304)$/.test(s))).toEqual([]);
 	expect([...new Set(shots.filter((s) => s.endsWith(' 200')))].sort()).toEqual([

@@ -4,6 +4,51 @@
  * MIT License, Copyright (c) 2026 Meta Platforms, Inc. See LICENSES/astryx-MIT.txt.
  * Light surfaces snap to the Neutral ramp; dark surfaces and the accent are Ropeman's own.
  */
+/*
+ * Hangul comes from the OS Korean UI face, named and scaled to sit with IBM Plex Sans, so the
+ * Korean page fetches no font file. A face the OS lacks is skipped for the next local() name.
+ */
+@font-face {
+	font-family: 'Ropeman Hangul';
+	font-weight: 400;
+	src:
+		local('AppleSDGothicNeo-Regular'), local('Apple SD Gothic Neo Regular'), local('Malgun Gothic'),
+		local('NotoSansKR-Regular'), local('Noto Sans KR Regular');
+	unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+D7B0-D7FF;
+	size-adjust: 94%;
+}
+
+@font-face {
+	font-family: 'Ropeman Hangul';
+	font-weight: 500;
+	src:
+		local('AppleSDGothicNeo-Medium'), local('Apple SD Gothic Neo Medium'), local('Malgun Gothic'),
+		local('NotoSansKR-Medium'), local('Noto Sans KR Medium');
+	unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+D7B0-D7FF;
+	size-adjust: 94%;
+}
+
+@font-face {
+	font-family: 'Ropeman Hangul';
+	font-weight: 600;
+	src:
+		local('AppleSDGothicNeo-SemiBold'), local('Apple SD Gothic Neo SemiBold'),
+		local('Malgun Gothic Bold'), local('MalgunGothicBold'), local('NotoSansKR-SemiBold'),
+		local('Noto Sans KR SemiBold');
+	unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+D7B0-D7FF;
+	size-adjust: 94%;
+}
+
+@font-face {
+	font-family: 'Ropeman Hangul';
+	font-weight: 700;
+	src:
+		local('AppleSDGothicNeo-Bold'), local('Apple SD Gothic Neo Bold'), local('Malgun Gothic Bold'),
+		local('MalgunGothicBold'), local('NotoSansKR-Bold'), local('Noto Sans KR Bold');
+	unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+D7B0-D7FF;
+	size-adjust: 94%;
+}
+
 :root {
 	--color-background-body: #ffffff;
 	--color-background-surface: #f1f1f1;
@@ -24,8 +69,7 @@
 	--color-text-tertiary: #5e5e5e;
 	--color-on-inverted: #ffffff;
 
-	--color-accent: #1d4ed8;
-	--color-accent-hover: #1e40af;
+	--color-accent: #4f46e5;
 	--color-accent-muted: color-mix(in srgb, var(--color-accent) 15%, transparent);
 	--color-on-accent: #ffffff;
 
@@ -92,12 +136,11 @@
 	--spacing-6: 1.5rem;
 	--spacing-7: 1.75rem;
 	--spacing-8: 2rem;
-	--spacing-9: 2.25rem;
 	--spacing-10: 2.5rem;
 	--spacing-12: 3rem;
-	--radius-inner: 4px;
-	--radius-element: 8px;
-	--radius-container: 12px;
+	--radius-inner: 2px;
+	--radius-element: 4px;
+	--radius-container: 6px;
 	--radius-full: 9999px;
 	--font-size-xs: 0.625rem;
 	--font-size-sm: 0.75rem;
@@ -105,8 +148,6 @@
 	--font-size-lg: 1.0625rem;
 	--font-size-xl: 1.25rem;
 	--font-size-2xl: 1.5rem;
-	--font-size-3xl: 1.8125rem;
-	--font-size-4xl: 2.1875rem;
 	--font-weight-normal: 400;
 	--font-weight-medium: 500;
 	--font-weight-semibold: 600;
@@ -118,8 +159,11 @@
 	--duration-medium: 300ms;
 	--ease-standard: cubic-bezier(0.24, 1, 0.4, 1);
 
-	--font-display: 'Space Grotesk', sans-serif;
-	--font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	/* The system UI face comes before the Korean names: it fills in for Latin while IBM Plex Sans
+	   loads, and it has no Hangul, so Hangul still falls to the Korean faces */
+	--font-body:
+		'IBM Plex Sans', 'Ropeman Hangul', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
 	--font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 
 	--header-height: 48px;
@@ -128,8 +172,6 @@
 	--bp-mobile: 430px;
 	--bp-tablet: 768px;
 	--bp-desktop: 1024px;
-
-	--landing-max-width: 1152px;
 }
 
 [data-theme='dark'] {
@@ -152,7 +194,6 @@
 	--color-on-inverted: #f1f3fc;
 
 	--color-accent: #a3a6ff;
-	--color-accent-hover: #8b8eff;
 	--color-on-accent: #0b0c0e;
 
 	--color-error: #ff705d;
@@ -227,7 +268,6 @@ h3,
 h4,
 h5,
 h6 {
-	font-family: var(--font-display);
 	text-wrap: balance;
 }
 
@@ -364,7 +404,6 @@ a:hover {
 	font-size: var(--font-size-lg);
 	font-weight: var(--font-weight-bold);
 	color: var(--color-text-primary);
-	font-family: var(--font-display);
 }
 
 /* Modal close button */
@@ -436,8 +475,8 @@ a:hover {
 }
 
 .btn-primary {
-	background: var(--color-accent);
-	color: var(--color-on-accent);
+	background: var(--color-text-primary);
+	color: var(--color-background-body);
 }
 
 .btn-secondary {
@@ -516,7 +555,7 @@ a:hover {
 }
 
 .toggle.active {
-	background: var(--color-accent);
+	background: var(--color-text-secondary);
 }
 
 .toggle-knob {
@@ -592,7 +631,6 @@ a:hover {
 
 /* Section label (uppercase) */
 .section-label {
-	font-family: var(--font-display);
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-semibold);
 	color: var(--color-text-secondary);
@@ -644,7 +682,7 @@ a:hover {
 
 .notice-success {
 	background: var(--color-success-muted);
-	border-left: 3px solid var(--color-border-success);
+	border: 1px solid color-mix(in srgb, var(--color-border-success) 30%, transparent);
 }
 
 .notice-icon {

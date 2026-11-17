@@ -32,7 +32,9 @@ async function unrenderedIcons(page: Page) {
 			.map((el) => {
 				const range = document.createRange();
 				range.selectNodeContents(el);
-				const width = range.getBoundingClientRect().width;
+				// Icons on a zoomed canvas are scaled; measure them at their own size
+				const scale = el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1;
+				const width = range.getBoundingClientRect().width / scale;
 				const size = parseFloat(getComputedStyle(el).fontSize);
 				return { text: el.textContent!.trim(), width, size };
 			})

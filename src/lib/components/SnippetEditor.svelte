@@ -174,7 +174,6 @@
 	}
 
 	.divider-text {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-tertiary);
@@ -261,7 +260,7 @@
 		border: none;
 		border-radius: var(--radius-inner);
 		padding: var(--spacing-1) var(--spacing-2);
-		font-family: var(--font-display);
+		font-family: inherit;
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
 		cursor: pointer;
@@ -334,10 +333,9 @@
 		gap: var(--spacing-2);
 		margin-top: var(--spacing-4);
 		padding: var(--spacing-3) var(--spacing-6);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		border-radius: var(--radius-element);
-		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-bold);
 		cursor: pointer;

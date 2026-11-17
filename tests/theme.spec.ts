@@ -19,8 +19,7 @@ test.describe('Theme Toggle', () => {
 			return document.documentElement.getAttribute('data-theme') ?? 'dark';
 		});
 
-		// Click the theme toggle button (the one with sun/moon emoji)
-		const themeBtn = page.locator('header .header-btn').filter({ hasText: /☀|☽/ });
+		const themeBtn = page.locator('header .theme-toggle');
 		await themeBtn.click();
 
 		// Theme should have changed
@@ -34,7 +33,7 @@ test.describe('Theme Toggle', () => {
 		await gotoApp(page);
 
 		// Toggle theme
-		const themeBtn = page.locator('header .header-btn').filter({ hasText: /☀|☽/ });
+		const themeBtn = page.locator('header .theme-toggle');
 		await themeBtn.click();
 
 		const themeAfterToggle = await page.evaluate(() => {

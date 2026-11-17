@@ -134,7 +134,6 @@
 	.panel-label {
 		font-size: var(--font-size-lg);
 		font-weight: var(--font-weight-semibold);
-		font-family: var(--font-display);
 		line-height: 1.3;
 		color: var(--color-text-primary);
 		flex: 1;
@@ -166,9 +165,8 @@
 	}
 
 	.section-title {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-tertiary);
 		margin-bottom: var(--spacing-4);
 		display: flex;

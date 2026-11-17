@@ -365,7 +365,6 @@
 	}
 
 	.analysis-pill-title {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
@@ -396,7 +395,6 @@
 		border-radius: var(--radius-full);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
-		font-family: var(--font-display);
 		transition:
 			background var(--duration-fast) var(--ease-standard),
 			color var(--duration-fast) var(--ease-standard);
@@ -456,7 +454,6 @@
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
-		font-family: var(--font-display);
 	}
 	.cancel-confirm-msg {
 		font-size: var(--font-size-sm);

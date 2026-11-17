@@ -77,6 +77,9 @@
 		}
 	}
 
+	/** A command split after each `/`, so a long URL wraps between path segments */
+	const pathBreaks = (command: string) => command.split(/(?<=\/)/);
+
 	let installCode = $state<HTMLElement>();
 	let skillCode = $state<HTMLElement>();
 
@@ -124,17 +127,20 @@
 		<h3>{t('installTitle')}</h3>
 		<p>{t('installBody')}</p>
 		<div class="command">
-			<pre data-testid="install-command"><code bind:this={installCode}>{INSTALL}</code></pre>
+			<pre data-testid="install-command"><code bind:this={installCode}
+					>{#each pathBreaks(INSTALL) as part, i (i)}{#if i > 0}<wbr />{/if}{part}{/each}</code
+				></pre>
 			<button
 				type="button"
 				class="copy"
 				aria-label={t('copyInstall')}
+				title={copied(INSTALL) ? t('copied') : t('copy')}
 				onclick={() => copyCommand(INSTALL, installCode)}
 			>
 				<span aria-hidden="true" class="material-symbols-outlined"
 					>{copied(INSTALL) ? 'check' : 'content_copy'}</span
 				>
-				<span>{copied(INSTALL) ? t('copied') : t('copy')}</span>
+				<span class="visually-hidden">{copied(INSTALL) ? t('copied') : t('copy')}</span>
 			</button>
 		</div>
 		{#if copyFailed(INSTALL)}
@@ -180,17 +186,21 @@
 			{:else}
 				<p>{t('skillBody', { agent: selected.name })}</p>
 				<div class="command">
-					<pre data-testid="skill-command"><code bind:this={skillCode}>{skillCommand}</code></pre>
+					<pre data-testid="skill-command"><code bind:this={skillCode}
+							>{#each pathBreaks(skillCommand) as part, i (i)}{#if i > 0}<wbr
+									/>{/if}{part}{/each}</code
+						></pre>
 					<button
 						type="button"
 						class="copy"
 						aria-label={t('copySkill', { agent: selected.name })}
+						title={copied(skillCommand) ? t('copied') : t('copy')}
 						onclick={() => copyCommand(skillCommand, skillCode)}
 					>
 						<span aria-hidden="true" class="material-symbols-outlined"
 							>{copied(skillCommand) ? 'check' : 'content_copy'}</span
 						>
-						<span>{copied(skillCommand) ? t('copied') : t('copy')}</span>
+						<span class="visually-hidden">{copied(skillCommand) ? t('copied') : t('copy')}</span>
 					</button>
 				</div>
 				{#if copyFailed(skillCommand)}
@@ -241,7 +251,7 @@
 		list-style: none;
 		counter-reset: setup;
 		display: grid;
-		gap: var(--spacing-8);
+		gap: var(--spacing-6);
 		margin: 0;
 		padding: 0;
 		text-align: left;
@@ -250,7 +260,7 @@
 	.step {
 		counter-increment: setup;
 		position: relative;
-		padding-left: 44px;
+		padding-left: 20px;
 		min-width: 0;
 	}
 
@@ -259,33 +269,15 @@
 		content: counter(setup);
 		position: absolute;
 		left: 0;
-		top: -2px;
-		width: 28px;
-		height: 28px;
-		display: grid;
-		place-items: center;
-		border-radius: var(--radius-full);
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
-		font-family: var(--font-display);
+		top: 0;
+		font-family: var(--font-code);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
-		font-variant-numeric: tabular-nums;
-	}
-
-	.step:not(:last-child)::after {
-		content: '';
-		position: absolute;
-		left: 13.5px;
-		top: 34px;
-		bottom: calc(-1 * var(--spacing-8) + 6px);
-		width: 1px;
-		background: var(--color-border);
+		line-height: 1.6;
+		color: var(--color-text-tertiary);
 	}
 
 	h3 {
-		font-family: var(--font-display);
-		font-size: var(--font-size-lg);
+		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);
 		line-height: 1.4;
@@ -315,7 +307,7 @@
 		flex: 1;
 		min-width: 0;
 		margin: 0;
-		padding: var(--spacing-3) var(--spacing-4);
+		padding: var(--spacing-3);
 		font-family: var(--font-code);
 		font-size: var(--font-size-sm);
 		line-height: 1.6;
@@ -332,16 +324,18 @@
 		overflow-wrap: anywhere;
 	}
 
+	/* Icon only, so the command keeps the width; the label stays for screen readers */
 	.copy {
 		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-1);
+		align-items: flex-start;
+		justify-content: center;
 		flex-shrink: 0;
-		padding: 0 var(--spacing-3);
+		width: 36px;
+		padding-top: var(--spacing-3);
 		border-left: 1px solid var(--color-border);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-medium);
-		color: var(--color-text-secondary);
+		color: color-mix(in srgb, var(--color-syntax-text) 75%, transparent);
 		cursor: pointer;
 		white-space: nowrap;
 		transition: color var(--duration-fast) var(--ease-standard);
@@ -353,26 +347,22 @@
 
 	@media (hover: hover) {
 		.copy:hover {
-			color: var(--color-accent);
+			color: var(--color-syntax-text);
 		}
 	}
 
 	.agents {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--spacing-1);
-		margin-top: var(--spacing-3);
-		padding: var(--spacing-1);
-		width: fit-content;
-		max-width: 100%;
-		background: var(--color-background-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-element);
+		gap: 0 var(--spacing-4);
+		margin-top: var(--spacing-2);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	[role='tab'] {
-		padding: var(--spacing-1-5) var(--spacing-3);
-		border-radius: var(--radius-inner);
+		margin-bottom: -1px;
+		padding: var(--spacing-1-5) 0;
+		border-bottom: 2px solid transparent;
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-medium);
 		color: var(--color-text-secondary);
@@ -383,8 +373,8 @@
 	}
 
 	[role='tab'][aria-selected='true'] {
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
+		border-bottom-color: var(--color-accent);
+		color: var(--color-text-primary);
 	}
 
 	@media (hover: hover) {
@@ -476,7 +466,7 @@
 
 	.shell-note {
 		margin-top: var(--spacing-6);
-		padding-left: 44px;
+		padding-left: 20px;
 		font-size: var(--font-size-sm);
 		color: var(--color-text-tertiary);
 		text-align: left;
@@ -484,7 +474,7 @@
 
 	@media (max-width: 480px) {
 		.step {
-			padding-left: 36px;
+			padding-left: 20px;
 		}
 
 		.command {
@@ -492,10 +482,20 @@
 		}
 
 		.copy {
+			width: auto;
 			justify-content: flex-end;
 			padding: var(--spacing-2) var(--spacing-3);
 			border-left: none;
 			border-top: 1px solid var(--color-border);
+		}
+
+		/* A phone has the room for the word under the command */
+		.copy .visually-hidden {
+			position: static;
+			width: auto;
+			height: auto;
+			clip-path: none;
+			margin-left: var(--spacing-1);
 		}
 
 		.shell-note {

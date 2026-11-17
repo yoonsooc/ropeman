@@ -247,7 +247,9 @@
 					title={i18nStore.t('node.reanalyze')}
 					onclick={(e) => handleReanalyze(e, node)}
 				>
-					&#x21BB;
+					<span aria-hidden="true" class="material-symbols-outlined tree-reanalyze-icon"
+						>refresh</span
+					>
 				</button>
 			{/if}
 			<span
@@ -382,7 +384,6 @@
 	}
 
 	.node-label {
-		font-family: var(--font-display);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -433,8 +434,12 @@
 		display: flex;
 	}
 
+	.tree-reanalyze-icon {
+		font-size: 14px;
+	}
+
 	.tree-reanalyze-btn:hover {
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 </style>

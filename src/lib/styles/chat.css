@@ -5,8 +5,8 @@
 	width: 56px;
 	height: 56px;
 	border-radius: 50%;
-	background: var(--color-accent);
-	color: var(--color-on-accent);
+	background: var(--color-text-primary);
+	color: var(--color-background-body);
 	font-size: var(--font-size-2xl);
 	display: flex;
 	align-items: center;
@@ -20,7 +20,7 @@
 
 .chat-float-btn:hover {
 	transform: scale(1.1);
-	background: var(--color-accent-hover);
+	background: var(--color-text-secondary);
 }
 
 .chat-popup {
@@ -49,7 +49,6 @@
 }
 
 .chat-header-title {
-	font-family: var(--font-display);
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-semibold);
 	color: var(--color-text-secondary);
@@ -134,8 +133,8 @@
 
 .chat-send-btn {
 	padding: var(--spacing-2) var(--spacing-4);
-	background: var(--color-accent);
-	color: var(--color-on-accent);
+	background: var(--color-text-primary);
+	color: var(--color-background-body);
 	border-radius: var(--radius-element);
 	font-size: var(--font-size-base);
 	font-weight: var(--font-weight-medium);
@@ -143,7 +142,7 @@
 }
 
 .chat-send-btn:hover {
-	background: var(--color-accent-hover);
+	background: var(--color-text-secondary);
 }
 
 .chat-send-btn:disabled {

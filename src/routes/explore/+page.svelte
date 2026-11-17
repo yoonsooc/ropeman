@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { themeStore } from '$lib/stores/themeStore.svelte';
@@ -50,7 +51,7 @@
 	autofocus
 >
 	<header class="explore-header">
-		<a href={resolve('')} class="explore-logo">Ropeman</a>
+		<a href={resolve('')} class="explore-logo"><Wordmark /></a>
 		<nav class="explore-nav">
 			<a
 				class="explore-nav-btn"
@@ -73,12 +74,8 @@
 
 	<main class="explore-main">
 		<section class="explore-hero">
-			<h1>
-				{i18nStore.t('explore.heroTitle')}
-			</h1>
-			<p>
-				{i18nStore.t('explore.heroDesc')}
-			</p>
+			<h1>{i18nStore.t('explore.heroTitle')}</h1>
+			<p>{i18nStore.t('explore.heroDesc')}</p>
 		</section>
 
 		<section class="explore-filters">
@@ -99,6 +96,9 @@
 					>
 				{/each}
 			</select>
+			<span class="explore-count" role="status"
+				>{i18nStore.t('explore.repoCount', { n: filtered.length })}</span
+			>
 		</section>
 
 		<section class="explore-grid">
@@ -108,11 +108,7 @@
 				</div>
 			{:else}
 				{#each filtered as entry, index (entry.slug)}
-					<a
-						class="explore-card"
-						class:featured={index === 0 && (filtered.length + 1) % 3 === 0}
-						href={resolve(`explore/${entry.slug}`)}
-					>
+					<a class="explore-card" href={resolve(`explore/${entry.slug}`)}>
 						<img
 							class="card-thumb"
 							src="/explore/thumbs/{entry.slug}-{themeStore.current === 'dark'
@@ -121,23 +117,35 @@
 							width="800"
 							height="430"
 							alt=""
-							loading={index < 3 ? 'eager' : 'lazy'}
+							loading={index < 6 ? 'eager' : 'lazy'}
 							fetchpriority={index === 0 ? 'high' : 'auto'}
 							decoding="async"
 						/>
-						<div class="card-header">
-							<span class="card-language" data-lang={entry.language.toLowerCase()}
-								>{entry.language}</span
-							>
-							{#if entry.stars}<span class="card-stars">★ {entry.stars}</span>{/if}
+						<div class="card-body">
+							<div class="card-heading">
+								<h2 class="card-title">{entry.title}</h2>
+								<span class="card-repo">{entry.owner}/{entry.repo}</span>
+							</div>
+							<p class="card-desc">
+								{i18nStore.locale === 'ko' && entry.descriptionKo
+									? entry.descriptionKo
+									: entry.description}
+							</p>
 						</div>
-						<h2 class="card-title">{entry.title}</h2>
-						<div class="card-repo">{entry.owner}/{entry.repo}</div>
-						<p class="card-desc">
-							{i18nStore.locale === 'ko' && entry.descriptionKo
-								? entry.descriptionKo
-								: entry.description}
-						</p>
+						<dl class="card-meta">
+							<div>
+								<dt class="visually-hidden">{i18nStore.t('explore.languageLabel')}</dt>
+								<dd class="card-language">{entry.language}</dd>
+							</div>
+							{#if entry.stars}
+								<div>
+									<dt class="visually-hidden">GitHub</dt>
+									<dd class="card-stars">
+										{i18nStore.t('explore.starCount', { n: entry.stars })}
+									</dd>
+								</div>
+							{/if}
+						</dl>
 					</a>
 				{/each}
 			{/if}
@@ -162,6 +170,7 @@
 	/* Match Header.svelte spacing so gallery pages visually align with
 	   the rest of the app (padding 16px, header-left gap 32px). */
 	.explore-header {
+		flex-shrink: 0;
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-8);
@@ -175,10 +184,8 @@
 	}
 
 	.explore-logo {
-		font-family: var(--font-display);
 		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		text-decoration: none;
 	}
 
@@ -215,29 +222,27 @@
 
 	.explore-main {
 		flex: 1;
-		max-width: 1200px;
+		max-width: 1080px;
 		width: 100%;
 		margin: 0 auto;
-		padding: var(--spacing-12) var(--spacing-6) 80px;
+		padding: var(--spacing-6) var(--spacing-6) var(--spacing-12);
 	}
 
 	.explore-hero {
-		text-align: center;
-		margin-bottom: var(--spacing-10);
+		margin-bottom: var(--spacing-5);
 	}
 
 	.explore-hero h1 {
-		font-family: var(--font-display);
-		font-size: 38px;
-		font-weight: var(--font-weight-bold);
-		margin: 0 0 var(--spacing-4);
+		font-size: var(--font-size-xl);
+		font-weight: var(--font-weight-semibold);
+		line-height: 1.3;
+		margin: 0 0 var(--spacing-1-5);
 		color: var(--color-text-primary);
-		letter-spacing: -0.01em;
 	}
 
 	.explore-hero p {
-		max-width: 640px;
-		margin: 0 auto;
+		max-width: 72ch;
+		margin: 0;
 		font-size: var(--font-size-base);
 		line-height: 1.6;
 		color: var(--color-text-secondary);
@@ -245,25 +250,29 @@
 
 	.explore-filters {
 		display: flex;
-		gap: var(--spacing-3);
-		margin-bottom: var(--spacing-8);
+		align-items: center;
+		gap: var(--spacing-2);
+		padding-bottom: var(--spacing-3);
+		border-bottom: 1px solid var(--color-border);
 		flex-wrap: wrap;
 	}
 
 	.filter-input,
 	.filter-select {
-		background: var(--color-background-surface);
+		height: 32px;
+		background: var(--color-background-body);
 		border: 1px solid var(--color-border);
-		border-radius: var(--radius-element);
-		padding: var(--spacing-2) var(--spacing-3);
+		border-radius: var(--radius-inner);
+		padding: 0 var(--spacing-3);
 		color: var(--color-text-primary);
-		font-size: var(--font-size-base);
+		font-size: var(--font-size-sm);
 		font-family: inherit;
 	}
 
 	.filter-input {
 		flex: 1;
-		min-width: 240px;
+		min-width: 200px;
+		max-width: 360px;
 	}
 
 	.filter-input::placeholder {
@@ -273,133 +282,146 @@
 
 	.filter-input:focus,
 	.filter-select:focus {
-		border-color: var(--color-accent);
+		border-color: var(--color-text-tertiary);
 	}
 
-	/* When the count leaves one cell short of full rows, the first card spans two */
+	.explore-count {
+		margin-left: auto;
+		font-size: var(--font-size-sm);
+		color: var(--color-text-tertiary);
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* One row per repository: the map's thumbnail, what it is, and its language and stars */
 	.explore-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--spacing-4);
-	}
-
-	.explore-card.featured {
-		grid-column: span 2;
-	}
-
-	@media (max-width: 1023px) {
-		.explore-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-
-	@media (max-width: 639px) {
-		.explore-grid {
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.explore-card.featured {
-			grid-column: auto;
-		}
+		display: flex;
+		flex-direction: column;
 	}
 
 	.explore-empty {
-		grid-column: 1 / -1;
-		text-align: center;
-		padding: var(--spacing-12);
+		padding: var(--spacing-8) 0;
 		color: var(--color-text-secondary);
 		font-size: var(--font-size-base);
 	}
 
 	.explore-card {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-2);
-		padding: 0 var(--spacing-5) var(--spacing-5);
-		overflow: hidden;
-		background: var(--color-background-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-element);
+		display: grid;
+		grid-template-columns: 160px minmax(0, 1fr) 128px;
+		align-items: start;
+		gap: var(--spacing-4);
+		padding: var(--spacing-3) var(--spacing-2);
+		border-bottom: 1px solid var(--color-border);
 		text-decoration: none;
 		color: inherit;
-		transition: border-color var(--duration-fast) var(--ease-standard);
-	}
-
-	/* Real snapshot of the graph, full bleed at the top of the card */
-	.card-thumb {
-		display: block;
-		width: calc(100% + 40px);
-		margin: 0 calc(-1 * var(--spacing-5)) var(--spacing-2);
-		aspect-ratio: 800 / 430;
-		height: auto;
-		object-fit: cover;
-		object-position: center;
-		background: var(--color-background-canvas);
-		border-bottom: 1px solid var(--color-border);
-	}
-
-	.explore-card.featured .card-thumb {
-		aspect-ratio: 16 / 7;
+		transition: background-color var(--duration-fast) var(--ease-standard);
 	}
 
 	@media (hover: hover) {
 		.explore-card:hover {
-			border-color: var(--color-accent);
+			background: var(--color-background-surface);
 		}
 	}
 
-	.card-header {
+	.card-thumb {
+		display: block;
+		width: 100%;
+		aspect-ratio: 800 / 430;
+		height: auto;
+		object-fit: cover;
+		background: var(--color-background-canvas);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-inner);
+	}
+
+	.card-body {
+		min-width: 0;
+	}
+
+	.card-heading {
 		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		font-size: var(--font-size-sm);
-	}
-
-	.card-language {
-		padding: var(--spacing-0-5) var(--spacing-2);
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
-		border-radius: var(--radius-full);
-		font-weight: var(--font-weight-semibold);
-		letter-spacing: 0.02em;
-	}
-
-	.card-stars {
-		color: var(--color-text-secondary);
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 0 var(--spacing-2);
 	}
 
 	.card-title {
-		font-family: var(--font-display);
-		font-size: var(--font-size-xl);
-		font-weight: var(--font-weight-bold);
-		margin: var(--spacing-1) 0 0;
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
+		line-height: 1.4;
+		margin: 0;
 		color: var(--color-text-primary);
 	}
 
 	.card-repo {
 		font-family: var(--font-code);
 		font-size: var(--font-size-sm);
-		color: var(--color-text-secondary);
+		color: var(--color-text-tertiary);
 	}
 
 	.card-desc {
-		font-size: var(--font-size-base);
-		line-height: 1.5;
-		color: var(--color-text-secondary);
-		margin: var(--spacing-1) 0 var(--spacing-3);
-		flex: 1;
-	}
-
-	.card-cta {
+		margin: var(--spacing-1) 0 0;
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-semibold);
-		color: var(--color-accent);
-		margin-top: auto;
+		line-height: 1.55;
+		color: var(--color-text-secondary);
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
 
-	@media (max-width: 640px) {
-		.explore-hero h1 {
-			font-size: var(--font-size-3xl);
+	.card-meta {
+		display: grid;
+		gap: var(--spacing-1);
+		margin: 0;
+		justify-items: end;
+		font-size: var(--font-size-sm);
+		color: var(--color-text-secondary);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.card-meta dd {
+		margin: 0;
+	}
+
+	.card-stars {
+		color: var(--color-text-tertiary);
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	@media (max-width: 639px) {
+		.explore-main {
+			padding: var(--spacing-5) var(--spacing-4) var(--spacing-10);
+		}
+
+		.explore-card {
+			grid-template-columns: 96px minmax(0, 1fr);
+			gap: var(--spacing-3);
+			padding: var(--spacing-3) 0;
+		}
+
+		.card-meta {
+			grid-column: 2;
+			display: flex;
+			gap: var(--spacing-3);
+			justify-items: start;
+		}
+
+		.filter-input {
+			max-width: none;
+		}
+
+		.explore-count {
+			margin-left: 0;
+			width: 100%;
 		}
 	}
 </style>

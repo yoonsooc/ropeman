@@ -221,7 +221,6 @@
 	}
 
 	h2 {
-		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);

@@ -276,7 +276,6 @@
 	.di-title {
 		flex: 1;
 		font-size: var(--font-size-sm);
-		font-family: var(--font-display);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 		overflow: hidden;
@@ -306,7 +305,7 @@
 	}
 	.di-progress-fill {
 		height: 100%;
-		background: var(--color-accent);
+		background: var(--color-text-secondary);
 		border-radius: var(--radius-full);
 		transition: width var(--duration-medium) var(--ease-standard);
 	}

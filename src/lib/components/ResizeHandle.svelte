@@ -51,7 +51,7 @@
 
 	.resize-handle:hover,
 	.resize-handle:active {
-		background: var(--color-accent);
+		background: var(--color-text-secondary);
 	}
 
 	.resize-handle.vertical {

@@ -90,6 +90,7 @@ src/
 │   │   ├── DrilldownConfirmModal.svelte # 추가 분석 확인 팝업
 │   │   ├── WebGPUSetupModal.svelte   # WebGPU 모델 선택 + 백그라운드 다운로드 인디케이터
 │   │   ├── Header.svelte             # 상단 헤더 (Analyze + 트랙 뱃지 + Help + Settings)
+│   │   ├── Wordmark.svelte           # 로고 한 곳. 모든 헤더와 공유 이미지가 이 파일을 쓴다
 │   │   ├── Sidebar.svelte            # 사이드바 (File Explorer + Semantic Tree, showFiles()). 모바일·태블릿은 아이콘 레일만 레이아웃에 두고 열린 패널만 캔버스 위에 띄움 (바깥 탭, Esc, 파일 선택으로 닫힘. 분석이 끝나도 다시 열지 않음)
 │   │   ├── FileExplorer.svelte       # 파일 탐색기 (파일 유형별 아이콘)
 │   │   ├── SemanticTree.svelte       # 시맨틱 트리뷰 + 캐시된 노드 자동 드릴다운
@@ -725,8 +726,9 @@ export const xxxStore = createXxxStore();
 - 포커스 링은 전역 `:focus-visible` 규칙 하나가 `--focus-outline-*` 토큰으로 그린다. 잘리는 스크롤 컨테이너 안에서는 요소에 `--focus-outline-offset: -2px`를 준다. 컴포넌트에서 `outline: none`을 쓰려면 같은 요소나 감싸는 요소가 링을 대신 그려야 한다.
 - 척도 토큰도 같은 `:root`에 있다. 값은 astryx core를 따른다.
   - 간격 `--spacing-N`은 N × 0.25rem(4px 격자)이다. 1px 선과 48px보다 큰 간격은 숫자로 둔다.
-  - 글자 크기 `--font-size-xs`~`4xl`은 14px(`base`)을 기준으로 한 rem 척도(10·12·14·17·20·24·29·35px)이고, 굵기는 `--font-weight-normal`·`medium`·`semibold`·`bold`다. 줄 간격은 토큰으로 묶지 않는다. 한글 문단에는 astryx 본문 줄 간격 1.4286이 좁기 때문이다. 아이콘 글리프의 글자 크기는 척도 검사에서 빠진다. 선택자의 마지막 부분에 `material-symbols`로 시작하거나 `-icon`, `-chevron`, `-spinner`로 끝나는 클래스가 있어야 글리프로 본다.
-  - 반경은 역할로 고른다. `--radius-inner`(4px, 배지·kbd), `--radius-element`(8px, 버튼·입력란), `--radius-container`(12px, 카드·모달), `--radius-full`(알약·스크롤바 손잡이)이다.
+  - 글자 크기 `--font-size-xs`~`2xl`은 14px(`base`)을 기준으로 한 rem 척도(10·12·14·17·20·24px)이고, 굵기는 `--font-weight-normal`·`medium`·`semibold`·`bold`다. 줄 간격은 토큰으로 묶지 않는다. 한글 문단에는 astryx 본문 줄 간격 1.4286이 좁기 때문이다. 아이콘 글리프의 글자 크기는 척도 검사에서 빠진다. 선택자의 마지막 부분에 `material-symbols`로 시작하거나 `-icon`, `-chevron`, `-spinner`로 끝나는 클래스가 있어야 글리프로 본다.
+  - 반경은 역할로 고른다. `--radius-inner`(2px, 배지·kbd·작은 버튼), `--radius-element`(4px, 버튼·입력란·코드 블록), `--radius-container`(6px, 카드·모달·지도 노드), `--radius-full`(스크롤바 손잡이·점)이다.
+  - 화면은 애플리케이션 톤이다. 강조색(보라, 라이트 `#4f46e5`, 다크 `#a3a6ff`)은 선택한 탭의 밑줄, 링크, 포커스 링에만 쓴다. 진행 막대·토글·크기 조절 손잡이는 `--color-text-secondary`다. 선택·활성 상태는 회색 채움(`--color-background-muted`)과 글자색으로 보이고, 채운 주 버튼은 글자색(`--color-text-primary`) 바탕이다. 지도 노드 카드는 중립색이고 노드 종류는 점 하나의 색으로만 보인다. 엣지 색과 범례, INFERRED 점선은 그대로다.
   - 그림자는 `--shadow-low`·`med`·`high` 3단계이고 다크 모드에서 다시 정의한다. 바닥이나 옆에 붙은 시트의 방향 그림자는 그대로 둔다.
   - 동작은 `--duration-fast`(125ms)·`--duration-medium`(300ms)과 `--ease-standard`다. 계속 도는 스피너는 토큰을 쓰지 않는다. 동작 줄이기 설정에서는 전역 규칙이 모든 전환과 애니메이션을 즉시 끝낸다.
   - 그래프 노드 내부(`src/lib/components/nodes/`, xyflow 노드·엣지 규칙)는 dagre가 px로 배치하므로 px를 쓴다. 아이콘 글리프 크기는 글자 척도가 아니라서 px로 둔다.
@@ -735,12 +737,15 @@ export const xxxStore = createXxxStore();
 
 ### 글꼴과 아이콘
 
-- 글꼴은 Google Fonts에서 받아 `src/lib/fonts/`에 커밋하고 사이트가 직접 서빙한다. 페이지는 `fonts.googleapis.com`·`fonts.gstatic.com`에 요청하지 않는다. Inter, JetBrains Mono, Space Grotesk는 가변 글꼴 하나씩이다. UI 글자는 영어와 한국어뿐이라 Inter와 Space Grotesk는 `latin`과 `latin-ext` 두 묶음만 싣는다. JetBrains Mono는 사용자의 소스 코드도 그리고, 코드의 주석과 문자열은 어느 문자든 될 수 있어서 `cyrillic`, `greek`, `vietnamese`를 더해 다섯 묶음을 싣는다(저장소에 21,564바이트 더). 브라우저는 `unicode-range`가 맞는 묶음만 받으므로 영어 페이지는 `latin`만 받고, 키릴 문자가 든 코드를 열 때만 `cyrillic`을 받는다. 한글은 이 글꼴들에 없어서 원래대로 시스템 글꼴로 그린다. Google이 주는 여섯째 묶음 `cyrillic-ext`(옛 교회 슬라브 문자 같은 확장 키릴)는 싣지 않았고, 그 글자는 `--font-code`의 다음 글꼴로 그린다.
-- 아이콘은 Material Symbols Outlined 리거처다. `<span class="material-symbols-outlined">arrow_back</span>`의 글자 `arrow_back`이 글꼴 안에서 아이콘 글리프 하나로 바뀐다. 글꼴은 Google의 `icon_names=` 매개변수로 앱이 쓰는 이름만 담아 받는다(전체 약 325KB, 76개만 담으면 8KB).
+- 글꼴은 Google Fonts에서 받아 `src/lib/fonts/`에 커밋하고 사이트가 직접 서빙한다. 페이지는 `fonts.googleapis.com`·`fonts.gstatic.com`에 요청하지 않는다. 글자는 IBM Plex Sans(본문, 제목, UI 모두. 400~700 가변), 코드는 JetBrains Mono(400~500 가변) 두 벌이다. 제목 전용 글꼴은 없고 `--font-body` 하나로 크기와 굵기만 바꾼다. 받는 목록은 `scripts/fetch-fonts.mjs`의 `TEXT_FAMILIES` 표 한 곳에 있다(축, 묶음, 라이선스).
+- UI 글자는 영어와 한국어뿐이라 IBM Plex Sans는 `latin`과 `latin-ext` 두 묶음만 싣는다. JetBrains Mono는 사용자의 소스 코드도 그리고, 코드의 주석과 문자열은 어느 문자든 될 수 있어서 `cyrillic`, `greek`, `vietnamese`를 더해 다섯 묶음을 싣는다. 브라우저는 `unicode-range`가 맞는 묶음만 받으므로 영어 페이지는 `latin`만 받고, 키릴 문자가 든 코드를 열 때만 `cyrillic`을 받는다. Google이 주는 `cyrillic-ext`는 싣지 않았고, 그 글자는 `--font-code`의 다음 글꼴로 그린다.
+- 한글은 웹 글꼴을 받지 않는다. `global.css`의 `@font-face`가 OS의 한국어 UI 글꼴에 `Ropeman Hangul`이라는 이름을 붙인다. `local()`로 Apple SD Gothic Neo, 맑은 고딕, Noto Sans KR를 차례로 찾고, 굵기(400·500·600·700)마다 그 굵기의 글꼴을 가리키며, 한글 범위(`unicode-range`)에만 쓰고, `size-adjust: 94%`로 IBM Plex Sans 글자 높이에 맞춘다. `--font-body`는 IBM Plex Sans 다음에 이 이름을, 그다음에 시스템 UI 글꼴, 마지막에 한국어 글꼴 이름을 둔다. 시스템 UI 글꼴이 한국어 이름보다 앞이라, IBM Plex Sans가 오기 전의 라틴 글자는 시스템 UI 글꼴로 보인다. 이유와 바이트 측정은 [ADR-29](adr/0029-plex-sans-and-local-hangul.md)에 있다.
+- 아이콘은 Material Symbols Outlined 리거처 한 벌이다. `<span class="material-symbols-outlined">arrow_back</span>`의 글자 `arrow_back`이 글꼴 안에서 아이콘 글리프 하나로 바뀐다. 헤더의 언어(`translate`)·테마(`light_mode`·`dark_mode`), 캔버스 도구 막대, 노드 카드와 트리의 버튼도 이 글꼴로 그린다. 새 아이콘은 이 글꼴로 그리고, 유니코드 기호(☀, ☽, 한)를 아이콘 대신 쓰지 않는다. 사이드바·탭·검색창·패널 몇 곳의 인라인 SVG와 글자 화살표(→, ←, ×)는 아직 남아 있다. 글꼴은 Google의 `icon_names=` 매개변수로 앱이 쓰는 이름만 담아 받는다(전체 약 325KB, 지금 78개만 담아 8.6KB).
+- 로고는 `src/lib/components/Wordmark.svelte` 한 파일이다. 지금은 글자 워드마크이고, 그림 로고로 바꿀 때 이 파일만 고치면 앱 헤더, 문서·갤러리·공유·`/open`·`/bridge` 헤더가 함께 바뀐다. 부르는 쪽은 링크나 버튼으로 감싸 크기와 색만 정한다. `scripts/og-images.mjs`도 랜딩에 그려진 `.wordmark` 요소를 복제해 공유 이미지에 넣는다. 파비콘은 `static/favicon.svg` 한 파일이고 `app.html`이 그 파일을 가리킨다.
 - `scripts/icon-names.mjs`가 앱이 그릴 수 있는 아이콘 이름을 모두 뽑는다. Svelte 파서로 아이콘 요소를 찾고, 이름이 식으로 정해지면 문자열 리터럴까지 따라간다. 따라갈 수 있는 식은 리터럴의 삼항식, 같은 컴포넌트에서 값을 정하는 변수(`BridgeAccessGuide`의 상태별 표), 객체 리터럴의 `icon` 필드(`fileIcons.ts`의 `getFileIcon(name).icon`)다. prop이나 함수 반환값처럼 따라갈 수 없는 식은 파일과 줄을 대며 실패한다. 이름을 이 세 모양 중 하나로 쓰면 된다. 아이콘은 일반 요소(`<span>`, `<i>`)의 이 클래스로만 그린다. 컴포넌트나 `<svelte:element>`에 붙인 클래스, 그리고 `@font-face`와 `.material-symbols-outlined` 규칙 밖에서 아이콘 글꼴 이름을 쓰는 CSS·인라인 스타일·스크립트 문자열도 파일과 줄을 대며 실패한다. 추출기가 그 안의 이름을 볼 수 없기 때문이다.
 - `scripts/fetch-fonts.mjs`가 그 이름으로 글꼴과 라이선스를 받고 `fonts.css`와 `fonts.json`을 다시 쓴다. 매니페스트 `fonts.json`은 보낸 User-Agent, 아이콘 목록, 받은 파일마다 주소·sha256·크기를 적는다. 받을 때 해시를 검증하는 것이 아니라 받은 것을 기록할 뿐이고, 커밋한 파일이 기록과 맞는지는 아래 테스트가 본다. Google은 User-Agent에 따라 다른 형식과 파일을 주므로 스크립트는 고정한 값 하나를 보낸다. 라이선스 주소는 브랜치가 아니라 커밋 SHA에 고정했다. 받는 파일은 모두 임시 폴더에 먼저 쓰고, 글꼴·`fonts.css`·`fonts.json`·라이선스가 다 갖춰진 뒤에야 `src/lib/fonts/`와 `static/fonts/LICENSES/`를 바꾼다. 중간에 실패하면 커밋한 글꼴이 그대로 남는다. 네트워크는 이 스크립트를 다시 돌릴 때만 쓴다. 아이콘을 더하거나 빼면 이 스크립트를 돌린다. `scripts/icon-names.test.ts`가 뽑은 이름과 `fonts.json`의 목록이 같은지(빠진 이름, 안 쓰는 이름 모두 실패), 커밋한 글꼴과 라이선스가 매니페스트의 sha256과 맞는지 본다. Google은 모르는 이름을 오류 없이 빼고 주므로, E2E `tests/icon-font.spec.ts`가 목록의 이름마다 글리프 하나로 그려지는지 너비로 보고, 랜딩·지도 뷰·`/explore`·`/bridge`를 두 테마로 열어 단어로 남은 아이콘이 없는지 본다.
-- `font-display`는 글자 글꼴이 `swap`, 아이콘 글꼴이 `block`이다. 글자는 시스템 글꼴로 먼저 보이는 편이 낫고, 아이콘은 글꼴이 오기 전에 `arrow_back` 같은 단어가 보이면 안 되기 때문이다(`block`은 최대 3초 동안 글리프 자리를 비워 둔다). Google 아이콘 스타일시트가 주던 렌더링 규칙(리거처, `font-family`, `white-space: nowrap` 등)은 `global.css`의 `.material-symbols-outlined`로 옮겼다.
-- `src/lib/fonts/` 아래 파일은 Vite가 해시를 붙여 `/_app/immutable/assets/`로 내보낸다. 그래서 1년 `immutable` 캐시를 받는다(`static/`의 파일은 4시간 뒤 다시 확인한다). 라이선스(Inter·JetBrains Mono·Space Grotesk는 SIL OFL 1.1, Material Symbols는 Apache-2.0)는 `static/fonts/LICENSES/`에 두어 사이트와 뷰어 번들에 글꼴과 함께 실린다.
+- `font-display`는 글자 글꼴이 `swap`, 아이콘 글꼴이 `block`이다. 글자는 시스템 글꼴로 먼저 보이는 편이 낫고, 아이콘은 글꼴이 오기 전에 `arrow_back` 같은 단어가 보이면 안 되기 때문이다(`block`은 최대 3초 동안 글리프 자리를 비워 둔다). Google 아이콘 스타일시트가 주던 렌더링 규칙(리거처, `font-family`, `white-space: nowrap` 등)은 `global.css`의 `.material-symbols-outlined`로 옮겼다. 글꼴은 preload하지 않는다(ADR-29).
+- `src/lib/fonts/` 아래 파일은 Vite가 해시를 붙여 `/_app/immutable/assets/`로 내보낸다. 그래서 1년 `immutable` 캐시를 받는다(`static/`의 파일은 4시간 뒤 다시 확인한다). 라이선스(IBM Plex Sans·JetBrains Mono는 SIL OFL 1.1, Material Symbols는 Apache-2.0)는 `static/fonts/LICENSES/`에 두어 사이트와 뷰어 번들에 글꼴과 함께 실린다.
 
 ---
 
@@ -762,6 +767,7 @@ export const xxxStore = createXxxStore();
   - 모바일 FCP(Lighthouse 모바일 devtools 스로틀링, `wrangler pages dev`와 로컬 HTTP/2 프록시, 5회 교차 중앙값, 2026-11-14): 한국어 브라우저의 `/`가 3.45초에서 2.22초로, 영어 브라우저의 `/`는 2.14초에서 2.15초로(차이 없음), 영어 브라우저의 `/ko`는 2.22초다. 문서 응답 시간은 두 쪽 모두 약 0.64초로 같았다. 실제 Cloudflare에서 함수가 처음 뜰 때(콜드 스타트)의 지연은 재지 않았다
   - `app.html`은 `/`가 받은 언어와 앱이 보일 언어(저장된 선택, 없으면 브라우저 언어)가 다르면 hydrate까지 `#app`을 숨긴다(`data-locale-pending`). 이제는 쿠키가 생기기 전에 언어를 저장한 방문자의 첫 방문, 쿠키가 만료된 Safari 방문자, 쿠키를 막은 브라우저에서만 일어난다. 숨긴 지 8초가 지나면 표시를 지워, 앱 스크립트가 실패해도 빈 화면 대신 받은 랜딩이 보인다. JavaScript가 꺼져 있어도 엣지가 고른 언어로 보인다
   - 공유 미리보기: 각 랜딩이 title, description, canonical, hreflang(`en` → `/`, `ko` → `/ko`, `x-default` → `/`), `og:*`(`og:locale` 포함), `twitter:card`를 HTML에 담는다. 크롤러는 JavaScript를 돌리지 않으므로 빌드한 HTML에 있어야 한다. 이미지는 `static/og/landing-{en,ko}.png`(1200x630)이고 `scripts/og-images.mjs`가 빌드한 앱을 열어 랜딩의 제목을 히어로 스크린숏 위에 얹어 찍는다. `/en`은 영어 파일의 경로일 뿐이라 canonical이 `/`이고 사이트맵에 넣지 않는다
+  - `static/landing/explore-transformers-{en,ko}-{dark,light}.webp`: 랜딩 히어로. `scripts/landing-shots.mjs`가 공개 `/explore/transformers` 페이지를 언어·테마별로 찍는다. 1100x680 창을 두 배 픽셀(2200x1360)로 찍어, 랜딩 오른쪽 칸에 거의 제 크기로 들어가 카드 글자가 읽힌다. 폰에서는 캔버스 왼쪽을 잘라 크게 보인다. 랜딩은 네 장을 모두 렌더하고 `<html lang>`과 `data-theme`으로 CSS에서 한 장만 보인다. `scripts/og-images.mjs`는 같은 언어의 히어로로 공유 이미지를 만든다. 두 스크립트는 빌드한 앱을 연다. 히어로를 다시 찍은 뒤에는 앱을 다시 빌드해야 공유 이미지가 새 히어로를 쓴다
 - **파일 제한**: MAX_FILES=2000, MAX_FILE_SIZE=500KB. 값은 `filePriority.ts` 한 곳에 있다.
   - 상한은 순회 순서가 아니라 순위로 건다. 로컬 폴더, fallback input, GitHub가 같은 `rankFiles()`를 쓴다.
   - 순위는 세 묶음이다. 코드와 지침 파일, 그다음 테스트와 일반 문서, 그다음 읽는 파서가 없는 파일 순이다. 설정 파일 네 형식은 코드와 같은 첫 묶음이다.

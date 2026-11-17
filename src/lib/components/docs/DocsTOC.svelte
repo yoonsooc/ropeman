@@ -116,7 +116,6 @@
 	}
 
 	h4 {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-secondary);
@@ -154,8 +153,8 @@
 	}
 
 	li a.active {
-		color: var(--color-accent);
-		border-left-color: var(--color-accent);
+		color: var(--color-text-primary);
+		border-left-color: var(--color-text-primary);
 	}
 
 	@media (max-width: 1200px) {

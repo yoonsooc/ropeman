@@ -362,7 +362,6 @@
 	}
 
 	.explorer-title {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-secondary);
@@ -525,7 +524,6 @@
 
 	.tree-item.selected {
 		background: var(--color-background-muted);
-		border-left: 2px solid var(--color-accent);
 	}
 
 	.tree-item.selected .tree-label {
@@ -562,7 +560,7 @@
 	}
 
 	.tree-icon.expanded {
-		color: color-mix(in srgb, var(--color-accent) 70%, transparent);
+		color: var(--color-text-secondary);
 	}
 
 	.tree-label {
@@ -590,7 +588,7 @@
 	}
 
 	.tree-file-icon.selected {
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 	}
 
 	.file-item .tree-label {

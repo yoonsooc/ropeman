@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { onDestroy } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
@@ -195,7 +196,7 @@
 
 <div class="open-page" data-theme={themeStore.current}>
 	<header class="open-header">
-		<a href={resolve('')} class="open-logo">Ropeman</a>
+		<a href={resolve('')} class="open-logo"><Wordmark /></a>
 		{#if opened}
 			<span class="open-project-name">{opened.projectName}</span>
 			<span class="open-badge">{i18nStore.t('openMap.badge')}</span>
@@ -281,10 +282,8 @@
 	}
 
 	.open-logo {
-		font-family: var(--font-display);
 		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		text-decoration: none;
 	}
 
@@ -300,11 +299,11 @@
 
 	.open-badge {
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		padding: var(--spacing-0-5) var(--spacing-2);
-		border-radius: var(--radius-full);
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
+		border-radius: var(--radius-inner);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
 	}
 
 	.open-header-actions {
@@ -316,13 +315,12 @@
 		align-items: center;
 		gap: var(--spacing-1-5);
 		padding: var(--spacing-1-5) var(--spacing-3);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		border: none;
-		border-radius: var(--radius-element);
-		font-family: var(--font-display);
+		border-radius: var(--radius-inner);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		cursor: pointer;
 		white-space: nowrap;
 		transition: opacity var(--duration-fast) var(--ease-standard);
@@ -370,7 +368,6 @@
 	}
 
 	.open-picker h1 {
-		font-family: var(--font-display);
 		font-size: var(--font-size-2xl);
 		color: var(--color-text-primary);
 	}

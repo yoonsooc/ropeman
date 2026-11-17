@@ -98,7 +98,7 @@
 				onclick={handleReanalyze}
 				onkeydown={(e) => e.stopPropagation()}
 			>
-				&#x21BB;
+				<span aria-hidden="true" class="material-symbols-outlined">refresh</span>
 			</button>
 		{/if}
 		<button
@@ -112,7 +112,7 @@
 				: snapshotUnavailable
 					? i18nStore.t('node.notInSnapshotShort')
 					: i18nStore.t('node.openInside')}
-			<span aria-hidden="true">&#x203A;</span>
+			<span aria-hidden="true" class="material-symbols-outlined open-icon">chevron_right</span>
 		</button>
 	</div>
 </div>
@@ -127,13 +127,13 @@
 {/each}
 
 <style>
-	/* Node card: tinted by its domain color, three type steps (15 / 12 / 11) */
+	/* Node card: neutral, its kind shown by the one dot, three type steps (15 / 12 / 11) */
 	.semantic-node {
 		width: 256px;
 		min-height: 176px;
-		background: color-mix(in srgb, var(--node-color) 7%, var(--color-background-surface));
-		border: 1px solid color-mix(in srgb, var(--node-color) 30%, transparent);
-		border-radius: 10px;
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-container);
 		padding: 14px 16px 10px;
 		cursor: pointer;
 		position: relative;
@@ -147,25 +147,27 @@
 
 	@media (hover: hover) {
 		.semantic-node:hover {
-			background: color-mix(in srgb, var(--node-color) 12%, var(--color-background-surface));
+			background: var(--color-background-muted);
 		}
 	}
 
 	.semantic-node.highlighted {
-		background: color-mix(in srgb, var(--node-color) 14%, var(--color-background-surface));
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--node-color) 55%, transparent);
+		background: var(--color-background-muted);
+		border-color: var(--color-text-tertiary);
 	}
 
+	/* Selection is a neutral fill and a strong edge, so the kind dot stays the only color */
 	.semantic-node.selected {
-		border-color: var(--node-color);
+		background: var(--color-background-muted);
+		border-color: var(--color-text-secondary);
 		box-shadow:
-			0 0 0 2px color-mix(in srgb, var(--node-color) 55%, transparent),
+			0 0 0 1px var(--color-text-secondary),
 			0 8px 24px var(--color-shadow);
 	}
 
 	/* Unrelated nodes step back but stay readable; neighbors of the selection stay lit */
 	.semantic-node.dimmed {
-		opacity: 0.6;
+		opacity: 0.85;
 	}
 
 	/* Snapshot viewers (share/explore): the curated data has no deeper level
@@ -208,7 +210,6 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-family: var(--font-display);
 	}
 
 	.node-badge {
@@ -265,9 +266,9 @@
 		font-size: 11px;
 		font-family: var(--font-code);
 		color: var(--color-text-secondary);
-		background: color-mix(in srgb, var(--node-color) 10%, transparent);
+		background: var(--color-background-muted);
 		padding: 1px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		max-width: 112px;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -294,15 +295,15 @@
 		gap: 4px;
 		font-size: 12px;
 		font-weight: 500;
-		color: color-mix(in srgb, var(--node-color) 70%, var(--color-text-primary));
+		color: var(--color-text-secondary);
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		transition: background-color 0.15s ease-out;
 	}
 
-	/* Light surfaces: AI-picked node colors can be pale, so the label stays near text color */
-	:global([data-theme='light']) .open-btn {
-		color: color-mix(in srgb, var(--node-color) 35%, var(--color-text-primary));
+	.open-icon {
+		font-size: 14px;
+		margin-right: -4px;
 	}
 
 	.snapshot-unavailable .open-btn {
@@ -315,7 +316,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 4px;
+		border-radius: var(--radius-inner);
 		color: var(--color-text-tertiary);
 		font-size: 14px;
 		line-height: 1;
@@ -323,6 +324,10 @@
 		transition:
 			opacity 0.15s ease-out,
 			background-color 0.15s ease-out;
+	}
+
+	.reanalyze-btn .material-symbols-outlined {
+		font-size: 16px;
 	}
 
 	.semantic-node:focus-within .reanalyze-btn {
@@ -336,7 +341,8 @@
 
 		.open-btn:hover,
 		.reanalyze-btn:hover {
-			background: color-mix(in srgb, var(--node-color) 16%, transparent);
+			background: var(--color-background-surface);
+			color: var(--color-text-primary);
 		}
 	}
 

@@ -257,7 +257,6 @@
 	}
 
 	.help-section-title {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-secondary);
@@ -357,7 +356,6 @@
 	}
 
 	.ai-mode-name {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
