@@ -222,7 +222,7 @@
 		padding: 0 var(--spacing-5);
 		gap: 0;
 		flex-shrink: 0;
-		/* Five tabs in the Bridge viewer outgrow a phone */
+		/* A longer translation still scrolls instead of pushing the card wider */
 		overflow-x: auto;
 		scrollbar-width: none;
 	}
@@ -545,6 +545,15 @@
 	@media (max-width: 600px) {
 		.help-card {
 			width: 95vw;
+		}
+
+		/* The Bridge viewer's five tabs fit 320px only with tighter padding */
+		.help-tabs {
+			padding: 0 var(--spacing-3);
+		}
+
+		.help-tab {
+			padding: var(--spacing-2);
 		}
 	}
 </style>

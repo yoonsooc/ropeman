@@ -36,6 +36,7 @@
 
 <style>
 	.bridge-badge {
+		position: relative;
 		display: inline-flex;
 		align-items: center;
 		gap: var(--spacing-1-5);

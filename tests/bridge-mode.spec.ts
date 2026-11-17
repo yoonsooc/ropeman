@@ -290,6 +290,13 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		await expect(page.getByTestId('bridge-status')).toHaveText('연결됨');
 		expect(await expectHeaderFits(page)).toBeGreaterThanOrEqual(6);
 
+		// Help's five tabs all show; the last one sat off screen with no scroll cue
+		await page.keyboard.press('?');
+		const tabs = page.locator('.help-tabs');
+		await expect(tabs).toBeVisible();
+		expect(await tabs.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+		await page.keyboard.press('Escape');
+
 		// The toolbar covered the top card at 390px
 		await page.setViewportSize({ width: 390, height: 844 });
 		await page.reload();
