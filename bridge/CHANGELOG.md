@@ -4,6 +4,10 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 ## [Unreleased]
 
+### Changed
+
+- A folder that holds one subfolder and no files of its own no longer gets a level with one card. A chain of such folders, as in `src/main/java/com/acme`, is one card whose id is the last folder of the chain and whose label is the path to it from the level's folder, so the first drill-down lands on the folder that branches. A folder that holds only files opens straight to its files. The top level starts where the chain from the repository root ends. On spring-petclinic, the folder levels go from 15 (13 with one card) to 2, and the `src` card that took 7 clicks to reach the packages takes 1. Files, relations and their evidence are unchanged, and the map schema stays 1.2. Names written for a folder inside a chain come back as `node-unknown`; name the level again from `work.json` ([ADR-30](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0030-collapse-single-child-folder-chains.md)).
+
 ## [0.6.0] - 2026-11-17
 
 ### Added

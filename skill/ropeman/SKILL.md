@@ -58,7 +58,7 @@ Report fields: `input` (what the map is built from: `kind` is `ropeman` or `grap
 
 ## 4. Name one stage
 
-Read `OUT/work.json`. `stage` 1 is the top level of the repository, `stage` 2 the folders inside it; `stage` is null when only queued folders or levels with problems are left. Each entry of `levels` is one folder (`folder`, `level` is its node id, null for the top); `queued: true` marks a folder the user opened in the browser. Each of its `parts` is a subfolder (`dir:<path>`) or the files directly in the folder (`files:<path>`), with its file count, sample paths and declared symbols. `parent` repeats the name you gave the folder one stage up. `imports` counts imports between parts.
+Read `OUT/work.json`. `stage` 1 is the top level of the repository, `stage` 2 the folders inside it; `stage` is null when only queued folders or levels with problems are left. Each entry of `levels` is one folder (`folder`, `level` is its node id, null for the top); `queued: true` marks a folder the user opened in the browser. Each of its `parts` is a subfolder (`dir:<path>`) or the files directly in the folder (`files:<path>`), with its file count, sample paths and declared symbols. A level always has two or more parts. A folder that holds one subfolder and no files of its own gets no level, so a `dir:` part can stand for a chain of such folders: its id is the last folder of the chain (`dir:src/main/java/com/acme`), and the top level can be a folder below the root. Stages count these levels, not folder depth. `parent` repeats the name you gave the folder one stage up. `imports` counts imports between parts.
 
 Add one entry per part to `OUT/names.json`, keyed by part id:
 

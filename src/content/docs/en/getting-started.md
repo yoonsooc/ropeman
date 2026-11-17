@@ -38,6 +38,8 @@ The skill is tested with Claude Code. Codex, Gemini CLI and Cursor load skills f
 
 When both are installed, ask your agent to "map this repo". It builds the map, names the top two levels, checks the names against the code, starts `ropeman serve` and gives you a `http://127.0.0.1:9800/bridge#token=…` address to open.
 
+A folder that holds only one subfolder is skipped: Ropeman shows the chain as one card labelled with its path, so each drill-down opens a level with something to choose.
+
 ### Use a graph file you already have
 
 By default `ropeman map` reads the repository with Ropeman's own extraction. If another tool already wrote a graph file for the repository, you can build the map from that file instead. This option needs `@ropeman/bridge` 0.6.0 or later.

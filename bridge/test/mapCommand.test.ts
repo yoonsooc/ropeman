@@ -54,6 +54,7 @@ function makeProject(base: string): string {
 	write('src/lib/strings.ts', 'export function pad(s: string) {\n\treturn ` ${s}`;\n}\n');
 	write('src/index.ts', `import { start } from './app/main';\nstart();\n`);
 	write('tools/build.ts', 'export function build() {}\n');
+	write('tools/release/publish.ts', 'export function publish() {}\n');
 	write('.env', `SECRET_VALUE=${SECRET}\n`);
 	return root;
 }
@@ -133,7 +134,7 @@ describe('ropeman map', () => {
 		expect(result.parsed && result.violations).toEqual([]);
 		expect(run.report.done).toBe(false);
 		expect(run.report.next).toEqual({ stage: 1, queued: 0, levels: 1, parts: 2 });
-		expect(run.report.coverage.byReason.sent).toBe(6);
+		expect(run.report.coverage.byReason.sent).toBe(7);
 		expect(run.report.stages).toEqual([
 			{ depth: 1, levels: 1, named: 0 },
 			{ depth: 2, levels: 2, named: 0 }
@@ -191,7 +192,7 @@ describe('ropeman map', () => {
 		const run = await map();
 
 		const written = read<RopemanMap>(MAP_FILE);
-		const app = written.levels.find((l) => l.parentId === 'files:src/app')!;
+		const app = written.levels.find((l) => l.parentId === 'dir:src/app')!;
 		expect(app).toMatchObject({ naming: 'grouped', assignment: null, fileLevel: true });
 		expect(app.nodes.map((n) => [n.id, n.label, n.filePaths]).toSorted()).toEqual([
 			['file:src/app/main.ts', 'main.ts', ['src/app/main.ts']],
@@ -200,7 +201,7 @@ describe('ropeman map', () => {
 		expect(app.edges.map((e) => [e.source, e.target, e.evidence?.confidence])).toEqual([
 			['file:src/app/routes.ts', 'file:src/app/main.ts', 'EXTRACTED']
 		]);
-		expect(written.levels.find((l) => l.parentId === 'files:src/lib')?.edges).toEqual([]);
+		expect(written.levels.find((l) => l.parentId === 'dir:src/lib')?.edges).toEqual([]);
 		expect(written.levels.some((l) => l.parentId === 'files:src')).toBe(false);
 		const result = await verified(written);
 		expect(result.parsed && result.violations).toEqual([]);
@@ -239,19 +240,19 @@ describe('ropeman map', () => {
 			// Act
 			const run = await capped(whole - 1);
 
-			// Assert: files:src/app carries an import, so it is the larger of the two
+			// Assert: dir:src/app carries an import, so it is the larger of the two
 			expect(run.code).toBe(0);
 			expect(run.report.fileLevels).toEqual({
 				written: 1,
 				dropped: 1,
-				droppedExamples: ['files:src/app']
+				droppedExamples: ['dir:src/app']
 			});
 			expect(run.stderr).toContain('leaves out the 1 largest file levels');
 			expect(written().length).toBeLessThanOrEqual(whole - 1);
 			const fitted = JSON.parse(written().toString()) as RopemanMap;
 			const expanded = fitted.levels.map((l) => l.parentId);
-			expect(expanded).toContain('files:src/lib');
-			expect(expanded).not.toContain('files:src/app');
+			expect(expanded).toContain('dir:src/lib');
+			expect(expanded).not.toContain('dir:src/app');
 			const result = await verified(fitted);
 			expect(result.parsed && result.violations).toEqual([]);
 		});
@@ -367,7 +368,7 @@ describe('ropeman map', () => {
 		expect(listed.stderr).toContain('inside the repo');
 		expect(fs.existsSync(path.join(root, 'maps'))).toBe(false);
 		expect(hidden.code).toBe(0);
-		expect(hidden.report.coverage.byReason.sent).toBe(6);
+		expect(hidden.report.coverage.byReason.sent).toBe(7);
 	});
 
 	it('refuses an unknown flag, a missing --out and a bad --depth', async () => {
@@ -380,6 +381,97 @@ describe('ropeman map', () => {
 
 		expect(codes).toEqual([2, 2, 2]);
 		expect(e.stdout).toEqual([]);
+	});
+});
+
+describe('ropeman map on folders that hold one folder each', () => {
+	const APP = 'src/main/scala/com/example/app';
+	const SCALA = fileURLToPath(new URL('../../tests/fixtures/graphs/scala-deep', import.meta.url));
+
+	beforeEach(() => {
+		root = path.join(base, 'scala-deep');
+		fs.cpSync(SCALA, root, { recursive: true });
+	});
+
+	it('lists the first folder that branches as stage 1, with each chain as one part', async () => {
+		const run = await map();
+
+		const work = read<Work>(WORK_FILE);
+		expect(work.levels.map((l) => [l.level, l.folder])).toEqual([[null, APP]]);
+		expect(work.levels[0].parts.map((p) => p.id)).toEqual([
+			`dir:${APP}/parse`,
+			`dir:${APP}/store/memory`,
+			`dir:${APP}/web/http`,
+			`files:${APP}`
+		]);
+		expect(run.report.stages).toEqual([
+			{ depth: 1, levels: 1, named: 0 },
+			{ depth: 2, levels: 2, named: 0 }
+		]);
+		const written = read<RopemanMap>(MAP_FILE);
+		expect(written.levels.map((l) => l.parentId)).toEqual([
+			null,
+			`dir:${APP}/parse`,
+			`dir:${APP}/web/http`,
+			`files:${APP}/parse`,
+			`dir:${APP}/store/memory`
+		]);
+		expect(written.levels[0].nodes.find((n) => n.id === `dir:${APP}/web/http`)?.label).toBe(
+			'web/http'
+		);
+		const result = await verified(written);
+		expect(result.parsed && result.violations).toEqual([]);
+	});
+
+	it('names a chain once by its last folder, and refuses a name for a folder inside it', async () => {
+		await map();
+		const names = nameWork(read<Work>(WORK_FILE));
+		names['dir:src/main'] = { label: 'Main', description: '', keySymbols: [] };
+		writeNames(names);
+
+		const run = await map();
+
+		expect(run.report.problems).toEqual([
+			expect.objectContaining({ code: 'node-unknown', nodeId: 'dir:src/main' })
+		]);
+		const written = read<RopemanMap>(MAP_FILE);
+		const named = written.levels[0].nodes.filter((n) => n.id === `dir:${APP}/web/http`);
+		expect(named.map((n) => n.label)).toEqual([`Part dir:${APP}/web/http`]);
+		const work = read<Work>(WORK_FILE);
+		expect(work.levels.map((l) => [l.level, l.folder, l.parent?.label])).toEqual([
+			[`dir:${APP}/parse`, `${APP}/parse`, `Part dir:${APP}/parse`],
+			[`dir:${APP}/web/http`, `${APP}/web/http`, `Part dir:${APP}/web/http`]
+		]);
+	});
+
+	it('serves the level a chain node opens to, and no level for a folder inside it', async () => {
+		await map();
+		const s = session();
+
+		try {
+			const top = await s.map();
+			const http = await s.expand(`dir:${APP}/web/http`);
+			const memory = await s.expand(`dir:${APP}/store/memory`);
+
+			expect(top.levels[0].nodes.map((n) => n.label)).toEqual([
+				'parse',
+				'store/memory',
+				'web/http',
+				'app/*'
+			]);
+			expect(http.ok && http.level.nodes.map((n) => n.id)).toEqual([
+				`dir:${APP}/web/http/json`,
+				`files:${APP}/web/http`
+			]);
+			expect(memory.ok && memory.level).toMatchObject({
+				parentId: `dir:${APP}/store/memory`,
+				fileLevel: true
+			});
+			expect(await s.expand('dir:src/main')).toMatchObject({ ok: false, code: 'unknown-node' });
+			expect(await s.expand(`dir:${APP}`)).toMatchObject({ ok: false, code: 'unknown-node' });
+		} finally {
+			s.close();
+		}
 	});
 });
 

@@ -41,6 +41,8 @@ curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubus
 
 설치가 끝나면 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 코드와 맞는지 검사한 뒤, `ropeman serve`를 띄우고 열어 볼 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다.
 
+하위 폴더 하나만 가진 폴더는 건너뜁니다. 이어진 폴더는 경로를 제목으로 단 카드 하나로 보이고, 드릴다운하면 고를 것이 있는 단계가 바로 열립니다.
+
 ### 이미 있는 그래프 파일 쓰기
 
 `ropeman map`은 기본으로 Ropeman이 직접 저장소를 읽습니다. 다른 도구가 이미 그 저장소의 그래프 파일을 만들어 두었다면, 그 파일로 지도를 만들 수도 있습니다. 이 기능은 `@ropeman/bridge` 0.6.0 이상에서 쓸 수 있습니다.

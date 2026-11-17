@@ -101,6 +101,24 @@ describe('verifyMap on maps grouped from a Node extraction', () => {
 		expect(clean.checked.refs).toBeGreaterThan(0);
 		expect(faultCodes(map, extraction)).toEqual(expectedFaults);
 	});
+
+	it('passes a map whose folder chains collapsed into one node each', async () => {
+		const extraction = await extractDirectory(join(repo, 'tests/fixtures/graphs/scala-deep'), {
+			wasmDir
+		});
+		const { map } = roundTrip(groupedMap(extraction, 'scala-deep'));
+
+		const clean = check(map, extraction.map);
+
+		expect(clean.violations).toEqual([]);
+		expect(clean.checked).toMatchObject({ files: extraction.map.files.size, levels: 5 });
+		expect(map.levels[0].nodes.map((n) => n.label)).toEqual([
+			'parse',
+			'store/memory',
+			'web/http',
+			'app/*'
+		]);
+	});
 });
 
 /**
