@@ -2,7 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 // A port of its own, so a run never lands on a dev server from another checkout on 5173.
 // Set E2E_PORT to run two checkouts' suites at the same time.
-const PORT = Number(process.env.E2E_PORT ?? 5180);
+const PORT = Number(process.env.E2E_PORT || 5180);
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+	throw new Error(`E2E_PORT must be a port number, got ${JSON.stringify(process.env.E2E_PORT)}`);
+}
 
 export default defineConfig({
 	testDir: './tests',
