@@ -25,6 +25,7 @@ import {
 } from '$lib/types/ropemanMap';
 import type { SemanticNode } from '$lib/types/semantic';
 import { projectStore } from './projectStore.svelte';
+import { selectionStore } from './selectionStore.svelte';
 import { semanticStore } from './semanticStore.svelte';
 import { tabStore } from './tabStore.svelte';
 
@@ -258,6 +259,7 @@ function createBridgeStore() {
 		semanticStore.clear();
 		projectStore.projectName = '';
 		projectStore.fileTree = null;
+		selectionStore.clear();
 	}
 
 	return {

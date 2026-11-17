@@ -133,7 +133,7 @@ ropeman map --root . --out .ropeman --input ropeman
 1. `ropeman map`이 저장소를 읽고 지도인 `ropeman.json`을 씁니다. 한 단계의 이름이 검사를 통과하기 전까지 그 단계의 부분은 폴더 이름을 그대로 씁니다. 이름을 붙여야 할 부분 목록인 `work.json`도 씁니다. [이미 있는 그래프 파일 쓰기](#이미-있는-그래프-파일-쓰기)처럼 입력을 고르면 고른 입력을 `input.json`에 남깁니다.
 2. 에이전트가 `work.json`을 읽고 `names.json`을 씁니다. 부분마다 이름, 설명, 핵심 심볼이 들어갑니다. `brief.md`도 씁니다. 알고 싶은 것, 프로젝트 용어, 이름 규칙, 위 단계 이름이 들어갑니다.
 3. 에이전트가 `ropeman map`을 다시 실행합니다. Ropeman이 `names.json`을 적용하고 이름마다 코드와 맞는지 검사한 뒤 `ropeman.json`과 `work.json`을 다시 씁니다. 한 단계의 이름은 모두 통과해야 남습니다. 에이전트는 `ropeman map`이 문제가 없다고 할 때까지 2단계와 3단계를 되풀이합니다.
-4. 에이전트가 `ropeman serve --detach`를 실행합니다. serve가 `ropeman.json`의 지도를 보여 주고, 자기 프로세스를 `serve.json`, `serve.lock`, `serve.log`에 기록합니다.
+4. 에이전트가 `ropeman serve --detach`를 실행합니다. 이 명령은 serve를 백그라운드로 띄우는 동안 `serve.lock`을 잡고, serve의 출력을 `serve.log`에 씁니다. serve는 `ropeman.json`의 지도를 보여 주고 자기 정보를 `serve.json`에 남깁니다.
 5. 아직 이름이 없는 폴더를 열면 serve가 헤드리스 일꾼에게 그 폴더의 부분에 이름을 붙이게 합니다. 일꾼은 `claude -p`이고, serve를 `--cli gemini`로 실행했으면 Gemini CLI입니다. 일꾼은 `brief.md`의 앞 4,000바이트를 맥락으로 받습니다. serve는 결과를 하나씩 `naming-log.jsonl`에 씁니다. 일꾼이 없으면 serve가 그 폴더를 에이전트 몫으로 `queue.json`에 넣습니다.
 6. 다음 메시지를 보내면 에이전트가 먼저 `ropeman inbox`를 실행합니다. 대기열의 폴더와 지난번 이후에 생긴 기록 줄을 받고, 어디까지 읽었는지 `inbox-read.json`에 남깁니다. 에이전트는 대기열의 폴더에 2단계와 3단계로 이름을 붙입니다.
 
@@ -145,9 +145,9 @@ ropeman map --root . --out .ropeman --input ropeman
 | `names.json`       | 에이전트                                   | `ropeman map`                            |
 | `brief.md`         | 에이전트                                   | serve의 일꾼                             |
 | `naming-log.jsonl` | serve                                      | `ropeman inbox`                          |
-| `queue.json`       | serve                                      | `ropeman inbox`                          |
+| `queue.json`       | serve                                      | `ropeman map`, serve, `ropeman inbox`    |
 | `inbox-read.json`  | `ropeman inbox`                            | `ropeman inbox`                          |
-| `serve.json`       | serve(오래된 파일은 `ropeman stop`이 지움) | `ropeman serve --detach`, `ropeman stop` |
+| `serve.json`       | serve(오래된 파일은 `ropeman stop`이 지움) | serve, `ropeman stop`                    |
 | `serve.lock`       | `ropeman serve --detach`                   | `ropeman serve --detach`                 |
 | `serve.log`        | `ropeman serve --detach`                   | serve가 시작하지 않을 때 직접 읽음       |
 

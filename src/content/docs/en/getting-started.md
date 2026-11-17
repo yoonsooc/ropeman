@@ -129,7 +129,7 @@ Each file in the work folder has one writer. The diagram shows who writes each f
 1. `ropeman map` reads the repository and writes `ropeman.json`, the map. Until a level gets names that pass the checks, its parts keep their folder names. `ropeman map` also writes `work.json`, the list of parts that still need names. Once you choose the input, as in [Use a graph file you already have](#use-a-graph-file-you-already-have), it records the choice in `input.json`.
 2. Your agent reads `work.json` and writes `names.json`, which gives each part a label, a description and key symbols. It also writes `brief.md`: what you want to learn, the project's terms, its naming rules and the names of the upper levels.
 3. Your agent runs `ropeman map` again. Ropeman applies `names.json`, checks every name against the code, and writes `ropeman.json` and `work.json` again. A level keeps its names only when all of them pass. The agent repeats steps 2 and 3 until `ropeman map` reports no problems.
-4. Your agent starts `ropeman serve --detach`. serve shows the map from `ropeman.json` and records its process in `serve.json`, `serve.lock` and `serve.log`.
+4. Your agent starts `ropeman serve --detach`. The start holds `serve.lock` while it launches serve in the background and writes serve's output to `serve.log`. serve shows the map from `ropeman.json` and records itself in `serve.json`.
 5. When you open a folder that has no names yet, serve asks a headless worker to name its parts: `claude -p`, or Gemini CLI when serve runs with `--cli gemini`. The worker gets the first 4,000 bytes of `brief.md` as context. serve writes each result to `naming-log.jsonl`. Without a worker, serve adds the folder to `queue.json` for your agent.
 6. When you send your next message, the agent runs `ropeman inbox` first. It returns the queued folders and the log lines added since the last check, and records how far it read in `inbox-read.json`. The agent names the queued folders with steps 2 and 3.
 
@@ -141,9 +141,9 @@ Each file in the work folder has one writer. The diagram shows who writes each f
 | `names.json`       | your agent                                 | `ropeman map`                            |
 | `brief.md`         | your agent                                 | serve's workers                          |
 | `naming-log.jsonl` | serve                                      | `ropeman inbox`                          |
-| `queue.json`       | serve                                      | `ropeman inbox`                          |
+| `queue.json`       | serve                                      | `ropeman map`, serve, `ropeman inbox`    |
 | `inbox-read.json`  | `ropeman inbox`                            | `ropeman inbox`                          |
-| `serve.json`       | serve (`ropeman stop` removes a stale one) | `ropeman serve --detach`, `ropeman stop` |
+| `serve.json`       | serve (`ropeman stop` removes a stale one) | serve, `ropeman stop`                    |
 | `serve.lock`       | `ropeman serve --detach`                   | `ropeman serve --detach`                 |
 | `serve.log`        | `ropeman serve --detach`                   | you, when serve does not start           |
 

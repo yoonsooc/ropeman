@@ -171,6 +171,8 @@
 				semanticStore.currentLevel = level;
 				semanticStore.drilldownPath = pathWithoutLast;
 			}
+			const parentLabel = pathWithoutLast.at(-1)?.label ?? 'Project';
+			tabStore.openDiagramTab(pathWithoutLast, parentLabel);
 			onexpand(semNode);
 			return;
 		}

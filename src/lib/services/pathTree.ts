@@ -27,7 +27,8 @@ export function fileTreeFromPaths(rootName: string, paths: readonly string[]): F
 	}
 
 	for (const path of paths) {
-		if (!path || files.has(path)) continue;
+		// A path with an empty segment names no file; serve refuses to read it anyway
+		if (path.split('/').includes('') || files.has(path)) continue;
 		files.add(path);
 		const cut = path.lastIndexOf('/');
 		dirAt(cut < 0 ? '' : path.slice(0, cut)).children!.push({

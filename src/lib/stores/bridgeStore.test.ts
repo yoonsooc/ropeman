@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { bridgeStore } from './bridgeStore.svelte';
 import { semanticStore } from './semanticStore.svelte';
 import { projectStore } from './projectStore.svelte';
+import { selectionStore } from './selectionStore.svelte';
 import type { BridgeSocket } from '$lib/services/bridgeClient';
 import type { FilePath } from '$lib/types/codeMap';
 import type { MapLevel, RopemanMap } from '$lib/types/ropemanMap';
@@ -150,6 +151,23 @@ describe('bridgeStore', () => {
 
 		bridgeStore.disconnect();
 		expect(projectStore.fileTree).toBeNull();
+	});
+
+	it("forgets the explorer's picked file on disconnect, so another serve's map starts clean", async () => {
+		await connected();
+		selectionStore.selectedNode = {
+			id: 'file:src/b.ts',
+			kind: 'file',
+			label: 'b.ts',
+			filePath: 'src/b.ts',
+			parentId: null,
+			childCount: 0,
+			isExpanded: false
+		};
+
+		bridgeStore.disconnect();
+
+		expect(selectionStore.selectedNode).toBeNull();
 	});
 
 	it('reports a socket that closed before hello as a failed connection', async () => {

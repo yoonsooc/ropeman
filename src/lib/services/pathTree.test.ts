@@ -41,8 +41,8 @@ describe('fileTreeFromPaths', () => {
 		expect(file).toEqual({ name: 'main.py', path: 'main.py', kind: 'file' });
 	});
 
-	it('lists a repeated path once and skips an empty one', () => {
-		const tree = fileTreeFromPaths('shop', ['a.ts', 'a.ts', '']);
+	it('lists a repeated path once and skips paths with an empty segment', () => {
+		const tree = fileTreeFromPaths('shop', ['a.ts', 'a.ts', '', '/b.ts', 'c//d.ts', 'e/']);
 
 		expect(outline(tree)).toEqual({ 'shop/': ['a.ts'] });
 	});
