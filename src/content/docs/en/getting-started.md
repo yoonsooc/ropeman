@@ -18,20 +18,20 @@ Try it now at [ropeman.dev](https://ropeman.dev) — no signup required.
 The main way to use Ropeman is from a coding agent through the Ropeman skill. You need Node 22 or later. First, install the `ropeman` command:
 
 ```bash
-npm install -g @ropeman/bridge@0.5.0
+npm install -g @ropeman/bridge@0.6.0
 ```
 
 Then save the skill in the folder your agent loads skills from. Run the line for your agent:
 
 ```bash
 # Claude Code (tested)
-curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 # Codex (not tested)
-curl --create-dirs -fsSLo ~/.agents/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.agents/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 # Gemini CLI (not tested)
-curl --create-dirs -fsSLo ~/.gemini/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.gemini/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 # Cursor (not tested)
-curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 ```
 
 The skill is tested with Claude Code. Codex, Gemini CLI and Cursor load skills from these folders according to their own documentation, but Ropeman has not been tested with them yet. For another agent, save the file as `ropeman/SKILL.md` in the folder that agent loads skills from. If your agent has no skill support, paste the text of `SKILL.md` into the conversation. The setup on the [home page](/) shows the same commands.
@@ -40,7 +40,7 @@ When both are installed, ask your agent to "map this repo". It builds the map, n
 
 ### Use a graph file you already have
 
-By default `ropeman map` reads the repository with Ropeman's own extraction. If another tool already wrote a graph file for the repository, you can build the map from that file instead. This option comes with the next release of `@ropeman/bridge`. Version 0.5.0 does not have it.
+By default `ropeman map` reads the repository with Ropeman's own extraction. If another tool already wrote a graph file for the repository, you can build the map from that file instead. This option needs `@ropeman/bridge` 0.6.0 or later.
 
 `ropeman map` looks for graph files at `graphify-out/graph.json` and `.graphicle/graph.json`. When it finds one, it does not switch to it on its own:
 

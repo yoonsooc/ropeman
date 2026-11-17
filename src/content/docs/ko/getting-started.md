@@ -21,20 +21,20 @@ Ropeman은 임의의 코드베이스를 브라우저에서 분석하여 **AI 기
 Ropeman의 기본 사용법은 코딩 에이전트에서 Ropeman 스킬로 쓰는 것입니다. Node 22 이상이 필요합니다. 먼저 `ropeman` 명령을 설치합니다.
 
 ```bash
-npm install -g @ropeman/bridge@0.5.0
+npm install -g @ropeman/bridge@0.6.0
 ```
 
 그다음 에이전트가 스킬을 읽는 폴더에 스킬을 저장합니다. 내 에이전트에 맞는 줄을 실행하세요.
 
 ```bash
 # Claude Code (테스트함)
-curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.claude/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 # Codex (테스트 안 함)
-curl --create-dirs -fsSLo ~/.agents/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.agents/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 # Gemini CLI (테스트 안 함)
-curl --create-dirs -fsSLo ~/.gemini/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.gemini/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 # Cursor (테스트 안 함)
-curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.5.0/skill/ropeman/SKILL.md
+curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 ```
 
 스킬은 Claude Code에서 테스트했습니다. Codex, Gemini CLI, Cursor는 각자의 문서에 따르면 이 폴더에서 스킬을 읽지만, Ropeman은 이들에서 아직 테스트하지 않았습니다. 다른 에이전트라면 그 에이전트가 스킬을 읽는 폴더에 `ropeman/SKILL.md`로 저장하세요. 스킬을 지원하지 않는 에이전트라면 `SKILL.md` 내용을 대화에 붙여 넣으세요. [홈 화면](/)의 설정 안내에도 같은 명령이 있습니다.
@@ -43,7 +43,7 @@ curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubus
 
 ### 이미 있는 그래프 파일 쓰기
 
-`ropeman map`은 기본으로 Ropeman이 직접 저장소를 읽습니다. 다른 도구가 이미 그 저장소의 그래프 파일을 만들어 두었다면, 그 파일로 지도를 만들 수도 있습니다. 이 기능은 `@ropeman/bridge` 다음 릴리스에 들어갑니다. 0.5.0에는 없습니다.
+`ropeman map`은 기본으로 Ropeman이 직접 저장소를 읽습니다. 다른 도구가 이미 그 저장소의 그래프 파일을 만들어 두었다면, 그 파일로 지도를 만들 수도 있습니다. 이 기능은 `@ropeman/bridge` 0.6.0 이상에서 쓸 수 있습니다.
 
 `ropeman map`은 `graphify-out/graph.json`과 `.graphicle/graph.json`에서 그래프 파일을 찾습니다. 파일이 있어도 알아서 바꾸지 않습니다.
 
