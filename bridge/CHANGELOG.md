@@ -4,9 +4,11 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-18
+
 ### Changed
 
-- The viewer that `ropeman serve --local` opens at `/bridge` has the main app's header: language and theme toggles, Help, Settings, and the gallery and docs links. Help opens on a Bridge tab that explains where the map comes from, the naming states, the sidebar, reconnecting and local mode. Settings shows only the sections that change the viewer. The gallery and docs links open ropeman.dev in a new tab. On phones, the canvas toolbar no longer covers the top card.
+- The viewer that `ropeman serve --local` opens at `/bridge` has the main app's header: language and theme toggles, Help, Settings, and the gallery and docs links. Help opens on a Bridge tab that explains where the map comes from, the naming states, the sidebar, reconnecting and local mode. Settings shows only the sections that change the viewer. The gallery and docs links open ropeman.dev in a new tab. On phones, the canvas toolbar no longer covers the top card ([#154](https://github.com/yoonsooc/ropeman/pull/154)).
 
 ## [0.7.0] - 2026-11-17
 
@@ -96,7 +98,8 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 Initial release: a WebSocket relay that passes the web app's analysis and chat requests to an AI CLI on your machine.
 
-[Unreleased]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.7.0...HEAD
+[Unreleased]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.7.1...HEAD
+[0.7.1]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.7.0...bridge-v0.7.1
 [0.7.0]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.6.0...bridge-v0.7.0
 [0.6.0]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.5.0...bridge-v0.6.0
 [0.5.0]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.4.0...bridge-v0.5.0
