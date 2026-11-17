@@ -165,21 +165,22 @@ const node = (page: Page, label: string | RegExp) =>
  * `tag` names the screenshots.
  */
 async function walkThrough(page: Page, serve: Serve, tag: string) {
-	await expect(node(page, /^apps$/)).toBeVisible();
-	await expect(node(page, /^packages$/)).toBeVisible();
+	// apps/ and packages/ hold one folder each, so each chain is one card
+	await expect(node(page, /^apps\/web$/)).toBeVisible();
+	await expect(node(page, /^packages\/core$/)).toBeVisible();
 	await expect(node(page, /^shared$/)).toBeVisible();
 
 	// The folder grouping shows at once, the names follow
-	await node(page, /^apps$/)
+	await node(page, /^apps\/web$/)
 		.locator('.open-btn')
 		.click();
-	await expect(node(page, /^web$/)).toBeVisible();
+	await expect(node(page, /^src$/)).toBeVisible();
 	await expect(page.getByTestId('naming-status')).toBeVisible();
-	await expect(node(page, /^web$/).locator('.node-naming')).toBeVisible();
+	await expect(node(page, /^src$/).locator('.node-naming')).toBeVisible();
 	await shot(page, `${tag}-pending`);
 
 	serve.release();
-	await expect(node(page, 'Named apps/web')).toBeVisible({ timeout: 10_000 });
+	await expect(node(page, 'Named apps/web/src')).toBeVisible({ timeout: 10_000 });
 	await expect(page.getByTestId('naming-status')).toHaveCount(0);
 	await expect(page.getByTestId('named-by')).toContainText(/claude/);
 	await expect(page.locator('.breadcrumb-bar .crumb.active')).toHaveText(/apps/);
@@ -236,23 +237,25 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		await page.goto(`http://127.0.0.1:${serve.port}/bridge#token=${TOKEN}`);
 		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
 
-		await node(page, /^apps$/)
+		await node(page, /^apps\/web$/)
 			.locator('.open-btn')
 			.click();
-		await expect(node(page, /^web$/)).toBeVisible();
+		await expect(node(page, /^src$/)).toBeVisible();
 		await expect(page.getByTestId('naming-status')).toContainText('Queued for your agent');
 		await shot(page, 'en-desktop-queued');
 
 		// The agent's turn: the queued folder joins the work list, then map keeps the names
 		agentMap(serve.root, serve.out);
 		const work = agentNames(serve.out);
-		expect(work.levels.find((l: { level: string }) => l.level === 'dir:apps')?.queued).toBe(true);
+		expect(work.levels.find((l: { level: string }) => l.level === 'dir:apps/web')?.queued).toBe(
+			true
+		);
 		agentMap(serve.root, serve.out);
 
-		await expect(node(page, 'Agent dir:apps/web')).toBeVisible({ timeout: 10_000 });
+		await expect(node(page, 'Agent dir:apps/web/src')).toBeVisible({ timeout: 10_000 });
 		await expect(page.getByTestId('naming-status')).toHaveCount(0);
 		await page.locator('.breadcrumb-bar .group-crumb').click();
-		await expect(node(page, 'Agent dir:apps')).toBeVisible({ timeout: 10_000 });
+		await expect(node(page, 'Agent dir:apps/web')).toBeVisible({ timeout: 10_000 });
 		await shot(page, 'en-desktop-agent-named');
 	});
 
@@ -455,7 +458,7 @@ test.describe('Connection guide on ropeman.dev', () => {
 
 			await tryConnect(page, serve.port, TOKEN);
 			await expect(page.getByTestId('bridge-status')).toBeVisible();
-			await expect(node(page, /^apps$/)).toBeVisible();
+			await expect(node(page, /^apps\/web$/)).toBeVisible();
 			await context.close();
 		});
 

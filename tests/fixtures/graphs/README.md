@@ -1,6 +1,6 @@
 # 정답 그래프 픽스처
 
-추출기(호출 T1-5, import 해석 T1-6, 추론 관계 T1-8, graph.json 어댑터 T1-10, 참조 해석)를 바꿀 때마다 정답과 비교해 점수를 매기려고 둔 작은 저장소 여섯 개다.
+추출기(호출 T1-5, import 해석 T1-6, 추론 관계 T1-8, graph.json 어댑터 T1-10, 참조 해석)를 바꿀 때마다 정답과 비교해 점수를 매기려고 둔 작은 저장소 여섯 개다. 묶은 지도의 단계를 재는 저장소 하나(`scala-deep/`, 아래 "단계 정답")가 더 있다.
 
 | 저장소 | 파일 | 정답 관계 | 담은 경우 |
 | --- | --- | --- | --- |
@@ -14,6 +14,19 @@
 - 각 저장소는 `?testDir=<절대 경로>`로 앱에서 그대로 열린다. 저장소 안에는 로더가 건너뛰는 이름(`tests`, `fixtures`, `docs`, 점으로 시작하는 이름 등, `scripts/vite-dev-fs-plugin.js`의 `SKIP_PATTERNS`)을 쓰지 않는다.
 - `<저장소>.truth.json`이 정답이고 `baseline.json`이 지금 추출기의 기록이다. 둘 다 저장소 폴더 밖에 있어서 로더가 읽지 않는다.
 - 저장소 코드는 lint, prettier, svelte-check 대상에서 뺐다. 포매터가 줄을 옮기면 정답의 줄 번호가 틀어진다.
+
+## 단계 정답
+
+`scala-deep/`은 관계가 아니라 묶은 지도의 단계를 재는 저장소다(ADR-30). Maven 모양이다. `pom.xml`은 Ropeman이 읽는 언어가 아니라 지도에 없어서, 코드 파일 8개가 모두 `src/main/scala/com/example/app` 아래에 있다.
+
+| 경우 | 위치 | 정답 |
+| --- | --- | --- |
+| 루트부터 이어진 사슬 | `src` ~ `src/main/scala/com/example/app` | 최상위 단계가 `app` 폴더의 단계다(`topFolder`) |
+| 파일만 담은 폴더로 끝나는 사슬 | `store/memory` | 노드 하나(제목 `store/memory`)가 바로 파일 단계로 열린다 |
+| 갈라지는 폴더로 끝나는 사슬 | `web/http` | 노드 하나(제목 `web/http`)가 `json`과 `http/*` 단계로 열린다 |
+| 사슬이 아닌 폴더 | `parse` | 지금처럼 `ast`와 `parse/*` 단계 |
+
+`scala-deep.levels.json`이 정답이다. 단계마다 `parentId`, 파일 단계면 `fileLevel`, 노드의 `id`·`label`·`filePaths`, 엣지의 `[source, target]`을 적는다. 노드는 id 순서, 파일 경로와 엣지는 정렬한 순서다. `packages/core/test/grouping.test.ts`가 묶은 지도와 비교한다. 관계 정답(`truth.json`)은 두지 않아서 아래 점수에는 들지 않는다.
 
 ## 정답 형식
 

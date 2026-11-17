@@ -66,6 +66,10 @@ function makeProject(base: string): string {
 	write('src/index.ts', `import { start } from './app/main';\nstart();\n`);
 	write('.env', `SECRET_VALUE=${SECRET}\n`);
 	write('tools/build.ts', 'export function build() {}\n');
+	// A subfolder beside the files of each folder, so every folder is a level to name
+	write('src/app/views/home.ts', 'export const home = 1;\n');
+	write('src/lib/text/case.ts', 'export const upper = 1;\n');
+	write('tools/release/publish.ts', 'export function publish() {}\n');
 	return root;
 }
 
@@ -249,7 +253,11 @@ describe.skipIf(process.platform === 'win32')('ropeman serve', () => {
 		const level = (named as { level: MapLevel }).level;
 		const lib = level.nodes.find((n) => n.id === 'dir:src/lib')!;
 		expect(lib.label).toBe('Named src/lib');
-		expect(lib.filePaths.toSorted()).toEqual(['src/lib/math.ts', 'src/lib/strings.ts']);
+		expect(lib.filePaths.toSorted()).toEqual([
+			'src/lib/math.ts',
+			'src/lib/strings.ts',
+			'src/lib/text/case.ts'
+		]);
 		expect(['add', 'pad']).toContain(lib.keySymbols[0]);
 		expect(file.content).toContain('return a + b');
 		expect(changed).toEqual({ type: 'map.changed', paths: ['src/lib/math.ts'] });

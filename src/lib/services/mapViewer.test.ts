@@ -64,3 +64,64 @@ describe('toViewerLevels', () => {
 		]);
 	});
 });
+
+describe('toViewerLevels on folder chains', () => {
+	const node = (id: string, label: string, filePaths: string[]) => ({
+		id,
+		label,
+		description: '',
+		filePaths,
+		keySymbols: []
+	});
+	const level = (parentId: string | null, nodes: ReturnType<typeof node>[]) => ({
+		parentId,
+		naming: 'grouped',
+		nodes,
+		edges: [],
+		assignment: null
+	});
+	const mapOf = (levels: ReturnType<typeof level>[]) => {
+		const result = parseRopemanMap(
+			JSON.stringify({
+				format: 'ropeman-map',
+				schemaVersion: '1.2',
+				project: { name: 'deep' },
+				generator: { name: '@ropeman/bridge', version: 'test' },
+				generatedAt: '2026-11-17T00:00:00.000Z',
+				files: [A, B].map((path) => ({ path, reason: 'sent' })),
+				levels
+			})
+		);
+		if (!result.ok) throw new Error(result.message);
+		return result.value;
+	};
+	const A = 'src/main/app/a/A.scala';
+	const B = 'src/main/app/b/B.scala';
+	const branching = (parentId: string) =>
+		level(parentId, [node('dir:src/main/app/a', 'a', [A]), node('dir:src/main/app/b', 'b', [B])]);
+
+	it('titles the level of a chain node with the joined path its label carries', () => {
+		const levels = toViewerLevels(
+			mapOf([
+				level(null, [node('dir:src/main/app', 'src/main/app', [A, B])]),
+				branching('dir:src/main/app')
+			])
+		);
+
+		expect(levels.get('dir:src/main/app')?.breadcrumbLabel).toBe('src/main/app');
+	});
+
+	it('shows a map written before chains collapsed with every one-folder level it holds', () => {
+		const levels = toViewerLevels(
+			mapOf([
+				level(null, [node('dir:src', 'src', [A, B])]),
+				level('dir:src', [node('dir:src/main', 'main', [A, B])]),
+				level('dir:src/main', [node('dir:src/main/app', 'app', [A, B])]),
+				branching('dir:src/main/app')
+			])
+		);
+
+		expect([...levels.keys()]).toEqual(['__root__', 'dir:src', 'dir:src/main', 'dir:src/main/app']);
+		expect(levels.get('dir:src/main/app')?.nodes.map((n) => n.depth)).toEqual([3, 3]);
+	});
+});

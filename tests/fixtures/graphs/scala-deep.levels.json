@@ -1,0 +1,149 @@
+{
+	"topFolder": "src/main/scala/com/example/app",
+	"levels": [
+		{
+			"parentId": null,
+			"nodes": [
+				{
+					"id": "dir:src/main/scala/com/example/app/parse",
+					"label": "parse",
+					"filePaths": [
+						"src/main/scala/com/example/app/parse/Lexer.scala",
+						"src/main/scala/com/example/app/parse/Parser.scala",
+						"src/main/scala/com/example/app/parse/ast/Node.scala"
+					]
+				},
+				{
+					"id": "dir:src/main/scala/com/example/app/store/memory",
+					"label": "store/memory",
+					"filePaths": [
+						"src/main/scala/com/example/app/store/memory/Cache.scala",
+						"src/main/scala/com/example/app/store/memory/MemoryStore.scala"
+					]
+				},
+				{
+					"id": "dir:src/main/scala/com/example/app/web/http",
+					"label": "web/http",
+					"filePaths": [
+						"src/main/scala/com/example/app/web/http/Routes.scala",
+						"src/main/scala/com/example/app/web/http/json/Codec.scala"
+					]
+				},
+				{
+					"id": "files:src/main/scala/com/example/app",
+					"label": "app/*",
+					"filePaths": [
+						"src/main/scala/com/example/app/App.scala"
+					]
+				}
+			],
+			"edges": [
+				[
+					"files:src/main/scala/com/example/app",
+					"dir:src/main/scala/com/example/app/parse"
+				],
+				[
+					"files:src/main/scala/com/example/app",
+					"dir:src/main/scala/com/example/app/store/memory"
+				],
+				[
+					"dir:src/main/scala/com/example/app/web/http",
+					"files:src/main/scala/com/example/app"
+				]
+			]
+		},
+		{
+			"parentId": "dir:src/main/scala/com/example/app/parse",
+			"nodes": [
+				{
+					"id": "dir:src/main/scala/com/example/app/parse/ast",
+					"label": "ast",
+					"filePaths": [
+						"src/main/scala/com/example/app/parse/ast/Node.scala"
+					]
+				},
+				{
+					"id": "files:src/main/scala/com/example/app/parse",
+					"label": "parse/*",
+					"filePaths": [
+						"src/main/scala/com/example/app/parse/Lexer.scala",
+						"src/main/scala/com/example/app/parse/Parser.scala"
+					]
+				}
+			],
+			"edges": [
+				[
+					"files:src/main/scala/com/example/app/parse",
+					"dir:src/main/scala/com/example/app/parse/ast"
+				]
+			]
+		},
+		{
+			"parentId": "files:src/main/scala/com/example/app/parse",
+			"fileLevel": true,
+			"nodes": [
+				{
+					"id": "file:src/main/scala/com/example/app/parse/Lexer.scala",
+					"label": "Lexer.scala",
+					"filePaths": [
+						"src/main/scala/com/example/app/parse/Lexer.scala"
+					]
+				},
+				{
+					"id": "file:src/main/scala/com/example/app/parse/Parser.scala",
+					"label": "Parser.scala",
+					"filePaths": [
+						"src/main/scala/com/example/app/parse/Parser.scala"
+					]
+				}
+			],
+			"edges": []
+		},
+		{
+			"parentId": "dir:src/main/scala/com/example/app/store/memory",
+			"fileLevel": true,
+			"nodes": [
+				{
+					"id": "file:src/main/scala/com/example/app/store/memory/Cache.scala",
+					"label": "Cache.scala",
+					"filePaths": [
+						"src/main/scala/com/example/app/store/memory/Cache.scala"
+					]
+				},
+				{
+					"id": "file:src/main/scala/com/example/app/store/memory/MemoryStore.scala",
+					"label": "MemoryStore.scala",
+					"filePaths": [
+						"src/main/scala/com/example/app/store/memory/MemoryStore.scala"
+					]
+				}
+			],
+			"edges": []
+		},
+		{
+			"parentId": "dir:src/main/scala/com/example/app/web/http",
+			"nodes": [
+				{
+					"id": "dir:src/main/scala/com/example/app/web/http/json",
+					"label": "json",
+					"filePaths": [
+						"src/main/scala/com/example/app/web/http/json/Codec.scala"
+					]
+				},
+				{
+					"id": "files:src/main/scala/com/example/app/web/http",
+					"label": "http/*",
+					"filePaths": [
+						"src/main/scala/com/example/app/web/http/Routes.scala"
+					]
+				}
+			],
+			"edges": [
+				[
+					"files:src/main/scala/com/example/app/web/http",
+					"dir:src/main/scala/com/example/app/web/http/json"
+				]
+			]
+		}
+	]
+}

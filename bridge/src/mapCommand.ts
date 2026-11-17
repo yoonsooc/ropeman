@@ -148,7 +148,7 @@ function slotsOf(grouped: GroupedMap): { slots: Slot[]; fileLevels: MapLevel[] }
 			else if (child) visit(child, depth + 1, grouped.group(node.id)!.path);
 		}
 	};
-	visit(grouped.top, 1, '');
+	visit(grouped.top, 1, grouped.topFolder);
 	return { slots, fileLevels };
 }
 

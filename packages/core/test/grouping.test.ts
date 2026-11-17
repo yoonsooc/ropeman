@@ -24,22 +24,21 @@ describe('groupExtraction', () => {
 
 		// Act
 		const grouped = groupExtraction(extraction, 'ts-monorepo');
-		const apps = grouped.expand('dir:apps')!;
 		const web = grouped.expand('dir:apps/web')!;
 
-		// Assert
-		expect(grouped.top.nodes.map((n) => n.id)).toEqual([
-			'dir:apps',
-			'dir:packages',
-			'dir:shared',
-			'files:.'
+		// Assert: apps/ and packages/ hold one folder each, so their nodes are apps/web and packages/core
+		expect(grouped.top.nodes.map((n) => [n.id, n.label])).toEqual([
+			['dir:apps/web', 'apps/web'],
+			['dir:packages/core', 'packages/core'],
+			['dir:shared', 'shared'],
+			['files:.', 'ts-monorepo/*']
 		]);
-		expect(apps).toMatchObject({ parentId: 'dir:apps', naming: 'grouped' });
-		expect(apps.nodes.map((n) => n.id)).toEqual(['dir:apps/web']);
+		expect(web).toMatchObject({ parentId: 'dir:apps/web', naming: 'grouped' });
+		expect(web.nodes.map((n) => n.id)).toEqual(['dir:apps/web/src', 'files:apps/web']);
 		expect(web.nodes.find((n) => n.id === 'files:apps/web')?.filePaths).toContain(
 			'apps/web/package.json'
 		);
-		expect(grouped.parentOf('dir:apps')).toBeNull();
+		expect(grouped.parentOf('dir:apps/web')).toBeNull();
 		expect(grouped.parentOf('files:.')).toBeNull();
 		expect(grouped.parentOf('dir:apps/web/src')).toBe('dir:apps/web');
 		expect(grouped.parentOf('files:apps/web')).toBe('dir:apps/web');
@@ -53,15 +52,17 @@ describe('groupExtraction', () => {
 		expect(grouped.expand('files:nope')).toBeNull();
 		expect(grouped.expand('dir:')).toBeNull();
 		expect(grouped.expand('dir:nope')).toBeNull();
+		expect(grouped.expand('dir:apps')).toBeNull();
 		expect(grouped.parentOf('dir:nope')).toBeUndefined();
+		expect(grouped.parentOf('dir:apps')).toBeUndefined();
 		expect(grouped.parentOf('files:nope')).toBeUndefined();
 	});
 
 	it('lists every file of a folder node, nested ones included', async () => {
 		const extraction = await extractDirectory(fixture, { wasmDir });
 		const grouped = groupExtraction(extraction, 'ts-monorepo');
-		const under = [...extraction.map.files.keys()].filter((p) => p.startsWith('apps/'));
-		expect(grouped.filesOf('dir:apps').toSorted()).toEqual(under.toSorted());
+		const under = [...extraction.map.files.keys()].filter((p) => p.startsWith('apps/web/'));
+		expect(grouped.filesOf('dir:apps/web').toSorted()).toEqual(under.toSorted());
 	});
 
 	it('opens the files of a files: node with the imports among them, as the truth lists them', async () => {
@@ -145,6 +146,81 @@ describe('groupExtraction', () => {
 			.filter((r) => r.relation !== 'imports_from');
 		expect(added.length).toBeGreaterThan(0);
 		expect(added.every((r) => r.confidence === 'EXTRACTED')).toBe(true);
+	});
+});
+
+describe('groupExtraction on a chain of folders that hold one folder each', () => {
+	const scala = fileURLToPath(
+		new URL('../../../tests/fixtures/graphs/scala-deep', import.meta.url)
+	);
+	type Expected = {
+		topFolder: string;
+		levels: {
+			parentId: string | null;
+			fileLevel?: true;
+			nodes: { id: string; label: string; filePaths: string[] }[];
+			edges: [string, string][];
+		}[];
+	};
+
+	it('shows the first folder that branches, with chains as one node, as the fixture lists them', async () => {
+		// Arrange
+		const expected: Expected = JSON.parse(await readFile(`${scala}.levels.json`, 'utf8'));
+		const grouped = groupExtraction(await extractDirectory(scala, { wasmDir }), 'scala-deep');
+
+		// Act
+		const shown = levels(grouped).map((level) => ({
+			parentId: level.parentId,
+			...(level.fileLevel ? { fileLevel: level.fileLevel } : {}),
+			nodes: level.nodes
+				.map(({ id, label, filePaths }) => ({ id, label, filePaths: filePaths.toSorted() }))
+				.toSorted((a, b) => (a.id < b.id ? -1 : 1)),
+			edges: level.edges.map((e): [string, string] => [e.source, e.target]).toSorted()
+		}));
+
+		// Assert
+		expect(grouped.topFolder).toBe(expected.topFolder);
+		expect(shown).toEqual(
+			expected.levels.map((level) => ({ ...level, edges: level.edges.toSorted() }))
+		);
+	});
+
+	it('keeps the folders inside a chain off the map, and answers a chain node by its last folder', async () => {
+		const grouped = groupExtraction(await extractDirectory(scala, { wasmDir }), 'scala-deep');
+		const app = 'src/main/scala/com/example/app';
+
+		for (const folder of ['src', 'src/main', `${app}`, `${app}/store`, `${app}/web`]) {
+			expect(grouped.expand(`dir:${folder}`)).toBeNull();
+			expect(grouped.parentOf(`dir:${folder}`)).toBeUndefined();
+			expect(grouped.group(`dir:${folder}`)).toBeUndefined();
+		}
+		expect(grouped.group(`dir:${app}/web/http`)?.path).toBe(`${app}/web/http`);
+		expect(grouped.parentOf(`dir:${app}/web/http`)).toBeNull();
+		expect(grouped.parentOf(`files:${app}`)).toBeNull();
+		expect(grouped.parentOf(`dir:${app}/web/http/json`)).toBe(`dir:${app}/web/http`);
+		// A folder of files alone opens to its files: its files: part is never a node
+		expect(grouped.expand(`files:${app}/store/memory`)).toBeNull();
+		expect(grouped.parentOf(`files:${app}/store/memory`)).toBeUndefined();
+		expect(grouped.filesOf(`dir:${app}/store`)).toEqual([]);
+	});
+
+	it.each([
+		'go-shop',
+		'poly-shop',
+		'py-shop',
+		'rust-shop',
+		'scala-deep',
+		'svelte-app',
+		'ts-monorepo'
+	])('leaves no folder level of %s with a single part', async (name) => {
+		const dir = fileURLToPath(new URL(`../../../tests/fixtures/graphs/${name}`, import.meta.url));
+		const extraction = await extractDirectory(dir, { wasmDir });
+
+		const all = levels(groupExtraction(extraction, name));
+
+		expect(all.filter((l) => l.nodes.length < 2).map((l) => l.parentId)).toEqual([]);
+		const top = all[0].nodes.flatMap((n) => n.filePaths).toSorted();
+		expect(top).toEqual([...extraction.map.files.keys()].toSorted());
 	});
 });
 
