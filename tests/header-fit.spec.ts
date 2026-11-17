@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { expectHeaderFits } from './support/headerFit';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -10,7 +11,8 @@ test.beforeAll(() => {
 });
 
 // The language toggle came back to the phone header, so the project buttons and it must still
-// fit beside the title at the narrowest phone width
+// fit beside the title at the narrowest phone width. tests/bridge-mode.spec.ts runs the same check
+// on the Bridge viewer, whose header adds serve's status
 test('every header control fits at 320px with a project open', async ({ page }) => {
 	await page.setViewportSize({ width: 320, height: 640 });
 	await page.addInitScript(() => {
@@ -26,22 +28,5 @@ test('every header control fits at 320px with a project open', async ({ page }) 
 
 	await expect(page.locator('header .lang-toggle')).toBeVisible();
 
-	// Title and controls are measured together, after the fonts swap in
-	const { title, controls } = await page.evaluate(async () => {
-		await document.fonts.ready;
-		const rect = (el: Element) => el.getBoundingClientRect().toJSON() as DOMRect;
-		return {
-			title: rect(document.querySelector('header .header-title')!),
-			controls: [
-				...document.querySelectorAll('header .header-right > :is(button, a, .track-badge)')
-			]
-				.filter((el) => el.getClientRects().length > 0)
-				.map(rect)
-		};
-	});
-	expect(controls.length).toBeGreaterThanOrEqual(6);
-	for (const box of controls) {
-		expect(box.right).toBeLessThanOrEqual(320);
-		expect(box.left).toBeGreaterThanOrEqual(title.right);
-	}
+	expect(await expectHeaderFits(page)).toBeGreaterThanOrEqual(6);
 });

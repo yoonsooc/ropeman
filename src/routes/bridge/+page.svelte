@@ -1,7 +1,9 @@
 <script lang="ts">
-	import Wordmark from '$lib/components/Wordmark.svelte';
+	import Header from '$lib/components/Header.svelte';
+	import BridgeHeaderStatus from '$lib/components/BridgeHeaderStatus.svelte';
+	import SettingsModal from '$lib/components/SettingsModal.svelte';
+	import HelpModal from '$lib/components/HelpModal.svelte';
 	import { onDestroy, onMount } from 'svelte';
-	import { resolve } from '$app/paths';
 	import { bridgeStore, type Naming } from '$lib/stores/bridgeStore.svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import { tabStore } from '$lib/stores/tabStore.svelte';
@@ -51,6 +53,10 @@
 	let origin = $state('');
 	let explaining = 0;
 	let stopWatching: (() => void) | null = null;
+	let showSettings = $state(false);
+	let showHelp = $state(false);
+	let sidebar: Sidebar | undefined = $state();
+	let canvas: ZUICanvas | undefined = $state();
 
 	const breakpoint = useBreakpoint();
 	const isMobile = $derived(breakpoint.isMobile || breakpoint.isTablet);
@@ -236,6 +242,31 @@
 
 	const expand = (node: SemanticNode) => bridgeStore.expand(node);
 
+	/** The keys `SHORTCUTS` lists for this page, bound as the main page binds them. */
+	const KEYS: { match: (e: KeyboardEvent) => boolean; run: () => void }[] = [
+		{ match: (e) => e.key === '?' || (e.ctrlKey && e.key === '/'), run: () => (showHelp = true) },
+		{ match: (e) => e.ctrlKey && e.shiftKey && e.key === 'D', run: () => themeStore.toggle() },
+		{ match: (e) => e.ctrlKey && e.shiftKey && e.key === 'V', run: () => sidebar?.togglePanel() },
+		{ match: (e) => e.ctrlKey && e.shiftKey && e.key === 'E', run: () => canvas?.triggerExport() },
+		{ match: (e) => e.ctrlKey && !e.shiftKey && e.key === 'b', run: () => sidebar?.toggleContent() }
+	];
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			if (showHelp) showHelp = false;
+			else if (showSettings) showSettings = false;
+			return;
+		}
+		const el = document.activeElement as HTMLElement | null;
+		if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) {
+			return;
+		}
+		const key = KEYS.find((k) => k.match(e));
+		if (!key) return;
+		e.preventDefault();
+		key.run();
+	}
+
 	function backToMap() {
 		const path = semanticStore.drilldownPath;
 		tabStore.openDiagramTab(path, path.length > 0 ? path[path.length - 1].label : 'Project');
@@ -246,32 +277,19 @@
 	<title>{bridgeStore.map?.project.name ?? i18nStore.t('bridge.pageTitle')} | Ropeman</title>
 </svelte:head>
 
+<svelte:window onkeydown={handleKeydown} />
+
 <div class="bridge-page" data-theme={themeStore.current}>
-	<header class="bridge-header">
-		<a href={resolve('')} class="bridge-logo"><Wordmark /></a>
-		{#if showingMap && bridgeStore.map}
-			<span class="bridge-project">{bridgeStore.map.project.name}</span>
-			<span class="bridge-badge" class:lost={status.state === 'lost'} data-testid="bridge-status">
-				{status.state === 'lost'
-					? i18nStore.t('bridge.lostBadge')
-					: i18nStore.t('bridge.connected')}
-			</span>
-			{#if status.state === 'connected'}
-				<span class="bridge-server">
-					{i18nStore.t('bridge.serverInfo', { version: status.server.version, host: status.host })}
-				</span>
-			{/if}
-			<div class="bridge-header-actions">
-				<button class="bridge-cta secondary" onclick={() => bridgeStore.disconnect()}>
-					{i18nStore.t('bridge.disconnect')}
-				</button>
-			</div>
-		{/if}
-	</header>
+	<Header
+		surface="bridge"
+		status={BridgeHeaderStatus}
+		onsettings={() => (showSettings = !showSettings)}
+		onhelp={() => (showHelp = !showHelp)}
+	/>
 
 	<div class="bridge-content">
 		{#if showingMap}
-			<Sidebar mobile={isMobile} onexpand={expand} />
+			<Sidebar bind:this={sidebar} mobile={isMobile} onexpand={expand} />
 			<div class="bridge-stage">
 				{#if codeTab?.filePath}
 					<section class="bridge-source" aria-label={codeTab.filePath}>
@@ -338,7 +356,11 @@
 						{/if}
 					</div>
 					<div class="bridge-canvas">
-						<ZUICanvas onexpand={expand} namesPending={naming?.state === 'pending'} />
+						<ZUICanvas
+							bind:this={canvas}
+							onexpand={expand}
+							namesPending={naming?.state === 'pending'}
+						/>
 					</div>
 					{#if hasSemanticSelection}
 						<div class="bridge-detail-panel">
@@ -447,6 +469,13 @@
 			</section>
 		{/if}
 	</div>
+
+	{#if showSettings}
+		<SettingsModal surface="bridge" open={showSettings} onclose={() => (showSettings = false)} />
+	{/if}
+	{#if showHelp}
+		<HelpModal surface="bridge" open={showHelp} onclose={() => (showHelp = false)} />
+	{/if}
 </div>
 
 <style>
@@ -459,39 +488,6 @@
 		color: var(--color-text-primary);
 	}
 
-	.bridge-header {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-3);
-		height: var(--header-height);
-		padding: 0 var(--spacing-4);
-		background: var(--color-background-sidebar-icon);
-		border-bottom: 1px solid var(--color-border);
-		min-width: 0;
-	}
-
-	.bridge-logo {
-		font-size: var(--font-size-lg);
-		color: var(--color-text-primary);
-		text-decoration: none;
-	}
-
-	.bridge-project,
-	.bridge-server {
-		font-family: var(--font-code);
-		font-size: var(--font-size-base);
-		color: var(--color-text-secondary);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		min-width: 0;
-	}
-
-	.bridge-server {
-		font-size: var(--font-size-sm);
-		color: var(--color-text-tertiary);
-	}
-
 	.bridge-badge {
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
@@ -500,15 +496,6 @@
 		background: var(--color-success-muted);
 		color: var(--color-success);
 		white-space: nowrap;
-	}
-
-	.bridge-badge.lost {
-		background: var(--color-warning-muted);
-		color: var(--color-text-primary);
-	}
-
-	.bridge-header-actions {
-		margin-left: auto;
 	}
 
 	.bridge-cta {
@@ -809,8 +796,19 @@
 	}
 
 	@media (max-width: 768px) {
-		.bridge-server {
-			display: none;
+		/* As on the main page, the breadcrumb and strips sit above the canvas instead of over it,
+		   so the canvas toolbar and the fitted cards start below them and stop colliding */
+		.bridge-stage {
+			flex-direction: column;
+		}
+
+		.bridge-overlay {
+			position: static;
+			padding: var(--spacing-2) var(--spacing-3);
+		}
+
+		.bridge-canvas {
+			--canvas-toolbar-top: 12px;
 		}
 
 		.bridge-detail-panel {

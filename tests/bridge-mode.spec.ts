@@ -5,6 +5,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { expectHeaderFits } from './support/headerFit';
 
 // A real `ropeman serve` (the built bundle) on a copy of a fixture repo, with the test fake on
 // PATH as `claude`, so the whole RPC runs and no model is called.
@@ -227,6 +228,92 @@ test.describe('Bridge mode against a real ropeman serve', () => {
 		// The tab keeps the token, so a reload reconnects without the hash
 		await page.reload();
 		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
+	});
+
+	// A real session: the viewer had its own bar without help, settings, language or theme
+	test('header: the app header serves the viewer, with site links, Bridge help and viewer settings', async ({
+		page
+	}) => {
+		const serve = await startServe('http://localhost:1');
+		await settings(page, 'en');
+		await page.goto(`http://127.0.0.1:${serve.port}/bridge#token=${TOKEN}`);
+		await expect(page.getByTestId('bridge-status')).toHaveText('Connected');
+		const header = page.locator('header.header');
+
+		// serve hosts only the viewer, so the site's pages open on ropeman.dev in a new tab
+		await expect(header.getByRole('link', { name: 'Explore' })).toHaveAttribute(
+			'href',
+			'https://ropeman.dev/explore'
+		);
+		const docs = header.getByRole('link', { name: 'Docs' });
+		await expect(docs).toHaveAttribute('href', 'https://ropeman.dev/docs/en/getting-started');
+		await expect(docs).toHaveAttribute('target', '_blank');
+		await expect(header.locator('.analyze-btn, .share-btn, .track-badge')).toHaveCount(0);
+
+		// `?` opens Help on its Bridge tab, and the app's tour is not offered
+		await page.keyboard.press('?');
+		await expect(page.locator('.help-tab.active')).toHaveText('Bridge');
+		await expect(page.getByTestId('help-bridge')).toContainText('Who names the parts');
+		await expect(page.locator('.help-tour-btn')).toHaveCount(0);
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.help-card')).toHaveCount(0);
+
+		// Settings keeps what changes the viewer; the AI, extraction and cache sections are gone
+		await header.getByRole('button', { name: 'Settings', exact: true }).click();
+		await expect(page.locator('.settings-card .form-label')).toHaveText([
+			'Language',
+			'Code Theme',
+			'Code Font Size',
+			'Keyboard Shortcuts'
+		]);
+		await expect(page.locator('.btn-reset')).toHaveCount(0);
+		await page.keyboard.press('Escape');
+
+		const theme = await page.evaluate(() => document.documentElement.dataset.theme);
+		await header.locator('.theme-toggle').click();
+		await expect(page.locator('html')).not.toHaveAttribute('data-theme', theme!);
+		await header.locator('.lang-toggle').click();
+		await expect(page.getByTestId('bridge-status')).toHaveText('연결됨');
+		await expect(header.getByRole('link', { name: '문서' })).toHaveAttribute(
+			'href',
+			'https://ropeman.dev/docs/ko/getting-started'
+		);
+	});
+
+	test('header and canvas on a phone: the controls fit at 320px, and the toolbar clears the cards', async ({
+		page
+	}) => {
+		const serve = await startServe('http://localhost:1');
+		await settings(page, 'ko');
+		await page.setViewportSize({ width: 320, height: 640 });
+		await page.goto(`http://127.0.0.1:${serve.port}/bridge#token=${TOKEN}`);
+		await expect(page.getByTestId('bridge-status')).toHaveText('연결됨');
+		expect(await expectHeaderFits(page)).toBeGreaterThanOrEqual(6);
+
+		// Help's five tabs all show; the last one sat off screen with no scroll cue
+		await page.keyboard.press('?');
+		const tabs = page.locator('.help-tabs');
+		await expect(tabs).toBeVisible();
+		expect(await tabs.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+		await page.keyboard.press('Escape');
+
+		// The toolbar covered the top card at 390px
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.reload();
+		await expect(node(page, /^apps\/web$/)).toBeVisible();
+		await expect(async () => {
+			const overlaps = await page.evaluate(() => {
+				const bar = document.querySelector('.diagram-toolbar')!.getBoundingClientRect();
+				return [...document.querySelectorAll('.semantic-node')]
+					.map((n) => n.getBoundingClientRect())
+					.filter(
+						(n) =>
+							n.left < bar.right && n.right > bar.left && n.top < bar.bottom && n.bottom > bar.top
+					).length;
+			});
+			expect(overlaps).toBe(0);
+		}).toPass();
+		await shot(page, 'ko-mobile-header');
 	});
 
 	test('agent naming: an opened folder waits on the queue until the agent names it', async ({

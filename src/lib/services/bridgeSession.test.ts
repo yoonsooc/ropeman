@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { isLoopbackPage, loadSession, saveSession, type PageLocation } from './bridgeSession';
+import {
+	isLoopbackPage,
+	loadSession,
+	saveSession,
+	siteHref,
+	type PageLocation
+} from './bridgeSession';
 
 const page = (url: string): PageLocation => {
 	const { protocol, hostname, host } = new URL(url);
@@ -27,6 +33,15 @@ describe('bridgeSession', () => {
 		expect(isLoopbackPage(page('http://localhost:9800/bridge'))).toBe(true);
 		expect(isLoopbackPage(SITE)).toBe(false);
 		expect(isLoopbackPage(page('https://127.0.0.1:9800/bridge'))).toBe(false);
+	});
+
+	// Local mode serves only the viewer, so its gallery and docs links went nowhere useful
+	it('points site links at ropeman.dev from a page serve hosts, and stays on the site otherwise', () => {
+		expect(siteHref(LOCAL, '/explore')).toBe('https://ropeman.dev/explore');
+		expect(siteHref(page('http://localhost:9800/bridge'), '/docs/ko/bridge-setup')).toBe(
+			'https://ropeman.dev/docs/ko/bridge-setup'
+		);
+		expect(siteHref(SITE, '/explore')).toBe('/explore');
 	});
 
 	it('keeps the token for a reload in local mode', () => {

@@ -3,23 +3,40 @@
 	import { resolve } from '$app/paths';
 	import { i18nStore } from '$lib/stores/i18nStore.svelte';
 	import { onboardingStore } from '$lib/stores/onboardingStore.svelte';
+	import InlineCodeText from './InlineCodeText.svelte';
+	import { SHORTCUTS, siteLink, type Surface } from './surface';
 
-	let { open, onclose }: { open: boolean; onclose: () => void } = $props();
+	let {
+		open,
+		onclose,
+		surface = 'app'
+	}: { open: boolean; onclose: () => void; surface?: Surface } = $props();
 
 	function handleRestartTour() {
 		onclose();
 		onboardingStore.reset();
 	}
 
-	type HelpTab = 'usage' | 'aiModes' | 'shortcuts' | 'faq';
-	let activeTab = $state<HelpTab>('usage');
+	type HelpTab = 'bridge' | 'usage' | 'aiModes' | 'shortcuts' | 'faq';
 
-	const tabs: { id: HelpTab; key: string }[] = [
-		{ id: 'usage', key: 'help.tabUsage' },
-		{ id: 'aiModes', key: 'help.tabAiModes' },
-		{ id: 'shortcuts', key: 'help.tabShortcuts' },
-		{ id: 'faq', key: 'help.tabFaq' }
-	];
+	const TAB_KEYS: Record<HelpTab, string> = {
+		bridge: 'help.tabBridge',
+		usage: 'help.tabUsage',
+		aiModes: 'help.tabAiModes',
+		shortcuts: 'help.tabShortcuts',
+		faq: 'help.tabFaq'
+	};
+
+	const TABS: Record<Surface, HelpTab[]> = {
+		app: ['usage', 'aiModes', 'shortcuts', 'faq'],
+		bridge: ['bridge', 'usage', 'aiModes', 'shortcuts', 'faq']
+	};
+
+	const tabs = $derived(TABS[surface]);
+	// svelte-ignore state_referenced_locally
+	let activeTab = $state<HelpTab>(TABS[surface][0]);
+	const shortcuts = $derived(SHORTCUTS.filter((s) => s.surfaces.includes(surface)));
+	const docsLink = (slug: string) => siteLink(surface, resolve(`docs/${i18nStore.locale}/${slug}`));
 
 	function handleBackdropClick(e: MouseEvent) {
 		if ((e.target as HTMLElement).classList.contains('help-backdrop')) {
@@ -46,19 +63,39 @@
 			</div>
 
 			<div class="help-tabs">
-				{#each tabs as tab}
+				{#each tabs as tab (tab)}
 					<button
 						class="help-tab"
-						class:active={activeTab === tab.id}
-						onclick={() => (activeTab = tab.id)}
+						class:active={activeTab === tab}
+						onclick={() => (activeTab = tab)}
 					>
-						{i18nStore.t(tab.key)}
+						{i18nStore.t(TAB_KEYS[tab])}
 					</button>
 				{/each}
 			</div>
 
 			<div class="modal-body help-body">
-				{#if activeTab === 'usage'}
+				{#if activeTab === 'bridge'}
+					<section class="help-section" data-testid="help-bridge">
+						<h3 class="help-section-title">{i18nStore.t('help.bridgeTitle')}</h3>
+						<div class="ai-modes">
+							{#each helpData.bridgeItems as item (item.title)}
+								<div class="ai-mode-card">
+									<div class="ai-mode-header">
+										<span class="ai-mode-name">{item.title}</span>
+									</div>
+									<p class="ai-mode-desc"><InlineCodeText text={item.body} /></p>
+								</div>
+							{/each}
+						</div>
+						<a class="faq-learn-more bridge-learn-more" {...docsLink('bridge-setup')}>
+							{i18nStore.t('docs.learnMore')}
+							<span aria-hidden="true" class="material-symbols-outlined inline-icon"
+								>arrow_forward</span
+							>
+						</a>
+					</section>
+				{:else if activeTab === 'usage'}
 					<section class="help-section">
 						<h3 class="help-section-title">{i18nStore.t('help.usageTitle')}</h3>
 						<ol class="help-steps">
@@ -109,54 +146,14 @@
 					<section class="help-section">
 						<h3 class="help-section-title">{i18nStore.t('help.shortcutsTitle')}</h3>
 						<div class="shortcut-list">
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.search')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>K</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.toggleTheme')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.toggleView')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.toggleSidebar')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>B</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.exportDiagram')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.showHelp')}</span>
-								<span class="shortcut-keys"><kbd>?</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.closeModal')}</span>
-								<span class="shortcut-keys"><kbd>Esc</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.closeTab')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>W</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.nextPrevTab')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>Tab</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.toggleSplit')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>\</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.focusPrimary')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>1</kbd></span>
-							</div>
-							<div class="shortcut-row">
-								<span class="shortcut-desc">{i18nStore.t('shortcuts.focusSecondary')}</span>
-								<span class="shortcut-keys"><kbd>Ctrl</kbd>+<kbd>2</kbd></span>
-							</div>
+							{#each shortcuts as shortcut (shortcut.label)}
+								<div class="shortcut-row">
+									<span class="shortcut-desc">{i18nStore.t(`shortcuts.${shortcut.label}`)}</span>
+									<span class="shortcut-keys">
+										{#each shortcut.keys as key, i (key)}{#if i > 0}+{/if}<kbd>{key}</kbd>{/each}
+									</span>
+								</div>
+							{/each}
 						</div>
 					</section>
 				{:else if activeTab === 'faq'}
@@ -171,7 +168,7 @@
 										>{item.q}
 									</summary>
 									<p class="faq-answer">{item.a}</p>
-									<a class="faq-learn-more" href={resolve(`docs/${i18nStore.locale}/${item.slug}`)}>
+									<a class="faq-learn-more" {...docsLink(item.slug)}>
 										{i18nStore.t('docs.learnMore')}
 										<span aria-hidden="true" class="material-symbols-outlined inline-icon"
 											>arrow_forward</span
@@ -185,10 +182,13 @@
 			</div>
 
 			<div class="help-footer">
-				<button class="help-tour-btn" onclick={handleRestartTour}>
-					<span aria-hidden="true" class="material-symbols-outlined">play_circle</span>
-					{i18nStore.t('onboarding.restartTour')}
-				</button>
+				<!-- The tour walks the main app; the Bridge viewer has none -->
+				{#if surface === 'app'}
+					<button class="help-tour-btn" onclick={handleRestartTour}>
+						<span aria-hidden="true" class="material-symbols-outlined">play_circle</span>
+						{i18nStore.t('onboarding.restartTour')}
+					</button>
+				{/if}
 				<div class="help-footer-info">
 					<span>&copy; 2026 Ropeman</span>
 					<a href="mailto:contact@ropeman.dev">contact@ropeman.dev</a>
@@ -222,6 +222,9 @@
 		padding: 0 var(--spacing-5);
 		gap: 0;
 		flex-shrink: 0;
+		/* A longer translation still scrolls instead of pushing the card wider */
+		overflow-x: auto;
+		scrollbar-width: none;
 	}
 
 	.help-tab {
@@ -475,6 +478,11 @@
 		font-weight: var(--font-weight-medium);
 	}
 
+	.bridge-learn-more {
+		align-self: flex-start;
+		margin: 0;
+	}
+
 	.faq-learn-more:hover {
 		text-decoration: underline;
 	}
@@ -521,6 +529,10 @@
 		color: var(--color-text-tertiary);
 	}
 
+	.help-footer-info:first-child {
+		margin-top: 0;
+	}
+
 	.help-footer-info a {
 		color: var(--color-text-secondary);
 		text-decoration: none;
@@ -533,6 +545,15 @@
 	@media (max-width: 600px) {
 		.help-card {
 			width: 95vw;
+		}
+
+		/* The Bridge viewer's five tabs fit 320px only with tighter padding */
+		.help-tabs {
+			padding: 0 var(--spacing-3);
+		}
+
+		.help-tab {
+			padding: var(--spacing-2);
 		}
 	}
 </style>

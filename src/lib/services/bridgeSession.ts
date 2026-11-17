@@ -5,6 +5,8 @@
  * the token stays in memory and a reload asks for it again.
  */
 
+import { SITE_URL } from '$lib/utils/landingPages';
+
 export interface BridgeSession {
 	/** `127.0.0.1:<port>`, or the page's own host in local mode */
 	host: string;
@@ -19,6 +21,15 @@ export function isLoopbackPage(page: PageLocation): boolean {
 	return (
 		page.protocol === 'http:' && (page.hostname === '127.0.0.1' || page.hostname === 'localhost')
 	);
+}
+
+/**
+ * Where a link from the Bridge page to a site page (`/explore`, `/docs/...`) points. serve hosts
+ * only the viewer, so on loopback the link goes to ropeman.dev: the gallery's data and the current
+ * docs are there, and a local-mode page requests nothing from other hosts on its own.
+ */
+export function siteHref(page: PageLocation, path: string): string {
+	return isLoopbackPage(page) ? `${SITE_URL}${path}` : path;
 }
 
 /** Local mode: the page and the socket share serve's loopback host. */
