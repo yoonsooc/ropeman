@@ -46,7 +46,7 @@ body:
       label: Versions
       description: The ones that apply. `ropeman --version` prints the bridge version.
       placeholder: |
-        Bridge: 0.5.0
+        Bridge: 0.6.0
         Node: 22.x
         Browser: Chrome 142
         OS: macOS 15

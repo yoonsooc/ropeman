@@ -4,13 +4,15 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-17
+
 ### Added
 
-- `ropeman map --input <graph file>` builds the map from a graph file another tool already wrote, such as Graphify's `graphify-out/graph.json`, instead of Ropeman's own extraction. Ropeman's extraction stays the default. When `ropeman map` finds a graph file, it asks on a terminal which input to use; without a terminal it writes nothing, lists the choices with their coverage on stdout and exits 2, so the agent asks the user. The choice is kept in `<folder>/input.json` for later runs, `ropeman verify` and serve. Only Graphify's `graph.json` (schema 1) is read. Graphicle, graf and graphify-csharp files are refused with the reason ([ADR-28](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0028-graph-file-as-chosen-input.md)).
+- `ropeman map --input <graph file>` builds the map from a graph file another tool already wrote, such as Graphify's `graphify-out/graph.json`, instead of Ropeman's own extraction. Ropeman's extraction stays the default. When `ropeman map` finds a graph file, it asks on a terminal which input to use; without a terminal it writes nothing, lists the choices with their coverage on stdout and exits 2, so the agent asks the user. The choice is kept in `<folder>/input.json` for later runs, `ropeman verify` and serve. Only Graphify's `graph.json` (schema 1) is read. Graphicle, graf and graphify-csharp files are refused with the reason ([ADR-28](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0028-graph-file-as-chosen-input.md), [#145](https://github.com/yoonsooc/ropeman/pull/145)).
 
 ### Changed
 
-- The parser engine is web-tree-sitter 0.27, and every language grammar the command loads is the build its upstream repository publishes with its latest release. Maps change where the old grammars misread code: C# files with a file-scoped `namespace X;` now list their classes and methods, Scala classes, objects and traits list their methods, Scala `new Foo(x)` counts as a call, and Swift, TSX and C files with constructs the old grammars could not parse read more of their symbols and calls ([ADR-27](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0027-grammars-from-upstream-releases.md)).
+- The parser engine is web-tree-sitter 0.27, and every language grammar the command loads is the build its upstream repository publishes with its latest release. Maps change where the old grammars misread code: C# files with a file-scoped `namespace X;` now list their classes and methods, Scala classes, objects and traits list their methods, Scala `new Foo(x)` counts as a call, and Swift, TSX and C files with constructs the old grammars could not parse read more of their symbols and calls ([ADR-27](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0027-grammars-from-upstream-releases.md), [#141](https://github.com/yoonsooc/ropeman/pull/141)).
 
 ## [0.5.0] - 2026-11-15
 
@@ -80,7 +82,8 @@ Notable changes to the `@ropeman/bridge` npm package (the `ropeman` command) and
 
 Initial release: a WebSocket relay that passes the web app's analysis and chat requests to an AI CLI on your machine.
 
-[Unreleased]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.5.0...HEAD
+[Unreleased]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.6.0...HEAD
+[0.6.0]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.5.0...bridge-v0.6.0
 [0.5.0]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.4.0...bridge-v0.5.0
 [0.4.0]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.3.1...bridge-v0.4.0
 [0.3.1]: https://github.com/yoonsooc/ropeman/compare/bridge-v0.3.0...bridge-v0.3.1
