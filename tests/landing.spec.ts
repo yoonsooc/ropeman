@@ -29,15 +29,27 @@ test.describe('Landing Page', () => {
 		await expect(ctaButton).toBeVisible();
 	});
 
-	test('shows the example map with the three things it demonstrates', async ({ page }) => {
+	test('shows the example map with what sets Ropeman apart', async ({ page }) => {
 		await gotoApp(page);
 		const stage = page.locator('.landing-stage');
 		await expect(stage.locator('.hero-shot')).toHaveAttribute('href', '/explore/transformers');
 		await expect(stage.locator('.stage-facts dt')).toHaveText([
-			'A map from the code itself',
+			'What the model sees',
 			'Names checked against the code',
-			'Click to go deeper'
+			'One level at a time, every file placed',
+			'Your agent, your machine'
 		]);
+		await expect(stage.locator('.stage-differs')).toHaveAttribute(
+			'href',
+			'/docs/en/how-it-differs'
+		);
+	});
+
+	test('opens the page on how Ropeman differs from the landing link', async ({ page }) => {
+		await gotoApp(page);
+		await page.locator('.stage-differs').click();
+		await expect(page).toHaveURL(/\/docs\/en\/how-it-differs$/);
+		await expect(page.locator('h1')).toHaveText('How Ropeman Differs');
 	});
 
 	test('should have theme toggle button in header', async ({ page }) => {

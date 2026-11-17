@@ -29,18 +29,24 @@ The skill is tested with Claude Code. Codex, Gemini CLI and Cursor load skills f
 
 The browser app below stays available without an install: open a folder or a GitHub repository at ropeman.dev, or open a `ropeman.json`.
 
+## What makes it different
+
+Each line links to the code or the decision record that backs it. [How Ropeman differs](https://ropeman.dev/docs/en/how-it-differs) explains each point in a paragraph.
+
+- Tree-sitter extracts the structure without a model, and no prompt carries function bodies or comments. The skill's prompts carry paths, counts, symbol names and import counts ([`skeletonExtractor.ts`](src/lib/services/skeletonExtractor.ts), [`naming.ts`](bridge/src/naming.ts)). The skill has your agent open a source file only when paths and symbols leave a part's role unclear, and Ropeman never reads a real `.env` file ([`languageDetector.ts`](src/lib/utils/languageDetector.ts)).
+- Names are checked against the code. Each file must sit in exactly one part, each key symbol must be declared in its part, and the evidence for each link must match a relation in the code, down to the line. A level that fails keeps its folder names ([`mapVerifier.ts`](src/lib/services/mapVerifier.ts)).
+- The map opens one folder level at a time, and the coverage report counts every file and says why any file was skipped ([ADR-30](docs/adr/0030-collapse-single-child-folder-chains.md), [`coverage.ts`](src/lib/types/coverage.ts)).
+- The agent you already use names the map. Deeper folders go to a worker CLI you have, or back to your agent. Ropeman needs no API key on this path ([ADR-25](docs/adr/0025-agent-names-the-map.md)).
+- `ropeman serve` listens on `127.0.0.1` with a token and an Origin check, and your source does not pass through Ropeman's servers ([`auth.ts`](bridge/src/auth.ts)).
+- Node ids come from paths, so names survive a re-run of `ropeman map`, and serve extracts again when files change ([`mapSession.ts`](bridge/src/mapSession.ts)).
+- `ropeman map --input` reads a Graphify `graph.json` when you choose it. Ropeman never installs or runs Graphify ([ADR-28](docs/adr/0028-graph-file-as-chosen-input.md)).
+- One `ropeman.json` is what the viewer draws, what `ropeman verify` checks, and what the gallery maps were made from ([ADR-24](docs/adr/0024-ropeman-map-format.md)).
+
 ## Overview
 
-Ropeman parses a codebase in the browser and asks an AI to group its files by role. The main canvas shows those groups and the dependencies between them, so you see the architecture before the file tree.
+Ropeman parses a codebase in the browser and asks an AI to group its files by role. The main canvas shows those groups and the dependencies between them, so you see the architecture before the file tree, which stays in a side panel. Demo mode needs no install and no account.
 
 Open a folder and you get a diagram. Double-click a group to drill down, and the AI analyzes that group's inner structure on request.
-
-### Highlights
-
-- The main canvas is a diagram of roles. The file tree is a side panel.
-- Drill-down is recursive. Each level is a new AI analysis of one group.
-- Source code stays in the browser. The AI receives only a code summary, called the skeleton: symbols, signatures and imports, and for Markdown files the frontmatter name and description, headings and file links.
-- Demo mode needs no install and no account. Open the site, open a folder, and the diagram appears.
 
 ## Features
 

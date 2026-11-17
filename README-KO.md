@@ -29,18 +29,24 @@ curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubus
 
 아래의 브라우저 앱은 설치 없이 계속 쓸 수 있습니다. ropeman.dev에서 폴더나 GitHub 저장소를 열거나, `ropeman.json`을 엽니다.
 
+## 무엇이 다른가
+
+줄마다 근거가 되는 코드나 결정 기록을 링크했습니다. 항목마다 한 문단씩 설명한 글은 [Ropeman이 다른 점](https://ropeman.dev/docs/ko/how-it-differs)에 있습니다.
+
+- 구조는 tree-sitter가 모델 없이 뽑고, 함수 본문과 주석은 어느 프롬프트에도 들어가지 않습니다. 스킬의 프롬프트에는 경로, 개수, 심볼 이름, import 수가 들어갑니다([`skeletonExtractor.ts`](src/lib/services/skeletonExtractor.ts), [`naming.ts`](bridge/src/naming.ts)). 스킬은 경로와 심볼만으로 부분의 역할을 알 수 없을 때만 에이전트가 소스 파일을 열게 하고, Ropeman은 실제 `.env` 파일을 읽지 않습니다([`languageDetector.ts`](src/lib/utils/languageDetector.ts)).
+- 이름은 코드와 대조해 검사합니다. 파일은 정확히 한 부분에 들어가야 하고, 핵심 심볼은 그 부분에 선언되어 있어야 하고, 관계의 근거는 줄까지 코드의 관계와 맞아야 합니다. 실패한 단계는 폴더 이름을 그대로 둡니다([`mapVerifier.ts`](src/lib/services/mapVerifier.ts)).
+- 지도는 폴더 단계를 하나씩 열고, 커버리지 보고가 모든 파일을 세고 건너뛴 파일은 이유를 알려 줍니다([ADR-30](docs/adr/0030-collapse-single-child-folder-chains.md), [`coverage.ts`](src/lib/types/coverage.ts)).
+- 이름은 지금 쓰는 에이전트가 붙입니다. 더 깊은 폴더는 이미 있는 일꾼 CLI가 붙이거나 에이전트에게 돌아갑니다. 이 경로에는 API 키가 필요 없습니다([ADR-25](docs/adr/0025-agent-names-the-map.md)).
+- `ropeman serve`는 `127.0.0.1`에서 토큰과 Origin 검사를 걸고 듣고, 소스는 Ropeman 서버를 거치지 않습니다([`auth.ts`](bridge/src/auth.ts)).
+- 노드 id가 경로에서 나오므로 `ropeman map`을 다시 돌려도 이름이 남고, 파일이 바뀌면 serve가 다시 추출합니다([`mapSession.ts`](bridge/src/mapSession.ts)).
+- `ropeman map --input`은 사용자가 고를 때 Graphify `graph.json`을 읽습니다. Ropeman은 Graphify를 설치하거나 실행하지 않습니다([ADR-28](docs/adr/0028-graph-file-as-chosen-input.md)).
+- 뷰어가 그리고, `ropeman verify`가 검사하고, 갤러리 지도를 만든 파일은 같은 `ropeman.json` 하나입니다([ADR-24](docs/adr/0024-ropeman-map-format.md)).
+
 ## 개요
 
-Ropeman은 브라우저에서 코드베이스를 파싱하고, AI에게 파일을 역할별로 묶어 달라고 요청합니다. 메인 캔버스에는 그 묶음과 묶음 사이의 의존 관계가 나오므로, 파일 트리보다 아키텍처를 먼저 보게 됩니다.
+Ropeman은 브라우저에서 코드베이스를 파싱하고, AI에게 파일을 역할별로 묶어 달라고 요청합니다. 메인 캔버스에는 그 묶음과 묶음 사이의 의존 관계가 나오므로, 파일 트리보다 아키텍처를 먼저 보게 됩니다. 파일 트리는 옆 패널에 있습니다. 데모 모드는 설치와 가입이 필요 없습니다.
 
 폴더를 열면 다이어그램이 나옵니다. 묶음을 더블클릭하면 그 안으로 드릴다운하고, AI가 그 묶음의 하위 구조를 요청 시점에 분석합니다.
-
-### 특징
-
-- 메인 캔버스는 역할 다이어그램입니다. 파일 트리는 옆 패널에 있습니다.
-- 드릴다운은 재귀적입니다. 단계마다 묶음 하나를 AI가 새로 분석합니다.
-- 소스 코드는 브라우저에 남습니다. AI가 받는 것은 스켈레톤이라고 부르는 코드 구조 요약뿐입니다. 심볼, 시그니처, import, 그리고 Markdown 파일이면 frontmatter의 name과 description, 제목, 파일 링크가 들어갑니다.
-- 데모 모드는 설치와 가입이 필요 없습니다. 사이트를 열고 폴더를 열면 다이어그램이 나옵니다.
 
 ## 주요 기능
 

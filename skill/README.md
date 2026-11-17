@@ -4,6 +4,8 @@
 
 The skill uses only shell commands and file writes. It does not need subagents, hooks or a particular model, so any coding agent that runs shell commands can follow it. It is tested with Claude Code. Codex, Gemini CLI and Cursor also load `SKILL.md` folders and should work the same way, but nobody has tested them yet.
 
+What sets Ropeman apart from other code-map tools, with the code behind each point, is in [How Ropeman differs](https://ropeman.dev/docs/en/how-it-differs).
+
 [한국어](README-KO.md)
 
 ## 1. Install the `ropeman` command

@@ -6,6 +6,8 @@
 
 에이전트가 읽는 정본은 영어 `ropeman/SKILL.md`다. 이 문서는 사람이 읽는 안내라서 스킬 폴더 밖에 두었고, 스킬로 읽히지 않는다.
 
+다른 코드 지도 도구와 무엇이 다른지는 근거 코드와 함께 [Ropeman이 다른 점](https://ropeman.dev/docs/ko/how-it-differs)에 정리했다.
+
 ## 1. `ropeman` 명령 설치
 
 스킬은 `ropeman`(`@ropeman/bridge` 패키지 0.7.1 이상, Node 22 이상)을 실행한다.

@@ -2,6 +2,8 @@
 
 Local server for Ropeman. `ropeman serve` maps a folder on your machine and sends the map to the Ropeman viewer over a WebSocket. The coding agent you talk to names the top of the map through the Ropeman skill (`skill/ropeman/` in the Ropeman repository), with the `ropeman map`, `verify` and `inbox` commands below, and writes a brief. Deeper folders you open are named by a headless worker CLI that gets that brief: `claude -p` (Claude Code) when it is installed, or Gemini CLI with `--cli gemini`. With no worker CLI, the agent you talk to names them on its next turn.
 
+What sets Ropeman apart from other code-map tools, with the code behind each point, is in [How Ropeman differs](https://ropeman.dev/docs/en/how-it-differs).
+
 ## Usage
 
 ```bash
