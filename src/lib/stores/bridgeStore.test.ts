@@ -138,6 +138,20 @@ describe('bridgeStore', () => {
 		expect(labels()).toEqual(['src', '.']);
 	});
 
+	it("gives the explorer the map's files, and takes them back on disconnect", async () => {
+		// Arrange, Act
+		await connected();
+		const tree = projectStore.fileTree;
+
+		// Assert
+		expect(tree).toMatchObject({ name: 'shop', path: '', kind: 'directory' });
+		expect(tree!.children!.map((c) => c.path)).toEqual(['src', 'README.md']);
+		expect(tree!.children![0].children!.map((c) => c.path)).toEqual(['src/api', 'src/b.ts']);
+
+		bridgeStore.disconnect();
+		expect(projectStore.fileTree).toBeNull();
+	});
+
 	it('reports a socket that closed before hello as a failed connection', async () => {
 		const server = new FakeServer();
 		const done = bridgeStore.connect('127.0.0.1:9800', 'wrong-token-0123456', () => server);

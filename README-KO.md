@@ -23,7 +23,7 @@ curl --create-dirs -fsSLo ~/.gemini/skills/ropeman/SKILL.md https://raw.githubus
 curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubusercontent.com/yoonsooc/ropeman/bridge-v0.6.0/skill/ropeman/SKILL.md
 ```
 
-그다음 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 검사한 뒤, `ropeman serve`를 띄우고 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다. 브라우저에서 그 주소를 열고, 폴더를 눌러 드릴다운하고 파일을 눌러 소스를 봅니다.
+그다음 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 검사한 뒤, `ropeman serve`를 띄우고 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다. 브라우저에서 그 주소를 열고, 폴더를 눌러 드릴다운하고 파일을 눌러 소스를 봅니다. 에이전트와 `ropeman serve`가 남기는 파일과 그중 직접 고쳐도 되는 파일은 [작업 폴더](https://ropeman.dev/docs/ko/getting-started#작업-폴더)에 정리했습니다.
 
 스킬은 Claude Code에서 테스트했습니다. Codex, Gemini CLI, Cursor는 각자의 문서에 따르면 이 폴더에서 스킬을 읽지만, Ropeman은 이들에서 아직 테스트하지 않았습니다. 다른 에이전트라면 그 에이전트가 스킬을 읽는 폴더에 `ropeman/SKILL.md`로 저장하세요. 스킬을 지원하지 않는 에이전트라면 `SKILL.md` 내용을 대화에 붙여 넣으세요. 자세한 내용은 [`skill/README-KO.md`](skill/README-KO.md)에 있습니다. 명령은 macOS, Linux, WSL 셸 기준입니다.
 
@@ -83,17 +83,18 @@ npm run dev
 
 ### 스크립트
 
-| 명령어                      | 설명                         |
-| --------------------------- | ---------------------------- |
-| `npm run dev`               | 개발 서버 실행               |
-| `npm run build`             | 프로덕션 빌드                |
-| `npm run test:unit`         | 단위 테스트 (Vitest)         |
-| `npm run test:e2e`          | E2E 테스트 (Playwright)      |
-| `npm run lint`              | ESLint 실행                  |
-| `npm run format`            | Prettier 포맷팅              |
-| `npm run deploy`            | Pages 앱을 Cloudflare에 배포 |
-| `npm run deploy:edge:demo`  | 엣지 데모 Worker 배포        |
-| `npm run deploy:edge:proxy` | 엣지 프록시 Worker 배포      |
+| 명령어                      | 설명                                            |
+| --------------------------- | ----------------------------------------------- |
+| `npm run dev`               | 개발 서버 실행                                  |
+| `npm run build`             | 프로덕션 빌드                                   |
+| `npm run preview`           | 빌드한 뒤 Cloudflare Pages로 8788 포트에서 띄움 |
+| `npm run test:unit`         | 단위 테스트 (Vitest)                            |
+| `npm run test:e2e`          | E2E 테스트 (Playwright)                         |
+| `npm run lint`              | ESLint 실행                                     |
+| `npm run format`            | Prettier 포맷팅                                 |
+| `npm run deploy`            | Pages 앱을 Cloudflare에 배포                    |
+| `npm run deploy:edge:demo`  | 엣지 데모 Worker 배포                           |
+| `npm run deploy:edge:proxy` | 엣지 프록시 Worker 배포                         |
 
 기여하기 전에 [CONTRIBUTING.md](CONTRIBUTING.md)(영어)에서 개발 환경과 PR에 필요한 것을, [AGENTS.md](AGENTS.md)(영어)에서 저장소 구조, 컨벤션, 테스트, ADR이 필요한 경우를 읽으세요. 코딩 에이전트도 AGENTS.md를 따릅니다.
 

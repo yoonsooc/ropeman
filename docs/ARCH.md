@@ -17,7 +17,7 @@ src/
 │   ├── [[lang=locale]]/+page.ts  # 랜딩을 SSR로 `/en`·`/ko` 두 번 프리렌더: 첫 HTML에 첫 화면이 있고 앱이 그 자리에서 hydrate한다. `/`는 굽지 않는다
 │   ├── +layout.svelte            # 전역 레이아웃 (테마 CSS 주입). 마운트하면 <html data-hydrated>를 단다 (E2E가 클릭 전에 기다림)
 │   ├── open/+page.svelte         # JSON 열기: ropeman.json을 골라 읽기 전용 뷰어로 연다 (거부되면 이유와 다시 고르기). 파일 원문은 사용자가 연결한 폴더에서 읽는다
-│   ├── bridge/+page.svelte       # Bridge 모드: ropeman serve에 붙어 지도·드릴다운·원문을 RPC로 (로컬 모드는 #token= 자동 연결)
+│   ├── bridge/+page.svelte       # Bridge 모드: ropeman serve에 붙어 지도·드릴다운·원문을 RPC로, 메인과 같은 사이드바 (로컬 모드는 #token= 자동 연결)
 │   └── +layout.ts                # 기본은 SSR 끔 (브라우저 전용). 켜는 곳은 랜딩([[lang=locale]]/+page.ts)과 /docs
 │
 ├── lib/
@@ -55,6 +55,7 @@ src/
 │   │   ├── graphifyAdapter.ts        # Graphify `graph.json`의 ast 층을 같은 코드 지도로 읽고, 읽지 않은 것은 이유와 함께 돌려준다. `identifyGraphFile`이 쓴 도구를 가려 읽을 형식만 받는다 (T1-12 비교, ADR-28 입력)
 │   │   ├── ropemanMapSchema.ts       # `ropeman.json`과 Bridge RPC 메시지를 믿지 않는 입력으로 파싱 (크기, JSON, 형식, 버전, 구조, 단계 트리)
 │   │   ├── mapViewer.ts              # 파싱한 ropeman.json을 시맨틱 스토어가 캐시하는 단계 모양으로 펼친다
+│   │   ├── pathTree.ts               # 저장소 기준 경로 목록 → 파일 트리(`FileNode`, 루트 경로 `''`). 크기·언어·핸들은 경로에 없어서 넣지 않는다 (Bridge 탐색기)
 │   │   ├── exploreSnapshotBuilder.ts # 검증한 ropeman.json → 갤러리 스냅샷(분석 커밋, 한국어 옆 사전)과 출고 검사. `scripts/explore/pipeline.mjs`만 쓴다
 │   │   ├── bridgeClient.ts           # ropeman serve RPC 클라이언트: hello 확인, id로 응답 맞추기, 푸시 전달
 │   │   ├── bridgeAccess.ts           # 연결 안내: loopback-network 권한, 포트 확인, 실패 원인과 안내 상태
@@ -91,9 +92,9 @@ src/
 │   │   ├── WebGPUSetupModal.svelte   # WebGPU 모델 선택 + 백그라운드 다운로드 인디케이터
 │   │   ├── Header.svelte             # 상단 헤더 (Analyze + 트랙 뱃지 + Help + Settings)
 │   │   ├── Wordmark.svelte           # 로고 한 곳. 모든 헤더와 공유 이미지가 이 파일을 쓴다
-│   │   ├── Sidebar.svelte            # 사이드바 (File Explorer + Semantic Tree, showFiles()). 모바일·태블릿은 아이콘 레일만 레이아웃에 두고 열린 패널만 캔버스 위에 띄움 (바깥 탭, Esc, 파일 선택으로 닫힘. 분석이 끝나도 다시 열지 않음)
+│   │   ├── Sidebar.svelte            # 사이드바 (File Explorer + Semantic Tree, showFiles()). 모바일·태블릿은 아이콘 레일만 레이아웃에 두고 열린 패널만 캔버스 위에 띄움 (바깥 탭, Esc, 파일 선택으로 닫힘. 분석이 끝나도 다시 열지 않음. 다이어그램이 이미 있을 때 붙으면 닫힌 채 시작)
 │   │   ├── FileExplorer.svelte       # 파일 탐색기 (파일 유형별 아이콘)
-│   │   ├── SemanticTree.svelte       # 시맨틱 트리뷰 + 캐시된 노드 자동 드릴다운
+│   │   ├── SemanticTree.svelte       # 시맨틱 트리뷰 + 캐시된 노드 자동 드릴다운. `onexpand`가 있으면(Bridge) 캐시에 없는 노드는 그 함수로, 다시 분석 버튼 없음
 │   │   ├── SemanticDetailPanel.svelte # 노드 상세 패널 (파일 유형별 아이콘)
 │   │   ├── CodeViewer.svelte         # 코드 뷰어 (심볼 사이드바, 폰트 크기 설정 반영, 원본 언어명)
 │   │   ├── TabBar.svelte             # 탭 바 (drag & drop, 원본 파일명 표기)
@@ -562,11 +563,12 @@ map.changed    → 바뀐 경로의 revision을 올리고(열린 원문을 제�
 - 제자리 유지: `map.get`은 이름이 붙은 단계만 담는다. 그래서 `map.changed` 뒤에는 사용자의 드릴다운 경로를 위에서부터 다시 걷고, 새 지도에 없는 단계는 `node.expand`로 다시 받는다. 경로의 노드가 사라졌거나 serve가 `unknown-node`로 답하면 남아 있는 가장 깊은 단계에서 멈춘다. 다시 받기가 `busy`(연결당 이름 작업 상한)나 다른 오류로 끝나면 사용자가 보던 단계(폴더 묶음 그대로)와 이름 상태를 지키고, 이미 돌고 있는 이름 작업의 `node.named`가 오면 그대로 받는다. 선택한 노드도 같은 id로 다시 잡는다. 이름 붙이기가 실패한 폴더는 다시 받을 때 serve가 이름을 다시 묻는다(파일이 바뀐 뒤라 다시 묻는 편이 맞다고 봤다).
 - 파일 단계: 파일이 둘 이상인 `files:` 노드를 열면 serve가 파일 단계를 돌려주고, 뷰어는 그 단계로 드릴다운해 파일 사이 import를 관계로 그린다. `fileLevel`인 단계는 이름을 기다리지 않는다(이름 상태 없음). 파일 노드를 열면 원문이 열린다.
 - 펼치지 않는 노드: serve가 `unknown-node`로 답하면(파일이 하나인 `files:` 노드처럼) 뷰어는 id 모양에 기대지 않고 상세 패널에 그 노드의 파일 목록을 연다. 파일이 하나인 노드는 원래대로 바로 원문을 연다.
+- 사이드바: 메인 페이지와 같은 `Sidebar`(파일 탐색기 + 시맨틱 트리)를 쓴다. Bridge에는 로컬 추출이 없으므로 `bridgeStore`가 지도를 받을 때마다 `map.files`(추출이 본 파일 전부, 저장소 기준 경로)로 `projectStore.fileTree`를 만든다(`pathTree.ts`). 노드의 `filePaths`도 같은 저장소 기준 경로라서 노드를 고르면 탐색기가 그 파일과 폴더를 강조하고(`semanticStore.highlightedFilePaths`), 파일을 두 번 누르면 현재 단계에서 그 파일을 가진 노드를 고른다. 파일을 열면 `tabStore`의 코드 탭이 되고, 페이지는 그 탭을 `file.read`로 읽는 `CodeViewer`로 보여 준다. 크기·언어·심볼은 지도에 없어서 트리에 넣지 않는다. 연결을 끊으면(`reset`) 트리를 지워서, 같은 탭에서 메인 페이지로 가도 프로젝트가 열린 것으로 보지 않는다. `projectStore`를 고른 이유: 탐색기, 브레드크럼의 경로 드롭다운이 이미 이 트리를 읽고, Bridge 전용 탐색기 사본을 두지 않는다. 시맨틱 트리는 `onexpand`를 받아 캐시에 없는 노드를 캔버스처럼 `node.expand`로 연다. 휴대폰·태블릿에서는 지도가 이미 있으므로 서랍이 닫힌 채 시작하고, 나머지(바깥 탭, Esc, 파일을 고르면 닫힘, 크기 조절 손잡이는 데스크톱만)는 메인과 같다.
 - 앱 AI와 분리: `ZUICanvas`의 `onexpand`가 있으면 캐시에 없는 노드는 그 함수로 가고, 확인 창과 앱의 AI 분석, 다시 분석 버튼은 나오지 않는다.
 - 추론 관계: INFERRED 관계는 `semanticGraphBuilder`가 점선으로 그리고 범례에 뜻을 적는다(A-6). 검증기의 `unverified`(refs가 빈 INFERRED)는 지도만 보고도 알 수 있고, 이름으로만 맞춘 ref를 든 INFERRED도 점선이라, 뷰어는 코드 지도 없이 `evidence.confidence`로 정한다.
 - 로컬 모드: 페이지가 `http://127.0.0.1:<port>`나 `http://localhost:<port>`에서 열리고 주소에 `#token=`이 있으면 같은 호스트로 바로 붙는다. 토큰은 읽자마자 `history.replaceState`로 주소에서 지운다(SvelteKit의 `replaceState`는 라우터가 붙기 전인 첫 페이지 `onMount`에서 예외를 던진다). 다시 고침을 위해 토큰은 그 탭의 `sessionStorage`에 둔다. 페이지가 루프백에서 열렸고 소켓이 그 호스트로 갈 때만 그렇다(`bridgeSession.ts`). ropeman.dev는 Cloudflare 분석 비콘 같은 제3자 스크립트를 실어서 저장소에 둔 토큰을 읽힐 수 있다. 그래서 거기서 넣은 토큰은 메모리에만 두고, 다시 고치면 다시 넣는다(폼이 그렇게 안내한다).
 - 뷰어 번들: `npm run bundle:viewer`(`scripts/bundle-viewer.mjs`)가 `npm run build` 결과를 `bridge/dist/viewer/`로 복사한다. 브라우저에서 파싱하지 않으므로 tree-sitter `.wasm`과 Cloudflare 전용 파일, 공유 이미지(`og/`)는 빼고(약 7.9MB, 124개), 127.0.0.1에서 연 페이지는 다른 호스트로 요청을 하나도 보내지 않는다. 그래서 사이트의 Cloudflare 분석 비콘을 HTML에서 지운다. 글꼴과 아이콘은 `_app/` 아래 직접 호스팅한 파일이라 사이트와 같은 모양으로 실린다([글꼴과 아이콘](#글꼴과-아이콘)). 지운 뒤에도 `script`·`link`·`img` 같은 태그가 다른 호스트를 가리키거나 CSS가 원격 `url()`·`@import`를 쓰면 번들 단계가 실패한다(`rel=alternate`·`canonical`은 요청이 아니라 뺀다). `bridge`의 `prepack`이 앱 빌드, bridge 빌드, 번들 복사를 차례로 해서 패키지에 싣는다. `serve --local`이 이 번들을 서빙하고, 미리 렌더링한 경로는 `.html`을 붙여 찾는다(`/bridge` → `bridge.html`, Cloudflare Pages와 같다). Cloudflare에서는 엣지가 `/`의 언어를 고르지만 로컬 모드에는 엣지가 없어서, 번들 단계가 `en.html`을 `index.html`로 복사한다. 한국어 방문자는 앱이 부팅한 뒤 한국어로 바뀐다(`app.html`이 그때까지 숨긴다).
-- 검증: `bridgeClient.test.ts`(가짜 소켓, 11개), `bridgeStore.test.ts`(가짜 서버, 15개), `bridgeSession.test.ts`(토큰을 남기는 경우와 안 남기는 경우, 7개). `tests/bridge-mode.spec.ts`는 빌드한 serve를 픽스처 저장소 사본과 가짜 CLI로 띄우고 `map.get → node.expand(이름 대기) → node.named → file.read → 파일 수정 → map.changed → binary 거부`를 로컬 모드(영어 데스크톱, 한국어 휴대폰)와 다른 출처의 페이지에서 토큰을 넣는 경우로 돈다. 가짜 CLI의 `gate` 단계가 `release` 파일이 생길 때까지 답을 미뤄서 대기 상태를 화면에서 본다. `bridgeAccess.test.ts`(가짜 권한 API와 가짜 fetch, 거부된 질의 포함)가 원인과 카드 상태를 본다. 같은 spec의 "Connection guide" 묶음은 뷰어 번들을 `https://ropeman.test`(공개 https 출처)로 서빙하고 CDP로 권한을 정해, 카드마다(묻기 전, 허락, 막힘, 권한 창 대기, 답 없음, serve 꺼짐, 틀린 토큰, 허용 안 된 Origin, Firefox, 원인 모름, Safari) 영어 데스크톱과 한국어 휴대폰에서 본다. 권한 창 대기는 업그레이드에 답하지 않는 포트로 만든다.
+- 검증: `bridgeClient.test.ts`(가짜 소켓, 11개), `bridgeStore.test.ts`(가짜 서버, 19개), `pathTree.test.ts`(5개), `bridgeSession.test.ts`(토큰을 남기는 경우와 안 남기는 경우, 7개). `tests/bridge-mode.spec.ts`는 빌드한 serve를 픽스처 저장소 사본과 가짜 CLI로 띄우고 `map.get → node.expand(이름 대기) → node.named → file.read → 파일 수정 → map.changed → binary 거부`를 로컬 모드(영어 데스크톱, 한국어 휴대폰)와 다른 출처의 페이지에서 토큰을 넣는 경우로 돈다. 가짜 CLI의 `gate` 단계가 `release` 파일이 생길 때까지 답을 미뤄서 대기 상태를 화면에서 본다. 사이드바 묶음은 캔버스에서 고른 노드의 파일 강조, 탐색기에서 연 파일(`file.read`)과 두 번 눌러 고른 주인 노드, 시맨틱 트리의 드릴다운(`node.expand` 뒤 이름)을 데스크톱에서, 닫힌 채 시작하는 서랍과 파일을 고르면 닫히는 서랍을 휴대폰에서 본다. `bridgeAccess.test.ts`(가짜 권한 API와 가짜 fetch, 거부된 질의 포함)가 원인과 카드 상태를 본다. 같은 spec의 "Connection guide" 묶음은 뷰어 번들을 `https://ropeman.test`(공개 https 출처)로 서빙하고 CDP로 권한을 정해, 카드마다(묻기 전, 허락, 막힘, 권한 창 대기, 답 없음, serve 꺼짐, 틀린 토큰, 허용 안 된 Origin, Firefox, 원인 모름, Safari) 영어 데스크톱과 한국어 휴대폰에서 본다. 권한 창 대기는 업그레이드에 답하지 않는 포트로 만든다.
 
 ### Phase 3: 재귀적 드릴다운
 

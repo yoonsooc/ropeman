@@ -188,6 +188,56 @@
 		border-radius: var(--radius-element);
 	}
 
+	/* Inline SVG diagrams in a doc take the page's colors, so they follow the theme */
+	.docs-content :global(.work-folder-diagram) {
+		margin: var(--spacing-5) 0;
+	}
+
+	.docs-content :global(.work-folder-diagram svg) {
+		display: block;
+		width: 100%;
+		max-width: 560px;
+		height: auto;
+	}
+
+	.docs-content :global(.wf-box) {
+		fill: var(--color-background-surface);
+		stroke: var(--color-border);
+	}
+
+	.docs-content :global(.wf-box.wf-you) {
+		stroke: var(--color-accent);
+	}
+
+	.docs-content :global(.wf-actor) {
+		fill: var(--color-text-primary);
+		font-family: var(--font-code);
+		font-size: var(--font-size-base);
+		font-weight: var(--font-weight-semibold);
+	}
+
+	.docs-content :global(.wf-verb),
+	.docs-content :global(.wf-note) {
+		fill: var(--color-text-tertiary);
+		font-size: var(--font-size-sm);
+	}
+
+	.docs-content :global(.wf-file) {
+		fill: var(--color-text-secondary);
+		font-family: var(--font-code);
+		font-size: var(--font-size-sm);
+	}
+
+	.docs-content :global(.wf-arrow) {
+		fill: none;
+		stroke: var(--color-text-tertiary);
+		stroke-width: 1.25;
+	}
+
+	.docs-content :global(.wf-head) {
+		fill: var(--color-text-tertiary);
+	}
+
 	.docs-content :global(hr) {
 		border: none;
 		border-top: 1px solid var(--color-border);

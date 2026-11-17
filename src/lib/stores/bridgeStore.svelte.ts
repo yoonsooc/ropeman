@@ -2,6 +2,7 @@
  * Bridge mode: the map `ropeman serve` holds, shown through the semantic store. The store keeps
  * the connection and what the socket said about each node (naming pending or failed); the levels
  * themselves live in `semanticStore`, so the canvas, breadcrumb and detail panel work unchanged.
+ * The map's file list becomes `projectStore.fileTree`, so the sidebar's explorer does too.
  */
 import {
 	bridgeSocketUrl,
@@ -13,6 +14,7 @@ import {
 	type RpcOutcome
 } from '$lib/services/bridgeClient';
 import { toViewerLevel, toViewerLevels } from '$lib/services/mapViewer';
+import { fileTreeFromPaths } from '$lib/services/pathTree';
 import {
 	RESERVED_NODE_ID,
 	awaitsNames,
@@ -102,6 +104,10 @@ function createBridgeStore() {
 		);
 		map = next;
 		projectStore.projectName = next.project.name;
+		projectStore.fileTree = fileTreeFromPaths(
+			next.project.name,
+			next.files.map((f) => f.path)
+		);
 		semanticStore.replaceLevels(toViewerLevels(next));
 
 		const kept: { nodeId: string; label: string }[] = [];
@@ -251,6 +257,7 @@ function createBridgeStore() {
 		generation++;
 		semanticStore.clear();
 		projectStore.projectName = '';
+		projectStore.fileTree = null;
 	}
 
 	return {
