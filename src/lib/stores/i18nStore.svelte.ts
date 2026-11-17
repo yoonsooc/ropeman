@@ -30,22 +30,13 @@ interface LandingTranslations {
 	githubRateLimit: string;
 	githubPrivate: string;
 	githubLoadError: string;
-	specLocal: string;
-	specVerified: string;
-	specCoverage: string;
 	specOpenSource: string;
 	exampleCta: string;
 	openMapCta: string;
 	heroShotAlt: string;
 	heroShotCaption: string;
 	heroShotLink: string;
-	railLabel: string;
-	navSetup: string;
-	navTry: string;
 	navExample: string;
-	navHow: string;
-	measured: string;
-	measuredSource: string;
 	dropRegion: string;
 	loadingTitle: string;
 	parsingLabel: string;
@@ -434,6 +425,8 @@ interface TranslationSet {
 		| 'languageLabel'
 		| 'allLanguages'
 		| 'empty'
+		| 'repoCount'
+		| 'starCount'
 		| 'entryTitle'
 		| 'analyzeOwn'
 		| 'loadingEntry'
@@ -730,9 +723,6 @@ const translations: Record<Locale, TranslationSet> = {
 			githubRateLimit: 'GitHub API 요청 한도에 걸렸습니다. 잠시 후 다시 시도하세요.',
 			githubPrivate: '비공개 저장소는 지원하지 않습니다.',
 			githubLoadError: 'GitHub 저장소를 불러오지 못했습니다.',
-			specLocal: '127.0.0.1에서 실행',
-			specVerified: '이름마다 검증',
-			specCoverage: '파일마다 커버리지 보고',
 			specOpenSource: '오픈 소스(MIT)',
 			exampleCta: '분석 예시 보기',
 			openMapCta: 'ropeman.json 열기',
@@ -741,13 +731,7 @@ const translations: Record<Locale, TranslationSet> = {
 			heroShotCaption:
 				'huggingface/transformers를 실제로 분석한 결과입니다. 눌러서 직접 살펴보세요.',
 			heroShotLink: 'huggingface/transformers 분석 예시 열기',
-			railLabel: '이 페이지',
-			navSetup: '시작하기',
-			navTry: '브라우저에서 써 보기',
 			navExample: '분석 예시',
-			navHow: '동작 방식',
-			measured: '모델 없이 파일 5,730개, 심볼 31,486개, import 28,378개를 7.2초에 읽었습니다.',
-			measuredSource: 'PASEO 저장소, 2026-11-13 측정',
 			dropRegion: '폴더 놓는 곳',
 			loadingTitle: '프로젝트 불러오는 중',
 			parsingLabel: '파일 파싱 중',
@@ -1230,6 +1214,8 @@ const translations: Record<Locale, TranslationSet> = {
 			searchLabel: '검색',
 			languageLabel: '언어',
 			allLanguages: '모든 언어',
+			repoCount: '저장소 {n}개',
+			starCount: '스타 {n}',
 			empty: '조건에 맞는 프로젝트가 없습니다.',
 			entryTitle: '{title} 아키텍처 | Ropeman 갤러리',
 			analyzeOwn: '내 프로젝트 분석하기',
@@ -1566,9 +1552,6 @@ const translations: Record<Locale, TranslationSet> = {
 			githubRateLimit: 'Hit the GitHub API rate limit. Try again later.',
 			githubPrivate: 'Private repositories are not supported.',
 			githubLoadError: "Couldn't load the GitHub repository.",
-			specLocal: 'Runs on 127.0.0.1',
-			specVerified: 'Every name verified',
-			specCoverage: 'Coverage for every file',
 			specOpenSource: 'Open source, MIT',
 			exampleCta: 'See an example',
 			openMapCta: 'Open a ropeman.json',
@@ -1576,13 +1559,7 @@ const translations: Record<Locale, TranslationSet> = {
 				"Ropeman analysis of huggingface/transformers: domain nodes and their links, with the selected node's files and key symbols on the right",
 			heroShotCaption: 'A real analysis of huggingface/transformers. Click to explore it.',
 			heroShotLink: 'Open the huggingface/transformers example',
-			railLabel: 'On this page',
-			navSetup: 'Get started',
-			navTry: 'Try in the browser',
 			navExample: 'Example',
-			navHow: 'How it works',
-			measured: 'Read 5,730 files, 31,486 symbols and 28,378 imports in 7.2 s, with no model.',
-			measuredSource: 'PASEO repository, measured 2026-11-13',
 			dropRegion: 'Folder drop area',
 			loadingTitle: 'Loading project',
 			parsingLabel: 'Parsing files',
@@ -2067,6 +2044,8 @@ const translations: Record<Locale, TranslationSet> = {
 			searchLabel: 'Search',
 			languageLabel: 'Language',
 			allLanguages: 'All languages',
+			repoCount: '{n} repositories',
+			starCount: '{n} stars',
 			empty: 'No projects match your filters.',
 			entryTitle: '{title} architecture | Ropeman Explore',
 			analyzeOwn: 'Analyze your own',

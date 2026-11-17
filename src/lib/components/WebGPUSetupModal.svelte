@@ -276,7 +276,6 @@
 	.di-title {
 		flex: 1;
 		font-size: var(--font-size-sm);
-		font-family: var(--font-display);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
 		overflow: hidden;

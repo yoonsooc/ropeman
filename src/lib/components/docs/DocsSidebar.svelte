@@ -62,7 +62,6 @@
 	}
 
 	.category-label {
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-secondary);
@@ -98,9 +97,9 @@
 	}
 
 	li a.active {
-		color: var(--color-accent);
-		background: var(--color-background-surface);
-		border-left-color: var(--color-accent);
+		color: var(--color-text-primary);
+		background: var(--color-background-muted);
+		border-left-color: transparent;
 		font-weight: var(--font-weight-semibold);
 	}
 

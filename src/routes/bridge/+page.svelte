@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { bridgeStore, type Naming } from '$lib/stores/bridgeStore.svelte';
@@ -238,7 +239,7 @@
 
 <div class="bridge-page" data-theme={themeStore.current}>
 	<header class="bridge-header">
-		<a href={resolve('')} class="bridge-logo">Ropeman</a>
+		<a href={resolve('')} class="bridge-logo"><Wordmark /></a>
 		{#if showingMap && bridgeStore.map}
 			<span class="bridge-project">{bridgeStore.map.project.name}</span>
 			<span class="bridge-badge" class:lost={status.state === 'lost'} data-testid="bridge-status">
@@ -461,10 +462,8 @@
 	}
 
 	.bridge-logo {
-		font-family: var(--font-display);
 		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		text-decoration: none;
 	}
 
@@ -510,13 +509,12 @@
 		gap: var(--spacing-1-5);
 		min-height: 32px;
 		padding: var(--spacing-1-5) var(--spacing-3);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		border: none;
-		border-radius: var(--radius-element);
-		font-family: var(--font-display);
+		border-radius: var(--radius-inner);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		cursor: pointer;
 		white-space: nowrap;
 		transition: opacity var(--duration-fast) var(--ease-standard);
@@ -670,8 +668,8 @@
 	}
 
 	.bridge-card h1 {
-		font-family: var(--font-display);
-		font-size: var(--font-size-2xl);
+		font-size: var(--font-size-xl);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);
 	}
 

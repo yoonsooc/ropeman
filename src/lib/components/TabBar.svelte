@@ -209,12 +209,11 @@
 		padding: 0 var(--spacing-3);
 		height: 36px;
 		font-size: var(--font-size-sm);
-		font-family: var(--font-display);
-		font-weight: var(--font-weight-bold);
-		letter-spacing: 0.02em;
+		font-weight: var(--font-weight-normal);
 		color: var(--color-text-secondary);
 		background: transparent;
 		border: none;
+		border-bottom: 2px solid transparent;
 		cursor: pointer;
 		white-space: nowrap;
 		transition:
@@ -232,8 +231,7 @@
 	.tab.active {
 		background: var(--color-background-surface);
 		color: var(--color-text-primary);
-		border-top: 2px solid var(--color-accent);
-		border-bottom: none;
+		border-bottom-color: var(--color-accent);
 	}
 
 	.tab.preview .tab-label {
@@ -248,7 +246,7 @@
 	}
 
 	.tab.active .tab-icon {
-		color: var(--color-accent);
+		color: var(--color-text-secondary);
 	}
 
 	.tab-label {

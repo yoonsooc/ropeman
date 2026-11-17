@@ -29,22 +29,22 @@ test.describe('Landing Page', () => {
 		await expect(ctaButton).toBeVisible();
 	});
 
-	test('should display language icons for supported languages', async ({ page }) => {
+	test('shows the example map with the three things it demonstrates', async ({ page }) => {
 		await gotoApp(page);
-		const icons = page.locator('.hero-lang');
-		await expect(icons).toHaveCount(8);
-	});
-
-	test('should display three feature cards', async ({ page }) => {
-		await gotoApp(page);
-		const cards = page.locator('.feature-card');
-		await expect(cards).toHaveCount(3);
+		const stage = page.locator('.landing-stage');
+		await expect(stage.locator('.hero-shot')).toHaveAttribute('href', '/explore/transformers');
+		await expect(stage.locator('.stage-facts dt')).toHaveText([
+			'A map from the code itself',
+			'Names checked against the code',
+			'Click to go deeper'
+		]);
 	});
 
 	test('should have theme toggle button in header', async ({ page }) => {
 		await gotoApp(page);
-		const themeBtn = page.locator('header .header-btn').filter({ hasText: /☀|☽/ });
+		const themeBtn = page.locator('header .theme-toggle');
 		await expect(themeBtn).toBeVisible();
+		await expect(themeBtn.locator('.material-symbols-outlined')).toHaveText(/light_mode|dark_mode/);
 	});
 
 	test('should have settings button in header', async ({ page }) => {
@@ -53,15 +53,13 @@ test.describe('Landing Page', () => {
 		await expect(settingsBtn).toBeVisible();
 	});
 
-	test('should have language toggle button', { tag: '@responsive' }, async ({ page }) => {
-		await gotoApp(page);
-		const langBtn = page.locator('header .lang-toggle');
-		const width = page.viewportSize()?.width ?? 1280;
-		if (width <= 430) {
-			// Phones keep language in Settings so every header control fits at 320px
-			await expect(langBtn).toBeHidden();
-		} else {
-			await expect(langBtn).toBeVisible();
+	// Phones used to hide the toggle and leave language in Settings only
+	test(
+		'keeps the language toggle in the header on every viewport',
+		{ tag: '@responsive' },
+		async ({ page }) => {
+			await gotoApp(page);
+			await expect(page.locator('header .lang-toggle')).toBeVisible();
 		}
-	});
+	);
 });

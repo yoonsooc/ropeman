@@ -149,8 +149,6 @@
 	--font-size-lg: 1.0625rem;
 	--font-size-xl: 1.25rem;
 	--font-size-2xl: 1.5rem;
-	--font-size-3xl: 1.8125rem;
-	--font-size-4xl: 2.1875rem;
 	--font-weight-normal: 400;
 	--font-weight-medium: 500;
 	--font-weight-semibold: 600;
@@ -165,7 +163,6 @@
 	--font-body:
 		'IBM Plex Sans', 'Ropeman Hangul', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR',
 		-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-	--font-display: var(--font-body);
 	--font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 
 	--header-height: 48px;
@@ -174,8 +171,6 @@
 	--bp-mobile: 430px;
 	--bp-tablet: 768px;
 	--bp-desktop: 1024px;
-
-	--landing-max-width: 1152px;
 }
 
 [data-theme='dark'] {
@@ -273,7 +268,6 @@ h3,
 h4,
 h5,
 h6 {
-	font-family: var(--font-display);
 	text-wrap: balance;
 }
 
@@ -410,7 +404,6 @@ a:hover {
 	font-size: var(--font-size-lg);
 	font-weight: var(--font-weight-bold);
 	color: var(--color-text-primary);
-	font-family: var(--font-display);
 }
 
 /* Modal close button */
@@ -638,7 +631,6 @@ a:hover {
 
 /* Section label (uppercase) */
 .section-label {
-	font-family: var(--font-display);
 	font-size: var(--font-size-sm);
 	font-weight: var(--font-weight-semibold);
 	color: var(--color-text-secondary);
@@ -690,7 +682,7 @@ a:hover {
 
 .notice-success {
 	background: var(--color-success-muted);
-	border-left: 3px solid var(--color-border-success);
+	border: 1px solid color-mix(in srgb, var(--color-border-success) 30%, transparent);
 }
 
 .notice-icon {

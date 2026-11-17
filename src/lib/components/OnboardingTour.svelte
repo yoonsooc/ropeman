@@ -402,7 +402,6 @@
 		color: var(--color-on-accent);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
-		font-family: var(--font-display);
 		letter-spacing: 0.05em;
 		flex-shrink: 0;
 	}
@@ -412,7 +411,6 @@
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);
-		font-family: var(--font-display);
 	}
 
 	.tour-tooltip-desc {

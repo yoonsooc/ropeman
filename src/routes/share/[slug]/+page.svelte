@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { page } from '$app/state';
 	import { onMount, onDestroy } from 'svelte';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
@@ -85,7 +86,7 @@
 <div class="share-page" data-theme={themeStore.current}>
 	<!-- Header -->
 	<header class="share-header">
-		<a href={resolve('')} class="share-logo">Ropeman</a>
+		<a href={resolve('')} class="share-logo"><Wordmark /></a>
 		<span class="share-project-name">{snapshotMeta?.projectName ?? ''}</span>
 		<span class="share-badge">
 			{i18nStore.t('shareView.badge')}
@@ -143,10 +144,8 @@
 	}
 
 	.share-logo {
-		font-family: var(--font-display);
 		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		text-decoration: none;
 	}
 
@@ -158,11 +157,11 @@
 
 	.share-badge {
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		padding: var(--spacing-0-5) var(--spacing-2);
-		border-radius: var(--radius-full);
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
+		border-radius: var(--radius-inner);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
 	}
 
 	.share-header-actions {
@@ -174,13 +173,12 @@
 		align-items: center;
 		gap: var(--spacing-1-5);
 		padding: var(--spacing-1-5) var(--spacing-3);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		border: none;
-		border-radius: var(--radius-element);
-		font-family: var(--font-display);
+		border-radius: var(--radius-inner);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		cursor: pointer;
 		text-decoration: none;
 		transition: opacity var(--duration-fast) var(--ease-standard);
@@ -239,7 +237,6 @@
 	}
 
 	.share-error h2 {
-		font-family: var(--font-display);
 		font-size: var(--font-size-2xl);
 		color: var(--color-text-primary);
 	}

@@ -8,6 +8,7 @@
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
+	import Wordmark from '$lib/components/Wordmark.svelte';
 
 	let {
 		onsettings,
@@ -61,10 +62,10 @@
 					title={i18nStore.t('header.home')}
 					aria-label="{i18nStore.t('title')}, {i18nStore.t('header.home')}"
 				>
-					{i18nStore.t('title')}
+					<Wordmark />
 				</button>
 			{:else}
-				{i18nStore.t('title')}
+				<Wordmark />
 			{/if}
 		</div>
 		{#if projectStore.projectName}
@@ -81,21 +82,7 @@
 				onclick={onnewproject}
 				title={i18nStore.t('newProject.title')}
 			>
-				<svg
-					aria-hidden="true"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-					<line x1="12" y1="11" x2="12" y2="17" />
-					<line x1="9" y1="14" x2="15" y2="14" />
-				</svg>
+				<span aria-hidden="true" class="material-symbols-outlined">create_new_folder</span>
 				<span class="btn-label">{i18nStore.t('header.newLabel')}</span>
 			</button>
 		{/if}
@@ -114,21 +101,7 @@
 					>
 					{projectStore.parsingProgress.done}/{projectStore.parsingProgress.total}
 				{:else}
-					<svg
-						aria-hidden="true"
-						width="14"
-						height="14"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2.5"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<polygon
-							points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-						/>
-					</svg>
+					<span aria-hidden="true" class="material-symbols-outlined">account_tree</span>
 					<span class="analyze-label">{i18nStore.t('header.analyze')}</span>
 				{/if}
 			</button>
@@ -140,9 +113,7 @@
 				disabled={!canShare}
 				title={i18nStore.t('share.button')}
 			>
-				<span aria-hidden="true" class="material-symbols-outlined" style="font-size:14px;"
-					>share</span
-				>
+				<span aria-hidden="true" class="material-symbols-outlined">share</span>
 				<span class="btn-label">{i18nStore.t('share.button')}</span>
 			</button>
 		{/if}
@@ -154,15 +125,17 @@
 			title={i18nStore.t('header.languageToggle')}
 			aria-label={i18nStore.t('header.languageToggle')}
 		>
-			{i18nStore.locale === 'ko' ? 'EN' : '\uD55C'}
+			<span aria-hidden="true" class="material-symbols-outlined">translate</span>
 		</button>
 		<button
-			class="header-btn"
+			class="header-btn theme-toggle"
 			onclick={() => themeStore.toggle()}
 			title="{i18nStore.t(themeStore.current === 'dark' ? 'lightMode' : 'darkMode')} (Ctrl+Shift+D)"
 			aria-label={i18nStore.t(themeStore.current === 'dark' ? 'lightMode' : 'darkMode')}
 		>
-			{themeStore.current === 'dark' ? '\u2600' : '\u263D'}
+			<span aria-hidden="true" class="material-symbols-outlined"
+				>{themeStore.current === 'dark' ? 'light_mode' : 'dark_mode'}</span
+			>
 		</button>
 		<a
 			class="header-btn header-link"
@@ -170,9 +143,7 @@
 			title={i18nStore.t('header.gallery')}
 			aria-label={i18nStore.t('header.gallery')}
 		>
-			<span aria-hidden="true" class="material-symbols-outlined" style="font-size:18px;"
-				>photo_library</span
-			>
+			<span aria-hidden="true" class="material-symbols-outlined">photo_library</span>
 		</a>
 		<a
 			class="header-btn header-link"
@@ -180,9 +151,7 @@
 			title={i18nStore.t('docs.headerLink')}
 			aria-label={i18nStore.t('docs.headerLink')}
 		>
-			<span aria-hidden="true" class="material-symbols-outlined" style="font-size:18px;"
-				>menu_book</span
-			>
+			<span aria-hidden="true" class="material-symbols-outlined">menu_book</span>
 		</a>
 		<button
 			class="header-btn"
@@ -190,9 +159,7 @@
 			title="{i18nStore.t('shortcuts.showHelp')} (?)"
 			aria-label={i18nStore.t('shortcuts.showHelp')}
 		>
-			<span aria-hidden="true" class="material-symbols-outlined" style="font-size:18px;"
-				>help_outline</span
-			>
+			<span aria-hidden="true" class="material-symbols-outlined">help_outline</span>
 		</button>
 		<button
 			class="header-btn"
@@ -201,22 +168,7 @@
 			title={i18nStore.t('settings')}
 			aria-label={i18nStore.t('settings')}
 		>
-			<svg
-				aria-hidden="true"
-				width="18"
-				height="18"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<circle cx="12" cy="12" r="3" />
-				<path
-					d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-				/>
-			</svg>
+			<span aria-hidden="true" class="material-symbols-outlined">settings</span>
 		</button>
 		{#if hasProject && trackInfo}
 			<button
@@ -272,9 +224,7 @@
 
 	.header-title {
 		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);
-		font-family: var(--font-display);
 	}
 
 	.home-btn {
@@ -319,16 +269,20 @@
 		padding: var(--spacing-1);
 		border-radius: var(--radius-inner);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
 		color: var(--color-text-secondary);
 		transition:
 			background-color var(--duration-fast) var(--ease-standard),
 			color var(--duration-fast) var(--ease-standard);
 	}
 
-	.header-btn :global(svg) {
-		width: 18px;
-		height: 18px;
+	.header-btn .material-symbols-outlined {
+		font-size: 18px;
+	}
+
+	.analyze-btn .material-symbols-outlined,
+	.share-btn .material-symbols-outlined,
+	.text-btn .material-symbols-outlined {
+		font-size: 16px;
 	}
 
 	@media (hover: hover) {
@@ -346,13 +300,12 @@
 		width: auto;
 		padding: var(--spacing-1) var(--spacing-3);
 		gap: var(--spacing-1-5);
-		background: var(--color-background-muted);
+		background: var(--color-background-surface);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-inner);
-		color: var(--color-accent);
-		font-family: var(--font-display);
+		color: var(--color-text-primary);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 	}
 
 	@media (hover: hover) {
@@ -370,13 +323,13 @@
 		align-items: center;
 		gap: var(--spacing-1-5);
 		padding: var(--spacing-1) var(--spacing-3);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		/* The one filled button in the header, in the text color rather than the accent */
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		border: none;
 		border-radius: var(--radius-inner);
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		cursor: pointer;
 		transition: opacity var(--duration-fast) var(--ease-standard);
 	}
@@ -397,13 +350,12 @@
 		align-items: center;
 		gap: var(--spacing-1-5);
 		padding: var(--spacing-1) var(--spacing-3);
-		background: var(--color-background-muted);
-		color: var(--color-accent);
+		background: var(--color-background-surface);
+		color: var(--color-text-primary);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-inner);
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		cursor: pointer;
 		transition:
 			opacity var(--duration-fast) var(--ease-standard),
@@ -412,7 +364,7 @@
 
 	@media (hover: hover) {
 		.share-btn:hover:not(:disabled) {
-			background: var(--color-background-surface);
+			background: var(--color-background-muted);
 		}
 	}
 
@@ -438,16 +390,16 @@
 		gap: var(--spacing-1-5);
 		padding: var(--spacing-0-5) var(--spacing-2);
 		margin-left: var(--spacing-1);
-		border-radius: var(--radius-full);
-		background: var(--color-accent-muted);
-		border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
+		border-radius: var(--radius-inner);
+		background: var(--color-background-surface);
+		border: 1px solid var(--color-border);
 		cursor: pointer;
 		transition: background var(--duration-fast) var(--ease-standard);
 	}
 
 	@media (hover: hover) {
 		.track-badge:hover {
-			background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+			background: var(--color-background-muted);
 		}
 	}
 
@@ -455,7 +407,7 @@
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: var(--color-accent);
+		background: var(--track-color);
 		flex-shrink: 0;
 		animation: trackPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 	}
@@ -472,8 +424,8 @@
 
 	.track-label {
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-accent);
+		font-weight: var(--font-weight-medium);
+		color: var(--color-text-secondary);
 	}
 
 	.header-divider {
@@ -509,9 +461,8 @@
 	}
 
 	/* Phones: every header control must fit at 320px, with or without a project.
-	   Language lives in Settings; the gallery and docs links are on the landing page. */
+	   The gallery and docs links are on the landing page. */
 	@media (max-width: 430px) {
-		.lang-toggle,
 		.header-divider,
 		.header-project,
 		.header-link,
@@ -524,15 +475,26 @@
 			padding-right: max(var(--spacing-3), env(safe-area-inset-right));
 		}
 
-		.header-btn,
-		.analyze-btn,
-		.share-btn {
-			min-width: 28px;
-			min-height: 28px;
+		.header-right {
+			gap: var(--spacing-0-5);
 		}
 
+		/* Seven 28px squares and the title fit 320px */
+		.header-btn,
+		.header-btn.text-btn,
+		.analyze-btn,
+		.share-btn {
+			width: 28px;
+			min-width: 28px;
+			height: 28px;
+			padding: 0;
+			justify-content: center;
+		}
+
+		/* While parsing it also shows the file count */
 		.analyze-btn {
-			padding: var(--spacing-1) var(--spacing-2);
+			width: auto;
+			padding: 0 var(--spacing-1-5);
 		}
 	}
 </style>

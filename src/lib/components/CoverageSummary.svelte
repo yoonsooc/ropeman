@@ -275,7 +275,7 @@
 
 	h2 {
 		margin: 0;
-		font: 600 14px var(--font-display);
+		font: 600 14px var(--font-body);
 	}
 
 	h3 {

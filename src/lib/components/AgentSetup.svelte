@@ -77,6 +77,9 @@
 		}
 	}
 
+	/** A command split after each `/`, so a long URL wraps between path segments */
+	const pathBreaks = (command: string) => command.split(/(?<=\/)/);
+
 	let installCode = $state<HTMLElement>();
 	let skillCode = $state<HTMLElement>();
 
@@ -124,17 +127,20 @@
 		<h3>{t('installTitle')}</h3>
 		<p>{t('installBody')}</p>
 		<div class="command">
-			<pre data-testid="install-command"><code bind:this={installCode}>{INSTALL}</code></pre>
+			<pre data-testid="install-command"><code bind:this={installCode}
+					>{#each pathBreaks(INSTALL) as part, i (i)}{#if i > 0}<wbr />{/if}{part}{/each}</code
+				></pre>
 			<button
 				type="button"
 				class="copy"
 				aria-label={t('copyInstall')}
+				title={t('copy')}
 				onclick={() => copyCommand(INSTALL, installCode)}
 			>
 				<span aria-hidden="true" class="material-symbols-outlined"
 					>{copied(INSTALL) ? 'check' : 'content_copy'}</span
 				>
-				<span>{copied(INSTALL) ? t('copied') : t('copy')}</span>
+				<span class="visually-hidden">{copied(INSTALL) ? t('copied') : t('copy')}</span>
 			</button>
 		</div>
 		{#if copyFailed(INSTALL)}
@@ -180,17 +186,21 @@
 			{:else}
 				<p>{t('skillBody', { agent: selected.name })}</p>
 				<div class="command">
-					<pre data-testid="skill-command"><code bind:this={skillCode}>{skillCommand}</code></pre>
+					<pre data-testid="skill-command"><code bind:this={skillCode}
+							>{#each pathBreaks(skillCommand) as part, i (i)}{#if i > 0}<wbr
+									/>{/if}{part}{/each}</code
+						></pre>
 					<button
 						type="button"
 						class="copy"
 						aria-label={t('copySkill', { agent: selected.name })}
+						title={t('copy')}
 						onclick={() => copyCommand(skillCommand, skillCode)}
 					>
 						<span aria-hidden="true" class="material-symbols-outlined"
 							>{copied(skillCommand) ? 'check' : 'content_copy'}</span
 						>
-						<span>{copied(skillCommand) ? t('copied') : t('copy')}</span>
+						<span class="visually-hidden">{copied(skillCommand) ? t('copied') : t('copy')}</span>
 					</button>
 				</div>
 				{#if copyFailed(skillCommand)}
@@ -267,7 +277,6 @@
 	}
 
 	h3 {
-		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-primary);
@@ -298,7 +307,7 @@
 		flex: 1;
 		min-width: 0;
 		margin: 0;
-		padding: var(--spacing-3) var(--spacing-4);
+		padding: var(--spacing-3);
 		font-family: var(--font-code);
 		font-size: var(--font-size-sm);
 		line-height: 1.6;
@@ -315,12 +324,14 @@
 		overflow-wrap: anywhere;
 	}
 
+	/* Icon only, so the command keeps the width; the label stays for screen readers */
 	.copy {
 		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-1);
+		align-items: flex-start;
+		justify-content: center;
 		flex-shrink: 0;
-		padding: 0 var(--spacing-3);
+		width: 36px;
+		padding-top: var(--spacing-3);
 		border-left: 1px solid var(--color-border);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-medium);
@@ -471,10 +482,20 @@
 		}
 
 		.copy {
+			width: auto;
 			justify-content: flex-end;
 			padding: var(--spacing-2) var(--spacing-3);
 			border-left: none;
 			border-top: 1px solid var(--color-border);
+		}
+
+		/* A phone has the room for the word under the command */
+		.copy .visually-hidden {
+			position: static;
+			width: auto;
+			height: auto;
+			clip-path: none;
+			margin-left: var(--spacing-1);
 		}
 
 		.shell-note {

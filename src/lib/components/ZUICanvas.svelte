@@ -655,21 +655,7 @@
 					onclick={() => (legendOpen = !legendOpen)}
 					title={i18nStore.t('legend.title')}
 				>
-					<svg
-						width="16"
-						height="16"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<rect x="3" y="3" width="7" height="7" />
-						<rect x="14" y="3" width="7" height="7" />
-						<rect x="3" y="14" width="7" height="7" />
-						<rect x="14" y="14" width="7" height="7" />
-					</svg>
+					<span aria-hidden="true" class="material-symbols-outlined">legend_toggle</span>
 				</button>
 				{#if legendOpen}
 					<div class="toolbar-dropdown legend-panel">
@@ -700,19 +686,7 @@
 				onclick={() => (showMinimap = !showMinimap)}
 				title={i18nStore.t('canvas.minimap')}
 			>
-				<svg
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<rect x="3" y="3" width="18" height="18" rx="2" />
-					<rect x="13" y="13" width="7" height="7" rx="1" fill="currentColor" opacity="0.3" />
-				</svg>
+				<span aria-hidden="true" class="material-symbols-outlined">map</span>
 			</button>
 
 			<!-- Export -->
@@ -722,20 +696,7 @@
 					onclick={() => (exportMenuOpen = !exportMenuOpen)}
 					title={i18nStore.t('shortcuts.exportDiagram')}
 				>
-					<svg
-						width="16"
-						height="16"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-						<polyline points="7 10 12 15 17 10" />
-						<line x1="12" y1="15" x2="12" y2="3" />
-					</svg>
+					<span aria-hidden="true" class="material-symbols-outlined">download</span>
 				</button>
 				{#if exportMenuOpen}
 					<div class="toolbar-dropdown export-menu">
@@ -757,19 +718,7 @@
 						onclick={() => (analysisRequestsOpen = !analysisRequestsOpen)}
 						title={i18nStore.t('canvas.analysisRequests')}
 					>
-						<svg
-							width="16"
-							height="16"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<circle cx="12" cy="12" r="10" />
-							<polyline points="12 6 12 12 16 14" />
-						</svg>
+						<span aria-hidden="true" class="material-symbols-outlined">schedule</span>
 						<span class="toolbar-badge">{semanticStore.analysisRequests.size}</span>
 					</button>
 					{#if analysisRequestsOpen}
@@ -786,18 +735,9 @@
 										onclick={() => semanticStore.cancelAnalysisRequest(req.nodeId)}
 										title={i18nStore.t('common.cancel')}
 									>
-										<svg
-											width="12"
-											height="12"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-											stroke-linecap="round"
-											stroke-linejoin="round"
+										<span aria-hidden="true" class="material-symbols-outlined cancel-icon"
+											>close</span
 										>
-											<line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-										</svg>
 									</button>
 								</div>
 							{/each}
@@ -1015,12 +955,11 @@
 		z-index: 5;
 		display: flex;
 		align-items: center;
-		gap: var(--spacing-1);
-		background: var(--color-background-popover);
+		gap: var(--spacing-0-5);
+		background: var(--color-background-body);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-element);
-		padding: var(--spacing-1);
-		box-shadow: var(--shadow-med);
+		padding: var(--spacing-0-5);
 	}
 
 	.toolbar-item {
@@ -1031,9 +970,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border-radius: var(--radius-element);
+		width: 28px;
+		height: 28px;
+		border-radius: var(--radius-inner);
 		background: transparent;
 		border: none;
 		color: var(--color-text-secondary);
@@ -1048,14 +987,22 @@
 		color: var(--color-text-primary);
 	}
 
+	.toolbar-btn .material-symbols-outlined {
+		font-size: 18px;
+	}
+
+	.cancel-icon {
+		font-size: 14px;
+	}
+
 	.toolbar-btn.active {
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 
 	.toolbar-dropdown {
 		position: absolute;
-		top: 40px;
+		top: 34px;
 		right: 0;
 		background: var(--color-background-popover);
 		border: 1px solid var(--color-border);
@@ -1107,7 +1054,7 @@
 
 	.legend-header {
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-tertiary);
 		padding: var(--spacing-1) var(--spacing-3) var(--spacing-2);
 		border-bottom: 1px solid var(--color-border);

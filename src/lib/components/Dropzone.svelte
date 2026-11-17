@@ -259,8 +259,8 @@
 									<img
 										class="shot-{locale} shot-{theme}"
 										src="/landing/explore-transformers-{locale}-{theme}.webp"
-										width="1600"
-										height="928"
+										width="2200"
+										height="1360"
 										alt={i18nStore.t('landing.heroShotAlt')}
 										decoding="async"
 										loading="lazy"
@@ -273,13 +273,7 @@
 					<dl class="stage-facts">
 						<div>
 							<dt>{i18nStore.t('landing.featureMapTitle')}</dt>
-							<dd>
-								{i18nStore.t('landing.measured')}
-								<a
-									href="https://github.com/yoonsooc/ropeman/blob/main/docs/measurements/2026-11-13-paseo-graphify-comparison.md"
-									>{i18nStore.t('landing.measuredSource')}</a
-								>
-							</dd>
+							<dd>{i18nStore.t('landing.featureMapDesc')}</dd>
 						</div>
 						<div>
 							<dt>{i18nStore.t('landing.featureVerifyTitle')}</dt>
@@ -425,25 +419,16 @@
 		cursor: copy;
 	}
 
+	/* Landing layout: a working pane on the left, the product itself filling the right pane */
 	.dropzone-content {
 		width: 100%;
-		max-width: var(--landing-max-width);
-		margin-top: var(--spacing-12);
-		margin-bottom: 64px;
-		padding: 0 var(--spacing-6);
 		color: var(--color-text-secondary);
-	}
-
-	/* Landing layout: a narrow working pane on the left, the product itself filling the right pane */
-	.dropzone-content {
-		max-width: none;
-		margin: 0;
-		padding: 0;
 	}
 
 	.landing {
 		display: grid;
-		grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+		/* Wide enough that the skill command breaks only at its path separators */
+		grid-template-columns: clamp(400px, 40vw, 600px) minmax(0, 1fr);
 		grid-template-rows: auto auto auto 1fr;
 		min-height: calc(100dvh - var(--header-height));
 	}
@@ -599,17 +584,10 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	.stage-facts a,
 	.try-link,
 	.landing-footer a {
 		color: var(--color-accent);
 		text-underline-offset: 3px;
-	}
-
-	.stage-facts a {
-		display: block;
-		margin-top: var(--spacing-1);
-		color: var(--color-text-tertiary);
 	}
 
 	.try-body {
@@ -780,6 +758,16 @@
 	}
 
 	@media (max-width: 720px) {
+		/* A phone shows the left of the canvas at a size its text can be read */
+		.hero-shot {
+			aspect-ratio: 5 / 4;
+		}
+
+		.hero-shot img {
+			width: 180%;
+			max-width: none;
+		}
+
 		/* On a phone the hero paragraph already says how naming and drill-down work */
 		.stage-facts > div:not(:first-child) {
 			display: none;
@@ -860,7 +848,6 @@
 	}
 
 	.loading-text h2 {
-		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-primary);

@@ -60,16 +60,15 @@
 	}
 
 	.article-header {
-		margin-bottom: var(--spacing-10);
-		padding-bottom: var(--spacing-6);
+		margin-bottom: var(--spacing-8);
+		padding-bottom: var(--spacing-5);
 		border-bottom: 1px solid var(--color-border);
 	}
 
 	.article-header h1 {
-		font-family: var(--font-display);
-		font-size: var(--font-size-4xl);
+		font-size: var(--font-size-2xl);
 		font-weight: var(--font-weight-semibold);
-		line-height: 1.2;
+		line-height: 1.3;
 		margin: 0 0 var(--spacing-3);
 		color: var(--color-text-primary);
 	}
@@ -82,19 +81,19 @@
 	}
 
 	.docs-content :global(h2) {
-		font-family: var(--font-display);
-		font-size: 26px;
+		font-size: var(--font-size-xl);
 		font-weight: var(--font-weight-semibold);
-		margin: var(--spacing-12) 0 var(--spacing-4);
+		line-height: 1.35;
+		margin: var(--spacing-10) 0 var(--spacing-3);
 		color: var(--color-text-primary);
 		scroll-margin-top: 72px;
 	}
 
 	.docs-content :global(h3) {
-		font-family: var(--font-display);
-		font-size: var(--font-size-xl);
+		font-size: var(--font-size-lg);
 		font-weight: var(--font-weight-semibold);
-		margin: var(--spacing-8) 0 var(--spacing-3);
+		line-height: 1.4;
+		margin: var(--spacing-7) 0 var(--spacing-2);
 		color: var(--color-text-primary);
 		scroll-margin-top: 72px;
 	}
@@ -157,12 +156,12 @@
 	}
 
 	.docs-content :global(blockquote) {
-		border-left: 3px solid var(--color-accent);
+		border: 1px solid var(--color-border);
 		padding: var(--spacing-2) var(--spacing-4);
 		margin: var(--spacing-4) 0;
 		background: var(--color-background-surface);
 		color: var(--color-text-secondary);
-		border-radius: 0 var(--radius-element) var(--radius-element) 0;
+		border-radius: var(--radius-element);
 	}
 
 	.docs-content :global(table) {

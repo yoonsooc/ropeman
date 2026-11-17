@@ -41,6 +41,24 @@ curl --create-dirs -fsSLo ~/.cursor/skills/ropeman/SKILL.md https://raw.githubus
 
 설치가 끝나면 에이전트에게 "map this repo"(이 저장소 지도 그려 줘)라고 요청합니다. 에이전트가 지도를 만들고 위 두 단계에 이름을 붙여 코드와 맞는지 검사한 뒤, `ropeman serve`를 띄우고 열어 볼 `http://127.0.0.1:9800/bridge#token=…` 주소를 알려 줍니다.
 
+### 이미 있는 그래프 파일 쓰기
+
+`ropeman map`은 기본으로 Ropeman이 직접 저장소를 읽습니다. 다른 도구가 이미 그 저장소의 그래프 파일을 만들어 두었다면, 그 파일로 지도를 만들 수도 있습니다. 이 기능은 `@ropeman/bridge` 다음 릴리스에 들어갑니다. 0.5.0에는 없습니다.
+
+`ropeman map`은 `graphify-out/graph.json`과 `.graphicle/graph.json`에서 그래프 파일을 찾습니다. 파일이 있어도 알아서 바꾸지 않습니다.
+
+- 터미널에서 실행하면 어느 입력을 쓸지 묻습니다. 첫 번째 선택지가 Ropeman 자체 추출이고 기본값입니다.
+- 에이전트가 실행하면 지도를 쓰지 않고 선택지만 보여 줍니다. 에이전트가 선택지를 알려 주고, 고른 답을 `--input`으로 넘깁니다.
+
+선택지에는 그래프 파일마다 크기, 바뀐 시각, 만든 도구, 디스크의 코드 파일 중 몇 개를 담았는지가 나옵니다. 지도에는 그래프에 든 파일만 나오므로, 90%보다 적게 담은 그래프에는 경고가 붙습니다. 직접 고르려면 파일 경로나 `ropeman`을 넘기세요.
+
+```bash
+ropeman map --root . --out .ropeman --input graphify-out/graph.json
+ropeman map --root . --out .ropeman --input ropeman
+```
+
+고른 입력은 `--out` 폴더에 남아서 다음 실행도 같은 입력을 씁니다. Ropeman은 Graphify나 다른 도구를 설치하거나 실행하지 않습니다. 읽는 형식은 Graphify의 `graph.json` 하나이고, 다른 형식은 이유와 함께 거부합니다. 이렇게 정한 이유는 [ADR-28](https://github.com/yoonsooc/ropeman/blob/main/docs/adr/0028-graph-file-as-chosen-input.md)에 있습니다.
+
 아래 퀵스타트는 설치 없이 브라우저에서 쓰는 방법입니다.
 
 ## 30초 퀵스타트 (데모 모드)

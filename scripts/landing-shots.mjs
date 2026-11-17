@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Takes the landing's hero screenshots (`static/landing/explore-transformers-<locale>-<theme>.webp`,
- * 1600x928) from the published huggingface/transformers gallery page, once per language and theme:
+ * 2200x1360) from the published huggingface/transformers gallery page, once per language and theme:
  *
  *   node scripts/landing-shots.mjs [origin]
  *
@@ -18,7 +18,10 @@ import { chromium } from 'playwright';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const OUT = path.join(ROOT, 'static/landing');
-const SHOT = { width: 1600, height: 928 };
+// A 1100x680 window at twice the pixels: the landing shows it near its own size, so the cards'
+// text stays readable, where a wider window shrank it below 7px
+const SHOT = { width: 1100, height: 680 };
+const SCALE = 2;
 /** The part the shot selects: small enough that the panel shows its key symbols under its files */
 const SELECTED = 'Maintenance scripts';
 const QUALITY = 0.8;
@@ -59,6 +62,7 @@ async function main() {
 				// The header and the tab bar sit above the shot, so the page is that much taller
 				const context = await browser.newContext({
 					viewport: { width: SHOT.width, height: SHOT.height + 200 },
+					deviceScaleFactor: SCALE,
 					locale: locale === 'ko' ? 'ko-KR' : 'en-US'
 				});
 				await context.addInitScript(

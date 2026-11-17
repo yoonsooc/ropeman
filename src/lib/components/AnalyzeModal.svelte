@@ -622,7 +622,6 @@
 		padding: var(--spacing-1) var(--spacing-3);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
-		font-family: var(--font-display);
 	}
 	.start-btn.wide {
 		width: 100%;

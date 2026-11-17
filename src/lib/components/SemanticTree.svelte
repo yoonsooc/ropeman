@@ -382,7 +382,6 @@
 	}
 
 	.node-label {
-		font-family: var(--font-display);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -434,7 +433,7 @@
 	}
 
 	.tree-reanalyze-btn:hover {
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
+		background: var(--color-background-muted);
+		color: var(--color-text-primary);
 	}
 </style>

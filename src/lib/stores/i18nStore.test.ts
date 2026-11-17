@@ -76,7 +76,10 @@ describe('i18nStore', () => {
 				'landing.headlineAccent',
 				'landing.dropRegion',
 				'landing.loadingTitle',
-				'landing.parsingLabel'
+				'landing.parsingLabel',
+				'landing.navExample',
+				'explore.repoCount',
+				'explore.starCount'
 			];
 			for (const locale of ['ko', 'en'] as const) {
 				settingsStore.language = locale;
@@ -216,6 +219,36 @@ describe('i18nStore', () => {
 			expect([...ko.keys()].sort()).toEqual([...en.keys()].sort());
 			for (const [path, value] of [...ko, ...en]) {
 				expect(typeof value === 'string' && value.trim().length > 0, path).toBe(true);
+			}
+		});
+
+		// The landing once quoted an extraction time and file counts; a model or extractor change
+		// would leave such a number stale, so the landing carries none
+		it('keeps measured times and counts out of the landing copy', () => {
+			for (const locale of ['ko', 'en'] as const) {
+				// Arrange
+				const landing = [...messagesFor(locale)].filter(([path]) => path.startsWith('landing.'));
+
+				for (const [path, value] of landing) {
+					// Assert
+					expect(value, path).not.toMatch(/\d[\d,.]*\s*(s|ms|seconds?|초)(?![a-z])|\d{1,3},\d{3}/);
+				}
+			}
+		});
+
+		it('fills the gallery counts in both languages', () => {
+			for (const locale of ['ko', 'en'] as const) {
+				// Arrange
+				settingsStore.language = locale;
+
+				// Act
+				const repos = i18nStore.t('explore.repoCount', { n: 12 });
+				const stars = i18nStore.t('explore.starCount', { n: '169k+' });
+
+				// Assert
+				expect(repos).toContain('12');
+				expect(stars).toContain('169k+');
+				expect(`${repos}${stars}`).not.toMatch(/\{\w+\}|★/);
 			}
 		});
 

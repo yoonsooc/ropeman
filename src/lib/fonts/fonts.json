@@ -1,6 +1,7 @@
 {
 	"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
 	"icons": [
+		"account_tree",
 		"add",
 		"arrow_back",
 		"article",
@@ -17,7 +18,9 @@
 		"code",
 		"coffee",
 		"content_copy",
+		"create_new_folder",
 		"css",
+		"dark_mode",
 		"data_object",
 		"delete",
 		"deployed_code",
@@ -44,6 +47,8 @@
 		"key_off",
 		"keyboard_arrow_down",
 		"keyboard_arrow_up",
+		"legend_toggle",
+		"light_mode",
 		"link_off",
 		"lock",
 		"map",
@@ -60,12 +65,14 @@
 		"psychology",
 		"refresh",
 		"rule",
+		"schedule",
 		"settings",
 		"settings_input_component",
 		"share",
 		"shield_lock",
 		"stop_circle",
 		"terminal",
+		"translate",
 		"upload_file",
 		"verified_user",
 		"visibility_off",
@@ -118,9 +125,9 @@
 		},
 		{
 			"file": "material-symbols-outlined.woff2",
-			"source": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=add,arrow_back,article,auto_awesome,block,bolt,build,cable,check,check_circle,chevron_right,close,cloud,code,coffee,content_copy,css,data_object,delete,deployed_code,description,download,error,expand_less,expand_more,explore_off,fact_check,folder,folder_open,front_hand,gavel,help,help_outline,home,hourglass_empty,html,image,info,inventory_2,javascript,key_off,keyboard_arrow_down,keyboard_arrow_up,link_off,lock,map,memory,menu,menu_book,open_in_browser,open_in_new,photo_library,play_arrow,play_circle,power_off,progress_activity,psychology,refresh,rule,settings,settings_input_component,share,shield_lock,stop_circle,terminal,upload_file,verified_user,visibility_off,vpn_key,warning,zoom_in",
-			"sha256": "4326a8abe9d9e4f5df0b665bd57397c904a94b7336f3bc765b097dbeba21d4b7",
-			"bytes": 7920
+			"source": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=account_tree,add,arrow_back,article,auto_awesome,block,bolt,build,cable,check,check_circle,chevron_right,close,cloud,code,coffee,content_copy,create_new_folder,css,dark_mode,data_object,delete,deployed_code,description,download,error,expand_less,expand_more,explore_off,fact_check,folder,folder_open,front_hand,gavel,help,help_outline,home,hourglass_empty,html,image,info,inventory_2,javascript,key_off,keyboard_arrow_down,keyboard_arrow_up,legend_toggle,light_mode,link_off,lock,map,memory,menu,menu_book,open_in_browser,open_in_new,photo_library,play_arrow,play_circle,power_off,progress_activity,psychology,refresh,rule,schedule,settings,settings_input_component,share,shield_lock,stop_circle,terminal,translate,upload_file,verified_user,visibility_off,vpn_key,warning,zoom_in",
+			"sha256": "101d439c475becf3e81f65c88b5646f1c10412237ff3fe7a6cb45ec68cb85326",
+			"bytes": 8580
 		}
 	],
 	"licenses": [

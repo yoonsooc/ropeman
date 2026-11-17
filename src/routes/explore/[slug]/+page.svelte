@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Wordmark from '$lib/components/Wordmark.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { semanticStore } from '$lib/stores/semanticStore.svelte';
@@ -103,7 +104,7 @@
 
 <div class="explore-page" data-theme={themeStore.current}>
 	<header class="explore-header">
-		<a href={resolve('')} class="explore-logo">Ropeman</a>
+		<a href={resolve('')} class="explore-logo"><Wordmark /></a>
 		<a href={resolve('explore')} class="back-link">
 			← {i18nStore.t('explore.navLabel')}
 		</a>
@@ -190,10 +191,8 @@
 	}
 
 	.explore-logo {
-		font-family: var(--font-display);
 		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		text-decoration: none;
 	}
 
@@ -220,11 +219,11 @@
 
 	.badge {
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		padding: var(--spacing-0-5) var(--spacing-2);
-		border-radius: var(--radius-full);
-		background: var(--color-accent-muted);
-		color: var(--color-accent);
+		border-radius: var(--radius-inner);
+		background: var(--color-background-muted);
+		color: var(--color-text-secondary);
 	}
 
 	.header-actions {
@@ -248,13 +247,12 @@
 		display: inline-flex;
 		align-items: center;
 		padding: var(--spacing-1-5) var(--spacing-3);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-text-primary);
+		color: var(--color-background-body);
 		border: none;
-		border-radius: var(--radius-element);
-		font-family: var(--font-display);
+		border-radius: var(--radius-inner);
 		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-bold);
+		font-weight: var(--font-weight-medium);
 		cursor: pointer;
 		text-decoration: none;
 	}
@@ -301,7 +299,6 @@
 	}
 
 	.state h2 {
-		font-family: var(--font-display);
 		font-size: 22px;
 		color: var(--color-text-primary);
 		margin: 0;

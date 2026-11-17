@@ -161,7 +161,6 @@
 		color: var(--color-on-accent);
 		border: none;
 		border-radius: var(--radius-element);
-		font-family: var(--font-display);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
 		cursor: pointer;

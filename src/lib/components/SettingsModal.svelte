@@ -475,7 +475,6 @@
 		border-radius: var(--radius-inner);
 		font-size: var(--font-size-sm);
 		font-weight: var(--font-weight-bold);
-		font-family: var(--font-display);
 		color: var(--color-on-error-muted);
 		background: var(--color-error-muted);
 		border: none;
@@ -681,7 +680,6 @@
 	/* Settings-specific label override: Stitch 10px uppercase */
 	.settings-section :global(.form-label) {
 		font-size: var(--font-size-sm);
-		font-family: var(--font-display);
 		font-weight: var(--font-weight-bold);
 		color: var(--color-text-tertiary);
 		margin-bottom: var(--spacing-1);
