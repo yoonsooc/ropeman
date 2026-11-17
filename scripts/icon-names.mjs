@@ -177,7 +177,7 @@ export function iconNames(files) {
 // character, an HTML entity or a JavaScript escape
 const STAND_IN_CHAR = /[×‹›←-⇿⌀-⏿■-➿⬀-⯿\u{1f300}-\u{1faff}]/u;
 const STAND_IN_ENTITY = /&(?:times|rsaquo|lsaquo|rarr|larr|uarr|darr|check|#\d+|#x[0-9a-f]+);/gi;
-const STAND_IN_ESCAPE = /\\u(?:\{[0-9a-f]+\}|[0-9a-f]{4})/gi;
+const STAND_IN_ESCAPE = /\\u(?:\{[0-9a-f]+\}|d[89ab][0-9a-f]{2}\\ud[c-f][0-9a-f]{2}|[0-9a-f]{4})/gi;
 const INLINE_SVG = /<svg\b/;
 
 /** Files that may keep a stand-in, each with the reason */
@@ -226,14 +226,23 @@ const NAMED = {
 
 function decodeEntity(entity) {
 	const body = entity.slice(1, -1).toLowerCase();
-	if (body.startsWith('#x')) return String.fromCodePoint(parseInt(body.slice(2), 16));
-	if (body.startsWith('#')) return String.fromCodePoint(Number(body.slice(1)));
+	if (body.startsWith('#x')) return codePoint(parseInt(body.slice(2), 16));
+	if (body.startsWith('#')) return codePoint(Number(body.slice(1)));
 	return NAMED[body];
 }
 
 function decodeEscape(escape) {
-	const hex = escape.slice(2).replace(/[{}]/g, '');
-	return String.fromCodePoint(parseInt(hex, 16));
+	if (escape.startsWith('\\u{')) return codePoint(parseInt(escape.slice(3, -1), 16));
+	// A surrogate pair such as \uD83D\uDCC1 decodes to one emoji
+	return escape
+		.split('\\u')
+		.filter(Boolean)
+		.map((hex) => String.fromCharCode(parseInt(hex, 16)))
+		.join('');
+}
+
+function codePoint(n) {
+	return n <= 0x10ffff ? String.fromCodePoint(n) : '';
 }
 
 function hasIconClass(element, source) {

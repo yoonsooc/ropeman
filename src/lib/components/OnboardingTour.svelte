@@ -90,8 +90,12 @@
 		const vw = window.innerWidth;
 		const vh = window.innerHeight;
 		const before = el.getBoundingClientRect();
-		// The landing scrolls, so a target below the fold would leave the tooltip off screen
-		if (before.top < 0 || before.bottom > vh) el.scrollIntoView({ block: 'center' });
+		const isLargeElement = before.width > vw * 0.6 && before.height > vh * 0.6;
+		// The landing scrolls, so a target below the fold would leave the tooltip off screen. A
+		// large target gets the tooltip over itself, and scrolling it could move a hidden-overflow body
+		if (!isLargeElement && (before.top < 0 || before.bottom > vh)) {
+			el.scrollIntoView({ block: 'nearest' });
+		}
 		const rect = el.getBoundingClientRect();
 		const padding = 8;
 
@@ -105,10 +109,6 @@
 		let top: number;
 		let left: number;
 		let arrow: string;
-
-		// Large element detection: if element covers most of the viewport,
-		// place tooltip centered over the element instead of outside it
-		const isLargeElement = rect.width > vw * 0.6 && rect.height > vh * 0.6;
 
 		if (isLargeElement) {
 			// Center the tooltip within the element
@@ -149,11 +149,8 @@
 		}
 
 		// The pointer sits over the target's center even when the tooltip is clamped to the viewport
-		const edge = 20;
 		const pointerAt =
-			arrow === 'arrow-left'
-				? Math.min(Math.max(rect.top + rect.height / 2 - top, edge), tooltipHeight - edge)
-				: Math.min(Math.max(rect.left + rect.width / 2 - left, edge), tooltipWidth - edge);
+			arrow === 'arrow-left' ? rect.top + rect.height / 2 - top : rect.left + rect.width / 2 - left;
 		tooltipStyle = `top:${top}px;left:${left}px;width:${tooltipWidth}px;--pointer-at:${pointerAt}px;`;
 		arrowClass = arrow;
 	}
@@ -341,21 +338,21 @@
 	}
 	.tour-tooltip.arrow-top::before {
 		top: calc(var(--spacing-3) / -2);
-		left: var(--pointer-at, 50%);
+		left: clamp(20px, var(--pointer-at, 50%), calc(100% - 20px));
 		transform: translateX(-50%) rotate(45deg);
 		border-top-width: 1px;
 		border-left-width: 1px;
 	}
 	.tour-tooltip.arrow-bottom::before {
 		bottom: calc(var(--spacing-3) / -2);
-		left: var(--pointer-at, 50%);
+		left: clamp(20px, var(--pointer-at, 50%), calc(100% - 20px));
 		transform: translateX(-50%) rotate(45deg);
 		border-right-width: 1px;
 		border-bottom-width: 1px;
 	}
 	.tour-tooltip.arrow-left::before {
 		left: calc(var(--spacing-3) / -2);
-		top: var(--pointer-at, 50%);
+		top: clamp(20px, var(--pointer-at, 50%), calc(100% - 20px));
 		transform: translateY(-50%) rotate(45deg);
 		border-bottom-width: 1px;
 		border-left-width: 1px;

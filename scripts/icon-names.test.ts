@@ -166,7 +166,15 @@ describe('iconStandIns', () => {
 
 	it('finds the character, its entity, its escape and an inline SVG', () => {
 		const files = [
-			svelte(['<button>&#10005;</button>', '<a>Next →</a>', "const icon = '\\u2713';"].join('\n')),
+			svelte(
+				[
+					'<button>&#10005;</button>',
+					'<a>Next →</a>',
+					"const icon = '\\u2713';",
+					"const folder = '\\uD83D\\uDCC1';",
+					'<b>&#1114112;</b>'
+				].join('\n')
+			),
 			{ path: 'src/B.svelte', source: '<svg viewBox="0 0 24 24"></svg>' }
 		];
 
@@ -174,6 +182,7 @@ describe('iconStandIns', () => {
 			'src/A.svelte:1',
 			'src/A.svelte:2',
 			'src/A.svelte:3',
+			'src/A.svelte:4',
 			'src/B.svelte:1'
 		]);
 	});

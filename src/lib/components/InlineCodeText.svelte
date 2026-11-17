@@ -14,7 +14,7 @@
 	.inline-code {
 		font-family: var(--font-code);
 		font-size: 0.92em;
-		color: var(--color-text-primary);
+		color: inherit;
 		white-space: nowrap;
 	}
 </style>
