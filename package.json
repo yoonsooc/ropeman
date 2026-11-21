@@ -67,7 +67,7 @@
 		"@orama/orama": "^3.1.5",
 		"@xyflow/svelte": "^1.7.1",
 		"html-to-image": "^1.11.13",
-		"marked": "^17.0.3",
+		"marked": "^18.2.0",
 		"prism-themes": "^1.9.0",
 		"prismjs": "^1.30.0",
 		"web-tree-sitter": "^0.27.2"
